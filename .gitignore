@@ -13,7 +13,8 @@ venv/
 *.swp
 
 # Claude Code local state (scheduled tasks, agent caches)
-.claude/
+.claude/*
+!.claude/skills/
 
 # hexa-codex runtime state (cli/hexa-codex.hexa appends to state/)
 state/

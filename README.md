@@ -86,6 +86,8 @@ preregistered hypothesis, not a validated capability claim.
 
 ### SAFETY (6)
 
+> Domain SSOT: [`SAFETY.md`](SAFETY.md) · history [`SAFETY.log.md`](SAFETY.log.md)
+
 | Verb | Spec |
 |------|------|
 | `alignment` | [`alignment/ai-alignment.md`](alignment/ai-alignment.md) — HELM-12-axis alignment-score aggregator (F-CODEX-3) |
@@ -97,6 +99,8 @@ preregistered hypothesis, not a validated capability claim.
 
 ### ECONOMICS (3)
 
+> Domain SSOT: [`ECONOMICS.md`](ECONOMICS.md) · history [`ECONOMICS.log.md`](ECONOMICS.log.md)
+
 | Verb | Spec |
 |------|------|
 | `train_cost` | [`train_cost/ai-training-cost.md`](train_cost/ai-training-cost.md) — Chinchilla-fit N^J₂ scaling (F-CODEX-1) |
@@ -104,6 +108,8 @@ preregistered hypothesis, not a validated capability claim.
 | `quality_scale` | [`quality_scale/ai-quality-scale.md`](quality_scale/ai-quality-scale.md) — HumanEval+/hexa-eval aggregate |
 
 ### OPS (4)
+
+> Domain SSOT: [`OPS.md`](OPS.md) · history [`OPS.log.md`](OPS.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -113,6 +119,8 @@ preregistered hypothesis, not a validated capability claim.
 | `eval` | [`eval/ai-eval-pipeline.md`](eval/ai-eval-pipeline.md) — Mk handoff eval template |
 
 ### SUBSTRATE (4)
+
+> Domain SSOT: [`SUBSTRATE.md`](SUBSTRATE.md) · history [`SUBSTRATE.log.md`](SUBSTRATE.log.md)
 
 | Verb | Spec |
 |------|------|

@@ -13,8 +13,9 @@
 The ECONOMICS group is the **3-verb cost surface** of the codex: what
 does it cost to train a model of size N, to serve it at context length
 C, and what quality does that buy? Each verb is a closed-form scaling
-candidate + falsifier preregister, fit against external reference models
-(Chinchilla / GPT-3 / Llama-2 / PaLM / Claude 4.7).
+candidate fit against external reference models (Chinchilla / GPT-3 /
+Llama-2 / PaLM / Claude 4.7); `train_cost` and `infer_cost` additionally
+preregister a falsifier (F-CODEX-1 / F-CODEX-2).
 
 ## Verbs (3)
 
@@ -39,13 +40,24 @@ This group is one of the **τ(6) = 4** quadrants of the codex taxonomy.
 
 - J₂ = σ·φ = 24 → the `train_cost` scaling exponent `N^24`.
 - τ(6) = 4 → the `infer_cost` context exponent `context^4`.
+- φ(6)/σ(6) = 2/12 = 1/6 → the `quality_scale` loss-fit exponent
+  `α = β = 1/6` (Chinchilla `loss = E + A·N^-α + B·D^-β`).
 
 ## State (v1.0.0 — RELEASED)
 
-Spec-first: all 3 verbs ship a closed-form scaling candidate + falsifier
-preregister. **0 verbs wired**, **0 eval pipelines**. F-CODEX-1 /
-F-CODEX-2 **arithmetic floors PASS** (closed-form algebra is self-proving
-via `verify/falsifier_check.py`); empirical curve fits PENDING.
+Spec-first: all 3 verbs ship a closed-form scaling candidate. **0 verbs
+wired**, **0 eval pipelines** — production wiring is v1.2.0+ roadmap.
+
+Verification surface (recipe §3 ladder — see `docs/closure_status.md`):
+
+- `train_cost` (F-CODEX-1) / `infer_cost` (F-CODEX-2) — T1 algebraic +
+  T2 numerical/solver + T3 published-ref parity all PASS; the closed-form
+  arithmetic floor is self-proving via `verify/falsifier_check.hexa`.
+  Empirical curve fits PENDING (F-CODEX-1 → v1.2.0, F-CODEX-2 → v1.3.0).
+- `quality_scale` — reached recipe §3 closure on 2026-05-23, the first
+  non-falsifier ECONOMICS verb to do so: T1 `calc_quality_scale.hexa`,
+  T2 `numerics_quality_scale{,_solver}.hexa`, T3
+  `numerics_quality_scale_parity.hexa` (8 + 10 + 10 + 10 checks).
 
 ## Roadmap — v1.2.0 (2026-10, PLANNED · group focus = economics)
 
@@ -58,5 +70,5 @@ via `verify/falsifier_check.py`); empirical curve fits PENDING.
 
 - `.roadmap.hexa_codex` §A.4 — falsifier preregister · §A.2 — release cadence
 - `README.md` — Falsifier preregister · Release ladder
-- `verify/falsifier_check.py` · `verify/n6_arithmetic.py`
+- `verify/falsifier_check.hexa` · `verify/lattice_check.hexa` · `docs/closure_status.md` — runnable verify surface
 - Sister groups: [`SAFETY.md`](SAFETY.md) · [`OPS.md`](OPS.md) · [`SUBSTRATE.md`](SUBSTRATE.md)

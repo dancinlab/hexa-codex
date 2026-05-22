@@ -6,6 +6,25 @@
 
 ---
 
+## 2026-05-23 — quality_scale §3 verify ladder closed
+
+`quality_scale` gains its full recipe §3 verification ladder — the
+first non-falsifier ECONOMICS verb to reach §3 closure:
+
+- T1 — `verify/calc_quality_scale.hexa` (8 algebraic checks)
+- T2 — `verify/numerics_quality_scale.hexa` + `_solver.hexa` (10 + 10)
+- T3 — `verify/numerics_quality_scale_parity.hexa` (10 checks)
+
+The ladder fits the Chinchilla loss surface `loss = E + A·N^-α + B·D^-β`
+with the n=6 lattice exponent `α = β = φ(6)/σ(6) = 1/6`. T2 verifies
+loss-surface shape only (monotone decreasing, floored at the
+irreducible loss E) — the Chinchilla A/B coefficients pair with a
+measured ≈0.34 exponent, not the n=6 1/6, so absolute loss is
+intentionally not asserted. T3 ties the 1/6 exponent to the geometric
+mean of the Kaplan-2020 and Hoffmann-2022 published loss-scaling
+exponents. Commits `89e810d` (T1), `80136fe` (T2/T3), `46b0971`
+(verify-surface restoration).
+
 ## 2026-05-23 — domain doc opened
 
 `ECONOMICS.md` / `ECONOMICS.log.md` created in the per-domain root-SSOT

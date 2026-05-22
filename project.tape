@@ -8,5 +8,5 @@
   ssot   = "github.com/dancinlab/hexa-codex (`hx install hexa-codex`)"
 
 @D cx_hf_complete := "HF registration — complete, no missing artifacts" :: governance [required active]
-  do   = "register every shipped model / dataset / checkpoint to HuggingFace Hub COMPLETELY — weights · config · tokenizer · model card · eval results all present; verify the HF repo file manifest matches local before declaring done"
-  dont = "partial HF upload (missing weights / config / tokenizer / eval) · model card referencing files not actually uploaded · leave the HF repo out of sync with local artifacts"
+  do   = "register every model / dataset / ckpt to HF Hub COMPLETE — all artifacts present · manifest = local"
+  dont = "partial HF upload · model card referencing un-uploaded files · HF repo out of sync with local"

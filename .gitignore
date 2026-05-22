@@ -38,6 +38,5 @@ lm_foundry/logs/
 lm_foundry/bench-cold/
 wandb/
 # local idea memo (not for publication)
-lm_foundry/IDEA.md
 # manifest backups
 lm_foundry/eval/**/*.bak

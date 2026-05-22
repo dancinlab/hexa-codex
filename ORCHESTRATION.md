@@ -2,8 +2,8 @@
 
 > **Domain doc** (per dancinlab-wide `domain-meta-domain` principle: per-topic
 > roadmap as root `UPPERCASE.md`). Current state lives in the spec sections
-> below; chronological build history at `## Log` (bottom) cross-references
-> ROADMAP §CHANGELOG entries.
+> below; chronological build history at `## Log` (bottom) — the full
+> per-round chronicle lives in [`ORCHESTRATION.log.md`](ORCHESTRATION.log.md).
 
 **Status:** SPEC · v0.5.5 · 2026-05-14 · supersedes
 `papers/spec-orchestration-v0.5.0.md` (the v0.5.0 base) AND obsoletes §4 / §10 of
@@ -21,7 +21,7 @@ forge code-LLM.
 - `tool/score_orchestration_mk0.py` — DLG-mk0 evaluator (§10)
 - `eval/delegation-mk0/manifest.jsonl` — 200-task routing eval (reused)
 
-**Reference round notes** in ROADMAP §CHANGELOG:
+**Reference round notes** in [`ORCHESTRATION.log.md`](ORCHESTRATION.log.md):
 r44 (classifier) · r45 (forge wire-up) · r46 (tier routing) · r47 (OpenAI+Gemini SDKs) · r48 (quota+cache) · r49 (reason-class split).
 
 ---
@@ -651,9 +651,9 @@ existing weights:
 
 ## 14. Bookmarks
 
-- `LEARNING_PROGRAMMING.md` §8 — round-by-round SFT/RL/orchestration recipe table (r1 through r62)
+- [`LEARNING_PROGRAMMING.log.md`](LEARNING_PROGRAMMING.log.md) Part 1 — condensed SFT/RL/orchestration recipe ledger (r1–r72)
 - `LEARNING_PROGRAMMING.md` §12 — original delegation thesis (now archived; superseded by v0.5.0)
-- ROADMAP §CHANGELOG r40-r62 — round-by-round narrative with honesty caveats
+- [`ORCHESTRATION.log.md`](ORCHESTRATION.log.md) — round-by-round narrative r40–r72 with honesty caveats
 - `bench/score-orchestration-mk0-r55/` — r55 score artifacts (latest classifier patterns)
 - `bench/score-brier-mk0-r55/` — calibration artifacts (Brier 0.0242 / ECE 0.0461)
 - `bench/score-e2e-r53/` — r53 end-to-end production smoke artifacts ($0.43 spend across 24 prompts)
@@ -735,7 +735,7 @@ existing weights:
 
 ## Log
 
-Chronological build history (cross-ref ROADMAP §CHANGELOG for full per-round narratives):
+Chronological build history (full per-round narratives in [`ORCHESTRATION.log.md`](ORCHESTRATION.log.md)):
 
 - **2026-05-14 r44** — v0.5.0 architecture line OPENED. Pre-7B keyword
   classifier `tool/classify_prompt.py` (~440 LOC). DLG-mk0 classifier

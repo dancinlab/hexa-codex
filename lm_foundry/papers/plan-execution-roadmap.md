@@ -305,5 +305,5 @@ are paper / sampling / infra — survivable on a laptop + sample storage.
   [`tier-c-findings.md`](tier-c-findings.md) ·
   [`tier-e-findings.md`](tier-e-findings.md)
 - Recipe spec: [`../docs/code-llm.md`](../docs/code-llm.md)
-- Existing TODO buckets: [`../TODO.md`](../TODO.md) — superseded for v0.1.x by this roadmap
+- Existing TODO buckets: [`../../LEARNING_PROGRAMMING.md`](../../LEARNING_PROGRAMMING.md) §15 (absorbed TODO.md) — superseded for v0.1.x by this roadmap
 - hexa-codex sister specs: see [`../docs/code-llm.md` Cross-link policy](../docs/code-llm.md#cross-link-policy)

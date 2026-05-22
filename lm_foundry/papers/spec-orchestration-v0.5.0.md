@@ -1,6 +1,6 @@
 # Pre-7B orchestration routing — v0.5.0 architecture line
 
-> **⚠️ SUPERSEDED by [`../ORCHESTRATION.md`](../ORCHESTRATION.md)** (r50, 2026-05-14;
+> **⚠️ SUPERSEDED by [`../../ORCHESTRATION.md`](../../ORCHESTRATION.md)** (r50, 2026-05-14;
 > moved to root as `ORCHESTRATION.md` per dancinlab `domain-meta-domain`
 > convention — per-topic roadmap as root `UPPERCASE.md`, one domain = one file).
 > This document captures the v0.5.0 base design. The consolidated

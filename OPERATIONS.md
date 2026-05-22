@@ -434,10 +434,11 @@ For production-relevant context: vendor-call latency is typically
 ## 10. Bookmarks
 
 - [`ORCHESTRATION.md`](ORCHESTRATION.md) — runtime spec (the "what")
-- [`ROADMAP.md`](ROADMAP.md) — per-round narrative (r1–r63)
+- [`ORCHESTRATION.log.md`](ORCHESTRATION.log.md) — per-round runtime chronicle (r40–r72)
 - [`LEARNING_PROGRAMMING.md`](LEARNING_PROGRAMMING.md) — recipe + training history
+- [`LEARNING_PROGRAMMING.log.md`](LEARNING_PROGRAMMING.log.md) — specialist chronicle (r1–r39)
 - [`LATTICE_POLICY.md`](LATTICE_POLICY.md) — dancinlab real-limits standard
-- [`bench/`](bench/) — per-round score artifacts (latest: r55 orch, r55 brier, r53 e2e)
+- [`lm_foundry/bench/`](lm_foundry/bench/) — per-round score artifacts (latest: r55 orch, r55 brier, r53 e2e)
 
 ---
 

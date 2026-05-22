@@ -48,7 +48,8 @@ Two seed verbs:
 | ECE (10-bin) | **0.0461 GOOD** (passes <0.05 strict threshold) |
 | Refuse-stage zero-bleed | **25/25 = 100%** (r51 NEW patterns verified end-to-end) |
 
-Full per-round narrative through r62 in `ROADMAP.md §CHANGELOG`.
+Full per-round chronicle in [`../LEARNING_PROGRAMMING.log.md`](../LEARNING_PROGRAMMING.log.md)
+(specialist r1–r39) + [`../ORCHESTRATION.log.md`](../ORCHESTRATION.log.md) (runtime r40–r72).
 
 ## Architecture (v0.5.x → ORCHESTRATION.md)
 
@@ -81,10 +82,10 @@ SQLite WAL multi-process safe (r61). Production observability via
 
 | path | what |
 |------|------|
-| `LEARNING_PROGRAMMING.md` | the SSOT for "what the code-LLM must know" — 14 sections incl. hexa-canon, operator skills (Vast/HF/R2/Docker), Claude/OpenAI/Gemini API surfaces, Wilson |
-| `LEARNING_BIO.md` | same, for the bio verb |
-| `ROADMAP.md` | per-round narrative — r1 through **r62**; complete documented recipe with every failure mode preserved |
-| **`ORCHESTRATION.md`** | **canonical spec for the v0.5.x runtime stack** (root domain doc per `domain-meta-domain` convention) — 15 sections + ## Log |
+| `../LEARNING_PROGRAMMING.md` + `.log.md` | code-LLM domain SSOT (repo root) — "what the code-LLM must know"; `.log.md` = r1–r72 ledger + absorbed ROADMAP chronicle |
+| `../LEARNING_BIO.md` | bio-LLM domain SSOT scaffold (repo root) |
+| `../ORCHESTRATION.md` + `.log.md` | v0.5.x runtime stack spec (repo root domain doc) + r40–r72 chronicle |
+| `../OPERATIONS.md` · `../V0_6_0_GA.md` | runtime runbook (10 §) + v0.6.0 GA accounting (repo root) |
 | `LATTICE_POLICY.md` | universal real-limits standard (dancinlab-wide) |
 | `LIMIT_BREAKTHROUGH.log.md` | this project's real-limits audit per LATTICE_POLICY |
 | `papers/` | design docs — `spec-lever4-compile-rl.md`, `plan-v0.3.0-structural.md`, `spec-delegation-v0.4.0.md` (OBSOLETE §4/§10), `spec-orchestration-v0.5.0.md` (SUPERSEDED), per-tier findings |
@@ -95,7 +96,6 @@ SQLite WAL multi-process safe (r61). Production observability via
 | `bench/` | per-round score artifacts (orchestration / brier / e2e) |
 | `bench-cold/` | local per-round bench pulls — **gitignored**; SoT is HF `dancinlab/hexa-forge-bench-cold-v0.1.3` |
 | `datasets.toml` | dataset registry |
-| `IDEA.md` | local idea memo on LLM-UX pain points — **gitignored** |
 
 ### `tool/` — orchestration runtime (v0.5.x)
 

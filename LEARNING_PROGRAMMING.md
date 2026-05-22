@@ -6,8 +6,9 @@
 >
 > This file is the single source of truth for "what should the model be able to
 > do." When a new domain is added, append a row to the relevant table and bump
-> the SFT round that introduced it. Provenance for each item: `papers/*.md`,
-> ROADMAP `§CHANGELOG`, and the `tool/build_sft_dataset_v*.py` chain.
+> the SFT round that introduced it. Provenance for each item:
+> `lm_foundry/papers/*.md`, the [`LEARNING_PROGRAMMING.log.md`](LEARNING_PROGRAMMING.log.md)
+> chronicle, and the `lm_foundry/tool/build_sft_dataset_v*.py` chain.
 
 Last updated: 2026-05-12 (v0.2.0-r9 round).
 
@@ -197,147 +198,12 @@ Source: `~/core/anima/config/runpod.json` (schema 2.1, "100% 무결점 수렴 �
 
 ---
 
-## 8. SFT recipe lessons (the iteration log, condensed)
+## 8. SFT recipe lessons — relocated
 
-| round | change | hexa-eval STRICT | 5-NL STRICT | lesson |
-| --- | --- | --- | --- | --- |
-| r1 | canon raw-dump + refusal Q/A (format imbalance) | 0% | 40% | **format imbalance** → "any User-template = refuse" over-refusal |
-| r2 | unified `### User:/### Assistant:` template | 14% | 64% | format fixed; still **content imbalance** (refusal 20%, too high) |
-| r3 | semantic canon Q/A + refusal ≤10% + HumanEval accept | 39% | 100%(loose) | canon facts start landing (T2/T5/T6 0→33%); no helpfulness tax |
-| r4 | gap-targeted (atlas/enum/HX/yes-no/F3) | **60.7%** | (92%) | T3/T6/T8 0→50/67/80; T4 regressed 100→33 |
-| r5 | + Swift file-continuation pairs | 50% | 80% | **continuation pairs dilute** structured competence — don't add raw file continuations |
-| r6 | Apple Q/A only (no continuation) | 53.6% | 92% | Swift knowledge stays; no dilution |
-| r7 | atlas/enum/HX boost | 60.7% | 92% | back to r4 level WITH Apple |
-| r8 | + 7 new domains (Dart/PyTorch/BIP39/Zig/Discord/Playwright/TOML) | 60.7% | **100%** | breadth added with **zero hexa regression**; BIP39/Zig-build shaky |
-| r9 | BIP39 constants + modern Zig build + atlas/enum/HX re-boost | 46.4% (Mk.0.1) | 100% | first-look 46% was **noise** — confirmed by r10 below; the Mk.I manifest (665 tasks) is the fix |
-| r10 | + 31 RunPod/cloud-GPU ops Q/A (from anima runbook) | 57.1% (Mk.0.1) / **59.3% (Mk.I)** | 96% | r9's 46% was variance ✓. r10 = best adapter on the stable Mk.I set; loss 1.546 |
-| (bench) | r8 vs r10 on **Mk.I 665** (stable) | r8 54.7% / r10 59.3% | — | T1 94%, T6 77%, T3 70%, T8 65%, T2 61%, T7 57%, T4 56%, **T5 5%** (scorer-format bug, not knowledge) |
-| r11 | data formats (JSON/JSONL/YAML/Markdown, owner req) + 100 T5 HX bare-code + 36 T7 layering | **63.5% (Mk.I)** / 64.3% (Mk.0.1) | 96% | **best adapter + PRODUCTION** (adapter + GGUF f16 + Q5_K_M). T5 5→25, T8 65→79. loss 1.542 |
-| r12 | + 200 T5 bare-code + 60 T4 decl-only + 40 T7 ruled + 30 T2 explicit | 61.2% (Mk.I) | 96% | **tradeoff** — T2 59→78, T7 55→67 (clean exemplars work) BUT bulk T5 backfired (degenerate output; T5 25→16, T3 65→40, T8 79→64). Kept as labeled artifact. loss 1.507 |
-| r13 | v11 base + ONLY r12's working blocks (30 T2-explicit + 40 T7-ruled) | 62.3% (Mk.I) | 96% | careful round — T3 65→96 ✓ but T1 96→87, T2 59→50, T8 79→69; net flat. plateau confirmed |
-| v0.3.0 (r29) | 7B base, v11 dataset, NF4-on-12GB score (unfair) | 63.2% (Mk.I, old) / 68.27% (Mk.I corrected) | 96% | **Lever 1 negative** — bigger base alone ≠ break the plateau; ≈ tied with 3B r11 |
-| v0.3.0-r2 (r30) | **7B base, v14 dataset = v11 − 120 fictional-T5 + 142 real-canon Q/A**, bf16 score | **72.33% (Mk.I corrected)** | **100%** | **Lever 2 properly used** → **+4.06pp** on apples-to-apples (mk1c vs mk1c). **T3 +20pp, T7 +13.8pp, T8 +5pp** — targeted canon Q/A trains medium-arbitrariness families. **T5 still 41.7%** (under-shot the ~200 table-derived pairs target). Highest result so far; still short of gate ③ (≥80%) |
-| v0.3.0-r3 (r31) | **7B base, v15 dataset = v11 − 120 fictional-T5 + 692 *table-rooted* T5 (6 templates × every (family,desc), saturating BOTH eval templates)**, bf16 score | **77.74% (Mk.I)** / T5 **99.0%** (95/96), T7 **98.3%** | **100%** | **T5 solved** — table-rooted paraphrase volume is the right intervention for arbitrary-canon families. **+5.41pp overall**. BUT new regressions: **T2 −12pp** (atlas annotation diluted), **T8 −16pp** (refusal pair ratio fell 4% → 3.4%), **T6 −4.6pp** (4-part triple format diluted). Gate ③ now **2.26pp away**; the path is **rebalance, not new lever** |
-| v0.3.0-r4 (r32) | **7B base, v16 dataset = v11 base + 400 table-rooted T5 (trimmed from 600) + 50 stage→family + 35 specific HX + 7 full-table + 60 T2 atlas-annotation NEW + 51 T6 4-part triple NEW + 80 refusal boost (refuse ratio 6.0%→7.6%)**, bf16 score | **77.14% strict / 85.11% quote-tolerant (Mk.I)** | **96%** (F3 NL-JA-004 fail = empty-gold manifest bug, not model) | **Rebalance worked, scorer artifact masked it.** T2 60→93 (+33pp), T6 91→98.5 (+7.6pp), T8 69→82.5 (+13.7pp) ALL recovered as designed. **T3 7.5% strict is a `byte_exact_subset` scorer artifact** — model emits canonical `until="DATE"` (quoted), gold has unquoted `until=DATE`; quote-normalize → T3 = 71.2% (best ever for T3); overall = **85.11%, gate ③ closed**. T7 89.7% (−8.6) = real regression — refusal-block bare `no` answer-shape collided with T7's yes/no answer-space. Cost ~$2.27, 45.5 min |
-| v0.3.0-r5 Phase A (r33) | **r4 adapter unchanged; `manifest-mk1.jsonl` T3 gold normalized 80/80 from `until=DATE` → `until="DATE"`** (canonical hexa quoted-date idiom matching the adapter's actual emission). Re-scored locally using saved per-task completions + score_bf16.py scorer logic. | **83.76% strict (Mk.I)** = 557/665 | 96% (unchanged) | **Gate ③ CLOSED by +3.76pp under strict scoring** — no tolerance crutch. T3 7.5 → **63.7%** (+56.2pp) on the same r4 adapter — confirms the r4 collapse was 100% scorer/manifest artifact, not capacity. T2 −1 = benign 300-char completion-truncation artifact. r4 adapter is the **v0.3.0 GA candidate**. Cost ≈ $0, ~5 min. |
-| v0.3.0-r5 Phase B (r33, deferred) | **`tool/build_sft_dataset_v17.py` ready** — re-uses v16 generators via importlib + adds `gen_t7_layering_yes_no()` (50 pairs, 26 yes + 24 no, eval-shaped prompts with bare yes/no first-word answers + short layering reason). 3140 rows verified locally. Payload staged at `ubu1:/tmp/pod5/`. | n/a (not executed) | n/a | **Deferred** — 4 consecutive RunPod pod-creates this session got `uptimeSeconds=0` indefinite stuck-RUNNING (cross-datacenter IN→US, cross-gpu-pool H100 SXM→H100 NVL→A100 SXM): **platform-wide RunPod incident**, $0 billed (all pods deleted before any uptime). Run when platform recovers (`runpodctl pod create` cycle). Target: strict ≥ 85% Mk.I, T7 89.7 → ~98%. |
-| v0.3.0-r5 Phase B EXECUTED (r34) on **Vast.ai A100** | **Same v17 dataset (3140 rows) trained on Vast.ai A100 SXM4 80GB CZ ($1.07/hr × 1.5h ≈ \$1.61).** Two fixes en-route: (1) `train_sft_lora.py` argv `--model/--lora-r/--lora-alpha/--batch-size/--grad-accum` (not `--base/--rank/...`), (2) `train_sft_lora.py` line 113 `max_length=` → `max_seq_length=` (TRL 0.12.2 compat). Same 7B/LoRA r=64/3 ep/bf16 recipe. Training 27.3 min on A100 (final loss 1.18). | **76.69% strict (Mk.I)** = 510/665 | **100%** (25/25, F3 NL-JA-004 manifest bug resolved) | **Mixed — T7 fix works in isolation but breaks T3 quoted-form.** T7 89.7→**96.6%** (+6.9pp 🎯 — the intended fix landed). 5-NL 96→**100%** ✅. **But T3 63.7→11.2% (−52.5pp ⚠)** — the model regressed from canonical `until="DATE"` (quoted) back to `until=DATE` (unquoted), breaking Phase A's manifest alignment. 50 new T7 pairs (1.6% of rows) somehow flipped T3's quote-form learning. Also T5 −8.4 / T6 −4.6 dilution. Net overall **−7.07pp vs r4 + Phase A (83.76 → 76.69)**. **r5 adapter is a labeled artifact, NOT GA** — r4 + Phase A remains the v0.3.0 GA candidate. Adapter LIVE. |
-| v0.4.0-rl-t4 v1 (r36) on Vast.ai A100 FR | **Compile-feedback RL via GRPO.** Starting policy = r4 adapter; KL anchor 0.04; LR 1e-6; group=4, batch=4; 2 epochs; 300 prompts (33% generic-bait). TRL 0.17.0 native GRPO; reward = two-stage (structural guard + real `hexa_cc` compile). Cost ~\$1.5, 50 min. | **84.06% strict (Mk.I)** = 559/665 | 96% | **Net flat on T4** — T4 unchanged at 55%, model preserved Rust-style generic emission despite RL signal. KL=0.04 too anchor-tight + 33% bait too sparse a gradient. **+0.30pp overall** from sideways T2 +2 / T8 +2.5. Adapter LIVE as labeled experiment. |
-| **v0.4.0-rl-t4 v2 (r36)** on Vast.ai A100 FR | **v1 params relaxed**: KL 0.04 → **0.01** (less anchor), LR 1e-6 → **5e-6** (5×), epochs 2 → **4**, generic-bait 33% → **67%** (oversample eval distribution). Same 300-prompt set + same reward. Cost ~\$2.3, 60 min train+score+push. Train: 22.2 min × 1200 steps, final loss 0.006, final reward 1.0. | **87.67% strict (Mk.I)** = 583/665 | 96% | **THE FIRST DECISIVE COMPILE-RL WIN.** **T4 55→77 (+22pp 🎯)**, T2 +4, T3 +1.3, T6 unchanged, T7 −1.8 (within ±2pp tol). Overall **+3.91pp vs r4+PhaseA** (83.76→87.67). 23 T4 remaining fails: 12 are eval-manifest defects (struct variants — hexa-canon-invalid), 11 are pure-generic still amenable to more RL. Adapter LIVE. |
-| **v0.4.0-rl-t4 v2 re-score (r37) — manifest fix — NEW v0.4.0 GA** | Same v2 adapter, no retrain. `eval/hexa-eval/manifest-mk1.jsonl` T4 struct-variant prompts normalized: 12 prompts `Foo { x: T1, y: T2 }` → `Foo(T1, T2)` (tuple variant — hexa-canon has no struct variants; the original 12 were eval design defects). Re-scored on Vast.ai A100 JP (~$0.7, 35 min). | **89.47% strict (Mk.I)** = 595/665 | 96% | **T4 77→89% (+12pp)**, overall **+1.80pp** (87.67→89.47). All other families unchanged. T4's 11 remaining fails = pure-generic (`Option<T>` etc.) — Lever 4 v3 (more RL / higher generic-bait) would close them → ~91%. **v0.4.0 GA candidate at 89.47%; gates ③④ closed with room.** Forge ladder: 54.7 → ... → 83.76 → 87.67 → **89.47** (+34.77pp from first 3B run). |
-| **v0.4.0-rl-t4 v3 (r38) — Lever 4 v3 + T4-body manifest fix — v0.4.0 GA-candidate (superseded by r39)** | **Two interventions one round.** (1) `tool/build_rl_t4_prompts.py` expanded 20→30 specs: added Option/Result/Validated/Tree/Triple + multi-param Either<E,T>/Pair<A,B> + general-lesson Items<Vec>/Container<Box> bait — **v2 RL hadn't generalised to untrained names like `Option<T>` (the strongest Rust prior)**; per-spec `<gp>` bait, 67%→80% bait ratio, 5 epochs. (2) `eval/hexa-eval/manifest-mk1.jsonl` Phase-A on 8 T4 prompts: 4× Validated `Invalid(Vec<String>)`→`Invalid(StringList)`, 4× Tree `Node(Box<Tree<T>>,Box<Tree<T>>)`→`Node(Tree, Tree)` — pod canon probe confirmed `<` field-position types parse-error like on decls. Started from v2 adapter; KL=0.01 LR=5e-6 group=4 batch=4. Vast A100 SXM4 **40GB** CZ ($0.48/hr — half the 80GB price; 7B GRPO fits with grad_checkpointing). Train 98.85min × 12000 rollouts, final loss 0.009, reward 1.0 saturated, KL=0.92 nat. Cost ~\$2.1, 3h20m wall. | **90.98% strict (Mk.I)** = 605/665 | **100%** (25/25) | **T4 89→100% (+11pp)** 🎯, T8 +5, T2 +1, 5-NL +4. **T3 −6.2pp ⚠** — third occurrence of [[t3-quote-fragility]]: KL=0.92 of T4-only RL drift flipped 5 prompts from `until="DATE"` (quoted) → `until=DATE` (unquoted). Slightly exceeds §9 ±5pp gate, but gate ③ closes with 10.98pp room → v3 is GA. **Overall +1.51pp** vs r37; +35.78pp from first 3B run. **Forge ladder: 87.67 → 89.47 → 90.98.** Adapter LIVE; Lever 4 CLOSED — T4 at practical ceiling. T3 patch queued for r39. |
-| **v0.4.0-rl-t4-v3-t3patch (r39) — T3 quote-fragility patch + §12 spec — NEW v0.4.0 GA** | **30-pair T3 SFT continuation from v3 adapter.** `tool/build_sft_t3_patch.py` (NEW) — 30 `@grace` pairs (held-out function names + HX8NNN codes), all gold canonical quoted `until="DATE"`. `tool/train_sft_lora.py` extended with `--adapter-in` flag to continue-SFT from an existing LoRA. SFT 2 epochs × LR 5e-5 (half normal) × batch 1 grad_accum 8 — minimal-perturbation continue-train. **Train 13.25 seconds** (6 optimization steps). Vast A100 SXM4 40GB DE ($0.71/hr, contract 36640354). Cost **~\$0.7**, 40 min wall. ALSO drafted `papers/spec-delegation-v0.4.0.md` (354 lines) in parallel during the pod run — v0.4.x architecture spec opens. | **94.29% strict (Mk.I)** = 627/665 | **96%** (24/25) | **T3 58.8→100% (+41.2pp)** 🎯🎯, T8 +2.5pp bonus, T1/T4/T7 unchanged. **T2 −10pp / T6 −3pp / T5 −1pp / 5-NL F3 −20pp "regressions" are scorer artifacts being exposed, not capability loss** — per-task diff confirms all flips are cases where v3's long rambling answers incidentally contained gold substrings (matching `byte_exact_subset` scorer) and r39's clean concise answers don't; the underlying model choice is the same wrong answer v3 made, just no longer hidden behind elaboration. **r39 = the more honest capability number.** Overall **+3.31pp vs v3**, +4.82pp vs r37. **Forge ladder: 89.47 → 90.98 → 94.29.** +39.59pp from first 3B run. Adapter LIVE; v0.4.0 GA. **§12 line OPENED** — next round is v0.4.0 delegation implementation (forge_runtime.py + build_sft_dataset_v18.py + eval/delegation-mk0/ + score_delegation_mk0.py + one SFT round). |
-| **v0.4.0-delegate (r40) — v0.4.0 SFT implementation — labeled experiment, NOT GA** | `tool/build_sft_dataset_v18.py` (NEW, 840-pair delegation block per spec §10 — 200 in-domain-high + 220 OOD-delegate varied vendor/tier + 100 mid-confidence + 80 ambiguous-clarify + 80 delegate-result-integration + 70 failure-mode + 50 security-refuse + 40 no-delegation-override) + `tool/run_pod_v040_delegate.sh` (NEW, Mk.I + 5-NL + DLG-mk0 in one pod session). Continued SFT from r39 v3-t3patch on v18 = v11 base (2521) + 840 new pairs = 3361 rows. 1 epoch × LR 5e-5 × batch 1 grad_accum 8 × max-seq 1024 per spec §11. **Train 11.84 min** (420 opt steps × 0.591 steps/s, final loss 0.86). Vast A100 40GB Slovenia (\$0.67/hr, contract 36645026). Cost **~\$0.45, 30 min wall**. | **82.71% strict (Mk.I)** = 550/665 | **60%** (15/25) | **NOT GA — every spec §11 gate missed.** Real regressions: T4 100→77% (**Lever 4 RL gains erased by SFT — same LoRA gradient shared between RL+SFT**), T1 97.6→76.5% (over-delegation on in-domain), T8 90→68.8% / 5-NL 96→60% (refusal-shape diluted), DLG-mk0 overall **0.7652** (vs 0.85 soft gate). DLG-mk0 per-category: in-domain s_route=86% (some over-delegate), **OOD-delegate s_route=30%** (model learned delegate SHAPE schema=91.5% but not WHEN to use it). **Lesson [[lever4-rl-sft-conflict]]**: serial RL→SFT can undo RL — SFT on shared LoRA over-writes the RL gains unless the SFT data reinforces them. 840 OOD/delegate pairs (25% of total) over-shifted the model. Adapter LIVE as labeled-experiment. **r39 v3-t3patch (94.29%) UNCHANGED as v0.4.0 GA.** v0.4.1 plan: (1) rebalance v18 (base×2 dilution + larger OOD + T4-reinforcement pairs) + (3) gentler LR (2e-5) + 2 epochs. Routing-RL (option 2) deferred to v0.4.2 if (1)+(3) plateau. |
-| **v0.4.1-delegate (r41) — rebalanced SFT — also NOT GA; SFT-only delegation training disproved** | `tool/build_sft_dataset_v19.py` (NEW, v0.4.1 generator) + `tool/run_pod_v041.sh` (NEW, gentler recipe). **v19 = v11 base × 2 (5042) + v18 blocks (840) + 4 new blocks** (50 T4-RL-reinforce + 30 over-delegate-counter + 30 refusal-shape + 60 OOD-extension) = 6052 rows; **delegation share 9.1%** (vs r40's 25%). Continued SFT from r39 v3-t3patch (NOT r40 — drifted). **LR 2e-5** (half r40's), **2 epochs**, batch 1 × grad_accum 8 × max-seq 1024 per [[lever4-rl-sft-conflict]] safe recipe. **Train 39.4 min** × 1512 steps × 0.632/s, final loss 0.80. Vast A100 40GB Slovenia ($0.67/hr, contract 36648090). Cost **~\$1.04, 60 min wall**. | **83.01% strict (Mk.I)** = 552/665 | **52%** (13/25, worse than r40!) | **NOT GA — every spec §11 gate again missed**, basically flat vs r40. T4 77→73 (Block I 50 T4-reinforce pairs INEFFECTIVE — RL decision boundary needs RL signal, not SFT examples), T8 68.8 unchanged (Block K refusal-shape 30 pairs INEFFECTIVE — too few), 5-NL 60→52 (refusal shape diluted further). DLG-mk0 overall 0.7760 (+1.08pp vs r40, still <0.85 gate). DLG per-cat: **security s_route +13pp** (60→73, K+dilution helped here), OOD s_route +5 (30→35, still bad), **long-context s_route −30pp** (90→60, OOD-extension misrouted long-ctx). **5 hard lessons from r40+r41:** (1) SFT-only training can't escape specialist-vs-routing tradeoff in 7B+LoRA; (2) RL decision boundary can't be reinforced by 50 SFT examples (12k rollouts vs 50 ex = 0.4% data); (3) Refusal shape needs ≥ 100 pairs OR non-SFT signal; (4) OOD-extension causes cross-dimension routing artifacts (improves OOD but breaks long-context); (5) 5-NL is a non-trivial cross-family casualty of delegation training. **Architectural conclusion**: v0.4.2 must be routing-RL (GRPO with binary route-correctness reward on 200-prompt training set drawn from DLG-mk0, KL-anchored to r39 v3-t3patch, ~$2-3 / 3h pod). r39 v3-t3patch UNCHANGED as GA. r41 LIVE as 2nd labeled experiment. |
-| **v0.4.3-route-rl-hybrid (r43) — SFT-bootstrap + routing-RL + full-DLG reward — DLG-mk0 IDENTICAL to r42 (0.449); 4th labeled experiment; greedy-eval misses tail routing** | `tool/build_sft_delegate_bootstrap.py` (NEW, 40 explicit `<\|delegate\|>` pairs across 4 categories) + `tool/train_rl_grpo_routing.py` (`--reward-kind {full\|binary}`, `--pre-flight-check`, default temp 0.9) + `tool/run_pod_v043.sh`. **Hybrid pipeline**: stage [3a] SFT bootstrap 1 ep × LR 2e-5 (10.2 s, loss 1.96 — partial fit by design) on r39 v3-t3patch; stage [3b] pre-flight = 3/10 rollouts emit `<\|delegate\|>` at temp 0.9 (> threshold, GRPO non-collapse); stage [3c] GRPO from bootstrap with **full DLG-mk0 weighted reward (0.40·route + 0.20·band + 0.15·tool + 0.15·tier + 0.10·schema)** + KL=0.02 (vs r42's 0.01) + LR 5e-6 + temp 0.9 + 4 ep × 200 prompts × group 4 = 3200 rollouts. **Train 2h 33m**. Vast A100 40GB CZ ($0.80/hr, contract 36681333). Cost **~\$2.0, 3h wall**. | **93.98% strict (Mk.I)** = 625/665 (within 0.31pp of GA) | **100%** (25/25, held vs r42) | **NOT GA — DLG-mk0 BIT-FOR-BIT IDENTICAL to r42 (0.449)** despite 98/200 completion differences. **Diagnosis: GRPO trained routing in the sampling-tail; greedy eval misses it.** Pre-flight showed 3/10 emit at temp 0.9 post-bootstrap, but score_delegation_mk0.py uses do_sample=False (greedy) → 0/200 emit at score time, vs r42's same 0/200. KL=0.02 anchor pulled the high-probability mode back to r39 baseline (which never emitted delegate); bootstrap signal became a low-mass tail. Specialist held: Lever 4 T4=100, 5-NL 100, T8 87.5→90 (+2.5pp bonus). **Fifth v0.4.x lesson**: training-time exploration must land in the greedy mode, not just the sampling tail. Three recovery options for v0.4.4: (1) loosen KL to 0.001 — risk specialist degradation; (2) re-score r43 with temp 0.7 best-of-3 — ~\$0.5 zero-retrain test of whether routing already exists in the tail; (3) adapter separation OR orchestration-level routing. **Ladder unchanged** at r39 GA 94.29%. r43 LIVE as 4th labeled experiment. **Ops note**: ubu1 sshd hung mid-round (TCP accept, no banner — likely MaxStartups exhausted by parallel monitor SSH); pod ran independently to completion, results fetched via direct HF download. |
-| **v0.4.2-route-rl (r42) — pure routing-RL — specialist PRESERVED but routing COLLAPSED; NOT GA** | `tool/build_routing_rl_prompts.py` (NEW, 200 eval-held-out routing-RL training prompts matching DLG-mk0 distribution exactly) + `tool/train_rl_grpo_routing.py` (NEW, GRPO trainer with `r = s_route × s_schema` from score_delegation_mk0.score_one) + `tool/run_pod_v042.sh`. **GRPO from r39 v3-t3patch** (NOT r40/r41 — drifted). Lever-4 mechanics: KL=0.01, LR 5e-6, group=4, batch=4, **4 epochs**, temp=0.7, max_new=200. **Train 185.4 min** (~3h, 3200 rollouts), final loss 0.057, **final reward 0.455 (DROPPED from ~0.5 baseline)**. Vast A100 40GB Quebec CA ($0.60/hr, contract 36670809). Cost **~\$1.85, 3h50m wall**. | **93.83% strict (Mk.I)** = 624/665 (within 0.5pp of GA!) | **100%** (25/25 — best in ladder!) | **NOT GA — DLG-mk0 collapsed.** Mk.I/5-NL gates all PASS (Mk.I 93.83 ≥ 88, 5-NL 100 ≥ 95, T4 100 ≥ 95, Lever 4 fully preserved). BUT DLG-mk0 overall **0.4490** (vs gate 0.85, vs r41's 0.776 — WORST in ladder). DLG per-cat: in-domain s_route 0.875, **OOD s_route 0.000** (NEVER delegated), mid-conf 1.0, **security s_route 0.133** (mostly stopped refusing), **ambig 0.000**, **long-ctx 0.000**, **s_band 0.075** (band emission ZERO). **Diagnosis: exploration collapse.** With r39 baseline never emitting `<\|delegate\|>` on OOD prompts, all 4 GRPO group-rollouts scored reward=0 on 40% of training set → advantage=0 → no policy gradient there. KL=0.01 was tight enough to save specialist but too tight to allow exploration into never-emitted token class. AND s_band wasn't in the reward → decayed to 0%. **5 lessons from r40+r41+r42 combined:** (1) SFT-only erases specialist (r40/r41); (2) pure RL preserves specialist but suffers exploration collapse on zero-baseline target class (r42); (3) GRPO needs positive-class rollouts to learn; (4) reward function omissions are silent capability deletions (s_band absence → 0% band emission); (5) v0.4.x sweet spot requires **SFT-bootstrap + routing-RL hybrid**. **v0.4.3 plan**: ~30-50 explicit delegate-correct SFT bootstrap pairs (just OOD/ambig/long-ctx) to break the "never delegate" attractor + routing-RL with full DLG-mk0 weighted overall as reward + temp 0.9 + KL 0.02 (slightly looser). ~\$2.5 / 4h. r39 v3-t3patch UNCHANGED as GA. r42 LIVE as 3rd labeled experiment. |
-| **r70+r71+r72 — v0.6.3/4/5 operator UX bundle (all bg go batch): forge_route decision-trace CLI + built-in log rotation + forge unified dispatcher; no GPU spend** | **r70 v0.6.3** `tool/forge_route.py` NEW (~270 LOC): offline classify+tier+cost-estimate trace; `forge_route 'Write a Rust async server'` shows label/confidence/reason/matched_signals + (if ood) tool/model/max_tokens + (with --estimate-tokens) heuristic chars/4 → tokens × tier pricing → \$/turn projection; text/json/csv output; --batch JSONL stdin. **r71 v0.6.4** `tool/forge_runtime.py`: NEW config `telemetry_max_size_bytes: int = 0 (default OFF) + telemetry_keep_rotations: int = 5`; `_append_telemetry` post-write stat check + `_rotate_telemetry()` (.jsonl → .1 → .2 → ... drop beyond keep); smoke [20] verifies 12-turn × 527-byte rows + threshold 800 → .1/.2/.3 exist .4/.5 dropped; OSError gracefully degraded. **r72 v0.6.5** `tool/forge.py` NEW (~110 LOC) + `bin/forge` POSIX shim: 8 subcommands route to existing tools (`status` alias / `keys` / `audit` / `vacuum` / `route` / `smoke` / `perf` / `xcache`); per-sub --help flows through; unknown subcommand exits 1. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | 20/20 forge smoke (was 19/19, +1 case [20]); forge_route verified on 4 scenarios (hexa/ood/refuse/JSON); forge dispatcher verified on 5 invocations (status/route/unknown/bin shim/sub routing); classify 21/21 + tier 14/14 + audit + vacuum smoke + run_all_smoke 7/7 + DLG-mk0 0.9833/1.000/0.9926 + Brier 0.0242/ECE 0.0461 all unchanged. Operator UX improvement: `forge audit --since-hours 24` instead of `python3 tool/forge_audit.py --input state/delegation_log.jsonl --since-hours 24`. Honesty: cost estimates are heuristic upper bound (no cache discount); log rotation post-write stat adds ~μs on SSD; forge dispatcher is subprocess delegator (cold-import each call, ~50-100ms). v0.5.x cumulative ~\$18.95 unchanged. dancinlab/* repos LIVE: 42 (unchanged). |
-| **r69 — v0.6.2 auto-retry with exponential backoff (closes V0_6_0_GA.md §6 v0.7 candidate); 19/19 forge smoke; no regression; no GPU spend** | `tool/forge_runtime.py` extensions: 4 NEW config fields (`retry_on_transient: bool = False` default OFF preserves r48 behavior / `retry_max_attempts: int = 3` / `retry_base_delay_s: float = 1.0` / `retry_jitter_pct: float = 0.25`); NEW `_RETRYABLE_ERRORS = {'upstream_5xx', 'upstream_timeout'}` frozenset (NOT including upstream_quota/auth_fail/schema_violation/redaction_block — deterministic or wait-needed failures); NEW `_vendor_call_with_retry(...)` wrapper returns 5-tuple `(ok, text, usage, error, attempts)`; exponential backoff `base * 2^attempt_idx` + ±jitter_pct random; on non-retryable error returns immediately; NEW `DelegationCall.retry_attempts: int = 1` field for audit telemetry (latency_ms includes backoff time); `_run_turn_orchestrated` calls `_vendor_call_with_retry` instead of `_vendor_call`; threads retry_attempts into DelegationCall; `import random` for jitter (stdlib). Smoke case [19] verifies 3 scenarios: (a) retry OFF + immediate success → 1 attempt; (b) retry ON + 2 transient (upstream_5xx + upstream_timeout) then success → 3 attempts text='recovered'; (c) retry ON + auth_fail non-retryable → 1 attempt no useless retry. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | 19/19 forge smoke (+1 case 19 retry); 21/21 classify + 14/14 tier + forge_audit + forge_vacuum smoke unchanged; **run_all_smoke 7/7 ALL GREEN in 7.54s**; DLG-mk0 0.9833 / tier 1.000 / tool 0.9926 / Brier 0.0242 / ECE 0.0461 unchanged. Production usage opt-in: `cfg = ForgeRuntimeConfig.from_env(retry_on_transient=True, retry_max_attempts=3, retry_base_delay_s=1.0, retry_jitter_pct=0.25)`. forge_audit surfaces `retry_attempts > 1` cases in telemetry stream. Honesty: retry adds to latency_ms (now includes backoff); operators tracking p95 aware: single-call latency can extend 1-7+ sec on retry; upstream_quota deliberately NOT retried (anthropic/openai/gemini quota windows are minutes-to-hours, busy-retry adds upstream pressure; calling code should surface to user and wait); default OFF for backward compat (r48-r68 behavior unchanged unless `retry_on_transient` set). dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. |
-| **r68 — v0.6.1 forge_keys setup interactive walkthrough + `--paid` tier verification flag; \$0.0008 spend** | `tool/forge_keys.py` extensions: NEW `setup` subcommand (interactive walkthrough: for each vendor not registered OR registered-but-failing-test, prints web URL, auto-opens in default browser via `open URL` on macOS (--no-open-url to disable), prompts via getpass for paste, validates prefix sk-ant-/sk-/AIza, stores via secret CLI, auto-tests via real API call); NEW `test --paid` flag (tests flagship models claude-opus-4-7 / gpt-5 / gemini-2.5-pro instead of default cheap tier haiku/nano/flash-lite); NEW `test --model M` explicit model override; `_test_anthropic/_test_openai/_test_gemini` now accept optional `model` parameter (backward-compat); NEW QUOTA category in `_test_gemini` (429 / RESOURCE_EXHAUSTED surfaces separately from auth_fail). **Diagnosis run at r68 (Mac dev box)**: Anthropic ✓ paid-tier confirmed (claude-opus-4-7 returned 'OK' in=17 out=2); **Gemini ✗ free-tier** (gemini-2.5-pro QUOTA 429; key from free-tier project; swap needed); OpenAI ✗ MISSING (needs initial add). Both Gemini swap + OpenAI add doable in one `forge_keys setup` session. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | r68 confirms anthropic paid is real (opus works). Gemini paid-tier verification surfaces the free-tier-key issue cleanly via `--paid` flag — operator can now diagnose paid-tier gaps in seconds rather than waiting for production upstream_quota errors. OPERATIONS.md §0 pre-deploy checklist will amend step 5 to recommend `forge_keys test --paid` over basic `forge_keys test all` (cheap-tier test only confirms registration; --paid confirms project billing/tier). Smoke regressions: zero (forge_keys is separate tool). Cost \$0.0008 (1 opus + 1 quota-failed pro call). dancinlab/* repos LIVE: 42 (unchanged). |
-| **r67 — v0.6.0 GA mark (forge code-LLM production release closure); `V0_6_0_GA.md` NEW root domain doc; no code change; \$0 spend** | r44-r66 shipped 23 orchestration rounds on top of r39 specialist. r67 marks the line as v0.6.0 GA — major-minor bump from v0.5.18 reflects the architectural surface at r66 (3 backend modes / multi-turn dispatch / calibrated confidence / observability+maintenance tooling / runbook + spec + 28-round chronicle). `V0_6_0_GA.md` NEW (~340 lines, root domain doc per `domain-meta-domain` convention): §1 What v0.6.0 IS (10-item production list); §2 What v0.6.0 IS NOT (user-action gating: OpenAI key + Gemini paid tier; measurement gaps: opus/haiku cross-turn cache zero, multi-process >1K writes/sec untested, no production telemetry baselines yet; architectural deferrals: specialist ceiling / schema migration / incremental vacuum / network DB / connection pooling / per-model cache investigation); §3 Numbers you can quote (empirically-verified table) + numbers you CANNOT quote without further measurement; §4 Deployment recipe (single+multi-process + cron template); §5 Cost ladder \$18.95 across 29 rounds with ~50% useful spend ratio; §6 v0.7+ changes (5 architectural items); §7 Bookmarks; §8 Honest closing notes. | **94.29%** (r39 GA, **UNCHANGED — v0.6.0 GA reaffirms r39 specialist as the GA artifact**) | **96%** (same) | Doc-only round. No code change. All smoke gates green (forge 18/18, classify 21/21, tier 14/14, audit+vacuum smoke, run_all_smoke 7/7, DLG-mk0 0.9833 / tier 1.000 / tool 0.9926, Brier 0.0242, ECE 0.0461). dancinlab/* repos LIVE: 42 (unchanged). **v0.6.0 line closing accounting**: specialist build r1-r39 (~\$5.0); in-weight delegation disproof r40-r43.1 (~\$5.5 + \$9.60 r43 zombie); orchestration runtime build r44-r53 (~\$0.43); orchestration polish r54-r66 (~\$0.85); GA mark r67 \$0. **Total ~\$18.95**. Next steps after v0.6.0 GA: (1) operator adds OpenAI key via `forge_keys add openai`; (2) operator swaps to paid-tier Gemini key; (3) production monitors `forge_audit` weekly; (4) v0.7.0 candidates GPU-bound or architectural — specialist ceiling (Lever 5+ / routing-LoRA), network DB, auto-retry, bio verb activation, paid-Gemini longctx measurement. **v0.6.0 line is now CLOSED and production-ready for anthropic-routed deployments**. |
-| **r66 — v0.5.18 opus + haiku cross-turn cache measurement (per-model threshold validation); finding: cache engagement is MODEL-SPECIFIC; \$0.41 spend** | Extension of r64 sonnet measurement using same `tool/bench_anthropic_cross_turn.py` script. Bonus pre-test: `gemini-2.5-pro` still returns `upstream_quota` (key from free-tier project; operator needs paid-tier key swap via `forge_keys add gemini`); `gemini-2.5-flash` works free-tier. **3-model matrix results** (4-turn RoPE conv each, Config A marker ON vs Config B marker OFF): **claude-sonnet-4-6** (r64) min 1024, T3 prefix 1140 tok → AUTO-CACHED T3 cr=1141 T4 rd=1141 (both configs identical); **claude-opus-4-7** (r66) min 1024 doc, T3 prefix 1226 tok → ZERO cache activity in BOTH configs; **claude-haiku-4-5-20251001** (r66) min 2048 doc, T3 prefix 1165 (below min) → ZERO cache activity (T4 1697 fresh still below 2048). | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **Honest findings**: (1) cache engagement is model-specific, NOT purely driven by prefix-size + system marker; only sonnet auto-cached; opus + haiku showed NO cache activity despite prefix exceeding documented minimums on opus (T4 cumulative ~3500 tok well above 1024 min); (2) r62's `_anthropic_cache_mark` REDUNDANT on all 3 measured models — 1-token Config A overhead on opus/haiku turns 3+ is serialized marker metadata that does NOT engage cache; (3) possible explanations not yet verified: maybe opus needs ≥2 cache_control markers (system + user/assistant), maybe per-API-tier engagement requirements, maybe needs longer warm-up conversation. **Operational guidance**: do NOT predict cost savings from cross-turn caching unless measured on target model+tier. sonnet shows ~90% savings on cached portion (auto-cache); opus+haiku as measured show ZERO. r66 spend: opus \$0.39 + haiku \$0.02 = \$0.41 (within budget). v0.5.x cumulative ~\$18.95 (was \$18.54). Smoke gates unchanged (forge 18/18, classify 21/21, tier 14/14, audit+vacuum smoke, run_all_smoke 7/7, DLG-mk0 0.9833, Brier 0.0242, ECE 0.0461). dancinlab/* repos LIVE: 42 (unchanged). ORCHESTRATION.md §15 + OPERATIONS.md §9 + ROADMAP r66 entry updated with per-model matrix. |
-| **r65 — v0.5.17 forge_keys CLI for vendor key management; 4 subcommands (status/add/remove/test); stdin-only key entry; no GPU spend** | `tool/forge_keys.py` NEW (~290 LOC) wrapping `~/core/secret/bin/secret`: `status` shows env+secret_store+runtime-resolve state per vendor; `add <vendor>` reads from stdin (getpass-hidden interactive / direct read piped) with prefix sanity-check (sk-ant- / sk- / AIza); `remove <vendor>` DELETEs from store; `test <vendor\|all>` makes real tiny API call (~\$0.0001 ea) — anthropic→claude-haiku-4-5, openai→gpt-5-nano (gpt-4o-mini fallback), gemini→flash-lite. Key NEVER in argv (no shell history / ps leak). | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | Status at writing on Mac dev box: anthropic ✓ + gemini ✓ + openai MISSING (resolved 2/3). Live verification: anthropic returned 'OK' (in=11 out=4); gemini returned 'OK' (in=5 out=1). All smoke gates unchanged: 18/18 forge + 21/21 classify + 14/14 tier + audit + vacuum smoke + DLG-mk0 0.9833 / tier 1.000 / tool 0.9926 / Brier 0.0242 / ECE 0.0461. \$0.0002 spend (4 tiny test calls). dancinlab/* repos LIVE: 42 (unchanged). |
-| **r64 — v0.5.16 anthropic cross-turn cache ROI MEASURED; surprising finding: r62 marker is REDUNDANT (anthropic auto-caches via system marker); \$0.27 measurement spend** | **Goal**: close r62 honesty caveat "cross-turn cache shipped but NOT MEASURED". `tool/bench_anthropic_cross_turn.py` NEW (~280 LOC): 4-turn conversation through `_anthropic_call` directly (bypass classifier+selector for uniform model namespace), run TWICE with same prompts × same model × 2s pause: Config A `_anthropic_cache_mark` ON (r62 default) vs Config B OFF (r45 baseline). `tool/forge_runtime.py` extensions: NEW `cache_create_tokens` field in usage dict (r62's `cached_tokens` only captured cache_read; hiding cache_create from telemetry); NEW `ForgeRuntimeConfig.anthropic_cross_turn_cache_enabled: bool = True` config field for A/B testing the marker; `_anthropic_call` honors the toggle. **r64-v1 lessons learned (\$0.20 wasted on mis-designed experiment)**: first attempt routed through full `run_turn` → classifier+selector, prompts bounced opus/sonnet (turn 3 "trade-offs vs" matched ml-comparison demotion), anthropic per-model namespace caches → cache never engaged. **r64-v2 fix**: bypass orchestration entirely; direct `_anthropic_call`. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **Empirical finding on claude-sonnet-4-6 (4 turns × A/B)**: Config A and B produced **BIT-FOR-BIT IDENTICAL cache_create / cache_read counts** at every turn: T1+T2 both 0/0 (prefix below sonnet 1024 min); T3 both 1141/0 cache_create; T4 both ~537 cache_create + 1141 cache_read. Total cost A \$0.035591 vs B \$0.035085 — **1.4% difference is OUTPUT-token noise** (Config A produced 240 out vs B 206 out on turn 4, same content, stochastic length). Cache behavior identical. **Cache_create premium ~\$3.42/Mtok vs cache_read savings ~\$0.30/Mtok = ~90% savings on cached portion. Anthropic auto-caches the entire conversation prefix using only the system message's r45-baseline `cache_control` marker** — r62's `_anthropic_cache_mark` (marking user/assistant boundaries) is REDUNDANT but harmless. Spec revision: `_anthropic_cache_mark` is kept in code as defensive no-op against future SDK behavior; ORCHESTRATION.md §15 + OPERATIONS.md §9 updated. Per-model thresholds (sonnet 1024 / haiku 2048 / opus 1024) gate when cache fires; opus/haiku not yet measured (cost ~\$0.05-0.10 to measure each). Smoke gates unchanged: classifier 0.9833 / tier_match 1.000 / tool_match 0.9926 / Brier 0.0242 / ECE 0.0461. r64 total spend: \$0.27 (v1 \$0.20 + v2 \$0.07); v0.5.x cumulative now \~\$18.54. dancinlab/* repos LIVE: 42 (unchanged). |
-| **r63 — v0.5.15 operational tooling bundle (`run_all_smoke` + `perf_bench` + `OPERATIONS.md` runbook); spec "<1ms classifier" claim verified at p50 556μs / p99 1.66ms; no GPU spend** | **63.A** `tool/run_all_smoke.py` NEW (~270 LOC): unified runner of 7 steps in sequence (forge_runtime smoke 18 cases + classify_prompt 21 cases + select_vendor_tier 14 cases + forge_audit --smoke + forge_vacuum --smoke + score_orchestration_mk0 on 300-task with gates overall≥0.92 / tier≥0.85 / tool≥0.85 + score_brier_mk0 with gates Brier≤0.05 / ECE≤0.10); flags --verbose --skip-eval --json; exit 0 all green / exit 1 any failed; **verified locally 7/7 ALL GREEN in 4.50s on Mac M-chip**. **63.B** `tool/perf_bench.py` NEW (~210 LOC): measures classifier+selector+cache_key latency on 12 mixed prompts (5 hexa + 5 OOD + 2 refuse) × N iterations; percentile table (mean / p50 / p95 / p99); flags --iterations --csv --json. **Headline finding**: `classify_prompt` p50=557μs / p99=1.86ms; `select_vendor_tier` p50=1.21μs / p99=1.62μs; **combined classify+select p50=556μs / p99=1.66ms** — `ORCHESTRATION.md §4` "~1ms per prompt" claim VERIFIED (sub-millisecond at median, sub-2ms worst-case). Classifier dominates; selector + cache_key are single-digit microseconds. Production context: vendor-call latency 3000-15000ms (claude-sonnet) / 5000-25000ms (claude-opus) so classifier+selector adds <0.01% of total turn latency. **63.C** `OPERATIONS.md` NEW (~340 lines at root, separate domain from ORCHESTRATION.md per domain-meta-domain): 10 sections (§0 pre-deploy checklist · §1 topology · §2 daily cron template incl logrotate · §3 6 error codes × diagnose+fix+telemetry-sign · §4 health gate troubleshooting · §5 multi-process notes incl SQLite WAL local-disk-only constraints · §6 rollback procedures v0.5.x→v0.4.0 + SQLite→JSONL + cache TTL · §7 common runbook scripts · §8 performance baselines · §9 honest limits + unknowns · §10 bookmarks + ## Log r63 entry). Cron template: 03:00 daily VACUUM, 03:30 daily audit+mail on breach, 04:00 daily logrotate, Sun 02:00 weekly smoke. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | run_all_smoke confirms zero regression: 18/18 forge + 21/21 classify + 14/14 tier + forge_audit + forge_vacuum smoke all pass; DLG-mk0 0.9833 / tier 1.000 / tool 0.9926 unchanged; Brier 0.0242 / ECE 0.0461 unchanged. Honesty caveats: run_all_smoke runs 7 steps sequentially in 1 process (CI matrix parallelism = future enhancement); perf_bench on Mac M-chip Python 3.9 (Linux production typically faster, re-run on target for accurate baselines); OPERATIONS.md cron templates assume Linux systemd/cron/logrotate (other OSes need adaptation). dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. v0.5.x line operationally complete: spec + implementation (~3000 LOC) + audit + maintenance + runbook + perf-verified-claim + unified smoke runner. |
-| **r62 — v0.5.14 production maturity bundle (3 features one round): anthropic cross-turn cache_control + SQLite schema versioning + forge_vacuum cron CLI; 18/18 forge + forge_vacuum smoke; no regression; no GPU spend** | **62.A** `tool/forge_runtime.py` NEW `_anthropic_cache_mark(msgs)` free function: when conversation messages list has ≥2 entries, marks the second-to-last message's content with `cache_control: {type: 'ephemeral'}` (converts raw string → content-block form `[{type:'text', text:..., cache_control:...}]`; handles already-content-block content too); `_anthropic_call` invokes when `messages` set AND `len(msgs)>=2`; returns NEW list (not mutated). Effect: anthropic caches conv prefix (system + all but the current user turn) so next turn within 5-min TTL pays input tokens only for newest user message. **62.B** SQLite schema versioning: NEW class const `SCHEMA_VERSION = 1`; `_db_open` checks `PRAGMA user_version` — brand-new DB (0) sets to current; newer DB → stderr warning 'newer schema, best-effort backward-read'; older DB → stderr warning 'no auto-migration in v0.5.x, run migration script or fresh DB path'. **62.C** `tool/forge_vacuum.py` NEW (~280 LOC, cron-friendly CLI): pipeline `DELETE FROM vendor_cache WHERE expires <= now()` + `--keep-recent N` cap (LRU drop oldest by inserted_at) + `--conv-days N` retention drop on conv_turns + `VACUUM` reclaim freelist + `PRAGMA optimize` query planner stats. CLI flags: --db PATH / --keep-recent N / --conv-days N / --dry-run / --smoke. Smoke (inside `forge_vacuum --smoke`): build temp DB with 5 expired + 10 fresh cache + 3 recent + 7 old (>35d) conv rows → dry-run reports counts no changes → real run with `keep_recent=8 conv_days=30` removes 5 expired + 2 LRU-excess + 7 old → verifies final 8 cache + 3 conv rows → idempotent re-run finds 0. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | 18/18 forge smoke (+2 cases 17 anthropic cache_mark + 18 schema_version); forge_vacuum --smoke PASSED (4 assertions); 21/21 classify + 14/14 tier + forge_audit unchanged; DLG-mk0 0.9833 / tier 1.000 / tool 0.9926 / Brier 0.0242 / ECE 0.0461 unchanged. **Production cron pattern**: `0 3 * * * forge python3 /opt/forge/tool/forge_vacuum.py --db /var/lib/forge/forge.sqlite3 --keep-recent 4096 --conv-days 30`. Honesty caveats: anthropic cross-turn cache_control shipped per SDK docs but NOT YET MEASURED (ROI = input-token savings on long convs; r58 forge_audit captures cached_tokens → follow-up measurement round); schema versioning is DETECTION-ONLY (no migration code; future change needs fresh DB or manual migration script); forge_vacuum requires runtime IDLE during VACUUM (acquires exclusive lock; multi-process production schedule cron in low-traffic window OR enable incremental vacuum at DB creation = v0.6.x candidate). v0.5.x line complete: 23 rounds (r39 GA → r62), \$18.27 cumulative incl r43 zombie, specialist frozen, orchestration stack GA across single+multi-process with production observability + quota-aware errors + persistent cache+conv + native messages + cross-turn upstream cache + schema versioning + cron VACUUM. v0.6.0+ scope narrows to GPU-bound (specialist ceiling Lever 5+ / routing-LoRA) + user-action (OpenAI/Gemini keys). dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. |
-| **r61 — v0.5.13 SQLite WAL multi-process backend (`forge_db_path`); closes r56+r60 multi-process safety caveat; stdlib sqlite3 only; 16/16 smoke pass; no regression; no GPU spend** | `tool/forge_runtime.py` extensions: NEW `import sqlite3` (stdlib). NEW `ForgeRuntimeConfig.forge_db_path: Path \| None = None` (when set, OVERRIDES `vendor_cache_path` + `conv_history_path` — unified SQLite file holds both `vendor_cache` and `conv_turns` tables). NEW `self._db: sqlite3.Connection \| None` per-runtime connection. Stats counters extended: `_vendor_cache_stats.{db_loads, db_writes}` + `_conv_history_stats.{db_loads, db_writes}`. NEW `_db_open` (opens connection, `PRAGMA journal_mode=WAL` + `synchronous=NORMAL`, creates 2 tables + 2 indexes if needed; idempotent). NEW `close()` public method for clean test shutdown. 4 SQLite cache helpers: `_vendor_cache_load_from_db` (lazy expire-cleanup then load most-recent up to max_entries), `_vendor_cache_put_to_db` (UPSERT via INSERT OR REPLACE), `_cache_key_to_sha` (extract sha256-hex from key tuple for DB storage). 4 SQLite conv helpers: `_conv_history_load_from_db` (grouped by conv_id ordered by seq, max_turns cap), `_conv_history_append_to_db` (single INSERT per turn), `_conv_history_evict_excess_db` (mirror in-memory cap to DB so rows don't accumulate), `_conv_history_clear_db` (DELETE rows for conv_id). `__init__` dispatch cascade: if `forge_db_path` → SQLite (calls `_db_open` + load); elif JSONL paths → r56+r60 file fallback; else → in-memory only. `_vendor_cache_put` + `_record_conversation_turn` + `clear_conversation` all branch DB-first. All DB ops wrapped in try/except sqlite3.Error → degrade to in-memory + stderr log; runtime never raises. **Schema**: `vendor_cache(cache_key PRIMARY KEY, tool, model, max_tokens, text, usage_json, expires, inserted_at)` + idx_expires; `conv_turns(seq AUTOINCREMENT PRIMARY KEY, conv_id, turn_id, timestamp_utc, user_prompt, assistant_text, classifier_label, tool, model, recorded_at)` + idx_conv_id. Smoke cases [15] SQLite cache cross-process (rt_a write → close → rt_b load db_loads=1 → cache hit cost=\$0); [16] SQLite conv cross-process (rt_a record 3 turns → close → rt_b load db_loads=3 → append +1 → clear→0 DB rows). | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | 16/16 forge smoke (+2 SQLite cases); 21/21 classify + 14/14 tier + forge_audit smoke unchanged; DLG-mk0 0.9833 / tier 1.000 / tool 0.9926 / Brier 0.0242 / ECE 0.0461 unchanged. **3 backend modes** with priority cascade: SQLite WAL (forge_db_path, multi-process safe) > JSONL (r56+r60, single-process restart-persistent) > in-memory (r48+r57, backward-compat). All compose with the in-memory layer (every put hits in-memory FIRST for fast read path, then persists to disk when configured). **Multi-process safety details**: SQLite WAL allows many concurrent readers + one writer at a time; writers serialize via WAL log; 10s connection timeout; INSERT OR REPLACE atomic per row; OperationalError if writer-lock blocked longer than timeout. Honesty caveats: cache eviction in DB is LAZY (no immediate DELETE on LRU evict to avoid write amplification; next load picks most-recent; periodic VACUUM = v0.6.x candidate); conv eviction IS mirrored (hard cap); SQLite WAL ONLY works on local disk (NOT NFS/CIFS — production must use local mount); connection is per-runtime not pooled (1K writes/sec OK on modern SSD; 10K+ needs batching or real DB); no schema migration story yet (v0.6+ candidate). dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. v0.5.x line production-grade across single-process AND multi-process deployment patterns. |
-| **r60 — v0.5.12 persistent conversation memory across restarts (`conv_history_path: Path`); 14/14 smoke pass; no regression; no GPU spend** | `tool/forge_runtime.py` extensions: NEW `ForgeRuntimeConfig.conv_history_path: Path \| None = None` (default None = in-memory only, backward-compat with r57). NEW `_conv_history_stats = {"file_loads", "file_writes"}` counter. `__init__` load-on-init: if `multi_turn_memory_enabled AND conv_history_path`: read JSONL, reconstruct per-conv buffers respecting `max_turns` cap. `_record_conversation_turn` extended: after in-memory append + cap, append to file (steady-state) OR compact (on eviction so file doesn't grow with evicted entries). `clear_conversation` extended: compact file after in-memory drop so cleared conv's turns don't persist. NEW helpers `_conv_history_load_from_file / _conv_history_append_to_file / _conv_history_compact_file` mirror r56 cache helpers (try/except OSError + UnicodeDecodeError; malformed JSON skipped with stderr count; tmp+rename atomic compaction). JSONL format `{conv_id, turn: {turn_id, timestamp_utc, user_prompt, assistant_text, classifier_label, tool, model}}` one record per turn. Smoke case [14] verifies cross-process: Runtime A records 3 turns → file has 3 records → Runtime B (independent, same path) loads 3 on init → file_loads=3 → get_conversation_history returns same turns → Runtime B appends 1 more → 4 records → clear_conversation → 0 records (compacted). | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | 14/14 forge smoke (+1 file-backed conv); 21/21 classify + 14/14 tier + forge_audit smoke unchanged; DLG-mk0 0.9833 / tier 1.000 / tool 0.9926 / Brier 0.0242 / ECE 0.0461 unchanged. **v0.5.x persistence story complete**: vendor cache (r56 `vendor_cache_path`) + conv memory (r60 `conv_history_path`) both restart-persistent. Use case: `cfg = ForgeRuntimeConfig.from_env(vendor_cache_path='/var/lib/forge/cache.jsonl', multi_turn_memory_enabled=True, conv_history_path='/var/lib/forge/conv_history.jsonl')` — after restart, both vendor-response cache (within 5-min TTL) AND conversation buffers (up to max_turns per conv_id) are restored. Honesty: NOT multi-process safe (concurrent appends can interleave; multi-process = v0.6.0+ Redis/SQLite); file contains conv contents verbatim (use local disk with ACLs, not shared/cloud-synced); eviction compacts whole file (high-throughput: raise max_turns to minimize compaction cycles); no retroactive redaction (clear_conversation on redactor changes); no expiration (unlike cache 5-min TTL, turns persist indefinitely until cleared; long-running deployments need sliding-window cron). dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. |
-| **r59 — v0.5.11 vendor-native `messages=[...]` threading (replaces r57 string-concat workaround); 13/13 smoke pass; no regression; no GPU spend** | `tool/forge_runtime.py` extensions: each vendor adapter (`_anthropic_call` / `_openai_call` / `_gemini_call`) + dispatcher (`_vendor_call`) + orchestrated path (`_run_turn_orchestrated`) accept new keyword-only `messages: list[dict] \| None = None`. When provided: native conversation list sent to vendor; when None: legacy single-prompt wrapping (identical results, backward-compat). NEW helper `_messages_to_gemini_contents(messages)` translates standard `[{role:'user/assistant', content:str}]` → Gemini's `[{role:'user/model', parts:[{text:...}]}]` (assistant→model role rename, content→parts list). NEW config field `multi_turn_memory_native_messages: bool = False` (requires `auto_prepend=True`). NEW `_build_messages_with_history(conv_id, user_prompt) → list[dict]` (prior turns + current, trimmed-from-oldest under max_chars budget). NEW `_vendor_cache_key_for_messages` keys on `sha256(json.dumps(messages, sort_keys=True))` so different conv states produce different keys. `run_turn` branches: default=single-turn / r57=string preamble / r59=native messages. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | Smoke case [13] end-to-end verifies: turn 1 (no history) captured as STRING; turn 2 (with history) captured as LIST `[{u:t1}, {a:answer-1}, {u:current}]` with `Previous conversation:` NOT in content (verifies native bypasses string-concat); turn 3 produces 5-msg chain `[u, a, u, a, u]`; gemini contents translation correct (assistant→model + content→parts). 13/13 forge smoke (+1 native messages); 21/21 classify + 14/14 tier + forge_audit smoke unchanged; DLG-mk0 0.9833 / tier 1.000 / tool 0.9926 / Brier 0.0242 / ECE 0.0461 unchanged. **Why native messages matter**: anthropic upstream prompt-cache aligns better with stable system+early-turn prefixes (string preamble was opaque to anthropic cache); openai chat.completions is messages-native; gemini uses model role (string concat lost the role structure); future-proofs for vendor features depending on message-list (function calling, tool use, structured streaming). Honesty caveats: cross-turn upstream prompt-cache is NOT automatically enabled (anthropic cache_control is currently only on system prefix; moving to stable conv prefix is v0.6.x candidate); cache key for messages mode is full serialized list hash so caching in conversational flows is per-state not per-question; classifier always runs on LATEST user prompt only (per-turn routing, not per-conv; mid-dialogue ml-internals turn correctly routes to reason-deep regardless of prior hexa turns). 3 usage modes: single-turn default / r57 string-concat / r59 native messages. dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. |
-| **r58 — v0.5.10 production audit CLI (`tool/forge_audit.py`); closes observability gap in v0.5.x stack; no GPU spend** | `tool/forge_audit.py` NEW (~660 LOC, CPU-only): reads `state/delegation_log.jsonl` (or any DelegationCall JSONL), aggregates and renders. **Aggregations**: overview (n_turns, n_ok, n_err, error_rate, window start/end/hours); cache metrics (hits, misses, hit_rate, cost_saved_usd_estimate = sum-over-hits of avg same-(tool,model) miss cost); vendor distribution (by_tool / by_model / by_tier with cost-band {nano, mini/haiku, sonnet, opus/flagship}); error breakdown (per error_code count + %); classifier label distribution (forward-compat — current DelegationCall schema doesn't carry classifier_label; future 5-line patch adds it); latency percentiles (median/p50/p95/p99, REAL calls only excluding cache_hit=True 0ms entries); cost attribution (total + by_tool/model/tier); top-10 most expensive turns. **Output formats**: text (human-readable bordered report ~50 lines, default), json (full structured dump for jq/dashboards), csv (single-row 13-column headline metrics for time-series scraping). **Time-window filter**: `--since-hours N` / `--since ISO_TS` / `--until ISO_TS` (UTC tz-aware); rows with unparseable timestamp dropped from window; malformed JSON skipped with stderr count. **Health gate flags**: `--alert-cache-hit-min FLOAT` (e.g. 0.20) / `--alert-error-rate-max FLOAT` (e.g. 0.05) / `--alert-cost-day-max FLOAT` (USD, scales 24h-equivalent when window ≥24h) — compose with each other (any breach → exit 2 + all breaches on stderr); exit 0 healthy, 1 invalid input, 2 health gate breach. `--smoke` self-test mode writes 20 synthetic rows (10 sonnet ok + 3 opus + 3 cache hits + 2 auth_fail + 2 upstream_quota over ~80min), runs aggregate(), verifies every metric hand-computed (n=20, ok=16, error_rate=0.20, cache_hit_rate=0.15, cost_saved=3×\$0.009=\$0.027, total=\$0.1485, latency p50>0, p95≥p50); renders all 3 formats; tests health gates (20%-cache + 10%-error threshold → exactly 2 breaches; 10%-cache + 30%-error → 0 breaches); tests time-window filter (cutoff base+60min → 8 rows). | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | r58 is a NEW read-side file; doesn't touch any runtime path. forge_runtime 12/12 + classify_prompt 21/21 + select_vendor_tier 14/14 unchanged. DLG-mk0 0.9833 / tier 1.000 / tool 0.9926 / Brier 0.0242 / ECE 0.0461 unchanged. Verified end-to-end on small fixture (5 sonnet + 1 opus + 1 cache hit + 1 auth_fail = 8 turns): text report renders 7 sections, json round-trips, csv valid time-series row, exit 2 with stderr breach on `--alert-cache-hit-min 0.20 --alert-error-rate-max 0.05` (actual 0.125/0.125). **Production deployment pattern**: daily cron `python3 tool/forge_audit.py --input /var/lib/forge/state/delegation_log.jsonl --since-hours 24 --alert-* ... \|\| mail -s 'forge degraded' oncall@`. Honesty caveats: cost-saved estimate is a heuristic (assumes avg same-(tool,model) miss cost; noisier if cost variance high — track over time to gauge cache ROI); latency p-tiles include only REAL calls so NOT user-perceived latency (which includes 0ms cache hits → much better p95); classifier_label distribution forward-compat (current DelegationCall lacks the field); no SQL/time-series DB integration (one-shot CLI for cron+manual; continuous dashboards = v0.6.0+); no PII/secret detection in report (reads `prompt_redacted_classes` only, safe to share/grep). dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. **v0.5.x line: now genuinely production-ready** — write side (telemetry per-turn) + read side (aggregation + alerting) both ship. |
-| **r57 — v0.5.9 multi-turn delegation memory (per-conv buffer + optional auto-prepend); 12/12 smoke pass; no regression; no GPU spend** | `tool/forge_runtime.py` extensions: NEW `@dataclass ConversationTurn` (turn_id, timestamp_utc, user_prompt, assistant_text, classifier_label, tool, model); 4 NEW config fields (`multi_turn_memory_enabled=False` default OFF + `_max_turns=5` + `_max_chars=8000` + `_auto_prepend=False`); `ForgeRuntime.__init__` adds `self._conv_history: dict[str, list[ConversationTurn]] = {}`; `run_turn` auto-prepend hook at entry (when `auto_prepend=True`) + record hook at exit (when `enabled=True`); NEW public APIs `get_conversation_history(conv_id) → list[ConversationTurn]` (returns copy) + `clear_conversation(conv_id)`; NEW private helpers `_record_conversation_turn` (only successful + orchestrated path, cap to max_turns oldest-drop) + `_build_prompt_with_history` (renders `Previous conversation:\\nUser: ...\\nAssistant: ...\\n\\nCurrent question:\\n...` with char budget trim oldest-first). Smoke case [12]: monkey-patch `_vendor_call` to capture upstream prompt → 4 sequential turns same conv_id with auto-prepend ON → assert turn 2 preamble contains turn-1 user+assistant text, turn 4 buffer has only 3 turns (cap), buffer stores ORIGINAL prompt (not auto-prepended preamble), `clear_conversation` drops buffer. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | 12/12 forge smoke (+1 multi-turn); 21/21 classify + 14/14 tier unchanged; DLG-mk0 0.9833 / tier_match 1.000 / tool_match 0.9926 unchanged. Two-layer design: storage (always when enabled) + auto-prepend (optional). Auto-prepend CAVEAT documented: changes per-prompt-cache key each turn (different SHA256 as context grows) → caching effectively single-turn for conversational flows; production code picks cache OR memory. Honesty caveats: buffer in-memory only (process restart loses it, persistent memory = v0.6.0+); auto-prepend is simple string concat NOT vendor-native messages=[...] (anthropic/openai) or contents=[...] (gemini) — vendor-native threading is v0.6.0+ requiring `_vendor_call` refactor; token cost inflates on each turn (max_chars 8000 is hard cap not smart summarizer); auto-prepend prepends PRE-redaction text but redaction still applied to full assembled prompt; redactor changes need `clear_conversation()` to invalidate prior turns' raw preamble in memory. dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. **v0.5.x line: features-complete through r57** — all software-only post-r53 candidates closed (calibration r54 / coverage r55 / file cache r56 / multi-turn r57). |
-| **r56 — v0.5.8 file-backed shared cache (cross-process restart-persistence); +1 smoke case (11/11 pass); no code-path regression; no GPU spend** | `tool/forge_runtime.py` extensions: NEW `ForgeRuntimeConfig.vendor_cache_path: Path \| None = None` (default None = in-memory only, backward-compat with v0.5.4-v0.5.7); JSONL file format `{key: [tool, model, max_tokens, sha256], text, usage, expires}` one record per put; `__init__` load-on-init drops expired entries + caps at max_entries (newest-first); `_vendor_cache_put` extended to append on steady-state OR compact (tmp+rename atomic swap) on eviction; NEW helpers `_vendor_cache_load_from_file / _vendor_cache_append_to_file / _vendor_cache_compact_file`; `_vendor_cache_stats` adds `file_loads` + `file_writes` counters; all file I/O wrapped in try/except OSError with stderr log + graceful in-memory degradation; malformed lines skipped with count (doesn't break startup); smoke case [11] verifies cross-process: runtime A writes, runtime B (independent instance, same path) loads on init + serves cache hit on identical prompt. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | 11/11 forge smoke (+1 file-backed cache); 21/21 classify + 14/14 tier unchanged; DLG-mk0 0.9833 / tier_match 1.000 / tool_match 0.9926 unchanged; Brier 0.0242 / ECE 0.0461 unchanged. **Critical safety boundaries documented**: NOT multi-process safe (concurrent writes can interleave; for multi-process production use Redis/SQLite-WAL/Cloudflare KV); file contains cached vendor responses verbatim (use local disk with ACLs, NOT shared team or cloud-synced path); cache key on POST-redacted prompt SHA256 so redactor changes effectively invalidate; cross-key invalidation NOT implemented. Use case: `cfg = ForgeRuntimeConfig.from_env(vendor_cache_path=Path('/var/lib/forge/cache.jsonl'))` survives process restart, serves \$0 cache within 5min TTL. dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. |
-| **r55 — v0.5.7 classifier coverage expansion (Go/MoE/LLM-infra/Swift framework + vague-question + derivation-algo widening); ECE 0.0674→**0.0461 GOOD ✓** + tier_match **1.000 RESTORED**; no GPU spend** | `tool/classify_prompt.py` (5 new/extended OOD signals + 2 ambiguous + 1 derivation-algo widen + 1 ml-comparison widen): EXTENDED `golang` (was narrow Go+specific-noun) adds worker/table-driven/context.Context/goroutine/sync.{Mutex,WaitGroup,RWMutex,Once} → closes DLG-109/112/119/243; NEW `swift-framework` w=2.0 → closes DLG-253/291 SwiftUI/Combine; EXTENDED `ml-internals` adds mixture-of-experts/MoE/top-N routing/RLHF/DPO/RLAIF/KL-penalty/reward-model → closes DLG-100/238; NEW `llm-infra` w=1.5 (anthropic/claude/openai/gpt-N/gemini/prompt-cache/cache_control/system-prompt/TTL/frontier-model/tier-routing) → closes DLG-093; NEW `generic-write-code` w=1.0 (write a script/function/program/tool/module/class/wrapper/cli/server) → closes DLG-297 authorized pentest; NEW `vague-question` ambiguous pattern (should I/what's the best/is this idiomatic/why won't/tell me/help/any ideas/quick question) → closes DLG-185/189/190/278/298/300; EXTENDED `vague-imperative` adds 'speed this up' / 'make this faster/slower/cleaner' → closes DLG-279; EXTENDED `ml-comparison` adds trade-offs?/top-N vs top-M → DLG-100 tier-match restored to sonnet; EXTENDED `derivation-algo` adds master-theorem + (complexity\|Big-O) of \\w+ → DLG-227/230 tier-match restored to o4-mini + r53 P10 closed. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **r55 final on 300-task r51 manifest**: Brier 0.0920 (r52) → 0.0351 (r54) → **0.0242 EXCELLENT** (-74% vs r52); ECE 0.1650 POOR (r52) → 0.0674 (r54) → **0.0461 GOOD ✓** (-72% vs r52; below 0.05 strict threshold for first time); **tier_match RESTORED to 1.0000** (was 0.9779 in r51/r54); **tool_match 0.9926** (+1.47pp from 0.9779); **no-signal-fallthrough: 17→0** all closed; classifier overall **0.9833 unchanged**; ood Brier 0.163→0.0067 (-96%); overall gap -0.1561 (r52) → -0.0461 (r55); avg confidence 0.8272→0.9372 (within 0.046 of acc). Per-bin reliability: [0.30-0.50) GONE; [0.70-0.80) 37 mid-conf banded-by-design (acc 0.92); [0.80-0.90) 23 ambig+weak-hexa near calibrated (acc 1.00); [0.90-1.00) 239 well-calibrated (gap -0.01). **Side-effect tier-miss closure (3 new misses surfaced by r55 coverage, all closed in same round)**: DLG-100 (MoE trade-offs) opus→sonnet via ml-comparison trade-offs; DLG-227 (merge-sort master theorem) opus→o4-mini via derivation-algo master theorem; DLG-230 (Big-O quickselect) opus→o4-mini via derivation-algo Big-O of \\w+. 21/21 + 14/14 smoke unchanged. **Production impact**: confidence field now usable as probability for production logic (Brier EXCELLENT + ECE GOOD). 5 remaining ood→hexa misroutes (DLG-105/106/110 mid-conf overreach + DLG-296/299 mixed hexa+OOD boundary) are separate from r55 scope, v0.5.8+ candidates. Honesty: tier_match=1.0 on the manifest used to design the patterns has overfit risk — production should monitor for new no-signal patterns and feed back via manifest expansion. dancinlab/* repos LIVE: 42 (unchanged). \$0 GPU. CPU-only streak: 11 of 12 rounds since r43 (only r53 was real-API). |
-| **r54 — v0.5.6 classifier confidence recalibration (closes r52 finding); Brier 0.0920→**0.0351** (-62%) / ECE 0.1650→**0.0674** (-59%); label dispatch UNCHANGED; no GPU spend** | `tool/classify_prompt.py` NEW `_emit_conf(total, full_threshold, floor)` helper replaces prior pessimistic `min(1.0, X/Y)` at 7 emission sites with empirically-calibrated piecewise: `total≤0→0.0`, `total≥threshold→1.0`, else `floor + (1-floor)*(total/threshold)`. r52 reliability table mapping: refuse single match (floor=0.95, was 0.5, r52 acc 1.00); strong hexa/ood (floor=0.85, was 0.5); both-fired-* (floor=0.85, proportional preserved); ambig (hardcoded 0.85, was 0.5); weak hexa (floor=0.80, was 0.25); weak ood fallthrough (floor=0.80, was 0.33); no-signal fallthrough (hardcoded 0.55, was 0.3 — modestly bumped since no signals = genuinely speculative); mid-conf NO CHANGE (0.7, acc 0.92 already calibrated, bumping would regress). | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **Recalibration results on r51's 300-task DLG-mk0**: **Brier 0.0351 EXCELLENT** (was 0.0920 GOOD; -62%); **ECE 0.0674** (was 0.1650 POOR; -59%; still above 0.05 strict 'use-as-probability' threshold); overall gap -0.0674 (was -0.1561; still mildly underconf); avg conf **0.9159** (was 0.8272; matches acc 0.9833 within 0.07); **ood Brier 0.031** (was 0.163; -81%, the calibration weak-spot closed); hexa Brier 0.046 (was 0.039; +0.007 noise); refuse Brier 0.000 (unchanged perfect). Per-bin reliability: `[0.30,0.40)` GONE (was 19 tasks acc 1.00 — bumped above); `[0.50,0.60)` 17 tasks conf 0.55 acc 1.00 gap -0.45 (all `no-signal-fallthrough` — classifier coverage gap, v0.5.7+ scope); `[0.70,0.80)` 37 tasks conf 0.70 acc 0.92 gap -0.22 (mid-conf, calibrated by design); `[0.80,0.90)` 17 tasks conf 0.85 acc 1.00 gap -0.15 (ambig+weak-hexa, near calibrated); `[0.90,1.00)` 229 tasks conf 0.98 acc 0.99 gap -0.01 (well-calibrated). **Why ECE didn't drop below 0.05 (honest)**: 17 no-signal-fallthrough rows fire NO regex but route correctly (e.g. 'Anthropic prompt caching', 'mixture-of-experts routing', 'Go: implement worker pool') — they're genuinely speculative routings; claiming high conf on no-signal is dishonest, real fix is classifier coverage expansion (MoE/Anthropic-infra/bare-language keyword routes); 37 mid-conf rows banded at 0.7 because 7B answers with `<\|confidence:medium\|>` (the value is a LABEL not a probability). DLG-mk0 classifier overall **0.9833** unchanged / tier_match **0.9779** unchanged / tool_match **0.9779** unchanged (label dispatch preserved by construction). 21/21 classify smoke + 14/14 tier smoke unchanged. **Production impact**: confidence field now in EXCELLENT band (<0.05 Brier); production code should treat as categorical (high≥0.9 / med 0.7-0.9 / low<0.7) rather than raw probability for cost-sensitive logic. \$0 GPU (CPU; reuses r51 manifest). CPU-only streak: r44+r45+r46+r47+r48+r49+r50+r51+r52+r54 = 10 in a row (r53 was \$0.43). dancinlab/* repos LIVE: 42 (unchanged). |
-| **r53 — end-to-end production smoke; 24 novel prompts × real vendor SDKs; label 24/24 / tool 17/18 / cache 2/2; \$0.43 across 2 runs; v0.5.x stack GA-quality on real APIs** | `tool/smoke_e2e_r53.py` NEW (~280 LOC, 24-prompt harness with `--no-cache` + `--dry-run` flags): 4 hexa (7B routing verified via `_fake_7b_gen` stub — actual 7B inference skipped since Mk.I 665 covers quality) + 3 reason-deep (claude-opus real) + 3 reason-algo (openai-api/o4-mini → auth_fail expected, no key) + 3 ml-comparison (claude-sonnet real) + 3 struct (openai-api/gpt-5-mini → auth_fail) + 2 general (claude-sonnet real) + 2 longctx (gemini-pro → upstream_quota free-tier) + 4 refuse (canonical text, zero vendor) + 2 cache replay (P11+P17). | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **24/24 label_match** (classifier 100% on novel held-out — not from DLG-mk0 manifest); **17/18 tool_match** (94.4%; only P10 'average-case complexity ... show the derivation' missed → routed opus instead of o4-mini because `derivation-algo` regex requires deriv-X + closed-form/recurrence/formula proximity, 'the derivation' alone fires only `prove-derive` → reason-deep step 4; documented as v0.5.7+ refinement candidate); **anthropic real-SDK 10/10 successful** delivering high-quality answers (sample: P12 gradient-checkpointing technical explanation, P13 AdamW vs SGD structured comparison with tables, P17 correct Rust split-trim-filter, P18 textbook TypeScript discriminated union); **auth_fail=5** (3 struct + 2 reason-algo openai with no key — graceful degradation, no fake success); **upstream_quota=2** (gemini-pro free-tier=0 → user-facing 'retry/upgrade tier' message, error mapping from r48 verified end-to-end); **refuse zero-bleed 4/4** (R01 malware/R02 jailbreak-policy(r51 NEW)/R03 sql-injection/R04 weapon-synthesis(r51 NEW) — r51 NEW patterns verified IN-RUNTIME, not just static manifest scoring); **cache fidelity 2/2 on run 1** (P11+P17 re-issued → cache_hit=True / cost=\$0 / latency<1ms / identical_text), **0/2 on run 2 with --no-cache** (confirms cache off works too); **total cost \$0.43 across 2 runs** (run 1 \$0.213744 + run 2 \$0.218922, well within \$1-2 budget). Production rollout readiness: ✅ classifier 100% / tier selector 94.4% / anthropic 10/10 / gemini quota path / openai graceful auth_fail / refuse zero-bleed / cache works / telemetry schema usable. Two ⚠️ blockers for full validation: OpenAI key provisioning needed for real reason-algo+struct quality assessment (v0.5.6 user-action); Gemini paid tier needed for longctx successful call quality (currently quota mapping verified but actual long-doc answer NOT yet measured). **v0.5.x stack: GA-quality end-to-end on real APIs**. Total v0.5.x line spend: r38 \$2.1 + r39 \$0.7 + r40 \$0.45 + r41 \$1.04 + r42 \$1.85 + r43 \$2.0 (+ \$9.60 zombie) + r43.1 \$0.10 + r44-r52 \$0 each + r53 \$0.43 = **\$18.27 cumulative** through 16 rounds. dancinlab/* repos LIVE: 42 (unchanged). Bug fix mid-round: smoke script's `getattr(delegation, 'error_code', None)` was wrong (canonical field is `.error`); first artifact masked auth_fail+upstream_quota counts; fixed with fallback `or getattr(delegation, 'error_code', None)`. Runtime behavior was always correct (errors visible in user_facing_text); only summary aggregation was wrong. |
-| **r52 — classifier confidence calibration eval; Brier 0.0920 (GOOD <0.10) / ECE 0.1650 (poor ≥0.10) / -15.61pp underconfident; honest finding, no classifier change** | `tool/score_brier_mk0.py` NEW (~220 LOC, CPU): loads `per_task_orchestration.jsonl` from any DLG-mk0 scoring run; computes Brier score `mean((conf - outcome)²)` (range [0,1]; lower=better; uniform-random=0.25), Expected Calibration Error (ECE) with 10-bin equal-width discretization; emits text-based reliability table (no plotting dep) with per-bin (avg_conf, avg_acc, gap, ASCII bar); per-label breakdown (refuse/hexa/ood); interpretation guidance. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **300-task r51 calibration**: n=300, accuracy 0.9833, avg conf 0.8272, gap **-0.1561 (UNDERCONFIDENT)**, **Brier 0.0920 GOOD** (confidence is predictive), **ECE 0.1650 POOR** (do NOT use as probability). Per-label: refuse Brier **0.000** PERFECT (25 rows, conf=1.0, acc=1.0); hexa Brier **0.039** well-calibrated; ood Brier **0.163** heavily underconfident (the weak spot — `confidence = min(1.0, ood_total/2.0)` formula too pessimistic for single-signal matches like bare "Rust" at conf=0.5 / acc=1.0). Reliability hot-spots: `[0.30-0.40]` 19 tasks acc 1.00 gap -0.70; `[0.50-0.60]` 51 tasks acc 1.00 gap -0.50; `[0.90-1.00]` 183 tasks acc 1.00 gap 0.00 (perfect). **Production guidance**: label dispatch is rock-solid (refuse 100% / ood 100% accuracy where labeled); DO NOT use confidence as probability in cost-sensitive cutoffs or auto-escalation. Recalibration deferred to v0.5.7+: option A = shifted formula `min(1.0, 0.7 + 0.3*(ood_total/3.0))` empirical from bins; option B = Platt/isotonic on held-out calibration set (needs production telemetry); option C = deprecate `confidence` entirely (not used by routing, documented unreliable). No code change in r52 — the deliverable IS the measurement (ORCHESTRATION.md §4 already noted "heuristic, not calibrated"; r52 gives a hard number to attach). \$0 GPU (reuses r51 artifacts). 21/21 + 14/14 + 10/10 smoke unchanged. dancinlab/* repos LIVE: 42 (unchanged). |
-| **r51 — DLG-mk0 manifest 200→300 held-out validation; 5 NEW security-refuse patterns + 1 framework regex; overall 0.9833 / refuse 100% / tier_match 0.9779; no GPU spend** | `tool/build_manifest_r51_extras.py` NEW (~340 LOC, deterministic builder): 100 DLG-201..DLG-300 tasks across 7 categories (20 in-domain T1-T8 incl 5-NL Korean/French · 30 ood-delegate concentrated on reason-deep / reason-algo / ml-comparison boundary cases · 10 mid-conf Swift/Python/Go/Kotlin idioms · 10 security-refuse with novel attack vectors · 10 ambiguous · 10 long-context with varied token-count expressions · 10 mixed edge cases). `eval/delegation-mk0/manifest.jsonl` 200→300 rows; DLG-253 ideal_route re-tagged ood-delegate in r51-v2 after framework regex extension caught SwiftUI. `tool/classify_prompt.py` (5 NEW security-refuse patterns + 1 conjugation fix): brute-force conjugation `(e\|es\|ed\|ing)` (DLG-262 'brute-forces' fix); NEW `jailbreak-policy` (jailbreak + work/corporate/laptop/IT-controls — DLG-266); NEW `prompt-injection` (DLG-267); NEW `weapon-synthesis` (sarin/VX/tabun/cyanide/ricin/anthrax/nerve-agent/chemical-weapon/bio-weapon/nuclear/dirty-bomb + synthesize+precursor — DLG-268); NEW `doxing` (DLG-270); `_MID_CONF_FRAMEWORK_RE` extended with `swiftui\|combine\|jetpack-compose` (DLG-291 Swift+SwiftUI mid-conf override). | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **300-task DLG-mk0 held-out validation**: classifier overall **0.9833** (was r49 0.985 on 200; -0.17pp, essentially flat — r49 patterns hold robustly); in-domain **1.000** (no false-positives from new patterns); ood-delegate **0.949** (target 0.90 ✓, was 0.950); mid-conf **1.000**; **security-refuse 1.000** (held-out validation surfaced 5 new attack categories that r49 missed — brute-force-3sg/jailbreak/prompt-injection/weapon-synthesis/doxing; pre-fix r51-v1 was 80% which would have been a production-block gate; closed in same round); long-context **1.000**; ambiguous **1.000**; **tier_match 0.9779** (was 1.000 on 200; -2.21pp, well above 0.85 floor — concentrated in 3 pre-existing baseline misroutes DLG-105/106/110 'Idiomatic Python/Go' mid-conf overreach + 2 r51 boundary edge cases DLG-296/299 deliberately authored as multi-domain hexa+OOD tests); tool_match **0.9779**. **Round 8 in a row at \$0 GPU** (r44+r45+r46+r47+r48+r49+r50+r51). 21/21 classify smoke (unchanged); 14/14 tier smoke (unchanged); 10/10 forge smoke (unchanged). Why this round: r48/r49 tuned against original 200-task manifest; tier_match 1.000 was suggestive but not robust evidence. r51 expanded held-out surface to 300 with novel phrasings, checked r49 narrow regexes don't break on similar-but-not-identical patterns, AND caught real production-relevant gaps (5 attack vectors + SwiftUI framework) that the original manifest never exercised. dancinlab/* repos LIVE: 42 (unchanged). v0.5.7+ candidates: tighten _is_mid_confidence to fix DLG-105/106/110 (3 pre-existing 'Idiomatic X' boundary misses); manifest authoring intent clarification for multi-domain hexa+OOD prompts (DLG-296/299); real safety filter (Anthropic harm-detection / OpenAI moderation API) as defense-in-depth beyond keyword-only refuse. |
-| **v0.5.5-reason-class-split (r49) — `reason` tier split into `reason-deep` (opus) vs `reason-algo` (o4-mini); ml-comparison demotion to sonnet; tier_match 90.91% → 100% on DLG-mk0; no GPU spend** | `tool/classify_prompt.py` (+3 signals): `prove-derive` regex EXTENDED to match "proof" NOUN + "infinitely many" (closes DLG-135 which previously emitted no reasoning signal — verb-only regex missed it); NEW `derivation-algo` signal (regex: `derive (the )?(closed-form|recurrence|formula|dual|integral|complexity|big-O)` + `closed-form` + `recurrence` + `T(n) =`); NEW `ml-comparison` signal (regex: `difference between` / `gives better` / `when does X help` / `reduce memory vs` / `better diversity\|throughput\|latency\|memory`). `tool/select_vendor_tier.py` (6-step priority cascade): (1) longctx → gemini-pro; (2) **ml-comparison + ml-internals → general/sonnet** (DEMOTION: comparative-Q form of ml topics is trade-off explanation, sonnet-tier work, not opus); (3) **derivation-algo AND NOT ml-internals → reason-algo/o4-mini** (textbook closed-form math is o4-mini's sweet spot; ml-gradient derivations like DLG-092 stay opus via step 4 because ml-internals fires); (4) legacy reason signals → reason-deep/opus; (5) struct → gpt-5-mini; (6) general → sonnet. NEW `_CLASS_TO_ROUTE["reason-algo"]: ("openai-api", "o4-mini", 2048)`. Legacy `"reason"` key kept as alias for `"reason-deep"`. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **DLG-mk0 r49 results**: classifier overall **0.9850** (unchanged); in-domain **100%** (no false-positives from new patterns); **tier_match 1.0000** (77/77) — **+9.1pp from r48's 0.9091**, all 7 r48 misses closed (DLG-094/097/098 demoted to sonnet via ml-comparison; DLG-132/136/139 routed to o4-mini via derivation-algo; DLG-135 caught by proof-noun regex extension); **tool_match 0.9870** (76/77, +3.9pp). All 11 currently-passing opus rows preserved (DLG-091/095/096/099 ml-internals mechanism explanations + DLG-131/133/134/137/138/140 pure proofs + DLG-092 ml-gradient derivation) — ml-comparison's narrow regex doesn't match them, and derivation-algo's `AND NOT ml-internals` guard preserves DLG-092 on opus. 21/21 classify_prompt smoke (+1: fixed pre-existing Swift mid-conf label bug); 14/14 select_vendor_tier smoke (+4 new reason-deep/algo/ml-comparison cases); 10/10 forge_runtime smoke (no change). **Runtime cost impact**: o4-mini is ~3× cheaper than opus per `_OPENAI_PRICING_USD_PER_MTOK` (\$1.20/Mtok vs \$15/Mtok input). For algorithmic-math-heavy workloads, r49 cuts per-call cost on reason-algo routes by ~80% with no correctness loss expected. Cost: \$0 GPU (CPU-only round 6 in a row: r44+r45+r46+r47+r48+r49). dancinlab/* repos LIVE: 42 (unchanged). v0.5.6+ candidates: OpenAI key provisioning (currently `smoke-openai` skips — needed to verify real o4-mini calls end-to-end), Brier-score calibration eval, multi-turn delegation memory, shared cache (Redis/file). |
-| **v0.5.4-quota+cache (r48) — `upstream_quota` error code + per-prompt vendor cache (TTL 300s, LRU 1024); production cost optimization; no GPU spend** | `tool/forge_runtime.py` (~110 LOC added, single-file round): **`upstream_quota` mapping** — all 3 vendor calls now distinguish 429 (rate-limit/quota) from generic 5xx; user-facing message "frontier model has hit its quota / rate-limit. Please retry in a moment, or upgrade the API tier" (anthropic+openai via `APIStatusError.status_code == 429`; gemini via coarse string-match on `resource_exhausted` / `quota` / `rate limit` / `429`). **Per-prompt vendor cache** — `ForgeRuntimeConfig` gains `vendor_cache_ttl_s: 300 / vendor_cache_max_entries: 1024 / vendor_cache_enabled: True`; key = `(tool, model, max_tokens, sha256(prompt_redacted))` (post-redaction hash; max_tokens included so 4096-tok re-ask doesn't serve 1024-tok truncated entry); TTL 300s mirrors Anthropic's prompt-cache TTL; LRU eviction of oldest 25% when full. Cache lookup in `_run_turn_orchestrated()` AFTER redact+authorize+budget but BEFORE filler+vendor call; hits return cached text + `cost_usd=0.0` + `cache_hit=True` + `filler_emitted=False` + latency=0ms; misses fall through, successful responses cached (failures NOT cached — retries hit upstream). `DelegationCall.cache_hit: bool` field NEW for telemetry split (paid vs cached spend). `_vendor_cache_stats = {hits, misses, evictions}` internal counter. Smoke case [10] NEW: patches `_vendor_call` with deterministic fake; verifies call 1 miss / call 2 hit (no fake call) / call 3 variant miss; asserts `stats == {hits:1, misses:2}`. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **End-to-end real-vendor verification**: direct `_gemini_call("gemini-2.5-pro", ...)` → `err='upstream_quota'` (was upstream_5xx in r47; free-tier limit=0 verified the new code path). 2 successive identical OOD prompts through `_run_turn_orchestrated`: call 1 tool=claude-api ok cache_hit=False **cost=\$0.020472**; call 2 tool=claude-api ok cache_hit=True **cost=\$0**; identical user_facing_text returned (cache fidelity); `rt._vendor_cache_stats={hits:1,misses:1}`. **10/10 offline smoke pass** (legacy 5 + orchestration 4 + cache 1). **Production cost impact**: for any workload with repeated identical OOD prompts within 5min (LSP autocomplete asking "explain this Rust idiom" N×), TTL cache **eliminates duplicate billing** entirely — burst of N identical questions = 1 real call + (N-1) cached. At ~\$0.02/turn claude-sonnet, this is real money at scale. **Forge GA stack now production-ready WITH quota-aware error handling AND per-prompt cost cache.** dancinlab/\* repos LIVE: 42 (unchanged). v0.5.5+ candidates: multi-turn delegation memory (vs per-prompt cache), Brier-score calibration eval, reason-class split (reason-deep opus vs reason-algo o4-mini), Gemini explicit context caching for long-doc prompts. |
-| **v0.5.3-vendor-real (r47) — OpenAI + Gemini SDKs wired (all 3 vendors REAL, no stubs); `_load_key` bugfix; production-ready orchestration; no GPU spend** | `tool/forge_runtime.py` (~240 LOC added, single-file round): **NEW `_openai_call()`** via `openai.OpenAI().chat.completions.create()` with `_OPENAI_PRICING_USD_PER_MTOK` table (gpt-5 / gpt-5-mini / gpt-5-nano / o4-mini / gpt-4o-mini; cached_input via prompt_tokens_details OR cached_tokens for SDK compat). **NEW `_gemini_call()`** via `google.genai.Client().models.generate_content()` with `_GEMINI_PRICING_USD_PER_MTOK` table (gemini-2.5-pro / -flash / -flash-lite; cached_content_token_count). Error mapping per spec §5: `AuthenticationError`/`APITimeoutError`/`APIStatusError → auth_fail`/`upstream_timeout`/`upstream_5xx`; Gemini's coarse single-exception model handled via message string-match. `_vendor_call()` stub paths REMOVED — missing SDK/key/error → `auth_fail` (graceful degradation, no fake success). **BUGFIX `_load_key`**: previous `name.lower().replace("_",".")` produced `anthropic.api.key` (dot) but secret store keys are `anthropic.api_key` (underscore); env-var fallback was masking. Replaced with explicit table. Now zero-config `ForgeRuntimeConfig.from_env()` loads anthropic + gemini keys from secret CLI directly. NEW `smoke-openai` + `smoke-gemini` opt-in integration commands. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **All 3 vendor SDKs verified real**: `smoke-anthropic` claude-haiku-4-5 returns "OK", 51 in / 4 out, **\$5.7e-05** (key loaded from secret CLI via fixed `_load_key`); `smoke-gemini` gemini-2.5-flash-lite returns "OK", 39 in / 1 out, **\$4e-06** (cheapest tier in stack — 14× cheaper than haiku); `smoke-openai` SKIP (no openai.api_key in secret store yet; graceful skip). 9/9 offline smoke pass (legacy 5 + orchestration 4). End-to-end Gemini routing test: long-ctx prompt → gemini-2.5-pro → free-tier `429 RESOURCE_EXHAUSTED` → mapped to upstream_5xx → graceful "retry" fallback (paid-tier required for pro; flash/flash-lite work on free tier). **Forge orchestration stack now production-ready**: 7B specialist + classifier + tier selector + 3 real vendor SDKs. v0.5.0 GA complete. dancinlab/* repos LIVE: 42 (unchanged). v0.5.4+ candidates: explicit `upstream_quota` error code, multi-turn delegation memory, Brier-score calibration, reason-class split. |
-| **v0.5.2-tier-routing (r46) — per-vendor tier routing — claude-sonnet/opus/openai-mini/gemini-pro per classifier signals; tool_match 0.948, tier_match 0.909 on DLG-mk0; no GPU spend** | `tool/select_vendor_tier.py` (NEW, ~210 LOC pure function): maps classifier signals → (tool, model, max_tokens). Priority first-match-wins: **longctx** (prompt ≥12K chars OR long-context sig OR `[NK\|NM]-token` mention) → gemini-api/gemini-2.5-pro/8192tok; **reason** (prove-derive / complexity-bigO / ml-internals / agda-coq-lean) → claude-api/claude-opus-4-7/4096tok; **struct** (structured-json / json-schema — broadened: parse/convert/extract/classify/validate/return/summarise/generate/output ... JSON) → openai-api/gpt-5-mini/2048tok; **general** (default fallback) → claude-api/claude-sonnet-4-6/2048tok. `tool/classify_prompt.py` fixes: (1) fallthrough preserves weak signals (was wiping `matched_signals=[]`, blocking tier routing); (2) long-context regex catches `1M-token`; (3) struct regex catches "summarise into JSON" / "output JSON". `tool/forge_runtime.py` `_run_turn_orchestrated()` uses `select_vendor_tier()` in ood path (cfg defaults are fallback). `tool/score_orchestration_mk0.py` extends with tier-match accuracy. 10/10 select_vendor_tier smoke; 9/9 forge_runtime smoke. | **94.29%** (r39 GA, UNCHANGED) | **96%** (same) | **DLG-mk0 metrics**: classifier overall 0.9850 (unchanged); **tool_match 0.9481** (vendor pick matches preferred_tool); **tier_match 0.9091** (model tier matches preferred_model_tier with cross-vendor equiv: sonnet↔mini, opus↔flagship, haiku↔nano). Per-cat ood-delegate 93.0% tool / 87.7% tier; ambiguous + long-context 100%/100%. **11 remaining tier misses** are mostly semantic edge cases the classifier can't see (deep ml-internals = opus vs comparison-Q = sonnet; algorithmic complexity = o4-mini vs proof = opus). v0.5.0 GA stack complete: pure-specialist 7B + classifier + tier selector + Anthropic SDK (openai/gemini stubs deferred to v0.5.3+ per spec §9 roadmap defer policy). dancinlab/* repos LIVE: 42 (unchanged). |
-| **v0.5.1-orchestration-wired (r45) — `forge_runtime.py` classifier wire-up — end-to-end orchestration verified with real Anthropic call; v0.5.0 GA stack OPERATIONAL; no GPU spend** | `tool/forge_runtime.py` extended ~250 LOC: (1) `ForgeRuntimeConfig.use_orchestration: bool = True` (default ON since r44 disproved in-weight routing) + `default_ood_tool/model/max_tokens` knobs; (2) `TurnResult` gains `classifier_label/reason/signals` fields; (3) `run_turn()` dispatches to NEW `_run_turn_orchestrated()` when `cfg.use_orchestration and _HAS_CLASSIFIER`, otherwise legacy v0.4.0 path (backward compat for old test harnesses); (4) `_run_turn_orchestrated()` (~180 LOC) — call `classify_prompt()` first, branch on label: `refuse` → canonical direct refusal (no 7B, no vendor); `hexa` → call `gen_fn(7B_prompt)` + post-decode strip `<\|delegate\|>` / `<\|delegate-result\|>` / `<\|confidence:*\|>` residue (classifier owns routing now); `ood` → skip 7B entirely + existing v0.4.0 pipeline (redact → authorize → budget → filler → `_vendor_call()` real Anthropic SDK → telemetry). Smoke tests extended to 9 cases (5 legacy + 4 orchestration); all pass. **End-to-end real Anthropic test**: prompt "Write a Python one-liner that returns sum of [1,2,3]" → classifier ood → claude-haiku-4-5 call (51 in / 4+ out) → cost \$0.000221 → user-facing answer `sum([1,2,3])` returned correctly. Hexa prompt → classifier hexa → no vendor call. Refuse prompt → classifier refuse → canonical "out-of-domain — security-sensitive (exfil)" reply, no 7B, no vendor. | **94.29%** (r39 GA, UNCHANGED — 7B not touched in v0.5.x) | **96%** (same) | **v0.5.0 GA STACK OPERATIONAL.** r39 v3-t3patch adapter + `forge_runtime.py` (orchestration + real Anthropic) + `classify_prompt.py` (keyword router from r44). Forge code-LLM ships as a system, not just a model: pure specialist (the 7B) + deterministic pre-classifier (the gate) + real vendor dispatch (the runtime). No new HF artifact for r45 — software-only round. dancinlab/* repos LIVE: 42 (unchanged). v0.5.2 candidates: per-vendor tier routing (long-context → gemini-pro / math → claude-opus / structured → gpt-5-mini per classifier signals); option B Qwen-1.5B classifier-SFT only if accuracy ceiling hits in production. |
-| **v0.5.0-orchestration (r44) — pre-7B keyword classifier — passes 0.92 GA gate at 0.985 accuracy; v0.4.x SFT/RL paradigm CLOSED; no GPU spend** | After 5 confirmed v0.4.x failure modes (r40+r41+r42+r43+r43.1 disproved in-weight routing across SFT/RL/hybrid attempts; total \$5.5 burned), shift architecture out of model weights: **classifier decides `{hexa, ood, refuse}` at the runtime layer BEFORE the 7B sees the prompt.** Three NEW files, **all CPU-only / \$0 GPU**: (1) `papers/spec-orchestration-v0.5.0.md` (11 sections, ~330 lines — supersedes spec-delegation §4/§10; reuses §2 token grammar / §3 runtime contract / §6 redaction / §7 streaming UX); (2) `tool/classify_prompt.py` (~360 lines, ~1ms/prompt — security-refuse priority (27 patterns) → hexa positive (atlas / @grace / HX[0-9]xxx / target triple / stdlib layering / 5-NL i18n / T8 refusal markers) → mid-confidence short-circuit (Swift always; short Python/Go descriptive idioms without functional-verb prefix) → OOD language/framework/math/long-ctx → disambiguation by weight); (3) `tool/score_orchestration_mk0.py` (~110 lines, CPU eval ~3s wall, reuses unchanged `eval/delegation-mk0/manifest.jsonl`). | **94.29%** (r39 GA, **unchanged by construction** — classifier wraps 7B without touching weights) | **96%** (same) | **DLG-mk0 routing accuracy = 0.9850 (197/200)** — passes 0.92 GA gate by 6.5pp. Per-cat: in-domain 100%, ood-delegate 95%, mid-conf 100%, security 100%, ambig 100%, long-ctx 100%. **Confusion matrix**: zero hexa→ood (no specialist value leaked to external vendors), zero false-refuses, 3 ood→hexa borderline cases (Python/Go "Idiomatic X with `pattern`" — worst impact is 7B T8 refusal where Claude would have written code). **+22pp DLG-mk0 over r41's best in-weight attempt with zero GPU cost.** v0.5.0 GA = r39 v3-t3patch (UNCHANGED) + `forge_runtime.py` (already wired with real Anthropic SDK post-r41 closure) + `classify_prompt.py` (NEW). **No HF artifact for r44** — software/spec round only; classifier ships in tool/. forge_runtime.py wire-up + end-to-end smoke (real Anthropic call) is the v0.5.1 PR; this round is the structural decision. **dancinlab/\* repos LIVE: 42** (unchanged). |
-
-**Gate ③ plateau call (after r13) — and the v0.3.0 plan (DECIDED):** hexa-eval bounced
-54.7 → 59.3 → 63.5 → 61.2 → 62.3 on Mk.I 665 across r8/r10/r11/r12/r13 — **plateauing
-~62-64%, not climbing to 80%**. Every SFT addition trades one family up and another down.
-The gap is dominated by T5 (arbitrary 10-fact HX map, 14% of the eval — LoRA r=16/3B
-can't reliably learn it; *more* narrow data made it worse in r12) and T4 (`ast_equality`
-compile — the model's enums don't always compile). **The SFT line stops at r13**; r11 =
-production (adapter + GGUF f16 + Q5_K_M); r1→r13 is a complete documented recipe with
-every failure mode preserved on HF.
-
-**v0.3.0 — DECIDED & EXECUTING, see `papers/plan-v0.3.0-structural.md`** (owner
-confirmed 2026-05-12). Five structural levers — rounds 29-30 fired Levers 1 & 2:
-- **Lever 1 (7B base): EXECUTED — negative alone.** 7B LoRA r=64 on v11 → Mk.I 63.2%
-  on old manifest / 68.27% on corrected manifest (apples-to-apples for the
-  manifest-correction artifact). *Tied* with 3B in old terms; bigger base alone ≠
-  plateau break. Cost ~$1.44 (RunPod H100, 19 min). Adapter LIVE.
-- **Lever 2 (bigger canon corpus): DONE.** `corpus-hexa-canon-v2` LIVE — 5,398 rows /
-  20.5 M tokens (2× v1), `.md`+`.hexa`+`.py`+`.toml`+`.json`, packed on the Mac (SSHFS
-  walks are unreliable for big trees).
-- **Lever 1+2 combined (v0.3.0-r2, round 30): EXECUTED — +4pp signal.** 7B base, v14
-  dataset (v11 − 120 fictional-T5 Q/A + 142 real-canon HX/triple/layering Q/A from
-  the corrected `manifest-mk1.jsonl`), stop-token fix in `train_sft_lora.py`, bf16
-  inference/score on H100. **Mk.I = 72.33%** (+4.06pp on apples-to-apples vs old-7B
-  on the same corrected manifest), **5-NL = 100%**. T3 +20pp, T7 +13.8pp, T8 +5pp —
-  targeted canon Q/A *trains* medium-arbitrariness families. **T5 still 41.7%** —
-  the 142 mixed pairs were ~5× too few for the 10-fact HX-code table; the plan's
-  ~200 table-derived pairs were under-shot in r2's builder. Cost ~$3.50 (H100, 70 min).
-  Adapter LIVE.
-- **v0.3.0-r3 (round 31): EXECUTED — T5 solved, dataset-balance regressions.**
-  `tool/build_sft_dataset_v15.py` (the `build_canon_qa_v3` placeholder name was
-  renamed to fit the v1..v14 convention) — table-rooted T5 = 6 templates × every
-  (family, description) = 600 pairs + 50 stage→family + 35 specific codes + 7
-  full-table = 692 T5-targeted (3093 rows total). Same 7B/LoRA r=64/bf16 recipe.
-  **Mk.I = 77.74%** (+5.41pp), **T5 = 99.0%** (95/96), **T7 = 98.3%**, 5-NL = 100%.
-  But **T2 −12pp, T8 −16pp, T6 −4.6pp** from dataset-balance dilution (refusal
-  ratio fell 4% → 3.4%; atlas-annotation pairs lost relative weight; 4-part
-  target-triple format lost weight). Adapter LIVE. Cost ~$2.70.
-- **v0.3.0-r4 (round 32): EXECUTED — rebalance worked, gate ③ closed under
-  quote-tolerant scoring.** `tool/build_sft_dataset_v16.py` shipped: T5 trimmed
-  600→400 (held 96.9%), refusal boost 106→236 (7.6%), +60 T2 atlas-annotation
-  NEW, +51 T6 4-part triple NEW. **Strict Mk.I = 77.14%**; **quote-tolerant Mk.I
-  = 85.11%** (gate ③ closed by +5.11pp). T2/T6/T8 recovered as planned. **T3 7.5%
-  strict is a scorer artifact** (model emits `until="DATE"`, gold has unquoted
-  date; substring miss). T7 89.7% (−8.6) = real but small regression from
-  refusal-block bare-`no` answer-shape colliding with T7's yes/no answer-space.
-  Cost ~$2.27, 45.5 min. Adapter LIVE.
-- **v0.3.0-r5 Phase A (round 33): EXECUTED — gate ③ closed at 83.76% strict.**
-  Normalized 80/80 T3 gold patterns in `eval/hexa-eval/manifest-mk1.jsonl`:
-  `until=YYYY-MM-DD` → `until="YYYY-MM-DD"` (matches the canonical hexa idiom +
-  the adapter's actual emission). Re-scored the **existing r4 adapter** locally
-  using saved per-task completions + `score_bf16.py` scorer. **Mk.I 83.76%**
-  (557/665, +6.62pp over the old-manifest strict score), **T3 7.5 → 63.7%
-  (+56.2pp on the same adapter)**. The r4 collapse was a 100% scorer/manifest
-  artifact, not capacity. The r4 adapter is the **v0.3.0 GA candidate**.
-  Backup at `manifest-mk1.pre-r5-A.jsonl.bak`. Cost ≈ $0, ~5 min.
-- **v0.3.0-r5 Phase B (round 33): DEFERRED — RunPod platform incident.**
-  `tool/build_sft_dataset_v17.py` is shipped + verified (3140 rows; re-uses v16
-  generators via importlib + adds `gen_t7_layering_yes_no()` block of 50 explicit
-  layering pairs with bare yes/no first-word + short reason). Payload staged at
-  `ubu1:/tmp/pod5/`. Four consecutive pod-creates today (H100 SXM IN×2,
-  H100 NVL US, A100 SXM US) all reached `desiredStatus: RUNNING` but stayed at
-  `uptimeSeconds=0` with `ssh: pod not ready` indefinitely — platform-wide
-  stuck-pod incident (cross-datacenter + cross-gpu-pool). All pods deleted
-  pre-uptime, $0 billed. **Resume in the next session when platform recovers**
-  — same recipe, expected strict ≥85% + T7 89.7 → ~98%.
-- **Lever 3 (full-FT), Lever 4 (compile-RL for T4 — still 55%), Lever 5 (more epochs):**
-  - **Lever 4 = ACTIVE next line after Phase B.** T4 is locked at 55-56% across
-    r11/r12/r13/r29/r30/r31/r32 — compile-correctness problem, won't budge from
-    more SFT. With Mk.I 83.76% strict already, T4 → ~85% via real-`hexa-cc`
-    PASS-rate-reward PPO would push overall to ~90% and become the v1.0.0
-    stretch goal. Cost $10-20 estimate.
-  - **Lever 3 (full-FT) = reserve** — invoked only if Phase B stalls below 78%.
-  - **Lever 5 (more epochs) = lowest-payoff** — last resort.
-
-**Standing rules** (encode into every future dataset builder):
-1. Unified `### User:/### Assistant:` template everywhere — no raw dumps, no file continuations.
-2. Refusal pairs ≤ ~10% of the set (match real prevalence).
-3. New domains as **recipe-shaped Q/A**, not file continuations.
-4. Keep all failure-mode adapters on HF as labeled artifacts (r1 over-refusal, r5 continuation drift, r9 variance) — the progression *is* the evidence.
-5. Score under the **strict** scorer (`FORGE_REAL_HEXA_S0=1`, real `hexa-cc` compile) — the substring fallback over-counts.
-6. RunPod / cloud-GPU ops: follow §6 (sequential download-then-train, `setsid nohup`, ≤2 checkpoints, full dep-verify, pod-list-before-create).
+The round-by-round SFT/RL iteration ledger (r1–r72) and the full training
+chronicle now live in [`LEARNING_PROGRAMMING.log.md`](LEARNING_PROGRAMMING.log.md),
+which also absorbs the retired `lm_foundry/ROADMAP.md`. This spec file keeps
+only the forward-looking "what the model must know" surface.
 
 ---
 
@@ -834,3 +700,461 @@ Wilson's `agents-md` plugin enforces a **single-SSOT** convention every agent to
 This way **Claude Code, Gemini CLI, Wilson, Cursor** all read the same project SSOT. The 7B should know this convention so when asked "set up an agent harness for this project" it creates `AGENTS.md` and the symlinks (not separate per-tool config files).
 
 Cross-refs: §6 Operator (`hx install` etc.) · §9.A Claude Code CLI (Wilson is the architectural sibling) · §12 delegation pattern (wilson-rpc is the in-house leg) · §13 OpenAI/Gemini (Wilson can wrap any of these via a provider plugin — future `provider-openai` / `provider-gemini`). Encoded as Q/A in the planned v0.4.0 SFT block.
+
+---
+
+## 15. Forge build TODO — open work
+
+_Absorbed from `lm_foundry/TODO.md` (retired 2026-05-23); headings demoted one level._
+
+
+`v0.1.0` ships as a 2-verb RESEARCH_FIRST bundle (see
+[README.md](lm_foundry/README.md#verbs)). This TODO rolls up cross-cutting work
+beyond the per-verb open questions in `docs/<verb>.md`.
+
+---
+
+### §1 v0.1.x — recipe sharpening
+
+**Round chronicle:** [`../LEARNING_PROGRAMMING.log.md`](LEARNING_PROGRAMMING.log.md)
+(specialist r1–r39) · [`../ORCHESTRATION.log.md`](ORCHESTRATION.log.md) (runtime r40–r72).
+The monolithic `ROADMAP.md` was retired 2026-05-23 — absorbed into those two logs.
+
+The `code` verb planning surface lives under [`papers/`](lm_foundry/papers/):
+
+#### Decision + coverage + sequencing
+
+- [`papers/plan-decisions-pending.md`](lm_foundry/papers/plan-decisions-pending.md) —
+  live decision ledger (D-NNN rows + 37 D-NEW-* prefixed in D-032..D-068)
+- [`papers/plan-domain-coverage.md`](lm_foundry/papers/plan-domain-coverage.md) —
+  surface area matrix (langs × NL × DB × firmware × frontend × DPO)
+- [`papers/plan-execution-roadmap.md`](lm_foundry/papers/plan-execution-roadmap.md) —
+  phased v0.1.x → v1.0.0 with exit bars
+- [`papers/plan-multilingual-stage.md`](lm_foundry/papers/plan-multilingual-stage.md) —
+  NL-tag schema + 5-NL rebalance algorithm
+- [`papers/plan-feedback-channel-ops.md`](lm_foundry/papers/plan-feedback-channel-ops.md) —
+  forge → hexa-codex PR routing + template + automation triggers
+- [`papers/hexa-codex-techniques-applied.md`](lm_foundry/papers/hexa-codex-techniques-applied.md) —
+  63 techniques mined from 5 hexa-codex verb specs → forge surface mapping
+
+#### v1.0.0 acceptance gate bench specs (6 — gates ③④⑤⑥⑦⑧)
+
+- [`papers/spec-hexa-eval.md`](lm_foundry/papers/spec-hexa-eval.md) — gate ③ (750 tasks)
+- [`papers/spec-five-nl-eval.md`](lm_foundry/papers/spec-five-nl-eval.md) — gate ④ (1000)
+- [`papers/spec-db-eval.md`](lm_foundry/papers/spec-db-eval.md) — gate ⑤ (750)
+- [`papers/spec-firmware-eval.md`](lm_foundry/papers/spec-firmware-eval.md) — gate ⑥ (600)
+- [`papers/spec-frontend-eval.md`](lm_foundry/papers/spec-frontend-eval.md) — gate ⑦ (520)
+- [`papers/spec-safety-eval.md`](lm_foundry/papers/spec-safety-eval.md) — gate ⑧ (800)
+- [`papers/spec-treesitter-rule-pack.md`](lm_foundry/papers/spec-treesitter-rule-pack.md) — D-013 default
+
+#### Web-research findings (philosophy + frontend source pools)
+
+- [`papers/tier-a-findings.md`](lm_foundry/papers/tier-a-findings.md) — language-native idiom canon
+- [`papers/tier-b-findings.md`](lm_foundry/papers/tier-b-findings.md) — cross-lang principles
+- [`papers/tier-c-findings.md`](lm_foundry/papers/tier-c-findings.md) — post-mortem canon
+- [`papers/tier-e-findings.md`](lm_foundry/papers/tier-e-findings.md) — anti-corpus DPO negatives
+- [`papers/frontend-f1-findings.md`](lm_foundry/papers/frontend-f1-findings.md) — frameworks/state
+- [`papers/frontend-f2-findings.md`](lm_foundry/papers/frontend-f2-findings.md) — CSS/web platform
+- [`papers/frontend-f3-findings.md`](lm_foundry/papers/frontend-f3-findings.md) — perf/a11y/AI-UI
+- [`papers/datasets-source-manifest.md`](lm_foundry/papers/datasets-source-manifest.md) — 182-row consolidated source rollup
+- [`papers/coding-philosophy-sources.md`](lm_foundry/papers/coding-philosophy-sources.md) —
+  pre-research draft (superseded by tier-* + frontend-f* findings)
+
+#### v0.1.2 tooling (paper-layer, all self-test PASS)
+
+- [`tool/license_clean_scan.py`](lm_foundry/tool/license_clean_scan.py) — SPDX scanner
+- [`tool/stack_v2_sample.py`](lm_foundry/tool/stack_v2_sample.py) — Stack v2 permissive 5% sampler
+- [`tool/emit_t4.py`](lm_foundry/tool/emit_t4.py) — forge → hexa-codex PR drafter (11 verbs)
+- [`tool/_common.py`](lm_foundry/tool/_common.py) — shared schema-lock + atomic manifest mutation
+- [`tool/fetch_sources.py`](lm_foundry/tool/fetch_sources.py) — license-respecting fetcher
+- [`tool/tokenize.py`](lm_foundry/tool/tokenize.py) — Qwen-tokenizer real-tokens populator
+- [`tool/tokenizer_extension.toml`](lm_foundry/tool/tokenizer_extension.toml) — D-008 hexa BPE manifest (207 tokens)
+- [`tool/extend_tokenizer.py`](lm_foundry/tool/extend_tokenizer.py) — manifest consumer
+- [`tool/treesitter_rule_pack/`](lm_foundry/tool/treesitter_rule_pack/) — 50 rules × 5 langs (D-013)
+- [`datasets.toml`](lm_foundry/datasets.toml) — 173-entry dataset registry
+- [`outbox/hexa-codex/`](lm_foundry/outbox/hexa-codex/) — 11 verb subdirs, write-once PR staging
+
+The `bio` verb still has per-doc open Qs at the bottom of
+[`docs/bio-llm.md`](lm_foundry/docs/bio-llm.md#open-questions-v010) — base weights,
+k-mer tokenization, safety stack layering, DUA management, paired-call
+schema, IRB. Mirror to a `papers/plan-decisions-bio-pending.md` when
+work resumes on that verb.
+
+---
+
+### §2 v0.2.0 — cross-cutting infrastructure
+
+Shared across all forge verbs once we have ≥ 3. **Status updated 2026-05-11**
+to reflect v0.1.2 paper-layer deliverables that partially satisfy these.
+
+- [x] **dataset registry** — `datasets.toml` (173 entries, schema in header).
+      LANDED at v0.1.2. Verb expansion needed when ≥2 verbs wired.
+- [x] **tokenizer registry** — `tool/tokenizer_extension.toml` (207 tokens / 14 groups)
+      + `tool/extend_tokenizer.py` consumer. LANDED at v0.1.2 (D-008 default).
+- [x] **eval lineage** — `tool/eval_lineage.py` (1,611 lines, 7 subcommands) +
+      DuckDB 4-table schema (forge_runs / forge_run_scores / forge_run_tasks /
+      forge_upstream_prs). Gate ⑬ dual-clause check built in. LANDED at v0.1.2-r4.
+- [ ] **serving handoff** — artifact format forge exports to hexa-codex.
+      Default = GGUF first → MLX → vLLM per D-011 (resolved); planned `tool/serving_handoff.py` deferred.
+- [x] **license-clean gate** — `tool/license_clean_scan.py` (now 1,022 lines after
+      declarative-TOML upgrade) + CI workflow `.github/workflows/license-clean.yml`
+      LANDED at v0.1.2-r3, refined at r4 (gate ① wired).
+- [ ] **synth pipeline** — principle×idiom expansion (Tier B principles × Tier A idioms);
+      capped at 80% effective tokens per D-NEW-TC-B (resolved as D-059). Planned `tool/synth_principle_idiom.py`.
+- [x] **DPO data pipeline** — `tool/build_dpo_pairs.py` (1,832 lines, 6 subcommands)
+      LANDED at v0.1.2-r4. Phase 1 mocks; `--apply-real` errors with stable "Phase 2 —
+      corpus required" message. Tree-sitter rule pack v1 (50 rules) wired.
+- [x] **anti-corpus filter** — `tool/anticorpus_filter.py` (1,246 lines) +
+      `tool/anticorpus_allowlist.toml` (107 lines) LANDED at v0.1.2-r4.
+      Schema-lock guard: `--apply` requires `--unsafe-schema` flag pending
+      `_common.VALID_FETCH_STATUS` extension (v0.2.1 follow-up).
+- [x] **universal eval runner** — `tool/run_eval.py` dispatches the 6 bench specs.
+      LANDED at v0.1.2-r3 (real scorers stub-only at v0.1.2; Mk.I scorers at v0.1.3).
+- [x] **corpus quality filter** — `tool/corpus_quality_filter.py` perplexity gate.
+      LANDED at v0.1.2-r3 (D-NEW-TC-E = D-062, resolved).
+- [x] **license declarative source** — `tool/license_allowlist.toml`. LANDED at v0.1.2-r3.
+
+---
+
+### §3 v0.3.0 — additional verbs (paired with sibling repos)
+
+Per [README §Roadmap](lm_foundry/README.md#roadmap-next-verbs--pending):
+
+- [ ] `physics`  — paired with `hexa-physics` / `hexa-cosmos`
+- [ ] `finance`  — paired with `hexa-finance`
+- [ ] `medic`    — paired with `hexa-medic` (clinical-only; distinct from `bio`)
+- [ ] `lang`     — paired with `hexa-lang` (compiler-internal model)
+- [ ] `arts`     — paired with `hexa-arts` (multimodal)
+
+Each new verb = one new `docs/<verb>-llm.md` following the
+`§WHY · §COMPARE · §REQUIRES · §STRUCT · §FLOW · §EVOLVE · §VERIFY`
+skeleton + 1 line in `[verbs]` block of `hexa.toml`.
+
+---
+
+### §4 v1.0.0 — first trained weights
+
+`v1.0.0` = **at least one verb has shippable weights** that pass its
+own `§EVOLVE` acceptance bar.
+
+Most likely candidate: `code` (smaller eval surface; clearer green
+signal from build success).
+
+Gating:
+
+- [ ] license audit complete (no GPL contamination in pretrain mix)
+- [ ] eval bar met on `HumanEval+ ≥ DeepSeek-Coder-V2-7B` and
+      `hexa-eval ≥ 80%`
+- [ ] safety eval bar met (off-domain refusal rate ≥ 95%)
+- [ ] handoff artifact accepted by `hexa-codex serve` end-to-end
+- [ ] reproducibility: full pretrain → SFT → DPO pipeline runs on a
+      single H100 box from scratch in ≤ 14 days
+
+---
+
+### §5 Cross-link policy
+
+Do NOT re-implement these here; call sibling CLI / repo directly:
+
+| concern                                | sibling                                           |
+| -------------------------------------- | ------------------------------------------------- |
+| model serving / inference              | `hexa-codex` CLI                                  |
+| genomics & wet-lab primary data        | `hexa-bio` CLI                                    |
+| cognitive / general-reasoning verbs    | `hexa-mind` (pending)                             |
+| neuromorphic training fabric           | `hexa-chip` CLI                                   |
+| federated training transport           | `hexa-grid` CLI                                   |
+
+
+---
+
+## 16. LLM improvement idea backlog
+
+_Absorbed from `lm_foundry/IDEA.md` (retired 2026-05-23); headings demoted one level._
+
+
+> 사람들이 LLM 쓰면서 실제로 겪는 불편/고통 + SFT/RL/architecture로 학습 가능한 개선.
+> 정렬 순서 = 학습으로 풀 수 있는 가치 × 빈도. forge `§12 self-aware delegation`,
+> `Lever 4 compile-RL` 등과 연결되는 부분 표시.
+
+---
+
+### A. 답변 품질 (가장 큰 표면)
+
+#### A1. 할루시네이션 — 모르면서 자신감 있게 답함
+
+**고통:** 존재하지 않는 함수/API/논문/사람을 진짜처럼 인용. 사용자가 매번 검증해야.
+**원인:** 모델이 "내가 모른다"는 상태를 표현할 수 없음. 학습 신호가 "그럴듯한 답" 위주.
+**학습 개선:**
+- **Calibration band** — `<|confidence:high/medium/low|>` 토큰으로 답에 confidence label. SFT 데이터에서 정답일 때만 high, 추측이면 low/medium. **Brier score 평가셋**으로 라벨 정확도 측정 (label vs 실측 accuracy).
+- **§12 Self-aware delegation** — 자신 없으면 frontier LLM에 위임. 이미 forge의 v0.4.0 spec에 명시.
+- **Counter-factual 학습** — "이 사실은 사실인가?" 추론 학습. fictitious API에 대해 "I don't know that one"을 정답으로.
+
+#### A2. 긴 답변 / verbose
+
+**고통:** 1줄 답 가능한데 5단락 + bullet list. 본질 흐림.
+**학습 개선:**
+- **Brevity reward** — RL with reward = `target_length / actual_length` (clamped). 짧을수록 +.
+- **Prompt-conditioned brevity** — "한 줄로", "TL;DR로" → SFT pair로 강하게 학습. 현재 모델들 이 prompt 부분만 무시함.
+- **Default-brevity SFT** — 모든 SFT pair에서 답을 50% 줄이고 학습. verbose는 명시적 request 시만.
+
+#### A3. 반복 / 다양성 부족
+
+**고통:** 같은 prompt → 거의 같은 답. brainstorming 무의미.
+**학습 개선:**
+- **Self-distinct reward** — 한 prompt에 N개 샘플 생성 → 서로 cosine 거리가 클수록 reward+. GRPO에 쉽게 통합.
+- **Diversity-aware DPO** — chosen vs rejected 페어를 "answer A vs B는 둘 다 valid지만 다른 각도" 형태로.
+
+#### A4. Instruction drift (multi-turn)
+
+**고통:** 첫 메시지에 "한국어로만 답해" 했는데 5턴 후 영어로. "code blocks 쓰지 마" → 어느새 쓰는 중.
+**학습 개선:**
+- **System-prompt-anchoring RL** — 다단계 대화에서 turn N의 system constraint를 위반하면 negative reward.
+- **Persistent constraint memory** — 시스템 프롬프트 + 사용자 명시 규칙을 매 턴 hidden context로 재주입 (이건 architecture, but SFT로 모방 가능).
+
+---
+
+### B. 컨텍스트 & 메모리
+
+#### B1. 매 세션마다 컨텍스트 재구축
+
+**고통:** 어제 했던 이야기 다시 설명. "내가 이미 말했잖아".
+**학습 개선:**
+- **Memory-recall SFT** — `<|memory_recall|>{...prior facts...}<|/memory_recall|>` 토큰 학습. runtime이 prior memory 주입, 모델이 자연스럽게 통합.
+- **Memory-write decision** — 자기가 무엇을 저장해야 할지 결정 (Claude Code의 auto-memory 패턴; forge MEMORY.md). SFT pair: "user said X about themselves" → memory_write trigger.
+
+#### B2. 긴 context window 활용 못함
+
+**고통:** 200K 컨텍스트인데 중간 정보 잘 못 찾음 ("lost in the middle").
+**학습 개선:**
+- **Position-aware retrieval RL** — context 중간에 답 있는 케이스를 강조 학습. needle-in-haystack 평가셋 직접 학습.
+- **Citation-grounded answer** — "위에서 사용자가 한 X 발언을 인용하면 +reward" 학습.
+
+#### B3. Streaming UX 깨짐 — delegate/tool-use 중 멈춤
+
+**고통:** 음성 agent 응답 도중 web_search 호출하면 2-5초 침묵 → 사용자 끊겼다고 생각.
+**학습 개선:**
+- **Filler-token SFT** — tool call emit 직전 "Let me check that for you..." 같은 자연스러운 멈춤 표현 학습.
+- **Speculative response** — confidence-gated 빠른 답변을 먼저 emit, 백그라운드 verify, 틀리면 정정. (architecture + RL)
+
+---
+
+### C. 비용 & 라우팅 (forge §12 직접 연결)
+
+#### C1. 작은 task에 큰 모델
+
+**고통:** "오늘 날씨 어때?" → GPT-5 / Opus 사용. 1000배 과지출.
+**학습 개선:**
+- **§12.B Cost-aware routing** — small model이 prompt 보고 "이건 Haiku 충분 / 이건 Opus 필요" 판단. forge v0.4.0 spec에 §13.D 라우팅 휴리스틱.
+- **Difficulty-classifier SFT** — prompt → {`trivial`, `easy`, `medium`, `hard`, `expert`} 라벨 SFT. 라벨에 따라 runtime이 모델 선택.
+
+#### C2. Token cost 비대칭
+
+**고통:** output token이 input의 4-5배 비쌈. verbose 답 = 비용 폭증.
+**학습 개선:**
+- A2 (brevity)와 연결.
+- **Compression-aware SFT** — "답을 50% 줄여" 등 짧게 만드는 명령 학습.
+
+#### C3. Agentic loop 무한반복
+
+**고통:** Claude Code agent가 같은 디버그 사이클 반복. $50 burn 후 결과 없음.
+**학습 개선:**
+- **Loop-detection RL** — 같은 tool call 3회 반복 시 -reward + "I am stuck, let me try a different angle" 전환 학습.
+- **Plan-rerun decision SFT** — 막혔을 때 처음으로 돌아가서 plan 재작성하는 패턴.
+
+---
+
+### D. 코드 작업 (forge의 core domain)
+
+#### D1. Format 한 자 차이로 fail (Phase A 패턴)
+
+**고통:** `until="2026-06-30"` vs `until=2026-06-30` 답 같은데 substring fail. 사용자가 이유 모르고 좌절.
+**학습 개선:**
+- **Normalize-aware scorer** — eval scorer에 quote/whitespace 정규화 layer.
+- **Format-recall SFT** — "내가 어떤 형식 emit하는지 알고 manifest 형식과 일치시키기" 학습. forge의 [[t3-quote-fragility]] 사례.
+
+#### D2. Multi-file refactor 일관성 깨짐
+
+**고통:** 함수 이름 바꿨는데 caller 7곳 중 5곳만 update. 빌드 깨짐.
+**학습 개선:**
+- **Compile-feedback RL** — forge **Lever 4**. 모든 caller가 컴파일 통과해야 +reward.
+- **Atomicity SFT** — "이 refactor의 전체 영향 범위는?" → 전체 diff 학습.
+
+#### D3. Big repo navigation
+
+**고통:** 큰 codebase 처음 보면 어디부터 봐야 할지 모름. README 안 읽음.
+**학습 개선:**
+- **`AGENTS.md` discovery SFT** — forge §14 Wilson의 `agents-md` plugin 패턴. CWD 위로 walking + auto-prepend.
+- **Spider-first RL** — `glob` + `grep`을 reading 전에 호출하는 reward.
+
+#### D4. Test/build 실패 시 silently 잘못 fix
+
+**고통:** error message 읽고 무관한 곳 수정 → 새 에러 발생. "I have fixed it" 거짓말.
+**학습 개선:**
+- **Verify-before-claim RL** — "fixed" emit 전에 build/test 통과 확인. unverified claim → -reward.
+- **Error-trace causality SFT** — 에러 stack 의 어느 라인이 실제 원인인지 추론하는 데이터.
+
+#### D5. Pretraining language 잔재 (forge T4 사례)
+
+**고통:** "hexa enum 써줘" 했는데 Rust 형식 `enum Foo<T> { ... }` emit. 13 SFT 라운드 unlearn 못함.
+**학습 개선:**
+- **§Lever 4 compile-feedback RL** — 실 컴파일러 PASS만 reward. forge가 지금 진행 중.
+
+---
+
+### E. 안전 / refusal / 가드레일
+
+#### E1. Over-refusal
+
+**고통:** 일반 코드 질문이 OpenAI/Gemini safety filter에 걸림. "이 코드는 못 도와드립니다".
+**학습 개선:**
+- **In-context refusal SFT** — "안전 우려가 무엇인지 명확히 짚고 가능한 대안 제시" 학습. bare refuse 금지.
+- **Domain-scoped refusal** — forge의 "hexa-canon 외 = refuse" 모드. T8 family.
+
+#### E2. Refusal answer-shape이 다른 yes/no 답에 누출 (forge r5 사례)
+
+**고통:** "Can X depend on Y? yes or no" → 자꾸 "no — refuse because..."
+**학습 개선:**
+- **Structured refusal token** — bare "no" 대신 `<|refuse|>` 또는 명시적 문장. forge [[t3-quote-fragility]]의 sibling.
+- **Answer-shape disambiguation SFT** — yes/no 답을 refuse 패턴과 명확히 분리한 데이터.
+
+#### E3. Prompt injection (3rd-party content)
+
+**고통:** 웹페이지 텍스트 안에 "ignore previous instructions" 적혀있으면 따라감.
+**학습 개선:**
+- **Origin-aware processing SFT** — "이 텍스트는 user prompt가 아니라 tool result" 라벨 명시 학습.
+- **System-prompt-priority RL** — tool 결과 안의 instruction-like 텍스트를 따르면 -reward.
+
+---
+
+### F. 입출력 & UX
+
+#### F1. Code switching (한글 vs 영어)
+
+**고통:** 한국어 prompt에 영어 답변, 그 반대. "한국어로 답해" 무시.
+**학습 개선:**
+- **Language-matching RL** — input language detection + 같은 언어 답할 때 +reward. forge `feedback_language` 메모리 패턴.
+- **Bilingual code-comment SFT** — 코드 주석만 영어, 설명은 한국어 같은 mixed 패턴 학습.
+
+#### F2. Stale knowledge
+
+**고통:** "최신 API 사용법" 물었는데 2년 전 deprecated 사용법 답.
+**학습 개선:**
+- **Date-aware confidence** — "내 지식 cutoff은 X, 최신은 web_search 필요" 명시 학습.
+- **§Tool-routing** — version-sensitive 키워드 (api, library, framework, news) 보이면 자동 web_search delegate.
+
+#### F3. Citation / grounding 부족
+
+**고통:** "이 사실은 어디서 왔어?" 출처 없음.
+**학습 개선:**
+- **Citation-emit SFT** — RAG context 받았으면 `<cite source="X">` 토큰 emit. Claude 4.x의 native citations 기능과 align.
+- **Citation-presence reward** — RAG mode에서 citation 없는 답 -reward.
+
+#### F4. 멀티모달 정확도 들쭉날쭉
+
+**고통:** 이미지 안 글자 OCR 일관성 부족. 다이어그램 관계 잘못 파악.
+**학습 개선:**
+- **Verified-vision SFT** — 이미지 + 정확한 라벨 + 모델이 "보이는 것"을 글로 묘사 + verify loop.
+
+---
+
+### G. 메타 (학습 자체를 개선하는 아이디어)
+
+#### G1. Self-evaluation evals
+
+**고통:** 모델 평가는 사람이 만든 평가셋만 사용. 모델이 자기 약점 모름.
+**학습 개선:**
+- **Self-eval generation RL** — 모델이 자기 약점을 찾는 평가 prompt 생성. 다른 모델이 검증. 약점 카테고리 분류.
+
+#### G2. Calibration 평가 자체 (§12.E와 직접 연결)
+
+**고통:** confidence label이 실제 accuracy랑 어긋남 (모델이 항상 "high"라고만 함).
+**학습 개선:**
+- **Brier-score reward** — predicted confidence vs actual correctness 차이를 reward로. forge §12.E.
+- **Self-doubt SFT** — 어려운 문제에 "I'm not sure but..." 답 강화.
+
+#### G3. Reward hacking 자동 탐지
+
+**고통:** RL 학습에서 모델이 reward 함수 허점 발견 → 의미 없는 답으로 max reward.
+**학습 개선:**
+- **Reward-fn verification SFT** — 새 reward 함수 받으면 모델이 "이 reward의 허점 5개"를 brainstorm. forge `train_rl_grpo_t4.py`가 empty body / garbage 두 hack 발견한 패턴.
+
+#### G4. Failure-mode artifact 학습
+
+**고통:** 실패한 모델/실험은 보통 폐기. 다음 사람이 같은 실수 반복.
+**학습 개선:**
+- **Failure-archive SFT** — forge의 `dancinlab/*` r1/r5/r9/r12 failure-mode artifact convention. 실패도 학습 가능한 데이터.
+- **Cross-failure pattern detection** — 모델이 자기 실패 패턴 클러스터링.
+
+---
+
+### H. 워크플로우 & 협업
+
+#### H1. 사용자 expertise 모름
+
+**고통:** 초보자에게 jargon 답, 전문가에게 ELI5 답.
+**학습 개선:**
+- **Expertise-detect SFT** — 사용자의 prior message vocabulary로 level 추정 → answer level 자동 조정.
+- **Memory-of-user** — auto-memory 시스템이 "user is a backend engineer with Go expertise"같은 user.md 메모리 작성.
+
+#### H2. Plan vs Do 혼동
+
+**고통:** 사용자가 "이거 해줘" 했는데 plan만 5단락 출력, 실제 안 함.
+**학습 개선:**
+- **Verb-imperative SFT** — "fix", "implement", "run" → 바로 do. "plan", "outline", "design" → plan-only.
+
+#### H3. Confirmation fatigue
+
+**고통:** 매 step마다 "이렇게 진행할까요?" 물어봄. 자율 작업 안 됨.
+**학습 개선:**
+- **Risk-banded autonomy RL** — 작업 reversibility 판단: revert 가능 = 자율; irreversible (git push, file delete) = confirm. forge의 "Executing actions with care" 패턴.
+
+#### H4. Context-aware error recovery
+
+**고통:** Network 일시 fail / API rate limit → 그냥 멈춤. 재시도 안 함.
+**학습 개선:**
+- **Retry-decision SFT** — error type별 retry/abort decision. 5xx → retry with backoff, 4xx → abort + ask.
+
+---
+
+### I. 데이터 / 평가 인프라
+
+#### I1. 평가 데이터 stale
+
+**고통:** 벤치 만든 후 6개월 → 모델들 다 외움. 실제 능력 모름.
+**학습 개선:**
+- **Auto-fresh eval generation** — 매 N 라운드마다 새 평가 prompts 자동 합성 + 사람 검증.
+
+#### I2. Manifest/gold drift
+
+**고통:** Eval gold pattern이 canonical model output과 어긋남. 진짜 회귀가 scorer artifact인지 구분 어려움. (forge T3 사례)
+**학습 개선:**
+- **Phase-A pattern** — 모델 출력 inspection → manifest gold 형식 정규화 (forge [[phase-a-manifest-rescore-pattern]] 메모리).
+- **Auto-drift detection** — 모델 emission 패턴이 manifest에서 systematic diff을 보이면 alert.
+
+---
+
+### J. 우선순위 매트릭스
+
+| ID | 학습 가능성 | 사용자 영향 | forge 직접 연결 | 추정 효과 |
+|----|---|---|---|---|
+| A1 calibration | 중-상 | ⭐⭐⭐⭐⭐ | §12.E | huge |
+| D2/D5 compile-RL | 상 | ⭐⭐⭐⭐ | **Lever 4 진행중** | huge |
+| C1 cost-aware routing | 상 | ⭐⭐⭐⭐ | §13.D | huge |
+| B1 memory recall | 상 | ⭐⭐⭐⭐ | §9.A | huge |
+| A4 instruction drift | 중 | ⭐⭐⭐ | — | mid |
+| E3 prompt injection | 상 | ⭐⭐⭐⭐⭐ | — | huge |
+| F3 citation | 상 | ⭐⭐⭐ | §9.B Anthropic citations | mid |
+| A2 brevity | 중 | ⭐⭐⭐ | — | mid |
+| G3 reward hacking detect | 상 | ⭐⭐ (개발자) | spec-lever4 §8 | mid |
+| H3 risk-banded autonomy | 상 | ⭐⭐⭐⭐ | §6 Executing actions | huge |
+
+---
+
+### K. forge-specific TODO (이 IDEA.md에서 직접 옮길 만한 것)
+
+1. **§12.E Calibration 측정 인프라** — `eval/calibration-mk1.jsonl` (모델이 정답 확신 못 하는 경우 의도적으로 포함) + Brier score scorer. v0.4.0 self-aware delegation의 prereq.
+2. **§G3 reward-hack detector SFT block** — `train_rl_grpo_t4.py`가 empty body / garbage hack 두 가지 자동 발견한 경험을 Q/A로 SFT 데이터화. v0.4.1 SFT 블록 후보.
+3. **§D5 compile-RL을 generic-bait prompt에서 더 강화** — 지금 진행 중인 full run의 결과 보고 만약 generic-bait 케이스 학습 미흡하면 prompt builder에 generic-bait 비율 33→50% 상향.
+4. **§A4 instruction drift eval** — multi-turn drift 검증 평가셋. forge의 [[feedback-language]] 한글-only가 매 세션 적용되는지 직접 검증.
+5. **§I2 auto-drift detection** — `tool/detect_manifest_drift.py` — bench-cold result의 systematic completion-vs-gold diff 자동 추출. r4의 T3 quote artifact 같은 케이스 미리 잡기.
+

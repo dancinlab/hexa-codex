@@ -21,6 +21,7 @@ state/
 
 # build artifacts
 build/out/
+build/artifacts/
 *.pdf
 
 # === lm_foundry/ (absorbed from hexa-forge, 2026-05-13) ===

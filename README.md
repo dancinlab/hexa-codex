@@ -38,21 +38,6 @@
 > [`lm_foundry/README.md`](lm_foundry/README.md) and
 > [`ORCHESTRATION.md`](ORCHESTRATION.md).
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20102600.svg)](https://doi.org/10.5281/zenodo.20102600)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-informational.svg)](CHANGELOG.md)
-[![Verbs: 17 / 4 groups](https://img.shields.io/badge/verbs-17_(4_groups)-blue.svg)](#verbs)
-[![lm_foundry: code-LLM 94.29%](https://img.shields.io/badge/lm__foundry-code--LLM_94.29%25_Mk.I-blueviolet.svg)](lm_foundry/README.md)
-[![Verify: 34/34 green](https://img.shields.io/badge/verify-34%2F34_green--core-brightgreen.svg)](#verify)
-[![Closure: 100% bookkeeping](https://img.shields.io/badge/closure-100%25_bookkeeping_(green--core)-brightgreen.svg)](verify/run_all.hexa)
-[![Tests: 24 .hexa + 83 py](https://img.shields.io/badge/tests-24_.hexa_+_83_py-brightgreen.svg)](#runnable-surface)
-[![Closure: 100% sat-1](https://img.shields.io/badge/closure-100%25_(sat--1_T1+T2+T3)-brightgreen.svg)](#runnable-surface)
-[![Provenance](https://img.shields.io/badge/from-canon%40c0f1f570-purple.svg)](https://github.com/dancinlab/echoes)
-[![Falsifiers: 4/4 100%](https://img.shields.io/badge/falsifiers-4%2F4_at_100%25-brightgreen.svg)](#falsifier-preregister)
-[![Lean4 proof: σ(6)=12](https://img.shields.io/badge/Lean4-σ(6)%3D12_PROVEN-brightgreen.svg)](formal/README.md)
-[![Papers: 4 + Lean1 + 2 deep-dive](https://img.shields.io/badge/refs-4P_+_Lean1_+_2DD-blue.svg)](#reference-annexes)
-[![n=6 lattice](https://img.shields.io/badge/n=6-σ·φ_=_n·τ_=_24-blue.svg)](#n6-master-identity)
-
 ---
 
 ## Why hexa-codex?

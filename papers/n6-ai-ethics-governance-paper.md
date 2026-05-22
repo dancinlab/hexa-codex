@@ -2,6 +2,7 @@
 <!-- @canonical-origin: canon@a86ca143:papers/n6-ai-ethics-governance-paper.md (moved 2026-05-10) -->
 <!-- @extracted: 2026-05-10 -->
 <!-- @md5_at_extraction: 9a4bc1d137f8f2ba0c739240e53351c0 -->
+<!-- @absorbed_into: hexa-codex (P4 reference paper — AI ethics+governance σ·φ=24 overlay; SAFETY-group annex, no new verb, atlas.n6 0/24 EXACT, MATURITY=LOW) -->
 <!-- gold-standard: shared/harness/sample.md -->
 ---
 domain: ai-ethics-governance

@@ -1,6 +1,6 @@
 # hexa-codex closure status — 100% (recipe §7.2 sat-1)
 
-**Snapshot date**: 2026-05-08 (post iter 27)
+**Snapshot date**: 2026-05-23
 **Source-of-truth recipe**: `~/core/bedrock/docs/runnable_surface_recipe.md`
 **Live verdict command**: `hexa-codex verify saturation-check`
 
@@ -25,14 +25,19 @@ t3_ok)`. Recipe §7.2 sat-1 = `closure_pct = 100%` for every falsifier.
 
 ---
 
-## §2 Per-falsifier closure (verified at iter 27)
+## §2 Per-pillar closure
 
-| Falsifier  | Pillar       | T1 | T2 | T3 | closure_pct |
-|:-----------|:-------------|:--:|:--:|:--:|:-----------:|
-| F-CODEX-1  | train_cost   | ✓  | ✓  | ✓  | **100%**    |
-| F-CODEX-2  | infer_cost   | ✓  | ✓  | ✓  | **100%**    |
-| F-CODEX-3  | alignment    | ✓  | ✓  | ✓  | **100%**    |
-| F-CODEX-4  | interpret    | ✓  | ✓  | ✓  | **100%**    |
+The 4 F-CODEX falsifier pillars, plus `quality_scale` — the first
+non-falsifier ECONOMICS verb to reach recipe §3 closure — each carry
+the full T1+T2+T3 ladder.
+
+| Pillar         | Falsifier  | T1 | T2 | T3 | closure_pct |
+|:---------------|:-----------|:--:|:--:|:--:|:-----------:|
+| train_cost     | F-CODEX-1  | ✓  | ✓  | ✓  | **100%**    |
+| infer_cost     | F-CODEX-2  | ✓  | ✓  | ✓  | **100%**    |
+| alignment      | F-CODEX-3  | ✓  | ✓  | ✓  | **100%**    |
+| interpret      | F-CODEX-4  | ✓  | ✓  | ✓  | **100%**    |
+| quality_scale  | (none)     | ✓  | ✓  | ✓  | **100%**    |
 
 ### F-CODEX-1 (train_cost) — full path
 
@@ -70,6 +75,15 @@ t3_ok)`. Recipe §7.2 sat-1 = `closure_pct = 100%` for every falsifier.
 | T2   | `verify/numerics_interpret_solver.hexa` (10 checks)                         | Gradient flow `dx/dt = M − x` + Lyapunov `L = ½(x−M)²` monotone decay      |
 | T3   | `verify/numerics_interpret_parity.hexa` (10 checks)                         | Parity vs Olsson 2022 / Cunningham 2023 / Bricken 2023 / Anthropic 2024 SAE |
 
+### quality_scale (ECONOMICS, non-falsifier) — full path
+
+| Tier | Files                                                                       | What it proves                                                            |
+|:----:|:----------------------------------------------------------------------------|:--------------------------------------------------------------------------|
+| T1   | `verify/calc_quality_scale.hexa` (8 checks)                                 | Chinchilla loss-fit `loss = E + A·N^-α + B·D^-β`, n6 exponent `α=β=φ/σ=1/6` |
+| T2   | `verify/numerics_quality_scale.hexa` (10 checks)                            | Loss-surface shape — monotone in N and D, floored at E, asymptotic to E    |
+| T2   | `verify/numerics_quality_scale_solver.hexa` (10 checks)                     | Euler / midpoint / RK4 re-derivation of `dR/du = -α·R`                     |
+| T3   | `verify/numerics_quality_scale_parity.hexa` (10 checks)                     | n6 exponent `1/6 ≈ √(0.076·0.34)` — geom mean of Kaplan-2020 / Chinchilla  |
+
 ---
 
 ## §3 Cross-cutters + meta
@@ -88,7 +102,7 @@ t3_ok)`. Recipe §7.2 sat-1 = `closure_pct = 100%` for every falsifier.
 | File                              | Role                                                                 |
 |:----------------------------------|:----------------------------------------------------------------------|
 | `verify/falsifier_check.hexa`     | Closure tracker — emits per-pillar `closure_pct = 100%` (3/3 tiers)   |
-| `verify/lint_numerics.hexa`       | Recipe §4 invariants 1-5 over every `numerics_*.hexa` (14 files)      |
+| `verify/lint_numerics.hexa`       | Recipe §4 invariants 1-5 over every `numerics_*.hexa` (17 files)      |
 | `verify/saturation_check.hexa`    | Aggregate self-stop — emits `__HEXA_CODEX_RSC_SATURATED__ STOP`       |
 
 ---
@@ -123,11 +137,13 @@ directly — it prints each pillar's T1/T2/T3 status individually.
 
 | Category                          | Count |
 |:----------------------------------|:-----:|
-| Pillar layer scripts (4 × 4)      | 16    |
+| Pillar layer scripts (5 × 4)      | 20    |
 | Cross-cutter scripts              |  4    |
 | Meta scripts                      |  3    |
-| **Total `verify/*.hexa`**         | **23** |
-| Companion regression wrappers     | 24 (incl. `tests/test_all.hexa`) |
+| **Subtotal — recipe §3 ladder**   | **27** |
+| T4 PENDING stubs (`numerics_*_t4_parity`) | 11 |
+| **Total `run_all` subject scripts** | **38** |
+| Companion regression wrappers     | 29 (incl. `tests/test_all.hexa`) |
 
 ---
 
@@ -143,6 +159,7 @@ candidates per pillar:
 | infer_cost   | Live latency / KV-cache profiles at 1M-ctx on a deployed model    |
 | alignment    | Live HELM-Core composite re-run on a frontier model               |
 | interpret    | Live SAE feature counts via a dictionary-learning toolchain       |
+| quality_scale| Live HumanEval+ / hexa-eval pass-rate vs model & data scale       |
 
 T4 work is gated on infrastructure that lives outside this repo's
 runnable surface; it does NOT block the recipe §7.2 sat-1 verdict.

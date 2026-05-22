@@ -4,6 +4,23 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — verify-surface restoration: lattice + provenance (2026-05-23)
+
+`run_all` returns to a fully green 38/38 after two pre-existing doc
+gaps — unrelated to the quality_scale ladder — are honestly closed.
+
+- `rlhf/youth-ai-labeling-rlhf-hub.md` — the §7.1 PHYSICAL-LIMIT verify
+  block now also prints the `sigma(6)*phi(6)` term of the master
+  identity it already asserts, restoring the σ/τ/φ token triple that
+  `lattice_check` check 10 requires (23/24 → 24/24).
+- `papers/n6-ai-ethics-governance-paper.md` — adds the missing
+  `@absorbed_into: hexa-codex` provenance header (P4 reference paper),
+  restoring `cross_doc_audit` check 12 (14/15 → 15/15); the dependent
+  `saturation_check` returns to green in turn.
+- `docs/closure_status.md`, `README.md` — count + snapshot refresh for
+  the quality_scale ladder (`run_all` 34 → 38 subject scripts,
+  companion wrappers 24 → 29, snapshot date 2026-05-23).
+
 ## [Unreleased] — ECONOMICS quality_scale verification ladder (2026-05-23)
 
 The `quality_scale` verb (3rd ECONOMICS verb — a loss-surface

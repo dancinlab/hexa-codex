@@ -11,7 +11,7 @@
   <a href="https://doi.org/10.5281/zenodo.20102600"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.20102600.svg"></a>
   <img alt="Spec" src="https://img.shields.io/badge/spec-v1.0.0-success">
   <img alt="Verbs" src="https://img.shields.io/badge/verbs-17%20(4%20groups)-informational">
-  <img alt="Verify" src="https://img.shields.io/badge/verify-34%2F34%20PASS-brightgreen">
+  <img alt="Verify" src="https://img.shields.io/badge/verify-38%2F38%20PASS-brightgreen">
   <img alt="Falsifiers" src="https://img.shields.io/badge/falsifiers-4%2F4%20at%20100%25-brightgreen">
   <img alt="lm_foundry" src="https://img.shields.io/badge/lm__foundry-94.29%25%20Mk.I-blueviolet">
   <img alt="Family" src="https://img.shields.io/badge/family-HEXA--senses%20·%20HEXA--mind%20·%20HEXA--brain-blueviolet">
@@ -228,20 +228,20 @@ python3 verify/release_params.py  # full per-version parameter table
 
 `verify/run_all.hexa` is the canonical `.hexa` orchestrator (sister of
 `hexa-rtsc` / `hexa-cern` / `hexa-fusion` / `hexa-ufo` / `hexa-chip` /
-`hexa-antimatter` `run_all.hexa` patterns). It runs **34 green-core
-verify subscripts** and emits `__HEXA_CODEX_RUN_ALL__ PASS — 34/34
+`hexa-antimatter` `run_all.hexa` patterns). It runs **38 green-core
+verify subscripts** and emits `__HEXA_CODEX_RUN_ALL__ PASS — 38/38
 green` on success.
 
 ```bash
-HEXA_CODEX_ROOT=$(pwd) hexa run verify/run_all.hexa     # 34/34 expected
+HEXA_CODEX_ROOT=$(pwd) hexa run verify/run_all.hexa     # 38/38 expected
 ```
 
-### Green-core inventory (34 subscripts, all PASS)
+### Green-core inventory (38 subscripts, all PASS)
 
 | Tier | Count | Scripts |
 |------|------:|---------|
-| T1 algebraic | 5 | `lattice_check` · `calc_train_cost` · `calc_infer_cost` · `calc_alignment` · `calc_interpret` |
-| T2 numerical | 14 | `numerics_{train_cost,infer_cost,alignment,interpret}[_parity\|_solver]` · `numerics_cross_pillar` · `numerics_lattice_arithmetic` |
+| T1 algebraic | 6 | `lattice_check` · `calc_train_cost` · `calc_infer_cost` · `calc_alignment` · `calc_interpret` · `calc_quality_scale` |
+| T2 numerical | 17 | `numerics_{train_cost,infer_cost,alignment,interpret,quality_scale}[_parity\|_solver]` · `numerics_cross_pillar` · `numerics_lattice_arithmetic` |
 | T4 PENDING stubs | 11 | `numerics_*_t4_parity` × 11 (train_cost, infer_cost, alignment, interpret, safety, adversarial, quality_scale, rlhf, eval, agent_serving, deploy) — emit PENDING per D-023 |
 | inventory | 1 | `cross_doc_audit` |
 | meta closure | 3 | `falsifier_check` · `lint_numerics` · `saturation_check` |
@@ -273,7 +273,7 @@ equivalence — see [`LIMIT_BREAKTHROUGH.log.md`](LIMIT_BREAKTHROUGH.log.md) §2
 
 ### Bookkeeping closure verdict
 
-- **100 % bookkeeping closure** within the green-core (34/34 PASS).
+- **100 % bookkeeping closure** within the green-core (38/38 PASS).
 - **NOT** AI safety / economics / capability *settled* — F-CODEX-1..4
   remain at "arithmetic floor closed, empirical T4 PENDING per release
   ladder"; the 11 T4 stubs are honestly PENDING.

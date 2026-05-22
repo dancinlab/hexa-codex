@@ -608,6 +608,7 @@ assert battery_autonomy_hours_min >= ESKOM_GAP_HRS_PER_DAY, \
 # -------------------------------------------------------------------
 
 print("HEXA-Y-AI-LABEL-RLHF-HUB mk1 §7.1 PHYSICAL-LIMIT verify PASS:")
+print(f"                         sigma(6)*phi(6) = {sigma(N6)}*{phi_eul(N6)} = {sigma(N6)*phi_eul(N6)}")
 print(f"                         n*tau(6)        = {N6}*{tau(N6)} = {N6*tau(N6)}")
 print(f"                         J_2(6)          = {J2(N6)}")
 print()

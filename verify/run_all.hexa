@@ -6,15 +6,17 @@
 // hexa-rtsc / hexa-fusion / hexa-ufo / hexa-chip / hexa-antimatter's
 // run_all pattern — same shape, AI-knowledge-substrate falsifier surface.
 //
-// Inventory (34 green-core verify/*.hexa scripts):
+// Inventory (38 green-core verify/*.hexa scripts):
 //
-//   T1 algebraic   : calc_{train_cost,infer_cost,alignment,interpret}    (4)
+//   T1 algebraic   : calc_{train_cost,infer_cost,alignment,interpret,
+//                          quality_scale}                                 (5)
 //                  + lattice_check                                       (+1)
 //
-//   T2 numerical   : numerics_{train_cost,infer_cost,alignment,interpret} (4)
-//                  + their _parity / _solver siblings                    (8)
+//   T2 numerical   : numerics_{train_cost,infer_cost,alignment,interpret,
+//                              quality_scale}                             (5)
+//                  + their _parity / _solver siblings                   (10)
 //                  + numerics_cross_pillar
-//                  + numerics_lattice_arithmetic                         (2 = 14)
+//                  + numerics_lattice_arithmetic                         (2 = 17)
 //
 //   T4 stubs       : numerics_*_t4_parity (11 PENDING-sentinel stubs for
 //                    forge data landing per D-023: train_cost, infer_cost,
@@ -25,13 +27,14 @@
 //
 //   meta closure   : falsifier_check + lint_numerics + saturation_check  (3)
 //
-// Total: 34 verify/*.hexa subject scripts (run_all.hexa itself excluded).
+// Total: 38 verify/*.hexa subject scripts (run_all.hexa itself excluded).
 //
 // NO EXCLUSIONS (no honest-red ledger):
 //   Unlike hexa-chip where 4 falsifier scripts are deliberately tripped
 //   by real-world Moore retraction + post-GAA flattening + HBM4 spec
 //   drift, hexa-codex's surface is currently all-green: 4 F-CODEX-N
-//   pillars × T1+T2×3 (closed-form + numerics + solver + parity) +
+//   pillars + the quality_scale ECONOMICS verb, each × T1+T2×3
+//   (closed-form + numerics + solver + parity) +
 //   cross-cutters + meta + 11 T4 stubs that emit PENDING (not pretend
 //   to PASS empirically) until external forge data lands.
 //
@@ -77,14 +80,15 @@ fn _root() -> str {
 let ROOT = _root()
 
 let SCRIPTS: [str] = [
-    // ─── T1 algebraic (5) ─────────────────────────────────────────
+    // ─── T1 algebraic (6) ─────────────────────────────────────────
     "verify/lattice_check.hexa",
     "verify/calc_train_cost.hexa",
     "verify/calc_infer_cost.hexa",
     "verify/calc_alignment.hexa",
     "verify/calc_interpret.hexa",
+    "verify/calc_quality_scale.hexa",
 
-    // ─── T2 numerical green core (14) ─────────────────────────────
+    // ─── T2 numerical green core (17) ─────────────────────────────
     "verify/numerics_train_cost.hexa",
     "verify/numerics_train_cost_parity.hexa",
     "verify/numerics_train_cost_solver.hexa",
@@ -97,6 +101,9 @@ let SCRIPTS: [str] = [
     "verify/numerics_interpret.hexa",
     "verify/numerics_interpret_parity.hexa",
     "verify/numerics_interpret_solver.hexa",
+    "verify/numerics_quality_scale.hexa",
+    "verify/numerics_quality_scale_parity.hexa",
+    "verify/numerics_quality_scale_solver.hexa",
     "verify/numerics_cross_pillar.hexa",
     "verify/numerics_lattice_arithmetic.hexa",
 

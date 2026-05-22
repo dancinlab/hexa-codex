@@ -44,9 +44,9 @@ let VERIFY_DIR = ROOT + "/verify"
 // Curated inventory — must match `verify/numerics_*.hexa` glob.
 //
 // Two strata kept together so the on-disk count check holds:
-//   - green core (14) : T2 numerics/parity/solver per F-CODEX-1..4 +
-//                       cross-pillar + lattice-arithmetic.  These all
-//                       call the _check() harness with strict bands.
+//   - green core (17) : T2 numerics/parity/solver per F-CODEX-1..4 +
+//                       quality_scale + cross-pillar + lattice-arithmetic.
+//                       These all call the _check() harness with strict bands.
 //   - T4 stubs (11)   : `numerics_*_t4_parity.hexa` — Stage 0 stubs
 //                       that emit a PENDING sentinel until external
 //                       hexa-forge T4 PRs land per D-023.  They do not
@@ -55,21 +55,24 @@ let VERIFY_DIR = ROOT + "/verify"
 //                       counted here so the inventory floor is honest
 //                       about everything on disk; the recipe §4 strict
 //                       invariants (1-5 + harness-call check 9) only
-//                       apply to the green-core 14 (see SKIP_LINT below).
+//                       apply to the green-core 17 (see SKIP_LINT below).
 let NUMERICS_SCRIPTS = [
-    // ── green core (14) ─────────────────────────────────────────────
+    // ── green core (17) ─────────────────────────────────────────────
     "numerics_train_cost.hexa",
     "numerics_infer_cost.hexa",
     "numerics_alignment.hexa",
     "numerics_interpret.hexa",
+    "numerics_quality_scale.hexa",
     "numerics_train_cost_parity.hexa",
     "numerics_infer_cost_parity.hexa",
     "numerics_alignment_parity.hexa",
     "numerics_interpret_parity.hexa",
+    "numerics_quality_scale_parity.hexa",
     "numerics_train_cost_solver.hexa",
     "numerics_infer_cost_solver.hexa",
     "numerics_alignment_solver.hexa",
     "numerics_interpret_solver.hexa",
+    "numerics_quality_scale_solver.hexa",
     "numerics_cross_pillar.hexa",
     "numerics_lattice_arithmetic.hexa",
     // ── T4 stubs (11) — PENDING until forge data lands (D-023) ──────
@@ -146,7 +149,7 @@ fn _read(path: str) -> str {
 }
 
 // Cache: load every NUMERICS_SCRIPTS body once and reuse across checks.
-//   This drops total subprocess count from O(14·N_checks) to 14, so
+//   This drops total subprocess count from O(28·N_checks) to 28, so
 //   running inside a busy test_all won't hit fork-exhaustion.
 let mut BODIES = []
 let mut BODIES_LOADED = false

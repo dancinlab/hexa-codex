@@ -1,0 +1,253 @@
+#!hexa strict
+// hexa-codex/verify/numerics_quality_scale_parity.hexa — quality_scale T3 parity.
+//
+// Beyond `verify/numerics_quality_scale.hexa` (loss-surface shape) and
+// `verify/numerics_quality_scale_solver.hexa` (ODE re-derivation), this
+// script compares the n=6 predicted loss-scaling exponent against the
+// two canonical published measurements of the same quantity:
+//
+//   Reference          | N-exponent | D-exponent | source
+//   -------------------|------------|------------|---------------------------
+//   Kaplan et al. 2020 |   0.076    |   0.095    | arxiv 2001.08361 (Table)
+//   Hoffmann 2022      |   0.34     |   0.28     | arxiv 2203.15556 (Approach 3)
+//   n=6 lattice        |   1/6      |   1/6      | α = β = φ(6)/σ(6)
+//
+// The headline empirical fact this verb sits on: the loss-scaling
+// exponent is NOT settled — Kaplan 2020 and the Chinchilla re-fit
+// (Hoffmann 2022) disagree by ~4.5×.  The n=6 prediction 1/6 ≈ 0.1667
+// lands as the GEOMETRIC MEAN of the two published measurements, with
+// each published value sitting a factor φ(6)=2 away in log-ratio:
+//
+//     1/6 ≈ √(0.076 · 0.34) = 0.1608   (N-exponent)
+//     1/6 ≈ √(0.095 · 0.28) = 0.1631   (D-exponent)
+//     0.34 / (1/6) ≈ 2 ≈ (1/6) / 0.076 ≈ φ(6)
+//
+// This is the MILD falsifier of T1: the n=6 exponent competes with the
+// published spread rather than uniquely winning it — both fits coexist.
+//
+// Verifies the n=6 exponent against the published spread (8 checks),
+// the ordering bracket (1 check), and the n=6 power-law shape at the
+// spec S7.3 published model scales (1 check).
+//
+// PASS criterion (T3 floor): 10 checks pass.
+//
+// Recipe T3 floor: published-reference parity.  T4 (live loss-vs-FLOP
+// surface fit on measured data) is the next layer — see the
+// numerics_quality_scale_t4_parity.hexa PENDING stub.
+//
+// Run:
+//   hexa run verify/numerics_quality_scale_parity.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; integer + float arithmetic only.")
+
+use "self/runtime/math_pure"
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+
+// ── n=6 lattice exponent ──────────────────────────────────────────────────
+let SIGMA_6  = 12.0
+let PHI_6    = 2.0
+let N6_ALPHA = PHI_6 / SIGMA_6            // 1/6 — N-exponent
+let N6_BETA  = PHI_6 / SIGMA_6            // 1/6 — D-exponent (n=6 symmetry)
+
+// ── published measured loss-scaling exponents ─────────────────────────────
+let KAPLAN_ALPHA_N = 0.076                 // Kaplan 2020 (arxiv 2001.08361)
+let KAPLAN_ALPHA_D = 0.095                 // Kaplan 2020
+let CHIN_ALPHA     = 0.34                  // Hoffmann 2022 (arxiv 2203.15556)
+let CHIN_BETA      = 0.28                  // Hoffmann 2022
+
+// Chinchilla loss-fit coefficients (for the shape check at S7.3 scales).
+let E_LOSS = 1.69
+let A_COEF = 406.4
+
+// FALSIFIERS list (recipe §4 invariant 3).
+let FALSIFIERS = ["quality_scale n=6 loss-exponent 1/6 vs Kaplan-2020 / Hoffmann-2022 published-exponent parity (geometric-mean band, mild falsifier)"]
+
+// ── helpers ──────────────────────────────────────────────────────────────
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _abs(x: float) -> float {
+    return abs_pure(x)
+}
+
+fn _geomean(a: float, b: float) -> float {
+    return sqrt_pure(a * b)
+}
+
+// ── checks ───────────────────────────────────────────────────────────────
+
+// Check 1: n=6 exponent identity — α = β = φ(6)/σ(6) = 1/6.
+fn check_exponent_identity() {
+    let computed = PHI_6 / SIGMA_6
+    let drift = _abs(computed - (1.0 / 6.0))
+    let symmetric = (N6_ALPHA == N6_BETA)
+    _check((drift < 1.0e-12) && symmetric,
+           "n6 loss-exponent α = β = φ(6)/σ(6) = 1/6",
+           "computed=" + to_string(computed) + " drift=" + to_string(drift) +
+           " α==β=" + str(symmetric))
+}
+
+// Check 2: n=6 N-exponent lies strictly inside the published spread
+//   [Kaplan 0.076, Chinchilla 0.34].
+fn check_n_exponent_bracketed() {
+    let inside = (KAPLAN_ALPHA_N < N6_ALPHA) && (N6_ALPHA < CHIN_ALPHA)
+    _check(inside,
+           "n6 N-exponent 1/6 strictly between Kaplan 0.076 and Chinchilla 0.34",
+           "0.076 < " + to_string(N6_ALPHA) + " < 0.34")
+}
+
+// Check 3: n=6 N-exponent ≈ geometric mean of the two published N-exponents.
+fn check_n_exponent_geomean() {
+    let gm = _geomean(KAPLAN_ALPHA_N, CHIN_ALPHA)
+    let drift = _abs(N6_ALPHA - gm)
+    _check(drift < 0.03,
+           "n6 N-exponent 1/6 ≈ √(Kaplan·Chinchilla) within 0.03",
+           "geomean=" + to_string(gm) + " n6=" + to_string(N6_ALPHA) +
+           " drift=" + to_string(drift))
+}
+
+// Check 4: n=6 D-exponent lies strictly inside [Kaplan 0.095, Chinchilla 0.28].
+fn check_d_exponent_bracketed() {
+    let inside = (KAPLAN_ALPHA_D < N6_BETA) && (N6_BETA < CHIN_BETA)
+    _check(inside,
+           "n6 D-exponent 1/6 strictly between Kaplan 0.095 and Chinchilla 0.28",
+           "0.095 < " + to_string(N6_BETA) + " < 0.28")
+}
+
+// Check 5: n=6 D-exponent ≈ geometric mean of the two published D-exponents.
+fn check_d_exponent_geomean() {
+    let gm = _geomean(KAPLAN_ALPHA_D, CHIN_BETA)
+    let drift = _abs(N6_BETA - gm)
+    _check(drift < 0.03,
+           "n6 D-exponent 1/6 ≈ √(Kaplan·Chinchilla) within 0.03",
+           "geomean=" + to_string(gm) + " n6=" + to_string(N6_BETA) +
+           " drift=" + to_string(drift))
+}
+
+// Check 6: Chinchilla N-exponent is ≈ φ(6)=2 × the n=6 exponent.
+fn check_chinchilla_phi_ratio() {
+    let ratio = CHIN_ALPHA / N6_ALPHA
+    _check((ratio > 1.6) && (ratio < 2.6),
+           "Chinchilla α / n6 α ≈ φ(6) = 2  (band 1.6–2.6)",
+           "ratio=" + to_string(ratio))
+}
+
+// Check 7: n=6 exponent is ≈ φ(6)=2 × the Kaplan exponent.
+fn check_kaplan_phi_ratio() {
+    let ratio = N6_ALPHA / KAPLAN_ALPHA_N
+    _check((ratio > 1.6) && (ratio < 2.6),
+           "n6 α / Kaplan α ≈ φ(6) = 2  (band 1.6–2.6)",
+           "ratio=" + to_string(ratio))
+}
+
+// Check 8: the full published spread Chinchilla/Kaplan ≈ φ(6)² = 4.
+fn check_published_spread() {
+    let ratio = CHIN_ALPHA / KAPLAN_ALPHA_N
+    _check((ratio > 3.0) && (ratio < 5.5),
+           "published spread Chinchilla/Kaplan ≈ φ(6)² = 4  (band 3.0–5.5)",
+           "ratio=" + to_string(ratio))
+}
+
+// Check 9: ordering bracket — n=6 predicts α = β (symmetric); the two
+//   published fits disagree on the α/β ordering (Kaplan α<β, Chinchilla
+//   α>β), so the n=6 equality sits between the two published orderings.
+fn check_ordering_bracket() {
+    let kaplan_d_steeper     = (KAPLAN_ALPHA_N < KAPLAN_ALPHA_D)
+    let chinchilla_n_steeper = (CHIN_ALPHA > CHIN_BETA)
+    let n6_symmetric         = (N6_ALPHA == N6_BETA)
+    _check(kaplan_d_steeper && chinchilla_n_steeper && n6_symmetric,
+           "n6 α=β brackets the published orderings (Kaplan α<β, Chinchilla α>β)",
+           "kaplan_d_steeper=" + str(kaplan_d_steeper) +
+           " chinchilla_n_steeper=" + str(chinchilla_n_steeper) +
+           " n6_symmetric=" + str(n6_symmetric))
+}
+
+// Check 10: the n=6 power-law shape A·N^(-1/6) evaluated at the spec
+//   S7.3 published model scales (7B / 70B / 175B / 400B) is monotone
+//   decreasing and strictly positive — the n=6 fit predicts a residual
+//   loss that shrinks with scale and never reaches zero (floor E).
+fn check_shape_at_published_scales() {
+    let scales = [7.0e9, 70.0e9, 175.0e9, 400.0e9]
+    let mut prev = 1.0e30
+    let mut mono = true
+    let mut positive = true
+    let mut i = 0
+    while i < len(scales) {
+        let term = A_COEF * pow_pure(scales[i], 0.0 - N6_ALPHA)
+        if term <= 0.0 { positive = false }
+        if term >= prev { mono = false }
+        prev = term
+        i = i + 1
+    }
+    _check(mono && positive,
+           "n6 shape A·N^-α at 7B/70B/175B/400B: monotone decreasing, positive",
+           "monotone=" + str(mono) + " positive=" + str(positive) +
+           " (residual loss above floor E=" + to_string(E_LOSS) + ")")
+}
+
+// ── main ─────────────────────────────────────────────────────────────────
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex quality_scale published-exponent parity (T3, math_pure)")
+    println("  n6 loss-exponent 1/6 vs Kaplan-2020 / Hoffmann-2022 measured")
+    println("========================================================================")
+    println("  Kaplan 2020   : α_N=" + to_string(KAPLAN_ALPHA_N) +
+            "  α_D=" + to_string(KAPLAN_ALPHA_D))
+    println("  Hoffmann 2022 : α=" + to_string(CHIN_ALPHA) +
+            "  β=" + to_string(CHIN_BETA))
+    println("  n=6 lattice   : α=β=" + to_string(N6_ALPHA))
+    println("")
+
+    check_exponent_identity()
+    check_n_exponent_bracketed()
+    check_n_exponent_geomean()
+    check_d_exponent_bracketed()
+    check_d_exponent_geomean()
+    println("")
+    check_chinchilla_phi_ratio()
+    check_kaplan_phi_ratio()
+    check_published_spread()
+    check_ordering_bracket()
+    check_shape_at_published_scales()
+
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " checks passed")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for f in FAILURES { println("    ✗ " + f) }
+        println("__HEXA_CODEX_NUMERICS_QUALITY_SCALE_PARITY__ FAIL")
+        exit(1)
+    }
+    println("  quality_scale T3 published-exponent parity: closed.")
+    println("__HEXA_CODEX_NUMERICS_QUALITY_SCALE_PARITY__ PASS")
+    exit(0)
+}

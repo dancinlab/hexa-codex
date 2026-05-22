@@ -4,6 +4,30 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ECONOMICS quality_scale verification ladder (2026-05-23)
+
+The `quality_scale` verb (3rd ECONOMICS verb — a loss-surface
+cross-cutter beside `train_cost` and `infer_cost`) gains its full
+T1+T2+T3 verification ladder, the first non-F-CODEX verb to reach
+recipe §3 closure.
+
+- `verify/calc_quality_scale.hexa` — T1 algebraic floor (8 checks):
+  the Chinchilla loss-fit `loss = E + A·N^-α + B·D^-β` with the n=6
+  lattice exponent `α = β = φ(6)/σ(6) = 1/6`.
+- `verify/numerics_quality_scale.hexa` — T2 numerical (10 checks):
+  loss-surface shape — monotone decreasing in N and D, floored at E,
+  asymptotic to E.
+- `verify/numerics_quality_scale_solver.hexa` — T2 ODE solver (10
+  checks): Euler / midpoint / RK4 re-derivation of `dR/du = -α·R`.
+- `verify/numerics_quality_scale_parity.hexa` — T3 published-exponent
+  parity (10 checks): the n=6 exponent `1/6 ≈ √(0.076·0.34)`, the
+  geometric mean of the Kaplan-2020 and Hoffmann-2022 (Chinchilla)
+  measured loss-scaling exponents.
+- Companion regression tests under `tests/test_*quality_scale*.hexa`.
+- Inventory bookkeeping: `verify/lint_numerics.hexa` green core 14→17,
+  `verify/run_all.hexa` 34→38 subject scripts, `tests/test_all.hexa`
+  cases.
+
 ## [Unreleased] — root `.md` spec/history split (2026-05-22)
 
 Per-domain spec/history file split applied to root-level `*.md` (commons

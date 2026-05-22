@@ -40,8 +40,8 @@
 //   are NOT sufficient verification — the numerics_* tier carries the
 //   real-limits anchors (PAC sample complexity, Kolmogorov K(program)
 //   lower bound, undecidability of semantic equivalence — see
-//   LIMIT_BREAKTHROUGH.md §2).
-//   Per LIMIT_BREAKTHROUGH.md §1: AI safety + economics claims here
+//   LIMIT_BREAKTHROUGH.log.md §2).
+//   Per LIMIT_BREAKTHROUGH.log.md §1: AI safety + economics claims here
 //   are THEORETICAL preregisters, not empirically settled — the
 //   release ladder (v1.1.0..v2.0.0) lands the T4 empirical floors
 //   incrementally.

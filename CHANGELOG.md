@@ -4,6 +4,26 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — root `.md` spec/history split (2026-05-22)
+
+Per-domain spec/history file split applied to root-level `*.md` (commons
+`@D g29` pattern, mirrors sidecar `d705a98` + demiurge). Spec-flavoured
+files (`README.md`, `LATTICE_POLICY.md`, `CHANGELOG.md`, `RELEASE_NOTES_v1.0.0.md`,
+`CLAUDE.md`) stay current-state-only; history-flavoured files move to
+`.log.md` so spec readers stop tripping on dated audit prose.
+
+- `IMPORTED_FROM_CANON.md` → `IMPORTED_FROM_CANON.log.md` (one-time canon
+  extraction record, entirely history).
+- `LIMIT_BREAKTHROUGH.md` → `LIMIT_BREAKTHROUGH.log.md` (Wave M dated
+  real-limits audit, not a live spec).
+- `TAPE-AUDIT.md` → `TAPE-AUDIT.log.md` (`.tape` v1.x adoption snapshot
+  ledger).
+- In-repo references updated in `README.md`, `lm_foundry/README.md`,
+  `verify/run_all.hexa`, `papers/plan-coverage-matrix.md`,
+  `IMPORTED_FROM_CANON.tape`, `lm_foundry/papers/plan-feedback-channel-ops.md`.
+- Past CHANGELOG entries that reference the old names left as-is
+  (historical surface per commons `@D g29`).
+
 ## [Unreleased] — `lm_foundry/` absorbed from `hexa-forge` (2026-05-13)
 
 The standalone `hexa-forge` repo (domain-LLM foundry — research + recipe +

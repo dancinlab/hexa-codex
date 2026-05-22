@@ -155,7 +155,7 @@ ladder gates.
 - Sister-repo cross-link changes → update §5 + add D-NNN in
   [`plan-decisions-pending.md`](plan-decisions-pending.md).
 - Atlas.n6 / canon hash drift → re-extract verbs (last extracted
-  canon@c0f1f570, 2026-05-06; document in `IMPORTED_FROM_CANON.md`).
+  canon@c0f1f570, 2026-05-06; document in `IMPORTED_FROM_CANON.log.md`).
 
 ---
 

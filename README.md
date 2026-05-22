@@ -275,7 +275,7 @@ Per `LATTICE_POLICY.md` §1.3: lattice tautologies (σ·φ = n·τ = 24)
 alone are **not** sufficient verification — the `numerics_*` tier
 carries real-limits anchors (PAC sample complexity, Kolmogorov
 `K(program)` lower bound, Rice's theorem undecidability of semantic
-equivalence — see [`LIMIT_BREAKTHROUGH.md`](LIMIT_BREAKTHROUGH.md) §2).
+equivalence — see [`LIMIT_BREAKTHROUGH.log.md`](LIMIT_BREAKTHROUGH.log.md) §2).
 
 ### Bookkeeping closure verdict
 
@@ -631,9 +631,9 @@ hexa-codex/
 ├── reality-map/               canon meta-grid
 ├── experiments/               sandbox runs (gitignored heavy outputs)
 ├── LATTICE_POLICY.md          n=6 self-consistency aux policy
-├── LIMIT_BREAKTHROUGH.md      PAC / Kolmogorov / Rice's theorem anchors
-├── IMPORTED_FROM_CANON.md     extraction reference (canon@c0f1f570)
-├── TAPE-AUDIT.md              .tape v1.x adoption ledger
+├── LIMIT_BREAKTHROUGH.log.md  PAC / Kolmogorov / Rice's theorem anchors (audit log)
+├── IMPORTED_FROM_CANON.log.md extraction reference (canon@c0f1f570)
+├── TAPE-AUDIT.log.md          .tape v1.x adoption ledger
 └── CHANGELOG.md               change log
 ```
 

@@ -33,7 +33,7 @@
 
 ## §2 PR template
 
-Each PR follows this shape (mirrors hexa-codex's `IMPORTED_FROM_CANON.md`
+Each PR follows this shape (mirrors hexa-codex's `IMPORTED_FROM_CANON.log.md`
 provenance discipline):
 
 ```markdown

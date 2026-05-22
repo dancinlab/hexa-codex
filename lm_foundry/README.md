@@ -86,7 +86,7 @@ SQLite WAL multi-process safe (r61). Production observability via
 | `ROADMAP.md` | per-round narrative — r1 through **r62**; complete documented recipe with every failure mode preserved |
 | **`ORCHESTRATION.md`** | **canonical spec for the v0.5.x runtime stack** (root domain doc per `domain-meta-domain` convention) — 15 sections + ## Log |
 | `LATTICE_POLICY.md` | universal real-limits standard (dancinlab-wide) |
-| `LIMIT_BREAKTHROUGH.md` | this project's real-limits audit per LATTICE_POLICY |
+| `LIMIT_BREAKTHROUGH.log.md` | this project's real-limits audit per LATTICE_POLICY |
 | `papers/` | design docs — `spec-lever4-compile-rl.md`, `plan-v0.3.0-structural.md`, `spec-delegation-v0.4.0.md` (OBSOLETE §4/§10), `spec-orchestration-v0.5.0.md` (SUPERSEDED), per-tier findings |
 | `tool/` | builders + trainers + scorers + **the orchestration runtime** — see table below |
 | `eval/` | `hexa-eval/manifest-mk1.jsonl` (665-task Mk.I) + `five-nl-eval/` (25-task 5-NL i18n) + `delegation-mk0/manifest.jsonl` (300-task routing eval r51) |

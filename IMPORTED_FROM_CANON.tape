@@ -7,11 +7,11 @@
   kind = "Imported from canon"
   brief = "Files below were **moved** out of `dancinlab/canon` during the"
   parent = "dancinlab/hexa-codex"
-  sibling-md = "IMPORTED_FROM_CANON.md"
+  sibling-md = "IMPORTED_FROM_CANON.log.md"
 
 # ─── §Log (append @A / @D events here, chronological) ────────────────
 # 
-# Pre-existing log entries live in IMPORTED_FROM_CANON.md.
+# Pre-existing log entries live in IMPORTED_FROM_CANON.log.md.
 # New per-domain history entries land here as typed events:
 #
 #   @A commit_<hash> :: <domain> [d=<YYYY-MM-DD> ok]

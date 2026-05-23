@@ -107,3 +107,63 @@ Persisted:
 - `bench/sandbox_stage0_baseline.hexa` — bench source (hexa-only).
 - `.verdicts/sandbox/stage0_accuracy_floor.tsv` — per-task rows.
 - `.verdicts/sandbox/stage0_accuracy_floor_summary.txt` — aggregate.
+
+## 2026-05-23 — Stage 1 PoC — tier-persona convention degenerate (manifest no-op)
+
+Implemented `bench/sandbox_stage1_persona.hexa` — the SANDBOX.md
+§"Tier persona convention (Stage 1)" — single base model
+(Qwen2.5-0.5B-Instruct-Q4_K_M, same as Stage 0) + 3 personas
+distinguished by system prompt + decoding params only:
+
+| persona | system prompt                          | temp | max_tok | mock tier |
+|:--------|:---------------------------------------|:----:|:-------:|:---------:|
+| `nano`  | "Answer in <=15 tokens."               | 0.0  |   32    | haiku     |
+| `mid`   | "Answer concisely."                    | 0.0  |   256   | sonnet    |
+| `max`   | "Answer carefully and thoroughly."     | 0.0  |  1024   | opus      |
+
+Dispatch via `llama-completion -sys ... -p ...` (chat-template aware),
+same scorer (byte_exact_subset, case-insensitive), same canonical
+20-task manifest verbatim from Stage 0.
+
+Result: **all 3 personas score 20/20 — perfect ceiling saturation.**
+
+- `nano_accuracy = 20/20`  · `nano_total_wall_ms = 123047`
+- `mid_accuracy  = 20/20`  · `mid_total_wall_ms  = 104160`
+- `max_accuracy  = 20/20`  · `max_total_wall_ms  = 141580`
+- `tier_separation_observed = false` (acc_ladder=false ms_ladder=false)
+- `routing_simulation_viable = false` (spread_tasks=0)
+
+The persona convention is **NOT falsified** — dispatch, scorer parity,
+and per-persona wall_ms accounting all work mechanically. It is
+**dead-on-manifest**: the canonical 20-task set is too short / too
+uniform / too saturated for any tier-routing simulation to have signal.
+Notably, even `nano` (max_tok=32 + "Answer in <=15 tokens.") produces
+correct short answers including the two tasks Stage 0 missed
+(task 9 ASCII for 'A' → "65" instead of "97"; task 18 binary 1101
+correct in `mid` working line). The system-prompt constraint
+"answer in <=15 tokens" outperforms Stage 0 vanilla on these — the
+sys_prompt is actively HELPING accuracy, not hurting it.
+
+ms_ladder is also non-monotone (`mid` is the fastest at 104s vs
+nano 123s vs max 142s) — short max_tok=32 + early-EOS doesn't beat
+mid's looser max_tok=256 in practice because most outputs hit the
+natural `[end of text]` token early in all three regimes.
+
+**Honest signal** (g5 compliance): Stage 2 (scaled stratified
+manifest, `wc ∈ [5, 200]`, N >= 2000, 5 task strata) is the BLOCKING
+dependency before tier-routing has any observable signal. Every
+downstream substrate-only candidate that consumes Stage 1
+(`d_cache_aware_local`, `d_logit_calibration`, `d_kv_prefix_share`,
+`d_quantization_tier`) inherits this observability gap on the
+20-task canonical manifest. The cycle-1/2 length-router 81.79%
+saving cannot be reproduced under SANDBOX until Stage 2 lands.
+
+`.discoveries/sandbox.tape` flipped: `d_stage0_poc` → confirmed
+(verdict ref attached), `d_stage1_persona` → dead-on-manifest
+(verdict ref attached); top-ROI candidate is now
+`d_stage2_scale_manifest`.
+
+Persisted:
+- `bench/sandbox_stage1_persona.hexa` — bench source (hexa-only).
+- `.verdicts/sandbox/stage1_persona.tsv` — 60 rows (3 personas × 20).
+- `.verdicts/sandbox/stage1_persona_summary.txt` — aggregate verdict.

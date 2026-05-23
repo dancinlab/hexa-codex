@@ -1,0 +1,61 @@
+persona	task_idx	sys_prompt	temp	max_tok	word_count	output_tok_est	wall_ms	correct	output_snippet
+nano	1	Answer in <=15 tokens.	0.0	32	39	145	11839	1	4 [end of text] common_perf_print: sampling time = 0.87 ms common_perf_print: samplers time = 0.45 ms / 35 tokens common
+nano	2	Answer in <=15 tokens.	0.0	32	28	145	8810	1	Paris [end of text] common_perf_print: sampling time = 2.26 ms common_perf_print: samplers time = 0.29 ms / 29 tokens co
+nano	3	Answer in <=15 tokens.	0.0	32	64	145	4804	1	olleh [end of text] common_perf_print: sampling time = 1.59 ms common_perf_print: samplers time = 0.56 ms / 36 tokens co
+nano	4	Answer in <=15 tokens.	0.0	32	40	145	3306	1	49 [end of text] common_perf_print: sampling time = 1.76 ms common_perf_print: samplers time = 0.76 ms / 34 tokens commo
+nano	5	Answer in <=15 tokens.	0.0	32	63	145	6066	1	11 [end of text] common_perf_print: sampling time = 1.47 ms common_perf_print: samplers time = 0.73 ms / 38 tokens commo
+nano	6	Answer in <=15 tokens.	0.0	32	50	145	4071	1	2 [end of text] common_perf_print: sampling time = 0.78 ms common_perf_print: samplers time = 0.31 ms / 33 tokens common
+nano	7	Answer in <=15 tokens.	0.0	32	48	145	2702	1	6 [end of text] common_perf_print: sampling time = 0.94 ms common_perf_print: samplers time = 0.34 ms / 32 tokens common
+nano	8	Answer in <=15 tokens.	0.0	32	75	146	7773	1	100 Celsius [end of text] common_perf_print: sampling time = 2.90 ms common_perf_print: samplers time = 1.32 ms / 42 tok
+nano	9	Answer in <=15 tokens.	0.0	32	55	145	3804	1	65 [end of text] common_perf_print: sampling time = 2.78 ms common_perf_print: samplers time = 0.63 ms / 36 tokens commo
+nano	10	Answer in <=15 tokens.	0.0	32	50	145	3787	1	28 [end of text] common_perf_print: sampling time = 0.92 ms common_perf_print: samplers time = 0.41 ms / 38 tokens commo
+nano	11	Answer in <=15 tokens.	0.0	32	73	148	2333	1	```python sum(range(1, 101)) ``` [end of text] common_perf_print: sampling time = 7.74 ms common_perf_print: samplers ti
+nano	12	Answer in <=15 tokens.	0.0	32	56	146	6831	1	O(log n) [end of text] common_perf_print: sampling time = 8.50 ms common_perf_print: samplers time = 4.53 ms / 37 tokens
+nano	13	Answer in <=15 tokens.	0.0	32	77	145	5448	1	lst[::-1] [end of text] common_perf_print: sampling time = 100.22 ms common_perf_print: samplers time = 42.24 ms / 41 to
+nano	14	Answer in <=15 tokens.	0.0	32	51	147	7086	1	{1, 2, 3} [end of text] common_perf_print: sampling time = 15.55 ms common_perf_print: samplers time = 2.10 ms / 46 toke
+nano	15	Answer in <=15 tokens.	0.0	32	60	151	7648	1	TCP is connection-oriented, while UDP is connectionless. [end of text] common_perf_print: sampling time = 8.98 ms common
+nano	16	Answer in <=15 tokens.	0.0	32	34	161	7817	1	BFS (Breadth-First Search) explores all nodes at the current level before moving on to the next level. DFS (Depth-First
+nano	17	Answer in <=15 tokens.	0.0	32	62	156	8257	1	```python import functools @functools.cache def fibonacci(n): if n <= 0: return 0 elif n == common_perf_print: sampling
+nano	18	Answer in <=15 tokens.	0.0	32	50	151	7629	1	1101 binary = 1*2^3 + 1*2^2 + 0*2^1 + 1*2^ common_perf_print: sampling time = 95.31 ms common_perf_print: samplers time
+nano	19	Answer in <=15 tokens.	0.0	32	56	164	4478	1	Mergesort has a time complexity of O(n log n) due to its divide-and-conquer approach, where it recursively sorts smaller
+nano	20	Answer in <=15 tokens.	0.0	32	45	159	8558	1	The Halting Problem asks whether a Turing machine can eventually halt for a given input. [end of text] common_perf_print
+mid	1	Answer concisely.	0.0	256	39	145	6627	1	4 [end of text] common_perf_print: sampling time = 10.63 ms common_perf_print: samplers time = 0.26 ms / 33 tokens commo
+mid	2	Answer concisely.	0.0	256	28	145	4795	1	Paris [end of text] common_perf_print: sampling time = 0.64 ms common_perf_print: samplers time = 0.29 ms / 27 tokens co
+mid	3	Answer concisely.	0.0	256	64	145	4870	1	olleh [end of text] common_perf_print: sampling time = 3.77 ms common_perf_print: samplers time = 2.66 ms / 34 tokens co
+mid	4	Answer concisely.	0.0	256	40	145	4291	1	49 [end of text] common_perf_print: sampling time = 33.64 ms common_perf_print: samplers time = 33.03 ms / 32 tokens com
+mid	5	Answer concisely.	0.0	256	63	145	4246	1	11 [end of text] common_perf_print: sampling time = 1.85 ms common_perf_print: samplers time = 0.52 ms / 36 tokens commo
+mid	6	Answer concisely.	0.0	256	50	145	3219	1	2 [end of text] common_perf_print: sampling time = 1.83 ms common_perf_print: samplers time = 0.52 ms / 31 tokens common
+mid	7	Answer concisely.	0.0	256	48	145	2347	1	6 [end of text] common_perf_print: sampling time = 0.71 ms common_perf_print: samplers time = 0.28 ms / 30 tokens common
+mid	8	Answer concisely.	0.0	256	75	146	4779	1	100 Celsius [end of text] common_perf_print: sampling time = 4.37 ms common_perf_print: samplers time = 2.74 ms / 40 tok
+mid	9	Answer concisely.	0.0	256	55	145	4105	1	65 [end of text] common_perf_print: sampling time = 13.75 ms common_perf_print: samplers time = 0.60 ms / 34 tokens comm
+mid	10	Answer concisely.	0.0	256	50	145	5499	1	28 [end of text] common_perf_print: sampling time = 2.78 ms common_perf_print: samplers time = 1.51 ms / 36 tokens commo
+mid	11	Answer concisely.	0.0	256	73	148	5103	1	```python sum(range(1, 101)) ``` [end of text] common_perf_print: sampling time = 27.64 ms common_perf_print: samplers t
+mid	12	Answer concisely.	0.0	256	56	146	4413	1	O(log n) [end of text] common_perf_print: sampling time = 7.24 ms common_perf_print: samplers time = 3.95 ms / 35 tokens
+mid	13	Answer concisely.	0.0	256	77	145	3799	1	lst[::-1] [end of text] common_perf_print: sampling time = 14.05 ms common_perf_print: samplers time = 1.64 ms / 39 toke
+mid	14	Answer concisely.	0.0	256	51	147	4412	1	{1, 2, 3} [end of text] common_perf_print: sampling time = 9.58 ms common_perf_print: samplers time = 6.57 ms / 44 token
+mid	15	Answer concisely.	0.0	256	60	151	4936	1	TCP is connection-oriented, while UDP is connectionless. [end of text] common_perf_print: sampling time = 53.18 ms commo
+mid	16	Answer concisely.	0.0	256	34	210	8141	1	Breadth-First Search (BFS) explores all nodes at the current level before moving on to the next level. DFS, on the other
+mid	17	Answer concisely.	0.0	256	62	168	7255	1	```python import functools @functools.cache def fibonacci(n): if n <= 0: return 0 elif n == 1: return 1 else: return fib
+mid	18	Answer concisely.	0.0	256	50	165	5046	1	1101 binary = 1*2^3 + 1*2^2 + 0*2^1 + 1*2^0 = 8 + 4 + 0 + 1 = 13 decimal [end of text] common_perf_print: sampling time
+mid	19	Answer concisely.	0.0	256	56	173	8445	1	Mergesort has an O(n log n) time complexity due to its divide-and-conquer approach, where it splits the array into halve
+mid	20	Answer concisely.	0.0	256	45	164	7832	1	The Halting Problem is a fundamental problem in computability theory, asking whether a given program will halt or run in
+max	1	Answer carefully and thoroughly.	0.0	1024	39	145	7710	1	4 [end of text] common_perf_print: sampling time = 9.67 ms common_perf_print: samplers time = 8.07 ms / 33 tokens common
+max	2	Answer carefully and thoroughly.	0.0	1024	28	145	8055	1	Paris [end of text] common_perf_print: sampling time = 0.98 ms common_perf_print: samplers time = 0.36 ms / 27 tokens co
+max	3	Answer carefully and thoroughly.	0.0	1024	64	145	3875	1	olleh [end of text] common_perf_print: sampling time = 4.52 ms common_perf_print: samplers time = 2.36 ms / 34 tokens co
+max	4	Answer carefully and thoroughly.	0.0	1024	40	145	3139	1	49 [end of text] common_perf_print: sampling time = 28.66 ms common_perf_print: samplers time = 4.33 ms / 32 tokens comm
+max	5	Answer carefully and thoroughly.	0.0	1024	63	145	5894	1	11 [end of text] common_perf_print: sampling time = 2.17 ms common_perf_print: samplers time = 1.11 ms / 36 tokens commo
+max	6	Answer carefully and thoroughly.	0.0	1024	50	145	4321	1	2 [end of text] common_perf_print: sampling time = 1.47 ms common_perf_print: samplers time = 0.56 ms / 31 tokens common
+max	7	Answer carefully and thoroughly.	0.0	1024	48	145	6019	1	6 [end of text] common_perf_print: sampling time = 0.67 ms common_perf_print: samplers time = 0.26 ms / 30 tokens common
+max	8	Answer carefully and thoroughly.	0.0	1024	75	146	5868	1	100 Celsius [end of text] common_perf_print: sampling time = 12.77 ms common_perf_print: samplers time = 6.70 ms / 40 to
+max	9	Answer carefully and thoroughly.	0.0	1024	55	145	6264	1	65 [end of text] common_perf_print: sampling time = 4.38 ms common_perf_print: samplers time = 1.51 ms / 34 tokens commo
+max	10	Answer carefully and thoroughly.	0.0	1024	50	145	5043	1	28 [end of text] common_perf_print: sampling time = 1.62 ms common_perf_print: samplers time = 0.56 ms / 36 tokens commo
+max	11	Answer carefully and thoroughly.	0.0	1024	73	148	7323	1	```python sum(range(1, 101)) ``` [end of text] common_perf_print: sampling time = 31.74 ms common_perf_print: samplers t
+max	12	Answer carefully and thoroughly.	0.0	1024	56	146	5352	1	O(log n) [end of text] common_perf_print: sampling time = 12.51 ms common_perf_print: samplers time = 1.18 ms / 35 token
+max	13	Answer carefully and thoroughly.	0.0	1024	77	145	8710	1	lst[::-1] [end of text] common_perf_print: sampling time = 3.91 ms common_perf_print: samplers time = 1.39 ms / 39 token
+max	14	Answer carefully and thoroughly.	0.0	1024	51	147	7248	1	{1, 2, 3} [end of text] common_perf_print: sampling time = 38.53 ms common_perf_print: samplers time = 15.38 ms / 44 tok
+max	15	Answer carefully and thoroughly.	0.0	1024	60	151	6068	1	TCP is connection-oriented, while UDP is connectionless. [end of text] common_perf_print: sampling time = 8.88 ms common
+max	16	Answer carefully and thoroughly.	0.0	1024	34	217	7809	1	Breadth-First Search (BFS) is a graph traversal algorithm that explores the tree structure of a graph level by level. It
+max	17	Answer carefully and thoroughly.	0.0	1024	62	409	16101	1	To implement the Fibonacci sequence using memoization in Python, we can use the `functools` module to cache the results
+max	18	Answer carefully and thoroughly.	0.0	1024	50	275	13322	1	To convert the binary number 1101 to decimal, we can use the following method: 1. **Identify the place values**: Each di
+max	19	Answer carefully and thoroughly.	0.0	1024	56	169	5298	1	Mergesort has an O(n log n) time complexity because it divides the array into smaller subarrays, sorts these subarrays,
+max	20	Answer carefully and thoroughly.	0.0	1024	45	168	8161	1	The Halting Problem is a fundamental problem in computability theory, asking whether a given program will halt or run in

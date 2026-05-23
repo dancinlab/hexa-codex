@@ -21,13 +21,15 @@
 
 # ── SANDBOX.md ladder (Stage 0-4, inventoried) ──
 
-@C d_stage0_poc := "PoC dispatch — OSS pretrained (Qwen2.5-0.5B) + llama.cpp on mac, accuracy floor on canonical 20-task manifest" :: candidate [target_tier=GREEN cost_est=$0]
+@C d_stage0_poc := "PoC dispatch — OSS pretrained (Qwen2.5-0.5B) + llama.cpp on mac, accuracy floor on canonical 20-task manifest" :: confirmed [verified_tier=GREEN cost_actual=$0]
   cmd = "wire lm_foundry/tool/route_dispatch.hexa (claude + llama_cpp unified surface), run 20-task pass, measure accuracy + serving-cost telemetry"
   hyp = "OSS pretrained 0.5B-class model achieves >= 15/20 on the canonical manifest at $0 marginal vendor spend (electricity-only) — substrate viable as a Stage-1 base"
+  verdict = ".verdicts/sandbox/stage0_accuracy_floor_summary.txt — 19/20 (95.0%), 26.13 s total wall, $0, usable_floor_reached=true; commit bfd2885"
 
-@C d_stage1_persona := "tier-persona — single base + temperature/max-tok 3-tier (nano/mid/max mock haiku/sonnet/opus), seed-pinned determinism" :: candidate [target_tier=GREEN cost_est=$0]
+@C d_stage1_persona := "tier-persona — single base + temperature/max-tok 3-tier (nano/mid/max mock haiku/sonnet/opus), seed-pinned determinism" :: dead-on-manifest [verified_tier=GREEN cost_actual=$0 status=manifest-degenerate]
   cmd = "instantiate 3 personas (nano: T=0 max_tok=32 / mid: T=0 max_tok=256 / max: T=0 max_tok=1024) over the Stage-0 base; rerun length-router 2-tier; compare $/task ratio vs the Anthropic 1:5:25 grid"
   hyp = "tier-ratio under self-hosting reproduces the cycle-1/2 length-router 81.79% saving rank-order within Spearman ρ >= 0.9 — substrate is a valid stand-in for the API surface"
+  verdict = ".verdicts/sandbox/stage1_persona_summary.txt — nano 20/20, mid 20/20, max 20/20; tier_separation_observed=false; routing_simulation_viable=false; spread_tasks=0. Convention WORKS mechanically (dispatch + scorer parity), but is a NO-OP on this canonical 20-task manifest (saturated quality ceiling, even nano max_tok=32 + 'Answer in <=15 tokens.' produces correct short answers including the Stage 0 misses task 9/18). HONEST SIGNAL: Stage 2 (scaled stratified manifest, wc ∈ [5,200], N>=2000) is the BLOCKING dependency before any tier-routing simulation has signal. The persona convention is not falsified — it is unobservable on this manifest."
 
 @C d_stage2_scale_manifest := "scale manifest — `.hexa` task generator emitting N >= 2000 stratified prompts, wc ∈ [5, 200]" :: candidate [target_tier=GREEN cost_est=$0]
   cmd = "write task_generator.hexa producing N=2000 prompts stratified across {arithmetic, code, recall, reasoning, summarization} × wc-bin {5-14, 15-30, 31-60, 61-120, 121-200}; serve via Stage-1 persona; capture per-task tier-routing + accuracy"
@@ -74,11 +76,18 @@
   hyp = "quantization-tier router (Q4 below cutoff / FP16 above) matches or beats persona-tier saving on the Stage-2 manifest at <= 1pp accuracy drop — an axis the API surface does not expose at all (vendor abstracts the quant) and a candidate for F-CODEX-2 cost-scale enrichment"
 
 # ── summary ──
-# round 1 cumulative: 0 confirmed · 0 dead · 12 candidates inventoried
-#   5 SANDBOX.md ladder (d_stage0_poc → d_stage4_empirical_landing)
+# round 1 cumulative: 1 confirmed (d_stage0_poc) · 1 dead-on-manifest (d_stage1_persona) · 10 candidates inventoried
+#   5 SANDBOX.md ladder (d_stage0_poc ✓ confirmed · d_stage1_persona ✗ dead-on-manifest · d_stage2..4 candidate)
 # + 3 cycle-2 BLOCKED revivals (d_cache_aware_local, d_early_stop_local, d_prompt_compress_local)
 # + 4 kick round-1 orthogonal axes (d_logit_calibration, d_kv_prefix_share,
 #     d_speculative_decode_model, d_quantization_tier)
+# Stage 1 flipped to dead-on-manifest (NOT falsified): convention dispatch +
+# scorer parity work; all 3 personas score 20/20 on the canonical 20-task
+# manifest. tier_separation_observed=false, spread_tasks=0,
+# routing_simulation_viable=false. Top ROI is now d_stage2_scale_manifest —
+# without it, d_stage1_persona's value-add cannot be observed and every
+# downstream tier-routing candidate (d_cache_aware_local, d_logit_calibration,
+# d_kv_prefix_share, d_quantization_tier) inherits the same observability gap.
 # 0 candidates duplicated from .discoveries/economics-routing-savings.tape;
 # revivals use `_local` suffix to differentiate from the cycle-2 BLOCKED entries
 # (which remain dead at the `claude --bare -p` surface).

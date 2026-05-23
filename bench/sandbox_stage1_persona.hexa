@@ -1,0 +1,273 @@
+#!hexa strict
+// bench/sandbox_stage1_persona.hexa — SANDBOX Stage 1 PoC: tier-persona convention.
+//
+// QUESTION: does the SANDBOX.md §"Tier persona convention (Stage 1)" — single
+// base model + 3 personas distinguished by system prompt + temperature/max-tok
+// only — produce an actual quality/cost ladder on the canonical 20-task
+// manifest? If yes, Stage 1 unblocks reproducing the cycle-1/2 length-router
+// 2-tier bench at $0 marginal spend on a self-hosted surface; if no (all
+// personas identical accuracy), the manifest is too uniform and Stage 2
+// (scaled stratified manifest, wc ∈ [5, 200], N >= 2000) is required before
+// tier-routing has signal.
+//
+// Personas (verbatim from SANDBOX.md):
+//   nano (haiku-mock):   sys="Answer in ≤15 tokens."         temp=0.0 max_tok=32
+//   mid  (sonnet-mock):  sys="Answer concisely."              temp=0.0 max_tok=256
+//   max  (opus-mock):    sys="Answer carefully and thoroughly." temp=0.0 max_tok=1024
+//
+// Base model: Qwen2.5-0.5B-Instruct-Q4_K_M.gguf — same as Stage 0 PoC (bfd2885).
+// Tool: `llama-completion` with `-sys` flag (chat-template aware).
+// Scorer: byte_exact_subset on expected_kw, case-insensitive — parity with
+// Stage 0 (bench/sandbox_stage0_baseline.hexa) and economics_routing_2tier.hexa.
+// Cost: $0 (local serving). Wall-clock ms is the proxy cost surface.
+//
+// Output:
+//   .verdicts/sandbox/stage1_persona.tsv         (per-task per-persona rows)
+//   .verdicts/sandbox/stage1_persona_summary.txt (aggregate + verdict footer)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage1_persona.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-completion) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+let USABLE_THRESHOLD = 15   // >= 15/20 = usable, mirrors Stage 0
+
+// Persona convention — verbatim from SANDBOX.md §"Tier persona convention (Stage 1)".
+// Columns: name, sys_prompt, temp, max_tok, mock_vendor_tier
+let PERSONAS = [
+    ["nano", "Answer in <=15 tokens.",          "0.0", "32",   "haiku"],
+    ["mid",  "Answer concisely.",                "0.0", "256",  "sonnet"],
+    ["max",  "Answer carefully and thoroughly.", "0.0", "1024", "opus"],
+]
+
+// 20-task fixed manifest — verbatim from bench/sandbox_stage0_baseline.hexa
+// (which itself is verbatim from economics_routing_2tier.hexa for parity).
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Run one task through one persona. Returns tab-separated:
+//   wall_ms \t output_tok_est \t correct(1|0) \t output_snippet
+//
+// Dispatch: llama-completion -m <gguf> -sys <sys_prompt> -p <user_prompt>
+//           -n <max_tok> --temp <temp> -st  (single-turn, chat-template aware)
+fn run_persona_task(sys_prompt: str, temp: str, max_tok: str, prompt: str, expected_kw: str) -> str {
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-completion -m " + shq(MODEL_PATH) +
+              " -sys " + shq(sys_prompt) +
+              " -p " + shq(prompt) +
+              " -n " + max_tok +
+              " --temp " + temp + " -st 2>&1); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-120); " +
+              "printf '%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"$tok_est\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage1_persona — tier-persona convention (3 personas)")
+    println("  model:    " + MODEL_NAME + " (single base, distinguished by sys+temp+max_tok)")
+    println("  tool:     llama-completion -sys ... -p ... (chat-template aware)")
+    println("  manifest: 20 tasks (verbatim from Stage 0)")
+    println("  personas: nano (haiku-mock) | mid (sonnet-mock) | max (opus-mock)")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/stage1_persona.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'persona\ttask_idx\tsys_prompt\ttemp\tmax_tok\tword_count\toutput_tok_est\twall_ms\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    // Per-persona aggregates.
+    let mut nano_correct = 0
+    let mut nano_total_ms = 0
+    let mut mid_correct = 0
+    let mut mid_total_ms = 0
+    let mut max_correct = 0
+    let mut max_total_ms = 0
+
+    let mut p_idx = 0
+    while p_idx < len(PERSONAS) {
+        let persona = PERSONAS[p_idx]
+        let p_name = persona[0]
+        let p_sys = persona[1]
+        let p_temp = persona[2]
+        let p_max_tok = persona[3]
+        println("")
+        println("  ----- persona=" + p_name + " sys=" + shq(p_sys) + " temp=" + p_temp + " max_tok=" + p_max_tok)
+
+        let mut i = 0
+        while i < len(TASKS) {
+            let task = TASKS[i]
+            let prompt = task[0]
+            let expected = task[1]
+            let wc = str(prompt.len())
+            println("  [" + p_name + " " + str(i+1) + "/20] kw=" + expected + " prompt=" + prompt.substr(0, 50))
+            let line = run_persona_task(p_sys, p_temp, p_max_tok, prompt, expected)
+            let parts = line.split("\t")
+            if parts.len() < 4 {
+                println("    ! parse error, raw=" + line)
+                let bad = p_name + "\t" + str(i+1) + "\t" + p_sys + "\t" + p_temp + "\t" + p_max_tok + "\t" + wc + "\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+                exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+                i = i + 1
+                continue
+            }
+            let wall_ms = int(parts[0])
+            let tok_est = parts[1]
+            let correct = parts[2]
+            let snippet = parts[3].replace("\t", " ")
+
+            if p_name == "nano" {
+                nano_total_ms = nano_total_ms + wall_ms
+                if correct == "1" { nano_correct = nano_correct + 1 }
+            }
+            if p_name == "mid" {
+                mid_total_ms = mid_total_ms + wall_ms
+                if correct == "1" { mid_correct = mid_correct + 1 }
+            }
+            if p_name == "max" {
+                max_total_ms = max_total_ms + wall_ms
+                if correct == "1" { max_correct = max_correct + 1 }
+            }
+
+            let row = p_name + "\t" + str(i+1) + "\t" + p_sys + "\t" + p_temp + "\t" + p_max_tok + "\t" + wc + "\t" + tok_est + "\t" + str(wall_ms) + "\t" + correct + "\t" + snippet.substr(0, 120)
+            exec("echo " + shq(row) + " >> " + shq(tsv_path))
+            println("    -> wall_ms=" + str(wall_ms) + " correct=" + correct + " ans=" + snippet.substr(0, 60))
+            i = i + 1
+        }
+        p_idx = p_idx + 1
+    }
+
+    // ----- Derived verdicts -----
+    // nano_persona_works = nano accuracy >= 15/20
+    let mut nano_works = "false"
+    if nano_correct >= USABLE_THRESHOLD { nano_works = "true" }
+    let mut mid_works = "false"
+    if mid_correct >= USABLE_THRESHOLD { mid_works = "true" }
+    let mut max_works = "false"
+    if max_correct >= USABLE_THRESHOLD { max_works = "true" }
+
+    // tier_separation_observed: accuracy(nano) < accuracy(mid) <= accuracy(max),
+    // OR wall_ms strictly increasing (nano < mid < max). Either path produces a
+    // monotone quality/cost ladder.
+    let mut acc_ladder = "false"
+    if nano_correct < mid_correct {
+        if mid_correct <= max_correct {
+            acc_ladder = "true"
+        }
+    }
+    let mut ms_ladder = "false"
+    if nano_total_ms < mid_total_ms {
+        if mid_total_ms < max_total_ms {
+            ms_ladder = "true"
+        }
+    }
+    let mut tier_separation = "false"
+    if acc_ladder == "true" { tier_separation = "true" }
+    if ms_ladder == "true" { tier_separation = "true" }
+
+    // routing_simulation_viable: at least one persona usable (>=15/20) AND
+    // accuracy spread >= 1pp across personas (i.e. max_acc - min_acc >= 1
+    // out of 20, since 1/20 = 5pp; we use >=1 task delta as the proxy).
+    let mut min_correct = nano_correct
+    if mid_correct < min_correct { min_correct = mid_correct }
+    if max_correct < min_correct { min_correct = max_correct }
+    let mut max_correct_v = nano_correct
+    if mid_correct > max_correct_v { max_correct_v = mid_correct }
+    if max_correct > max_correct_v { max_correct_v = max_correct }
+    let spread_tasks = max_correct_v - min_correct
+    let mut any_works = "false"
+    if nano_works == "true" { any_works = "true" }
+    if mid_works == "true" { any_works = "true" }
+    if max_works == "true" { any_works = "true" }
+    let mut routing_viable = "false"
+    if any_works == "true" {
+        if spread_tasks >= 1 { routing_viable = "true" }
+    }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — Stage 1 PoC tier-persona convention")
+    println("========================================================================")
+    println("  nano:  correct=" + str(nano_correct) + "/20  wall_ms=" + str(nano_total_ms) + "  works=" + nano_works)
+    println("  mid :  correct=" + str(mid_correct)  + "/20  wall_ms=" + str(mid_total_ms)  + "  works=" + mid_works)
+    println("  max :  correct=" + str(max_correct)  + "/20  wall_ms=" + str(max_total_ms)  + "  works=" + max_works)
+    println("  tier_separation_observed   : " + tier_separation + " (acc_ladder=" + acc_ladder + " ms_ladder=" + ms_ladder + ")")
+    println("  routing_simulation_viable  : " + routing_viable + " (spread_tasks=" + str(spread_tasks) + " any_works=" + any_works + ")")
+    println("")
+
+    // Persist summary with required header comments.
+    let summary_path = OUT_DIR + "/stage1_persona_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-completion (chat-template aware via -sys)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cost_usd=0  (local serving; wall_ms is the proxy cost surface)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# usable_threshold=" + str(USABLE_THRESHOLD)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# nano_accuracy=" + str(nano_correct) + "/20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# mid_accuracy=" + str(mid_correct) + "/20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# max_accuracy=" + str(max_correct) + "/20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# nano_total_wall_ms=" + str(nano_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# mid_total_wall_ms=" + str(mid_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# max_total_wall_ms=" + str(max_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# nano_persona_works=" + nano_works) + " >> " + shq(summary_path))
+    exec("echo " + shq("# mid_persona_works=" + mid_works) + " >> " + shq(summary_path))
+    exec("echo " + shq("# max_persona_works=" + max_works) + " >> " + shq(summary_path))
+    exec("echo " + shq("# acc_ladder=" + acc_ladder + "  (nano_acc<mid_acc<=max_acc)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# ms_ladder=" + ms_ladder + "  (nano_ms<mid_ms<max_ms)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# tier_separation_observed=" + tier_separation) + " >> " + shq(summary_path))
+    exec("echo " + shq("# spread_tasks=" + str(spread_tasks) + "  (max_correct - min_correct across personas)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# routing_simulation_viable=" + routing_viable) + " >> " + shq(summary_path))
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE1_PERSONA__ PASS")
+    exit(0)
+}

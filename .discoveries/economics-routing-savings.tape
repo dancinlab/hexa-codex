@@ -62,13 +62,13 @@
   raw  = ".verdicts/economics-routing-savings/threshold_sweep_summary.txt"
   note = "swept τ ∈ {30,50,80,100,120,150} on word_count(prompt) cutoff (<=τ → sonnet else opus) over the canonical 20-task manifest. All 20 prompts have wc ∈ [5,14] (max=14), so every τ ≥ 14 routes 20/20 → sonnet — the sweep effectively measures all-sonnet stochastic noise. best τ*=120 at 80.21% saving @ 20/20 (cost $0.0562); canonical 2-tier ref 81.79% NOT beaten (Δ=-1.58pp, within sonnet noise). τ=30 dropped to 19/20 (one sonnet stochastic miss on the same all-sonnet routing). VERDICT — boundary already optimal: on this manifest the τ axis is degenerate (word-count saturated below the grid), so the Pareto frontier set by the canonical 2-tier remains untouched. To exercise the τ frontier in future cycles, the manifest needs higher-word-count prompts (wc ≥ 30) that would actually trip the opus branch."
 
-@C d_early_stop := "early-stop stop-token list — terminate generation at first answer-marker" :: candidate [target_tier=GREEN cost_est=$0.3]
-  cmd = "add stop=['\\n\\n','</answer>','---'] to CLI dispatch; rerun manifest; compare output-token count vs baseline"
-  hyp = "stop-token early-termination cuts output_tokens ≥15% on the length-router 2-tier config at 20/20 accuracy"
+@C d_early_stop := "early-stop stop-token list — BLOCKED, CLI surface lacks --stop-sequences" :: dead [target_tier=GREEN actual_tier=BLOCKED]
+  raw  = ".discoveries/economics-routing-cli-surface.raw"
+  note = "claude --help 2.1.150 enumerates no --stop-sequences / --stop / -s / --max-tokens / --max-output flag. Output-token termination is unreachable from `claude --bare -p`. Only --max-budget-usd (session-wide dollar kill-switch) and --json-schema (output-shape validator) are exposed — neither caps generation length. Same surface-limit family as d_cache_aware (no cache_control), d_token_decomp (telemetry unreliable). Prompt-prefix length-cap workaround already falsified by d_response_budget_cap. No bench run, $0 spent."
 
-@C d_prompt_compress := "prompt-compression — strip boilerplate before dispatch" :: candidate [target_tier=GREEN cost_est=$0.5]
-  cmd = "preprocess each prompt with strip-system-noise + LLMLingua-style ratio=0.7; rerun 2-tier length router"
-  hyp = "compressed-prompt input_tokens drop ≥20% while 20/20 accuracy holds (input cost is non-trivial on long prompts)"
+@C d_prompt_compress := "prompt-compression — DEGENERATE, 20-task manifest already wc-saturated" :: dead [target_tier=GREEN actual_tier=DEGENERATE]
+  raw  = ".discoveries/economics-routing-cli-surface.raw"
+  note = "canonical manifest has prompt word_count ∈ [5,14] (max=14) — already at floor; LLMLingua-style ratio=0.7 has no slack to shave. The dominant input cost is the boilerplate suffix 'Reply with X only.' (~5 tokens/prompt) which is functionally load-bearing for correctness (cycle-1 d_response_budget_cap showed even small prompt-prefix manipulations destabilize the model — haiku quoted the cap text into prose, blowing output). Stripping it would risk regressing 20/20 accuracy with at most a ~5-token/prompt input save. No CLI compression flag exists either (--system-prompt is additive, not compressive). Compression has nonzero room only on a wc≥30 manifest (same future-work as d_threshold_sweep). No bench run, $0 spent."
 
 @C d_speculative_draft := "speculative draft — cheap-tier draft + opus single-shot verify" :: candidate [target_tier=GREEN cost_est=$0.6]
   cmd = "two-pass: haiku draft → opus verify-or-rewrite when draft confidence < tau; vs length-router baseline"
@@ -80,9 +80,9 @@
 
 # ── summary ──
 # round 1+2 cumulative : 3 confirmed (Pareto, 2-tier ablation, threshold_sweep boundary) ·
-# 5 dead (token decomp, confidence_gated, difficulty_predict, cache_aware, response_budget_cap)
-# · 4 next-batch candidates (batch_amortized [stale] + early_stop, prompt_compress,
-# speculative_draft, pareto_lower_bound [round-2 new])
+# 7 dead (token decomp, confidence_gated, difficulty_predict, cache_aware,
+# response_budget_cap, early_stop [round-2 BLOCKED], prompt_compress [round-2 DEGENERATE])
+# · 2 next-batch candidates (batch_amortized [stale], speculative_draft, pareto_lower_bound)
 # strongest-confirmed-so-far : 2-tier length router (81.79% saving @ 20/20).
 # threshold_sweep confirmed the canonical 2-tier cutoff is at the Pareto boundary —
 # τ ∈ {30..150} on word_count produce equivalent all-sonnet routing on this manifest
@@ -95,3 +95,8 @@
 # response_budget_cap (round-2 candidate) ran $0.32 and closed dead — prompt-suffix
 # cap is dominated by drop-the-tier on this manifest, with a pathological backfire
 # at the tightest cap (haiku explains the cap before answering, output GROWS).
+# early_stop + prompt_compress (round-2 candidates) closed $0 — both BLOCKED by
+# `claude --bare -p` 2.1.150 surface: no --stop-sequences flag exists (early_stop),
+# and the canonical manifest is already word-count saturated (prompt_compress
+# DEGENERATE; max wc=14, no slack for compression). Both require the same
+# wc≥30 manifest reshape as d_threshold_sweep to exit dead.

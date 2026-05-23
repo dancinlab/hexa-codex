@@ -329,6 +329,57 @@ curve fits PENDING — F-CODEX-1 → v1.2.0, F-CODEX-2 → v1.3.0.
 
 ---
 
+## 2026-05-23 — early-stop + prompt-compress probes — BOTH BLOCKED ($0)
+
+Combined CLI-surface probe to verify whether the two outstanding
+round-2 routing-savings candidates have any reachable lever in
+`claude --bare -p` 2.1.150. Captured full `claude --help` to
+`.discoveries/economics-routing-cli-surface.raw`; greping for stop /
+max-token / compression / rewrite flags yielded only two hits:
+`--json-schema` (output-shape validator) and `--max-budget-usd`
+(session-wide dollar kill-switch). Neither caps output tokens nor
+strips input.
+
+| candidate          | flag needed                 | exposed? | verdict          |
+|:-------------------|:----------------------------|:--------:|:-----------------|
+| `d_early_stop`     | `--stop-sequences` / `--stop` |   no   | dead · BLOCKED   |
+| `d_prompt_compress`| any compression/rewrite     |   no   | dead · DEGENERATE |
+
+**Early-stop — BLOCKED.** The CLI surface enumerates no
+`--stop-sequences`, `--stop`, `-s`, `--max-tokens`, or `--max-output`
+flag. Output-token termination is unreachable from `claude --bare -p`.
+Prompt-prefix length-cap was already falsified one cycle ago by
+`d_response_budget_cap` (haiku quoted the cap into prose, blowing
+output volume). Same surface-limit family as `d_cache_aware` (no
+`cache_control`) and `d_token_decomp` (telemetry unreliable). No
+bench run, $0 spent.
+
+**Prompt-compress — DEGENERATE.** The 20-task manifest has
+`word_count ∈ [5, 14]` (max = 14) — already at floor. LLMLingua-style
+ratio=0.7 has no slack to shave. The dominant non-essential input is
+the `"Reply with X only."` suffix (~5 tokens/prompt), but stripping
+it risks regressing 20/20 (the suffix is load-bearing for the model's
+output shape — same fragility class as the `d_response_budget_cap`
+backfire). Compression has nonzero room only on a wc≥30 manifest
+reshape — same future-work as `d_threshold_sweep`. No bench run, $0
+spent.
+
+Discovery tape updated: `d_early_stop` and `d_prompt_compress` flipped
+from candidate → dead with `actual_tier=BLOCKED` /
+`actual_tier=DEGENERATE` respectively, raw cite
+`.discoveries/economics-routing-cli-surface.raw`. Summary footer now
+reads `3 confirmed · 7 dead · 2 next-batch candidates`
+(speculative_draft + pareto_lower_bound remain; batch_amortized
+stale). The round-2 lever exhaustion converges: `claude --bare -p`
+exposes neither precision controls (stop / max-tok / cache_control)
+nor compression — the substrate gives us model choice and prompt
+content only. The Pareto frontier on this surface is set by the
+canonical 2-tier length router at 81.79% saving @ 20/20; remaining
+slack must come from architectural changes (speculative-draft, batch
+endpoint, raw Messages API) rather than CLI knobs.
+
+---
+
 _Next: v1.2.0 (2026-10, PLANNED) — wire the economics verbs, ship the
 training/inference cost scaling fit, land F-CODEX-1 empirical. Append
 round entries here as the group progresses._

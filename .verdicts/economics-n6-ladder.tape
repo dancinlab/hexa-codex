@@ -6,6 +6,7 @@
   source = "CLAIMS.tape (cx_claim_manifest)"
   date   = "2026-05-23"
   raw    = ".verdicts/economics-n6-ladder/<id>.txt (one file per claim, stdout verbatim)"
+  gate   = "BLOCKED — 4 T4 empirical claims DEFERRED until GPU pod dispatch"
 
 # ── atom verdicts (method=atom · hexa verify --expr) — 4 BLUE ──
 
@@ -21,37 +22,27 @@
 @V ec_sigma2_6 := "sigma_2(6) = 50" :: verdict [tier=BLUE]
   raw = ".verdicts/economics-n6-ladder/ec_sigma2_6.txt"
 
-# ── fence verdicts (method=fence · hexa verify --fence) — 3 FENCED ──
+# ── T4 empirical verdicts (method=empirical · DEFERRED) — 4 DEFERRED ──
 
-@V ec_quality_alpha := "quality_scale alpha = phi(6)/sigma(6) = 1/6 (modeling)" :: verdict [tier=FENCED]
-  raw = ".verdicts/economics-n6-ladder/ec_quality_alpha.txt"
+@V ec_t4_quality := "quality_scale T4 loss-vs-(N,D) sweep" :: verdict [tier=DEFERRED]
+  raw = ".verdicts/economics-n6-ladder/ec_t4_quality.txt"
 
-@V ec_train_n6exp := "train_cost N6_EXP = J2/(J2+1) = 24/25 (modeling)" :: verdict [tier=FENCED]
-  raw = ".verdicts/economics-n6-ladder/ec_train_n6exp.txt"
+@V ec_t4_train := "train_cost T4 FLOPs sweep" :: verdict [tier=DEFERRED]
+  raw = ".verdicts/economics-n6-ladder/ec_t4_train.txt"
 
-@V ec_pareto_optimum := "Pareto optimum D/N ~1.07 (n=6) vs ~20 (Chinchilla) (modeling)" :: verdict [tier=FENCED]
-  raw = ".verdicts/economics-n6-ladder/ec_pareto_optimum.txt"
+@V ec_t4_infer := "infer_cost T4 latency-vs-ctx sweep" :: verdict [tier=DEFERRED]
+  raw = ".verdicts/economics-n6-ladder/ec_t4_infer.txt"
 
-# ── run verdicts (method=run · hexa run verify/<file>.hexa) — 4 PASS ──
+@V ec_t4_serve := "serve T4 throughput-vs-ctx bench" :: verdict [tier=DEFERRED]
+  raw = ".verdicts/economics-n6-ladder/ec_t4_serve.txt"
 
-@V ec_cross_pillar := "numerics_economics_cross_pillar 10/10" :: verdict [tier=PASS]
-  raw = ".verdicts/economics-n6-ladder/ec_cross_pillar.txt"
+# ── gate (cx_paper_gate — strict 100% BLUE) ──
 
-@V ec_scaling_laws := "numerics_economics_scaling_laws 10/10" :: verdict [tier=PASS]
-  raw = ".verdicts/economics-n6-ladder/ec_scaling_laws.txt"
-
-@V ec_pareto_envelope := "numerics_economics_pareto 10/10" :: verdict [tier=PASS]
-  raw = ".verdicts/economics-n6-ladder/ec_pareto_envelope.txt"
-
-@V ec_ladder_report := "report_economics_ladder 10/10" :: verdict [tier=PASS]
-  raw = ".verdicts/economics-n6-ladder/ec_ladder_report.txt"
-
-# ── gate (cx_paper_gate) ──
-
-@V gate := "/paper new economics-n6-ladder — ALLOWED" :: gate [tier=PASS]
-  red_count       = "0"
-  blue_count      = "4"
-  pass_count      = "4"
-  fenced_count    = "3"
-  fenced_explicit = "true"
-  decision        = "ALLOWED — 0 RED + 8 (BLUE+PASS) >= 1 + all 3 FENCED explicit via --fence"
+@V gate := "/paper new economics-n6-ladder — BLOCKED" :: gate [tier=BLOCKED]
+  blue_count       = "4"
+  deferred_count   = "4"
+  non_blue_count   = "4"
+  blue_pct         = "50"
+  threshold        = "100% BLUE required (cx_paper_gate)"
+  decision         = "BLOCKED — 4 T4 empirical claims DEFERRED; execute GPU pod sweep to unblock"
+  next_step        = "lm_foundry train sweep + hexa-eval latency sweep + serving bench (cx_empirical_contact)"

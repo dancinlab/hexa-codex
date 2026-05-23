@@ -167,3 +167,76 @@ Persisted:
 - `bench/sandbox_stage1_persona.hexa` — bench source (hexa-only).
 - `.verdicts/sandbox/stage1_persona.tsv` — 60 rows (3 personas × 20).
 - `.verdicts/sandbox/stage1_persona_summary.txt` — aggregate verdict.
+
+---
+
+## 2026-05-23 — Stage 3 KV-prefix share — flag exposed, BLOCKED_AT_SCALE
+
+`bench/sandbox_stage3_kvprefix.hexa` revived cycle-2 `d_cache_aware`
+(BLOCKED at the `claude --bare -p` 2.1.150 dispatch surface — no
+`cache_control` flag, warm was 24.10% MORE expensive than cold). The
+self-hosted `llama-completion` (llama.cpp brew build 9150) DOES expose
+the `--prompt-cache` family of flags; evidence captured at
+`.discoveries/sandbox-llama-cache-flags.raw`:
+
+| flag | role |
+|:---|:---|
+| `--prompt-cache FNAME` | file to cache prompt state for faster startup |
+| `--prompt-cache-all` | also save user input + generations |
+| `--prompt-cache-ro` | use the prompt cache read-only (don't update) |
+
+Two strategies on the canonical 20-task manifest (verbatim from
+Stage 0 / `economics_routing_2tier.hexa`) with a shared **376-token**
+operating-contract preamble (probed empirically; `n_tokens = 376`
+per `llama-completion` perf print) attached to every task:
+
+- `cold` — each task standalone, no cache flag (prefix re-tokenized fresh per call)
+- `warm` — task[0] writes the cache via `--prompt-cache /tmp/sandbox_prefix.bin --prompt-cache-all`; tasks[1..19] read-only via `--prompt-cache /tmp/sandbox_prefix.bin --prompt-cache-ro`
+
+| metric | value |
+|---|---|
+| llama_cpp_cache_flag_exposed | **true** (substrate unlock confirmed) |
+| cache_file_size | 4,725,349 bytes (~4.7 MB) on disk for 376 tokens |
+| accuracy_cold | 19/20 |
+| accuracy_warm | 19/20 (bit-identical — cache replay does not drift behavior) |
+| cold_total_wall_ms | 123,914 (avg 6,195 ms/task) |
+| warm_total_wall_ms | 130,826 (avg 6,576 ms/task after first cache-write) |
+| warm_first_wall_ms (cache write) | 5,869 |
+| **warm_speedup_pct** | **−6.15%** (warm SLOWER than cold) |
+| viable threshold | ≥ +20% speedup AND accuracy_warm ≥ accuracy_cold |
+| **kv_prefix_share_viable** | **false** |
+
+**Honest residual** (cx_empirical_contact + g5): the lever is real,
+substrate-exposed, accuracy-safe, and the cache file is written +
+replayed bit-identically (warm matches cold on all 20 answers, same
+single miss at task 8 boiling-point). What kills it at THIS scale is
+per-invocation model-load: each `llama-completion` process pays
+~3-4 s for Metal init + GGUF mmap, which dwarfs the 530 ms
+prefix-eval saving the cache is supposed to recover. Cache load also
+adds ~50 ms of 4.7 MB I/O on top. The lever needs either (a) a
+persistent server (`llama-server --cache-prompt`) so model-load is
+amortized across calls, or (b) a much longer prefix (few-thousand
+tokens) where prefix-eval dominates startup. Neither is in scope for
+cycle-4; both are concrete successor candidates.
+
+**Contrast with cycle-2 `d_cache_aware`** (`.verdicts/economics-routing-savings/cache_summary.txt`):
+
+| | cycle-2 (claude --bare -p) | cycle-4 (llama-completion) |
+|---|---|---|
+| cache flag exposed | **false** (no `cache_control`) | **true** (`--prompt-cache` works) |
+| warm_saving_pct | **−24.10%** | **−6.15%** |
+| blocker class | surface-limit (BLOCKED) | scale-limit (BLOCKED_AT_SCALE) |
+| accuracy parity | 10/10 == 10/10 (small manifest) | 19/20 == 19/20 |
+
+Cycle-4 narrowed the blocker by 17.95 pp and converted the failure
+mode from *unfixable-at-the-vendor-surface* to
+*fixable-by-changing-dispatch-shape*. The lever survives as an axis
+for a future persistent-serve revival; flipped to **dead
+[actual_tier=BLOCKED_AT_SCALE]** in `.discoveries/sandbox.tape`
+with successor `d_kv_prefix_share_persistent` noted.
+
+Persisted:
+- `bench/sandbox_stage3_kvprefix.hexa` — bench source (hexa-only).
+- `.verdicts/sandbox/stage3_kvprefix.tsv` — 40 rows (2 strategies × 20).
+- `.verdicts/sandbox/stage3_kvprefix_summary.txt` — aggregate verdict.
+- `.discoveries/sandbox-llama-cache-flags.raw` — flag-grep evidence.

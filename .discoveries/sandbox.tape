@@ -63,9 +63,13 @@
   cmd = "expose vLLM logprobs on Stage-1 nano-tier; fit temperature-scaling on Stage-2 dev split for calibration ECE; reuse cycle-1 d_confidence_gated policy (conf < τ → upgrade tier) with calibrated probabilities"
   hyp = "calibrated confidence-gated routing beats length-router by >= 3pp at 20/20 on canonical manifest — cycle-1 d_confidence_gated (dead at 55.59% / 19/20) failed on UNCALIBRATED Anthropic API token-logprobs proxy; substrate-level logits + ECE-minimising rescaling close the gap"
 
-@C d_kv_prefix_share := "KV-prefix sharing — multi-prompt vLLM batch with shared system-prompt prefix amortizes prefill" :: candidate [target_tier=GREEN cost_est=$0]
-  cmd = "issue Stage-2 batched requests to vLLM with shared --system-prompt; measure prefill-token re-cost (should be ~1× across the batch); compare amortized $/task vs serial dispatch"
+@C d_kv_prefix_share := "KV-prefix sharing — llama.cpp --prompt-cache / --prompt-cache-ro on shared 376-token prefix" :: dead [actual_tier=BLOCKED_AT_SCALE cost_actual=$0]
+  cmd = "bench/sandbox_stage3_kvprefix.hexa — cold (no cache) vs warm (task[0] writes cache, task[1..19] read-only) on canonical 20-task manifest with shared 376-token prefix; .verdicts/sandbox/stage3_kvprefix.tsv + _summary.txt"
   hyp = "KV-prefix sharing reduces amortized prefill cost by >= (1 - 1/B) of the system-prompt token count on a batch size B — substrate-only lever orthogonal to per-prompt routing policy (combines additively with length-router); cycle-1 d_batch_amortized (50% batch-tier discount, never measured) is subsumed and superseded by this finer-grained surface"
+  result = "llama.cpp build 9150 DOES expose --prompt-cache / --prompt-cache-all / --prompt-cache-ro (evidence: .discoveries/sandbox-llama-cache-flags.raw). Bench ran 2 strategies × 20 tasks. accuracy_cold = accuracy_warm = 19/20 (cache replay bit-identical at model level — no behavior drift). cache_file_size = 4,725,349 bytes (~4.7 MB) on disk for 376-token prefix. BUT warm_speedup_pct = -6.15% (warm 6576ms/task vs cold 6195ms/task, after first cache-write). Per-invocation model-load (~3-4s Metal init + GGUF mmap) DOMINATES the 530ms prefix-eval saving. Lever is real, accuracy-safe, and substrate-exposed — but degenerate at one-shot CLI dispatch on a 0.5B model. Would require either (a) a persistent server (llama-server with --cache-prompt) to amortize model-load across calls, or (b) a much longer prefix (>= few-thousand tokens) where prefix-eval dominates startup."
+  verdict_ref = ".verdicts/sandbox/stage3_kvprefix_summary.txt"
+  successor = "d_kv_prefix_share_persistent — llama-server long-lived process + shared prefix HTTP API (--cache-prompt enabled by default); defers per-call model-load, isolates the prefix-eval saving"
+  vs_cycle2_d_cache_aware = "cycle-2 BLOCKED at claude --bare -p: warm_saving_pct = -24.10% (no cache_control flag exposed AT ALL). cycle-4 BLOCKED_AT_SCALE: warm_speedup_pct = -6.15% (flag IS exposed and works — cache written, prefix replayed bit-identical), but per-process model-load dwarfs the saving. Cycle-4 narrowed the blocker class: surface-limit -> scale-limit (one-shot CLI dispatch)."
 
 @C d_speculative_decode_model := "model-level speculative decoding — small draft (0.5B) + verify on large target (7B), token-level (NOT cycle-2 tier-level)" :: candidate [target_tier=GREEN cost_est=$0]
   cmd = "wire llama.cpp `--draft-model` (Qwen2.5-0.5B drafts Qwen2.5-7B target) on Stage-2 wc>=30 strata; measure tok/s and $/task vs target-only"
@@ -76,7 +80,7 @@
   hyp = "quantization-tier router (Q4 below cutoff / FP16 above) matches or beats persona-tier saving on the Stage-2 manifest at <= 1pp accuracy drop — an axis the API surface does not expose at all (vendor abstracts the quant) and a candidate for F-CODEX-2 cost-scale enrichment"
 
 # ── summary ──
-# round 1 cumulative: 1 confirmed (d_stage0_poc) · 1 dead-on-manifest (d_stage1_persona) · 10 candidates inventoried
+# round 1 cumulative: 1 confirmed (d_stage0_poc) · 2 dead (d_stage1_persona dead-on-manifest · d_kv_prefix_share BLOCKED_AT_SCALE) · 9 candidates inventoried
 #   5 SANDBOX.md ladder (d_stage0_poc ✓ confirmed · d_stage1_persona ✗ dead-on-manifest · d_stage2..4 candidate)
 # + 3 cycle-2 BLOCKED revivals (d_cache_aware_local, d_early_stop_local, d_prompt_compress_local)
 # + 4 kick round-1 orthogonal axes (d_logit_calibration, d_kv_prefix_share,

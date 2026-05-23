@@ -1,0 +1,3 @@
+--prompt-cache FNAME                    file to cache prompt state for faster startup (default: none)
+--prompt-cache-all                      if specified, saves user input and generations to cache as well
+--prompt-cache-ro                       if specified, uses the prompt cache but does not update it

@@ -1,0 +1,337 @@
+#!hexa strict
+// bench/sandbox_stage3_kvprefix.hexa — SANDBOX Stage 3 (cycle-4 / kick-r4 ROI-top-2):
+// KV-prefix sharing on llama.cpp via `--prompt-cache` / `--prompt-cache-all` /
+// `--prompt-cache-ro`. Reviving cycle-2's `d_cache_aware` candidate that was
+// BLOCKED at the `claude --bare -p` 2.1.150 dispatch surface
+// (no cache_control flag — warm was 24.10% MORE expensive than cold).
+//
+// CONTEXT (cycle-2 BLOCKED, .verdicts/economics-routing-savings/cache_summary.txt):
+//   strategy cost_usd input_tok cache_create cache_read out_tok correct total
+//   cold     0.029419 20187    0            0          913     10      10
+//   warm     0.036509 26689    0            0          1039    10      10
+//   warm_saving_pct = -24.10%  (claude --bare -p does NOT expose cache_control)
+//
+// CYCLE-4 REFRAMING (this bench):
+//   Self-hosted llama.cpp `llama-completion` build 9150 DOES expose
+//   `--prompt-cache <FNAME>` (save/load KV state to disk),
+//   `--prompt-cache-all`  (write user input + generations as well), and
+//   `--prompt-cache-ro`   (read-only — load cached KV but don't update).
+//   Evidence at .discoveries/sandbox-llama-cache-flags.raw (grepped from
+//   `llama-completion --help`). This is the EXACT same lever
+//   d_cache_aware tried at the API surface — now actually wired.
+//
+// STRATEGIES (2):
+//   cold  — each task standalone, no `--prompt-cache` arg (prefix re-tokenized fresh each call)
+//   warm  — task[0] writes the cache via `--prompt-cache /tmp/sandbox_prefix.bin --prompt-cache-all`;
+//           tasks[1..19] read it via `--prompt-cache /tmp/sandbox_prefix.bin --prompt-cache-ro`
+//
+// SHARED PREFIX (~376 tokens, probed empirically):
+//   A 10-rule operating contract preamble (precise/concise/no-quote-back/etc.) —
+//   substantive enough that re-tokenising 376 tokens per call has measurable cost.
+//   The PER-TASK prompt is `<shared_prefix> User: <task>`, identical between strategies.
+//
+// MANIFEST: canonical 20-task verbatim from bench/sandbox_stage0_baseline.hexa
+//   (which is verbatim from bench/economics_routing_2tier.hexa — full parity).
+//
+// Output:
+//   .verdicts/sandbox/stage3_kvprefix.tsv         (per-task per-strategy rows)
+//   .verdicts/sandbox/stage3_kvprefix_summary.txt (per-strategy aggregate + verdict)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage3_kvprefix.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-completion) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+let CACHE_PATH = "/tmp/sandbox_prefix.bin"
+let MAX_TOK = 96
+let VIABLE_SPEEDUP_PCT = 20    // threshold for d_kv_prefix_share = viable
+
+// ~376-token operating contract preamble (probed: llama-completion reports
+// `n_tokens = 376` for this exact string + "User: <short Q>"). Same shape on
+// both strategies — only the dispatch differs.
+let SHARED_PREFIX = "You are a precise assistant operating in measurement mode. Your duty is to answer the user's question concisely, accurately, and without filler. Follow these standing instructions for every question. First, never fabricate facts; if you do not know an answer, say so. Second, prefer the shortest correct answer that is unambiguous. Third, when asked for code, return only the code expression with no surrounding prose. Fourth, when asked for a number, return only the number with no units or commentary. Fifth, when asked for a single word, return only that word lowercased unless capitalization is semantically required. Sixth, never quote the question back in the answer. Seventh, never add disclaimers, apologies, or hedges. Eighth, never repeat yourself. Ninth, if multiple valid answers exist, return the canonical one. Tenth, if a question is ambiguous, pick the most-common interpretation and answer it directly. These ten rules constitute your operating contract for this session. They are immutable for the duration of this conversation. Treat every following user turn as a fresh question independent of prior turns, and apply the contract above to each. Do not break character. Do not invent rules. Do not refuse to answer questions that are clearly factual. Do not lecture the user about safety, ethics, or off-topic concerns unless the question explicitly raises them. Your sole job is to produce the smallest correct answer to the user's literal question. Keep the answer in plain text. Do not use markdown formatting unless code is requested. Do not include emoji. Do not include URLs. Do not cite sources unless explicitly asked. Do not produce lists unless explicitly asked. Always end the answer at the last token of the answer itself, with no trailing summary. Conform to this contract strictly. Begin."
+
+// 20-task fixed manifest — verbatim from sandbox_stage0_baseline.hexa.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Run one task. `cache_arg` is the extra flag string spliced into the
+// llama-completion command line:
+//   ""                              — cold strategy
+//   "--prompt-cache <P> --prompt-cache-all" — warm task[0] (write)
+//   "--prompt-cache <P> --prompt-cache-ro"  — warm task[1..19] (read-only)
+//
+// Returns tab-separated: wall_ms \t output_tok_est \t correct(1|0) \t output_snippet
+fn run_one(prompt: str, expected_kw: str, cache_arg: str) -> str {
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-completion -m " + shq(MODEL_PATH) +
+              " -p " + shq(prompt) +
+              " -n " + str(MAX_TOK) + " --temp 0 -st " + cache_arg + " 2>&1); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-120); " +
+              "printf '%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"$tok_est\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn _file_size_bytes(path: str) -> int {
+    // BSD stat (macOS): `stat -f %z <path>`; return 0 if file missing.
+    let s = exec("if [ -f " + shq(path) + " ]; then stat -f %z " + shq(path) + "; else echo 0; fi").trim()
+    if s.len() == 0 { return 0 }
+    return int(s)
+}
+
+// 1. Probe llama-completion --help for the prompt-cache flag surface BEFORE
+//    spending any wall-clock on bench rollout. If the flag is gone, log
+//    honestly and exit at BLOCKED_AT_BUILD tier.
+fn probe_cache_flag() -> str {
+    return exec("llama-completion --help 2>&1 | grep -iE 'prompt[-_]cache|cache.{0,5}all|cache.{0,5}ro' | head -5").trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage3_kvprefix — KV-prefix sharing via --prompt-cache")
+    println("  model:    " + MODEL_NAME)
+    println("  tool:     llama-completion (llama.cpp, brew)")
+    println("  manifest: 20 tasks (verbatim from sandbox_stage0_baseline.hexa)")
+    println("  strategies: cold (re-tokenize prefix per call) · warm (KV cache reuse)")
+    println("  reviving: cycle-2 d_cache_aware (BLOCKED at claude --bare -p surface)")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/stage3_kvprefix.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'strategy\tidx\twall_ms\toutput_tok_est\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    // ── Step 0 — probe cache flag surface ──
+    let flag_evidence = probe_cache_flag()
+    let mut flag_exposed = "false"
+    if flag_evidence.contains("--prompt-cache") { flag_exposed = "true" }
+    println("  llama_cpp_cache_flag_exposed: " + flag_exposed)
+    println("  flag-grep evidence:")
+    println("    " + flag_evidence.replace("\n", "\n    "))
+
+    if flag_exposed == "false" {
+        println("")
+        println("  ! llama-completion in this build does NOT expose --prompt-cache.")
+        println("  ! d_kv_prefix_share degrades to BLOCKED_AT_BUILD — would need a")
+        println("  ! rebuilt llama.cpp with the prompt-cache feature compiled in.")
+        let summary_path = OUT_DIR + "/stage3_kvprefix_summary.txt"
+        exec("rm -f " + shq(summary_path))
+        exec("echo " + shq("# llama_cpp_cache_flag_exposed=false") + " >> " + shq(summary_path))
+        exec("echo " + shq("# kv_prefix_share_viable=false") + " >> " + shq(summary_path))
+        exec("echo " + shq("# verdict=BLOCKED_AT_BUILD") + " >> " + shq(summary_path))
+        exec("echo " + shq("# note=rebuilt llama.cpp with prompt-cache feature would unblock") + " >> " + shq(summary_path))
+        println("")
+        println("__HEXA_CODEX_BENCH_SANDBOX_STAGE3_KVPREFIX__ BLOCKED_AT_BUILD")
+        exit(0)
+    }
+
+    // ── Step 1 — cold strategy: 20 tasks, no cache flag ──
+    println("")
+    println("  --- COLD (no cache; prefix re-tokenized fresh each call) ---")
+    let mut cold_total_ms = 0
+    let mut cold_n_correct = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let prompt = SHARED_PREFIX + " User: " + task[0]
+        let expected = task[1]
+        println("  cold[" + str(i+1) + "/" + str(len(TASKS)) + "] kw=" + expected)
+        let line = run_one(prompt, expected, "")
+        let parts = line.split("\t")
+        if parts.len() < 4 {
+            println("    ! parse error, raw=" + line.substr(0, 100))
+            let bad = "cold\t" + str(i+1) + "\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+            exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+            i = i + 1
+            continue
+        }
+        let wall_ms = int(parts[0])
+        let tok_est = parts[1]
+        let correct = parts[2]
+        let snippet = parts[3].replace("\t", " ")
+        cold_total_ms = cold_total_ms + wall_ms
+        if correct == "1" { cold_n_correct = cold_n_correct + 1 }
+        let row = "cold\t" + str(i+1) + "\t" + str(wall_ms) + "\t" + tok_est + "\t" + correct + "\t" + snippet.substr(0, 120)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("    -> wall_ms=" + str(wall_ms) + " correct=" + correct + " ans=" + snippet.substr(0, 50))
+        i = i + 1
+    }
+
+    // ── Step 2 — warm strategy: task[0] writes cache, task[1..19] read it ──
+    println("")
+    println("  --- WARM (task[0] writes cache; task[1..19] read-only) ---")
+    // delete any stale cache from a prior run to make sure task[0] is a real write.
+    exec("rm -f " + shq(CACHE_PATH))
+    let mut warm_total_ms = 0
+    let mut warm_total_ms_after_first = 0
+    let mut warm_n_correct = 0
+    let mut warm_first_wall_ms = 0
+    let mut cache_size_after_first = 0
+    let mut cache_size_after_second = 0
+    let mut j = 0
+    while j < len(TASKS) {
+        let task = TASKS[j]
+        let prompt = SHARED_PREFIX + " User: " + task[0]
+        let expected = task[1]
+        let mut cache_arg = ""
+        if j == 0 {
+            cache_arg = "--prompt-cache " + shq(CACHE_PATH) + " --prompt-cache-all"
+        } else {
+            cache_arg = "--prompt-cache " + shq(CACHE_PATH) + " --prompt-cache-ro"
+        }
+        println("  warm[" + str(j+1) + "/" + str(len(TASKS)) + "] kw=" + expected + " mode=" + (if j == 0 { "write" } else { "read-only" }))
+        let line = run_one(prompt, expected, cache_arg)
+        let parts = line.split("\t")
+        if parts.len() < 4 {
+            println("    ! parse error, raw=" + line.substr(0, 100))
+            let bad = "warm\t" + str(j+1) + "\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+            exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+            j = j + 1
+            continue
+        }
+        let wall_ms = int(parts[0])
+        let tok_est = parts[1]
+        let correct = parts[2]
+        let snippet = parts[3].replace("\t", " ")
+        warm_total_ms = warm_total_ms + wall_ms
+        if j == 0 {
+            warm_first_wall_ms = wall_ms
+            cache_size_after_first = _file_size_bytes(CACHE_PATH)
+        } else {
+            warm_total_ms_after_first = warm_total_ms_after_first + wall_ms
+            if j == 1 { cache_size_after_second = _file_size_bytes(CACHE_PATH) }
+        }
+        if correct == "1" { warm_n_correct = warm_n_correct + 1 }
+        let row = "warm\t" + str(j+1) + "\t" + str(wall_ms) + "\t" + tok_est + "\t" + correct + "\t" + snippet.substr(0, 120)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("    -> wall_ms=" + str(wall_ms) + " correct=" + correct + " ans=" + snippet.substr(0, 50))
+        j = j + 1
+    }
+
+    // ── Step 3 — aggregate + viability gate ──
+    let total = len(TASKS)
+    let mut cold_avg = 0
+    if total > 0 { cold_avg = cold_total_ms / total }
+    let mut warm_avg_after_first = 0
+    if total > 1 { warm_avg_after_first = warm_total_ms_after_first / (total - 1) }
+
+    // warm_speedup_pct = ((cold_avg - warm_avg_after_first) / cold_avg) * 100
+    // store as basis-points-like int * 100 to keep 2-decimal precision.
+    let mut speedup_x100 = 0
+    if cold_avg > 0 {
+        speedup_x100 = ((cold_avg - warm_avg_after_first) * 10000) / cold_avg
+    }
+
+    // Render speedup_x100 as a signed decimal string with 2 fractional digits.
+    // Negative values need the sign attached to the integer part only; naive
+    // int/100 + "." + int%100 yields garbage like "-6.-15" when speedup<0.
+    let mut speedup_sign = ""
+    let mut speedup_abs = speedup_x100
+    if speedup_x100 < 0 {
+        speedup_sign = "-"
+        speedup_abs = -speedup_x100
+    }
+    let mut speedup_frac = str(speedup_abs % 100)
+    if speedup_abs % 100 < 10 { speedup_frac = "0" + speedup_frac }
+    let speedup_str = speedup_sign + str(speedup_abs / 100) + "." + speedup_frac
+
+    let mut viable = "false"
+    if flag_exposed == "true" && speedup_x100 >= (VIABLE_SPEEDUP_PCT * 100) && warm_n_correct >= cold_n_correct {
+        viable = "true"
+    }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — Stage 3 KV-prefix share")
+    println("========================================================================")
+    println("  shared_prefix_chars        : " + str(SHARED_PREFIX.len()))
+    println("  cold_total_wall_ms         : " + str(cold_total_ms))
+    println("  cold_avg_wall_ms_per_task  : " + str(cold_avg))
+    println("  warm_total_wall_ms         : " + str(warm_total_ms))
+    println("  warm_first_wall_ms (cache write) : " + str(warm_first_wall_ms))
+    println("  warm_avg_wall_ms_after_first     : " + str(warm_avg_after_first))
+    println("  warm_speedup_pct           : " + speedup_str + "%")
+    println("  cache_file_size_bytes      : " + str(cache_size_after_first))
+    println("  accuracy_cold              : " + str(cold_n_correct) + "/" + str(total))
+    println("  accuracy_warm              : " + str(warm_n_correct) + "/" + str(total))
+    println("  llama_cpp_cache_flag_exposed: " + flag_exposed)
+    println("  kv_prefix_share_viable     : " + viable)
+    println("")
+
+    // ── Step 4 — persist summary ──
+    let summary_path = OUT_DIR + "/stage3_kvprefix_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-completion") + " >> " + shq(summary_path))
+    exec("echo " + shq("# shared_prefix_chars=" + str(SHARED_PREFIX.len())) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tasks=" + str(total)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cold_total_wall_ms=" + str(cold_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_total_wall_ms=" + str(warm_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cold_avg_wall_ms_per_task=" + str(cold_avg)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_first_wall_ms=" + str(warm_first_wall_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_avg_wall_ms_per_task_after_first=" + str(warm_avg_after_first)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_speedup_pct=" + speedup_str) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cache_file_size_bytes=" + str(cache_size_after_first)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cache_file_size_bytes_after_second=" + str(cache_size_after_second)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# accuracy_cold=" + str(cold_n_correct) + "/" + str(total)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# accuracy_warm=" + str(warm_n_correct) + "/" + str(total)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# llama_cpp_cache_flag_exposed=" + flag_exposed) + " >> " + shq(summary_path))
+    exec("echo " + shq("# viable_speedup_threshold_pct=" + str(VIABLE_SPEEDUP_PCT)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# kv_prefix_share_viable=" + viable) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cycle2_d_cache_aware_warm_saving_pct=-24.10 (BLOCKED at claude --bare -p surface)") + " >> " + shq(summary_path))
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE3_KVPREFIX__ PASS")
+    exit(0)
+}

@@ -62,13 +62,13 @@
   raw  = ".verdicts/economics-routing-savings/threshold_sweep_summary.txt"
   note = "swept τ ∈ {30,50,80,100,120,150} on word_count(prompt) cutoff (<=τ → sonnet else opus) over the canonical 20-task manifest. All 20 prompts have wc ∈ [5,14] (max=14), so every τ ≥ 14 routes 20/20 → sonnet — the sweep effectively measures all-sonnet stochastic noise. best τ*=120 at 80.21% saving @ 20/20 (cost $0.0562); canonical 2-tier ref 81.79% NOT beaten (Δ=-1.58pp, within sonnet noise). τ=30 dropped to 19/20 (one sonnet stochastic miss on the same all-sonnet routing). VERDICT — boundary already optimal: on this manifest the τ axis is degenerate (word-count saturated below the grid), so the Pareto frontier set by the canonical 2-tier remains untouched. To exercise the τ frontier in future cycles, the manifest needs higher-word-count prompts (wc ≥ 30) that would actually trip the opus branch."
 
-@C d_early_stop := "early-stop stop-token list — terminate generation at first answer-marker" :: candidate [target_tier=GREEN cost_est=$0.3]
-  cmd = "add stop=['\\n\\n','</answer>','---'] to CLI dispatch; rerun manifest; compare output-token count vs baseline"
-  hyp = "stop-token early-termination cuts output_tokens ≥15% on the length-router 2-tier config at 20/20 accuracy"
+@C d_early_stop := "early-stop stop-token list — BLOCKED, CLI surface lacks --stop-sequences" :: dead [target_tier=GREEN actual_tier=BLOCKED]
+  raw  = ".discoveries/economics-routing-cli-surface.raw"
+  note = "claude --help 2.1.150 enumerates no --stop-sequences / --stop / -s / --max-tokens / --max-output flag. Output-token termination is unreachable from `claude --bare -p`. Only --max-budget-usd (session-wide dollar kill-switch) and --json-schema (output-shape validator) are exposed — neither caps generation length. Same surface-limit family as d_cache_aware (no cache_control), d_token_decomp (telemetry unreliable). Prompt-prefix length-cap workaround already falsified by d_response_budget_cap. No bench run, $0 spent."
 
-@C d_prompt_compress := "prompt-compression — strip boilerplate before dispatch" :: candidate [target_tier=GREEN cost_est=$0.5]
-  cmd = "preprocess each prompt with strip-system-noise + LLMLingua-style ratio=0.7; rerun 2-tier length router"
-  hyp = "compressed-prompt input_tokens drop ≥20% while 20/20 accuracy holds (input cost is non-trivial on long prompts)"
+@C d_prompt_compress := "prompt-compression — DEGENERATE, 20-task manifest already wc-saturated" :: dead [target_tier=GREEN actual_tier=DEGENERATE]
+  raw  = ".discoveries/economics-routing-cli-surface.raw"
+  note = "canonical manifest has prompt word_count ∈ [5,14] (max=14) — already at floor; LLMLingua-style ratio=0.7 has no slack to shave. The dominant input cost is the boilerplate suffix 'Reply with X only.' (~5 tokens/prompt) which is functionally load-bearing for correctness (cycle-1 d_response_budget_cap showed even small prompt-prefix manipulations destabilize the model — haiku quoted the cap text into prose, blowing output). Stripping it would risk regressing 20/20 accuracy with at most a ~5-token/prompt input save. No CLI compression flag exists either (--system-prompt is additive, not compressive). Compression has nonzero room only on a wc≥30 manifest (same future-work as d_threshold_sweep). No bench run, $0 spent."
 
 @C d_speculative_draft := "speculative draft — cheap-tier draft + opus single-shot verify" :: candidate [target_tier=GREEN cost_est=$0.6]
   cmd = "two-pass: haiku draft → opus verify-or-rewrite when draft confidence < tau; vs length-router baseline"
@@ -78,11 +78,44 @@
   cmd = "derive closed-form: given per-tier $/token + per-prompt input/output dist + accuracy-floor constraint, prove min-$/task"
   hyp = "length-router 81.79% saving is within ε of the analytic Pareto floor (T_BLUE formal proof, no API spend)"
 
+# ── kick round 3 (2026-05-23, post-cycle-2 narrowing) ──
+# seed: "length-cutoff SOLE Pareto-optimal (5 alternatives dead). `claude --bare -p`
+# surface BLOCKS cache_control/batch/max-tokens/stop-seq (3 dead at this surface).
+# 20-task manifest degenerate on wc<=14 (threshold sweep all-sonnet). Round-2
+# candidates speculative_draft/early_stop/prompt_compress/pareto_lower_bound in
+# flight. What UNEXPLORED orthogonal axes — workload-shape (task batching ·
+# amortize per-call overhead) · offline pre-routing (zero per-call router cost) ·
+# system-scheduling (parallelism · latency-cost trade) · formal results (tight
+# bounds · impossibility · optimality conditions)?"
+# raw: .discoveries/economics-routing-kick3.raw (mk9, smash+414 free+211 res+25, 650 total)
+
+@C d_oracle_optimality := "oracle instance-optimal $/task — formal certificate vs length-router gap" :: candidate [target_tier=BLUE cost_est=$0]
+  cmd = "for each of 20 prompts, look up CHEAPEST tier that produced a correct answer in cycle-1/2 .verdicts/economics-routing-savings/baseline.tsv (and class/dlg traces); sum tier-$ to get instance-optimal $/task floor; compare to length-router 81.79%"
+  hyp = "length-router is within ε ≤ 5pp of the instance-optimal oracle floor (T_BLUE formal — certificate is per-prompt lookup from existing verdicts, no new spend, distinct from d_pareto_lower_bound's distribution-level analytic floor)"
+
+@C d_offline_memoize := "offline answer-memoization — deterministic-grader manifest, second-pass $/task → 0" :: candidate [target_tier=GREEN cost_est=$0.1]
+  cmd = "wrap dispatcher with (prompt-hash → answer) KV store; rerun 2-tier length manifest twice; second pass should hit cache on every task"
+  hyp = "second-pass $/task within ε of 0 at 20/20 accuracy (the canonical 20-task manifest is a fixed regression-test bench — repeats are free, only first pass costs)"
+
+@C d_parallel_dispatch := "parallel dispatch — wall-clock saving via xargs -P, vendor cost invariant" :: candidate [target_tier=GREEN cost_est=$0.1]
+  cmd = "run canonical 2-tier length router with `xargs -P 4` vs serial; compare wall-clock + total $/task + accuracy"
+  hyp = "parallel cuts wall-clock ≥3× at 20/20 with vendor $/task identical (±sonnet noise) — latency-axis Pareto move, not cost-axis (orthogonal trade)"
+
+@C d_prompt_cluster_reuse := "semantic-cluster representative — one opus per cluster, members get rewrite" :: candidate [target_tier=GREEN cost_est=$0.5]
+  cmd = "cluster the 20 prompts by embedding sim (cheap local model), opus-answer each cluster representative, sonnet-rewrite members from rep answer; compare vs length-router 2-tier"
+  hyp = "cluster-and-reuse beats length-router $/task at 20/20 IFF the manifest has ≥1 nontrivial cluster (≥2 semantically-overlapping prompts) — falsifiable on the canonical 20-task set"
+
+@C d_router_cost_amortize := "offline pre-routing — compute ML-router tier table once, lookup per task (router-call cost → 0)" :: candidate [target_tier=GREEN cost_est=$0.2]
+  cmd = "run ML-router (dlg_mk0 or class) ONCE over manifest to emit (prompt → tier) lookup table; reuse table on subsequent passes with zero router-inference cost; compare amortized $/task vs length-router 2-tier"
+  hyp = "amortized ML-router (offline lookup) closes the gap to length-router by ≥5pp on second+ pass — the per-task router-call cost was the disqualifier (cycle-1 difficulty 62.15% vs length 77.72%), not the routing policy itself"
+
 # ── summary ──
-# round 1+2 cumulative : 3 confirmed (Pareto, 2-tier ablation, threshold_sweep boundary) ·
-# 5 dead (token decomp, confidence_gated, difficulty_predict, cache_aware, response_budget_cap)
-# · 4 next-batch candidates (batch_amortized [stale] + early_stop, prompt_compress,
-# speculative_draft, pareto_lower_bound [round-2 new])
+# round 1+2+3 cumulative : 3 confirmed (Pareto, 2-tier ablation, threshold_sweep boundary) ·
+# 7 dead (token decomp, confidence_gated, difficulty_predict, cache_aware,
+# response_budget_cap, early_stop [round-2 BLOCKED], prompt_compress [round-2 DEGENERATE])
+# · 7 next-batch candidates (batch_amortized [stale], speculative_draft, pareto_lower_bound +
+# round-3: oracle_optimality, offline_memoize, parallel_dispatch, prompt_cluster_reuse,
+# router_cost_amortize)
 # strongest-confirmed-so-far : 2-tier length router (81.79% saving @ 20/20).
 # threshold_sweep confirmed the canonical 2-tier cutoff is at the Pareto boundary —
 # τ ∈ {30..150} on word_count produce equivalent all-sonnet routing on this manifest
@@ -95,3 +128,18 @@
 # response_budget_cap (round-2 candidate) ran $0.32 and closed dead — prompt-suffix
 # cap is dominated by drop-the-tier on this manifest, with a pathological backfire
 # at the tightest cap (haiku explains the cap before answering, output GROWS).
+# early_stop + prompt_compress (round-2 candidates) closed $0 — both BLOCKED by
+# `claude --bare -p` 2.1.150 surface: no --stop-sequences flag exists (early_stop),
+# and the canonical manifest is already word-count saturated (prompt_compress
+# DEGENERATE; max wc=14, no slack for compression). Both require the same
+# wc≥30 manifest reshape as d_threshold_sweep to exit dead.
+# round 3 strategy : SHIFT off the per-call-dispatch axis entirely — workload-shape
+# (memoize, cluster-reuse), system-scheduling (parallelism for latency not cost),
+# offline pre-routing (amortize ML-router cost across passes), and a SECOND formal
+# result (instance-optimal oracle floor, distinct from analytic distribution floor).
+# These 5 candidates target axes orthogonal to BOTH the heuristic-router exhaustion
+# AND the `claude --bare -p` surface limit — they trade across passes (memoize,
+# router_amortize), across prompts (cluster_reuse), across wall-clock (parallel),
+# or operate purely on existing verdicts (oracle_optimality).
+# top-2 ROI : d_oracle_optimality (BLUE, $0, derives from existing baseline.tsv) +
+# d_offline_memoize (GREEN, $0.1, deterministic bench repeats are free by construction).

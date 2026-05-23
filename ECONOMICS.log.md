@@ -329,6 +329,115 @@ curve fits PENDING — F-CODEX-1 → v1.2.0, F-CODEX-2 → v1.3.0.
 
 ---
 
+## 2026-05-23 — early-stop + prompt-compress probes — BOTH BLOCKED ($0)
+
+Combined CLI-surface probe to verify whether the two outstanding
+round-2 routing-savings candidates have any reachable lever in
+`claude --bare -p` 2.1.150. Captured full `claude --help` to
+`.discoveries/economics-routing-cli-surface.raw`; greping for stop /
+max-token / compression / rewrite flags yielded only two hits:
+`--json-schema` (output-shape validator) and `--max-budget-usd`
+(session-wide dollar kill-switch). Neither caps output tokens nor
+strips input.
+
+| candidate          | flag needed                 | exposed? | verdict          |
+|:-------------------|:----------------------------|:--------:|:-----------------|
+| `d_early_stop`     | `--stop-sequences` / `--stop` |   no   | dead · BLOCKED   |
+| `d_prompt_compress`| any compression/rewrite     |   no   | dead · DEGENERATE |
+
+**Early-stop — BLOCKED.** The CLI surface enumerates no
+`--stop-sequences`, `--stop`, `-s`, `--max-tokens`, or `--max-output`
+flag. Output-token termination is unreachable from `claude --bare -p`.
+Prompt-prefix length-cap was already falsified one cycle ago by
+`d_response_budget_cap` (haiku quoted the cap into prose, blowing
+output volume). Same surface-limit family as `d_cache_aware` (no
+`cache_control`) and `d_token_decomp` (telemetry unreliable). No
+bench run, $0 spent.
+
+**Prompt-compress — DEGENERATE.** The 20-task manifest has
+`word_count ∈ [5, 14]` (max = 14) — already at floor. LLMLingua-style
+ratio=0.7 has no slack to shave. The dominant non-essential input is
+the `"Reply with X only."` suffix (~5 tokens/prompt), but stripping
+it risks regressing 20/20 (the suffix is load-bearing for the model's
+output shape — same fragility class as the `d_response_budget_cap`
+backfire). Compression has nonzero room only on a wc≥30 manifest
+reshape — same future-work as `d_threshold_sweep`. No bench run, $0
+spent.
+
+Discovery tape updated: `d_early_stop` and `d_prompt_compress` flipped
+from candidate → dead with `actual_tier=BLOCKED` / `actual_tier=DEGENERATE`
+respectively, raw cite `.discoveries/economics-routing-cli-surface.raw`.
+Summary footer now reads `3 confirmed · 7 dead · 2 next-batch
+candidates` (speculative_draft + pareto_lower_bound remain;
+batch_amortized stale). The round-2 lever exhaustion converges:
+`claude --bare -p` exposes neither precision controls (stop / max-tok
+/ cache_control) nor compression — the substrate gives us model
+choice and prompt content only. The Pareto frontier on this surface
+is set by the canonical 2-tier length router at 81.79% saving @
+20/20; remaining slack must come from architectural changes
+(speculative-draft, batch endpoint, raw Messages API) rather than
+CLI knobs.
+
+---
+
+## 2026-05-23 — kick round 3 — 5 NEW orthogonal candidates ($0)
+
+Ran `hexa kick --rounds 1 --engine mk9` with a refined seed capturing
+the post-cycle-2 constraints: (1) length-cutoff is the SOLE
+Pareto-optimal heuristic-router (5 alternatives dead), (2) `claude
+--bare -p` 2.1.150 BLOCKS cache_control / batch / max-tokens /
+stop-sequences at the dispatch surface (3 dead at this surface),
+(3) the canonical 20-task manifest is degenerate on `wc ≤ 14`
+(threshold sweep all-sonnet, prompt-compress no slack). Mk.IX 6-stage
+chain produced 650 total atoms (smash+414 free+211 res+25, σ=0.10);
+raw at `.discoveries/economics-routing-kick3.raw`. The seed explicitly
+asked for axes ORTHOGONAL to both heuristic-router exhaustion AND the
+CLI surface limit — workload-shape, offline pre-routing,
+system-scheduling, formal results.
+
+| slug                    | axis                | tier  | $est  | one-line hypothesis                                                                                                |
+|:------------------------|:--------------------|:-----:|:-----:|:-------------------------------------------------------------------------------------------------------------------|
+| `d_oracle_optimality`   | formal              | BLUE  | $0    | length-router within ε ≤ 5pp of instance-optimal floor (lookup cheapest correct tier per prompt from baseline.tsv) |
+| `d_offline_memoize`     | workload-shape      | GREEN | $0.1  | second-pass $/task → 0 (canonical manifest is a fixed regression bench, repeats are free)                          |
+| `d_router_cost_amortize`| offline pre-routing | GREEN | $0.2  | amortized ML-router (offline lookup table) closes ≥5pp gap to length-router on second+ pass                        |
+| `d_parallel_dispatch`   | system-scheduling   | GREEN | $0.1  | parallel cuts wall-clock ≥3× at 20/20 with vendor $/task invariant (latency-axis, not cost-axis)                   |
+| `d_prompt_cluster_reuse`| workload-shape      | GREEN | $0.5  | cluster-and-reuse beats length-router IFF the manifest has ≥1 nontrivial semantic cluster                          |
+
+All five target axes the previous rounds DID NOT touch. The two
+strongest by ROI: (a) `d_oracle_optimality` is BLUE at $0 — the
+per-prompt cheapest-correct-tier lookup over the existing
+`.verdicts/economics-routing-savings/baseline.tsv` directly derives
+an instance-optimal floor with no new API spend, distinct from
+`d_pareto_lower_bound`'s analytic distribution-level floor; (b)
+`d_offline_memoize` is GREEN at $0.1 and tests a tautology the bench
+already obeys (the 20-task manifest is a fixed regression set, so
+the dispatcher SHOULD memoize by construction — anything else is
+wasted spend on every rerun).
+
+The remaining three round-3 candidates probe complementary axes:
+`d_router_cost_amortize` revisits whether `dlg_mk0` / `class` /
+`difficulty` losses in cycle-1 were policy failures or
+per-call-cost failures — by moving the router call OFFLINE we
+eliminate it from the per-task denominator, potentially reviving the
+ML-routing family at GREEN tier. `d_parallel_dispatch` is honest
+about its scope — it is a LATENCY-axis Pareto move, not a cost move;
+vendor $/task should be invariant (±sonnet noise), and the test gate
+is "wall-clock ≥3× at 20/20 with $/task unchanged".
+`d_prompt_cluster_reuse` falsifies cleanly on the canonical 20
+prompts (the manifest is intentionally diverse; if no cluster has
+≥2 semantically-overlapping prompts the lever dies on that manifest
+alone and needs a duplicates-rich workload to exit DEGENERATE).
+
+Discovery tape updated: footer flipped to `3 confirmed · 7 dead ·
+7 next-batch candidates` (speculative_draft, pareto_lower_bound,
+batch_amortized [stale] + 5 round-3 new). The kick reveals that the
+*per-call-dispatch* axis is exhausted; remaining slack lives ACROSS
+passes (memoize, router_amortize), ACROSS prompts (cluster_reuse),
+ACROSS wall-clock (parallel), or on the EXISTING verdict surface
+(oracle_optimality, no spend).
+
+---
+
 _Next: v1.2.0 (2026-10, PLANNED) — wire the economics verbs, ship the
 training/inference cost scaling fit, land F-CODEX-1 empirical. Append
 round entries here as the group progresses._

@@ -1,0 +1,361 @@
+#!hexa strict
+// bench/sandbox_stage3_logit_calibration.hexa — SANDBOX Stage 3: first-token
+// logprob margin as a confidence signal. Substrate revival of cycle-2's
+// d_confidence_gated dead candidate.
+//
+// CONTEXT (cycle-2 d_confidence_gated, dead at commit 5d5b7d2):
+//   .verdicts/economics-routing-savings/confgate_summary.txt — best confgate
+//   (τ=0.9) saved 55.59% @ 19/20, strictly dominated by length-cutoff
+//   70.10% @ 20/20. The "confidence" was the DLG-mk0 classifier's heuristic
+//   score, NOT actual model logits. The candidate closed dead on that
+//   surface.
+//
+// CYCLE-5 REFRAMING (this bench):
+//   `llama-server` HTTP API exposes per-token `top_logprobs` on the
+//   /v1/chat/completions endpoint (OpenAI-compatible) — verified probe
+//   below returns 5 top tokens with raw logprobs (e.g. task 1 → token
+//   "4" logprob=-0.0236, top-2 token "3" logprob=-3.797, margin=3.77).
+//   CLI surface (llama-cli, llama-completion) does NOT expose this; the
+//   server surface does. logprob surface = exposed-via-server.
+//
+// QUESTION:
+//   Does Qwen2.5-0.5B's per-prompt FIRST-TOKEN log-probability margin
+//   (logprob_top1 - logprob_top2) correlate with answer correctness on
+//   the canonical 20-task manifest? If yes, a logit-gated router (Qwen
+//   for high-margin, escalate for low-margin) becomes possible — the
+//   cycle-2 heuristic-classifier confgate that the DLG-mk0 score
+//   couldn't deliver.
+//
+// HONEST CONSTRAINT:
+//   Stage 3 clean baseline (scorer-fixed) = 16/20. The 4 failures
+//   (idx 7, 9, 10, 18 per stage3_maxtokens_cap_summary.txt) are the
+//   ONLY discriminable rows. If margin distribution is flat or the
+//   wrong-direction (correct rows have LOWER margin than wrong rows),
+//   the signal is dead. With only 4 wrong rows on N=20, statistical
+//   power is weak — we report top vs bottom quartile accuracy directly,
+//   no Spearman p-value claim.
+//
+// METHOD:
+//   1. Start llama-server one-shot (--no-mmap optional for warm KV).
+//   2. POST each prompt to /v1/chat/completions with logprobs=true,
+//      top_logprobs=5, temperature=0, max_tokens=96.
+//   3. Parse JSON: first-token margin = top_logprobs[0].logprob -
+//      top_logprobs[1].logprob; seq_avg_logprob = mean(content[*].logprob).
+//   4. Score correct via the SAME byte-exact_subset scorer as Stage 3
+//      max_tokens_cap (no stderr trailer leak — the HTTP response is
+//      pure JSON, no perf_print contamination).
+//   5. Bin tasks into margin quartiles; compute top-q vs bottom-q
+//      accuracy delta. Signal present iff delta/total >= 0.2.
+//
+// Output:
+//   .verdicts/sandbox/stage3_logit_calibration.tsv         (per-task rows)
+//   .verdicts/sandbox/stage3_logit_calibration_summary.txt (calibration verdict)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage3_logit_calibration.hexa
+//
+// PREREQ:
+//   llama-server already running on 127.0.0.1:8088 with the canonical
+//   model. The bench probes /health first and aborts with a clear
+//   message if the server is not up.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External HTTP subprocess (curl → llama-server) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+let SERVER_URL = "http://127.0.0.1:8088"
+let MAX_TOK = 96
+let SIGNAL_THRESHOLD_X100 = 20  // delta/total >= 0.20 -> signal present
+
+// Canonical 20-task manifest — verbatim from bench/sandbox_stage0_baseline.hexa.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// JSON-string-escape a python prompt for embedding inside a JSON body.
+// Handles: backslash, double-quote, newline, carriage-return, tab.
+fn json_escape(s: str) -> str {
+    let mut t = s.replace("\\", "\\\\")
+    t = t.replace("\"", "\\\"")
+    t = t.replace("\n", "\\n")
+    t = t.replace("\r", "\\r")
+    t = t.replace("\t", "\\t")
+    return t
+}
+
+// Run one task via POST /v1/chat/completions w/ logprobs=true, top_logprobs=5.
+// Returns tab-separated:
+//   wall_ms \t margin_x10000 \t seq_avg_lp_x10000 \t correct(1|0) \t snippet
+//
+// Margin = logprob[0].top_logprobs[0].logprob - logprob[0].top_logprobs[1].logprob
+// (first-token only — that's the calibration signal under test). Multiplied by
+// 10000 to carry 4 dp through integer math (hexa-lang has no native float yet
+// in our pipeline; we serialize x10000 and divide for reporting).
+//
+// seq_avg_lp = arithmetic mean of every emitted token's chosen logprob,
+// also x10000. Negative values are emitted with a leading "-" by jq.
+//
+// Scorer: SAME byte-exact_subset (case-insensitive substring of expected_kw
+// in answer content). HTTP returns clean JSON — NO stderr trailer; the
+// Stage 0 scorer artifact (`/ 20 tokens` matching kw='7') does not apply
+// to the chat content field. Parity with Stage 3 max_tokens_cap.
+fn run_one(prompt: str, expected_kw: str) -> str {
+    let prompt_j = json_escape(prompt)
+    let body = "{\"messages\":[{\"role\":\"user\",\"content\":\"" + prompt_j +
+               "\"}],\"max_tokens\":" + str(MAX_TOK) +
+               ",\"temperature\":0,\"logprobs\":true,\"top_logprobs\":5}"
+    let cmd = "t_start=$(date +%s%N); " +
+              "resp=$(curl -s -X POST " + SERVER_URL + "/v1/chat/completions " +
+              "-H 'Content-Type: application/json' -d " + shq(body) + "); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              // first-token margin: top_logprobs[0] - top_logprobs[1] of choices[0].logprobs.content[0]
+              "lp0=$(printf '%s' \"$resp\" | jq -r '.choices[0].logprobs.content[0].top_logprobs[0].logprob // -999'); " +
+              "lp1=$(printf '%s' \"$resp\" | jq -r '.choices[0].logprobs.content[0].top_logprobs[1].logprob // -999'); " +
+              // margin in float dollars, then x10000 via awk for int carry
+              "margin_x10000=$(awk -v a=\"$lp0\" -v b=\"$lp1\" 'BEGIN{printf \"%d\", (a - b) * 10000}'); " +
+              // sequence avg logprob across all emitted content tokens
+              "seq_avg=$(printf '%s' \"$resp\" | jq -r '[.choices[0].logprobs.content[].logprob] | if length>0 then (add/length) else -999 end'); " +
+              "seq_avg_x10000=$(awk -v a=\"$seq_avg\" 'BEGIN{printf \"%d\", a * 10000}'); " +
+              // answer content (clean — no stderr trailer)
+              "ans=$(printf '%s' \"$resp\" | jq -r '.choices[0].message.content // \"\"' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-160); " +
+              "printf '%s\\t%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"$margin_x10000\" \"$seq_avg_x10000\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage3_logit_calibration — first-token logprob margin")
+    println("  model:    " + MODEL_NAME)
+    println("  surface:  llama-server /v1/chat/completions (logprobs=true)")
+    println("  manifest: 20 tasks (verbatim from sandbox_stage0_baseline.hexa)")
+    println("  signal_threshold: top-q minus bottom-q accuracy / total >= 0.20")
+    println("========================================================================")
+
+    // Pre-flight: ensure llama-server is reachable.
+    let health = exec("curl -s -o /dev/null -w '%{http_code}' " + SERVER_URL + "/health").trim()
+    if health != "200" {
+        println("")
+        println("  ! llama-server NOT reachable at " + SERVER_URL + "/health (http=" + health + ")")
+        println("  ! start with:")
+        println("       llama-server -m ~/Models/gguf/" + MODEL_NAME + ".gguf \\")
+        println("           --host 127.0.0.1 --port 8088 -np 1 --log-disable &")
+        println("__HEXA_CODEX_BENCH_SANDBOX_STAGE3_LOGIT_CALIBRATION__ BLOCKED_AT_BUILD")
+        exit(2)
+    }
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/stage3_logit_calibration.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'idx\tprompt_wc\twall_ms\tmargin\tseq_avg_lp\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    // Parallel arrays for quartile analysis.
+    let mut idxs = [0]
+    let mut margins_x10000 = [0]
+    let mut corrects = [0]
+    idxs = []
+    margins_x10000 = []
+    corrects = []
+
+    let mut total_ms = 0
+    let mut n_correct = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let prompt = task[0]
+        let expected = task[1]
+        println("  [" + str(i+1) + "/" + str(len(TASKS)) + "] kw=" + expected + " prompt=" + prompt.substr(0, 50))
+        let line = run_one(prompt, expected)
+        let parts = line.split("\t")
+        if parts.len() < 5 {
+            println("    ! parse error, raw=" + line.substr(0, 120))
+            let bad = str(i+1) + "\t" + str(prompt.len()) + "\t0\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+            exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+            i = i + 1
+            continue
+        }
+        let wall_ms = int(parts[0])
+        let margin_x10000 = int(parts[1])
+        let seq_avg_x10000 = int(parts[2])
+        let correct = parts[3]
+        let snippet = parts[4].replace("\t", " ")
+        total_ms = total_ms + wall_ms
+        let correct_i = 0
+        let mut c = 0
+        if correct == "1" {
+            n_correct = n_correct + 1
+            c = 1
+        }
+        idxs = idxs + [i+1]
+        margins_x10000 = margins_x10000 + [margin_x10000]
+        corrects = corrects + [c]
+        // Persist row — divide x10000 to print as float-ish "I.dddd".
+        let margin_int = margin_x10000 / 10000
+        let margin_frac_raw = margin_x10000 - margin_int * 10000
+        let mut margin_frac = margin_frac_raw
+        if margin_frac < 0 { margin_frac = -margin_frac }
+        let lp_int = seq_avg_x10000 / 10000
+        let lp_frac_raw = seq_avg_x10000 - lp_int * 10000
+        let mut lp_frac = lp_frac_raw
+        if lp_frac < 0 { lp_frac = -lp_frac }
+        let row = str(i+1) + "\t" + str(prompt.len()) + "\t" + str(wall_ms) +
+                  "\t" + str(margin_int) + "." + str(margin_frac) +
+                  "\t" + str(lp_int) + "." + str(lp_frac) +
+                  "\t" + correct + "\t" + snippet.substr(0, 160)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("    -> wall_ms=" + str(wall_ms) + " margin=" + str(margin_int) + "." + str(margin_frac) +
+                " seq_avg=" + str(lp_int) + "." + str(lp_frac) + " ok=" + correct +
+                " ans=" + snippet.substr(0, 50))
+        i = i + 1
+    }
+
+    let total = len(TASKS)
+    let n_scored = len(margins_x10000)
+
+    // ── quartile analysis ──
+    // Sort indices by margin descending (selection sort — N=20 is fine).
+    let mut order = [0]
+    order = []
+    let mut k = 0
+    while k < n_scored {
+        order = order + [k]
+        k = k + 1
+    }
+    let mut a = 0
+    while a < n_scored {
+        let mut best = a
+        let mut b = a + 1
+        while b < n_scored {
+            if margins_x10000[order[b]] > margins_x10000[order[best]] { best = b }
+            b = b + 1
+        }
+        if best != a {
+            let tmp = order[a]
+            order[a] = order[best]
+            order[best] = tmp
+        }
+        a = a + 1
+    }
+
+    // Quartile bins: top = first quarter (highest margins), bottom = last quarter.
+    let q_size = n_scored / 4
+    if q_size < 1 { q_size = 1 }
+    let mut top_correct = 0
+    let mut bot_correct = 0
+    let mut top_total = 0
+    let mut bot_total = 0
+    let mut q = 0
+    while q < q_size {
+        top_correct = top_correct + corrects[order[q]]
+        top_total = top_total + 1
+        bot_correct = bot_correct + corrects[order[n_scored - 1 - q]]
+        bot_total = bot_total + 1
+        q = q + 1
+    }
+
+    // signal metric: (top_acc - bot_acc) / overall_acc, where acc_pct.
+    let mut top_acc_x10000 = 0
+    let mut bot_acc_x10000 = 0
+    if top_total > 0 { top_acc_x10000 = (top_correct * 10000) / top_total }
+    if bot_total > 0 { bot_acc_x10000 = (bot_correct * 10000) / bot_total }
+    let mut overall_acc_x10000 = 0
+    if n_scored > 0 { overall_acc_x10000 = (n_correct * 10000) / n_scored }
+    let mut margin_corr_x10000 = 0
+    let mut signal_present = "false"
+    if overall_acc_x10000 > 0 {
+        let delta = top_acc_x10000 - bot_acc_x10000
+        margin_corr_x10000 = (delta * 10000) / overall_acc_x10000
+    }
+    if margin_corr_x10000 > (SIGNAL_THRESHOLD_X100 * 100) { signal_present = "true" }
+    // INVERTED-DEGENERATE: all answers correct -> no signal extractable.
+    let mut degenerate_note = "false"
+    if n_correct >= n_scored { degenerate_note = "true" }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — Stage 3 logit calibration")
+    println("========================================================================")
+    println("  total_scored                     : " + str(n_scored) + " / " + str(total))
+    println("  overall correct                  : " + str(n_correct) + "/" + str(n_scored))
+    println("  top_quartile (q_size=" + str(q_size) + ") correct  : " + str(top_correct) + "/" + str(top_total))
+    println("  bot_quartile (q_size=" + str(q_size) + ") correct  : " + str(bot_correct) + "/" + str(bot_total))
+    println("  margin_corr_signal               : " + str(margin_corr_x10000 / 100) + "." + str(margin_corr_x10000 % 100) + "%")
+    println("  signal_present (>= 20.00%)       : " + signal_present)
+    println("  inverted_degenerate (no wrong)   : " + degenerate_note)
+    println("  total_wall_ms                    : " + str(total_ms))
+
+    let summary_path = OUT_DIR + "/stage3_logit_calibration_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("strategy\ttotal\tcorrect\ttop_q_correct\ttop_q_total\tbot_q_correct\tbot_q_total") + " >> " + shq(summary_path))
+    let row_s = "logit_calib\t" + str(n_scored) + "\t" + str(n_correct) +
+                "\t" + str(top_correct) + "\t" + str(top_total) +
+                "\t" + str(bot_correct) + "\t" + str(bot_total)
+    exec("echo " + shq(row_s) + " >> " + shq(summary_path))
+    exec("echo " + shq("# llama_cpp_logprob_surface_exposed=true  (server endpoint /v1/chat/completions logprobs=true · top_logprobs=5; CLI surface llama-cli/llama-completion does NOT expose, only HTTP server does)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# top_quartile_accuracy=" + str(top_acc_x10000 / 100) + "." + str(top_acc_x10000 % 100)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# bottom_quartile_accuracy=" + str(bot_acc_x10000 / 100) + "." + str(bot_acc_x10000 % 100)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# overall_accuracy=" + str(overall_acc_x10000 / 100) + "." + str(overall_acc_x10000 % 100)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# margin_corr_signal=" + str(margin_corr_x10000 / 100) + "." + str(margin_corr_x10000 % 100) + "  (top_q_acc - bot_q_acc) / overall_acc, percent") + " >> " + shq(summary_path))
+    exec("echo " + shq("# calibration_signal_present=" + signal_present + "  (true iff margin_corr_signal > 20.00%)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# inverted_degenerate=" + degenerate_note + "  (true iff n_correct == n_scored — no failures to discriminate on)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# n_scored=" + str(n_scored)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# n_correct=" + str(n_correct)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# q_size=" + str(q_size) + "  (n_scored/4, floor; quartile width)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_wall_ms=" + str(total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-server /v1/chat/completions (OpenAI-compatible) + curl + jq") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cost_usd=0  (local serving; wall_ms is the proxy cost surface)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cycle2_reference=5d5b7d2  (d_confidence_gated dead: heuristic DLG-mk0 score, NOT model logits; best τ=0.9 saved 55.59% @ 19/20 strictly dominated by length 70.10% @ 20/20)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# margin_definition=first_token logprob_top1 - logprob_top2 (from llama-server logprobs.content[0].top_logprobs[0..1])") + " >> " + shq(summary_path))
+    exec("echo " + shq("# honest_note_1=N=20 with only ~4 wrong rows after scorer-fix; quartile delta is power-limited. We report direction + magnitude, no p-value claim.") + " >> " + shq(summary_path))
+    exec("echo " + shq("# honest_note_2=if n_correct==n_scored, calibration is INVERTED-DEGENERATE on this manifest — no failures to discriminate; expand to Stage 2 manifest N>=2000 to test the signal properly.") + " >> " + shq(summary_path))
+
+    println("")
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE3_LOGIT_CALIBRATION__ PASS")
+    exit(0)
+}

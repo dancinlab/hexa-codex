@@ -1,0 +1,21 @@
+strategy	total	correct	top_q_correct	top_q_total	bot_q_correct	bot_q_total
+logit_calib	20	15	5	5	3	5
+# llama_cpp_logprob_surface_exposed=true  (server endpoint /v1/chat/completions logprobs=true · top_logprobs=5; CLI surface llama-cli/llama-completion does NOT expose, only HTTP server does)
+# top_quartile_accuracy=100.0
+# bottom_quartile_accuracy=60.0
+# overall_accuracy=75.0
+# margin_corr_signal=53.33  (top_q_acc - bot_q_acc) / overall_acc, percent
+# calibration_signal_present=true  (true iff margin_corr_signal > 20.00%)
+# inverted_degenerate=false  (true iff n_correct == n_scored — no failures to discriminate on)
+# n_scored=20
+# n_correct=15
+# q_size=5  (n_scored/4, floor; quartile width)
+# total_wall_ms=98207
+# model=Qwen2.5-0.5B-Instruct-Q4_K_M
+# tool=llama-server /v1/chat/completions (OpenAI-compatible) + curl + jq
+# host=mac-mini-m3 (brew llama.cpp + Metal)
+# cost_usd=0  (local serving; wall_ms is the proxy cost surface)
+# cycle2_reference=5d5b7d2  (d_confidence_gated dead: heuristic DLG-mk0 score, NOT model logits; best τ=0.9 saved 55.59% @ 19/20 strictly dominated by length 70.10% @ 20/20)
+# margin_definition=first_token logprob_top1 - logprob_top2 (from llama-server logprobs.content[0].top_logprobs[0..1])
+# honest_note_1=N=20 with only ~4 wrong rows after scorer-fix; quartile delta is power-limited. We report direction + magnitude, no p-value claim.
+# honest_note_2=if n_correct==n_scored, calibration is INVERTED-DEGENERATE on this manifest — no failures to discriminate; expand to Stage 2 manifest N>=2000 to test the signal properly.

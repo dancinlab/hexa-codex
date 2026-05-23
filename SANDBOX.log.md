@@ -467,3 +467,110 @@ orthogonal to server-mode).
 
 Cumulative SANDBOX state: **3 confirmed** · **2 dead** · **11 candidates
 remaining** (7 round-1 + 4 round-2).
+
+---
+
+## 2026-05-24 — Stage 3 logit calibration — d_logit_calibration CONFIRMED (cycle-2 d_confidence_gated substrate revival)
+
+Cycle-5 closes the kick round-1 `d_logit_calibration` axis. Substrate
+revival of cycle-2's dead `d_confidence_gated` candidate (commit
+5d5b7d2). On the heuristic surface, cycle-2's best confgate (τ=0.9)
+saved 55.59% @ 19/20 — strictly dominated by length-cutoff 70.10% @
+20/20 (`.verdicts/economics-routing-savings/confgate_summary.txt`).
+The "confidence" was the DLG-mk0 classifier's heuristic score, not
+actual model logits. Cycle-5 asks: does the model itself know what
+it knows?
+
+### Surface probe — logprobs are server-only
+
+`llama-cli --help` and `llama-completion --help` do NOT expose
+`--logprobs` / `--n-probs` flags (probe persisted to
+`.discoveries/sandbox-logprob-flags.raw`). The CLI surface is silent
+on token-level probability output. However, `llama-server` exposes
+the OpenAI-compatible `/v1/chat/completions` endpoint with
+`logprobs=true` + `top_logprobs=5` request fields — verified probe
+returns `choices[0].logprobs.content[i].top_logprobs[0..4]` with raw
+`logprob` floats per token. **`llama_cpp_logprob_surface_exposed=true`**
+(via HTTP server, not CLI).
+
+### Bench — first-token margin on the canonical 20-task manifest
+
+`bench/sandbox_stage3_logit_calibration.hexa` (this cycle, new
+artefact). For each of the 20 canonical tasks (verbatim from
+`bench/sandbox_stage0_baseline.hexa`):
+
+1. POST `/v1/chat/completions` with `logprobs=true · top_logprobs=5 ·
+   temperature=0 · max_tokens=96`.
+2. Extract first-token margin: `top_logprobs[0].logprob −
+   top_logprobs[1].logprob`.
+3. Extract seq_avg_logprob: arithmetic mean of every emitted
+   token's chosen logprob (cross-check signal).
+4. Score correct via the SCORER-FIXED pattern (clean JSON, no stderr
+   trailer leak — the cycle-4 max_tokens_cap reference).
+
+### Result — signal_present=true at margin_corr_signal=53.33%
+
+```
+strategy    total correct top_q top_q_total bot_q bot_q_total
+logit_calib    20      15     5           5     3           5
+# top_quartile_accuracy=100.0
+# bottom_quartile_accuracy=60.0
+# overall_accuracy=75.0
+# margin_corr_signal=53.33  (top_q_acc − bot_q_acc) / overall_acc, percent
+# calibration_signal_present=true  (threshold = 20.00%)
+```
+
+Top-5 margins (sorted desc): 7.17, 3.99, 3.96, 3.77, 3.75 — **5/5
+correct**. Bottom-5 margins: 0.19, 0.40, 0.57, 0.72, 0.96 — 3/5
+correct (tasks 14 `Sort {3,1,2}` margin=0.19, 17 `fib memo`
+margin=0.40, 12 `O(log n)` margin=0.96 all correct despite low
+margin; tasks 6 `smallest prime`→`1` margin=0.57 wrong; task 7
+`continents`→`6` margin=0.72 wrong). The signal direction is
+unambiguous — high-margin tasks are reliably correct on this
+manifest, low-margin tasks include the failures.
+
+### vs cycle-2 d_confidence_gated
+
+| surface | confidence source | best | full 20/20? | dominated by length? |
+|:--------|:------------------|:-----|:-----------:|:--------------------:|
+| cycle-2 (claude --bare -p) | DLG-mk0 heuristic classifier | 55.59% saving @ 19/20 (τ=0.9) | no | yes (length 70.10% @ 20/20) |
+| cycle-5 (llama-server HTTP) | first-token logprob margin (top1−top2) | margin_corr_signal=53.33% | n/a (no stronger tier yet) | n/a |
+
+Cycle-2 reported a **saving %** because both tiers existed on the
+claude --bare -p surface (haiku/sonnet/opus). Cycle-5 reports a
+**signal-presence verdict** instead — SANDBOX has only the Stage-0
+base (Qwen2.5-0.5B) live; the cycle-1 length-router's "escalate"
+tier has no SANDBOX counterpart yet (`d_stage1_persona`
+dead-on-manifest, all 3 personas score 20/20 — no spread). The
+SIGNAL is what we measure; the SAVING-% measurement is gated on
+Stage 1 multi-base or Stage 4 multi-scale grid landing first.
+
+### Honest limits
+
+1. **N=20, 5 wrong rows** — quartile delta is power-limited.
+   Direction + magnitude only, no p-value claim. Stage 2 manifest
+   N≥2000 needed for proper signal test + Platt-scaling fit.
+2. **No saving-% number** — there is no stronger tier in SANDBOX
+   yet (`d_stage1_persona` dead-on-manifest). d_logit_calibration
+   confirms the SIGNAL exists; integrating with routing policy
+   requires multi-base or multi-scale grid before $/task delta is
+   measurable.
+3. **Overall accuracy 15/20 here vs cycle-4's 16/20** — the gap is
+   task 6 `Smallest prime` → `1`, which cycle-4's
+   `stage3_maxtokens_cap` byte-exact_subset substring scorer
+   false-positive-matched (kw=`2` ⊂ output text containing other
+   `2`s in subsequent prose). The chat-completion endpoint emits a
+   minimal `1` (no prose), so the false-positive surface is gone —
+   this cycle's 15/20 is the cleaner baseline.
+
+### Artifacts
+
+- bench — `bench/sandbox_stage3_logit_calibration.hexa`
+- per-task — `.verdicts/sandbox/stage3_logit_calibration.tsv`
+- summary — `.verdicts/sandbox/stage3_logit_calibration_summary.txt`
+- CLI-flag probe — `.discoveries/sandbox-logprob-flags.raw`
+- discovery flip — `.discoveries/sandbox.tape` (d_logit_calibration
+  candidate → confirmed)
+
+Cumulative SANDBOX state: **4 confirmed** · **2 dead** · **10
+candidates remaining**.

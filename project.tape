@@ -23,9 +23,9 @@
   do   = "T4 claims run lm_foundry train · hexa-eval infer · serving bench — metrics in .verdicts"
   dont = "fence empirical claim · accept simulator-only output · skip T4 bench when claim is empirical"
 
-@D cx_paper_gate := "/paper scaffolding gated on 100% formal-blue AND significance" :: workflow [required active]
-  do   = "`/paper new <slug>` only when verdict 100% formal-blue AND cx_paper_significance satisfied"
-  dont = "scaffold w/ any non-blue residual · scaffold for trivial atom recheck / bookkeeping closure"
+@D cx_paper_gate := "/paper gated on 100% verified-by-recompute AND significance" :: workflow [required active]
+  do   = "`/paper new <slug>` only when 100% formal(blue) or numerical(green) AND significance satisfied"
+  dont = "scaffold w/ any fenced/deferred/falsified/citation-only · trivial atom recheck · bookkeeping"
 
 @D cx_paper_significance := "paper requires formula + benchmark + measured benefit" :: workflow [required active]
   do   = "paper triggers only on formula + real bench + quantified benefit (cost/latency/accuracy delta)"

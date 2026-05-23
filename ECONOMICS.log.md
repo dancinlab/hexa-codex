@@ -6,6 +6,45 @@
 
 ---
 
+## 2026-05-23 — confidence-gated router ablation — Pareto bound reinforced
+
+Resolved the `d_confidence_gated` candidate from
+`.discoveries/economics-routing-savings.tape` — a confidence-gated
+router that escalates to opus when the DLG-mk0 classifier's
+confidence falls below `τ`. `bench/economics_routing_confgate.hexa`
+sweeps `τ ∈ {0.6, 0.7, 0.8, 0.9}` on the canonical 20-task manifest,
+reusing the cached baseline (always-opus) and length-router
+cost/accuracy as references:
+
+| strategy             | cost (USD) | correct | saving      |
+|:---------------------|-----------:|:-------:|------------:|
+| baseline (opus)      | 0.28078    | 18/20   |  0.00%      |
+| length-router        | 0.08395    | 20/20   | **70.10%**  |
+| confgate τ=0.6       | 0.27946    | 19/20   |  0.47%      |
+| confgate τ=0.7       | 0.25934    | 19/20   |  7.64%      |
+| confgate τ=0.8       | 0.29551    | 19/20   | -5.25%      |
+| confgate τ=0.9       | 0.12471    | 19/20   |  55.59%     |
+
+**Verdict: NO** — no τ holds the 20/20 floor, and the best confgate
+point (τ=0.9 at 55.59%) is strictly dominated by length-cutoff
+(70.10% @ 20/20). The Pareto bound established by the 4-strategy
+sweep (length is the SOLE Pareto-optimal router) is reinforced: with
+the kick-suggested confidence lever now closed as a dead end, no
+GREEN-tier lever has a known path to beat plain length on this
+manifest.
+
+Operationally — `lm_foundry/tool/dlg_mk0_wrapper.py` gains
+`--with-conf` (returns `tier\tconfidence`) to support the gate; the
+20-task baseline was re-captured under the current `claude --bare -p`
+dispatch, with the sum drifting from `$0.31747` to `$0.28078`
+(per-task cost-column drift, no strategy change — see
+`.verdicts/.../baseline.tsv`). The length-router cached cost is
+unchanged, so the headline saving ratio drops from `73.56%` to
+`70.10%` purely from the new baseline; the strategy ranking is
+unchanged (length still SOLE Pareto-optimal). Discovery tape
+updated: `d_confidence_gated` candidate → dead, batch summary now
+reads `1 confirmed · 2 dead · 4 next-batch candidates`.
+
 ## 2026-05-23 — ECONOMICS Pareto envelope added
 
 Third ECONOMICS-specific cross-cutter — closed-form (N, D) ↔

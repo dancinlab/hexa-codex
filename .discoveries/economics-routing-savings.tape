@@ -22,11 +22,11 @@
 @C d_token_decomp := "per-task token-cost decomposition — BLOCKED, telemetry unreliable under --bare -p" :: dead [target_tier=GREEN actual_tier=BLOCKED]
   note = "input/output_tokens columns inconsistent across strategies (class 19945 vs dlg 68); only total cost_usd reconciles. Same root cause as the unreliable model column."
 
-# ── next-batch candidates (kick levers, not yet run) ──
+@C d_confidence_gated := "confidence-gated routing — DLG conf < tau → opus, else cheap tier" :: dead [target_tier=GREEN actual_tier=GREEN]
+  raw  = ".verdicts/economics-routing-savings/confgate_summary.txt"
+  note = "swept tau in {0.6,0.7,0.8,0.9}; best = tau=0.9 at 55.59% saving @ 19/20 — strictly dominated by length (70.10% @ 20/20). Length-cutoff Pareto bound reinforced; no confgate point holds full 20/20 accuracy."
 
-@C d_confidence_gated := "confidence-gated routing — DLG conf < tau → opus, else cheap tier" :: candidate [target_tier=GREEN cost_est=$0.5]
-  cmd = "new bench strategy: pick_tier = opus if dlg_confidence < tau else dlg_tier; sweep tau"
-  hyp = "may let DLG beat length when it abstains correctly on hard prompts"
+# ── next-batch candidates (kick levers, not yet run) ──
 
 @C d_difficulty_predict := "per-task difficulty score → tier (length × keyword × output-len prior)" :: candidate [target_tier=GREEN cost_est=$0.5]
   cmd = "composite difficulty heuristic vs pure length; same 20-task manifest"
@@ -45,5 +45,7 @@
   hyp = "haiku contributes little when most prompts route to sonnet anyway"
 
 # ── summary ──
-# this batch : 1 confirmed (Pareto) · 1 dead (token decomp) · 5 next-batch candidates
-# strongest next : d_confidence_gated (only lever with a path to beat length)
+# this batch : 1 confirmed (Pareto) · 2 dead (token decomp, confidence_gated) · 4 next-batch candidates
+# strongest-next has flipped — confidence-gated proved a dead end, no GREEN lever now
+# has a known path to beat length. Remaining candidates (cache-aware, batch-amortized,
+# 2-tier ablation, difficulty-predict) probe orthogonal axes, not the Pareto frontier.

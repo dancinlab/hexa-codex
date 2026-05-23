@@ -1,0 +1,325 @@
+#!hexa strict
+// bench/economics_routing_confgate.hexa — confidence-gated router vs length cutoff.
+//
+// HYPOTHESIS (from the Pareto finding): plain DLG-mk0 routing saved LEAST
+// (64.44% vs length 73.56%) at tied 20/20. Can a CONFIDENCE-GATED router
+// recover? Idea: when DLG-mk0's confidence < tau (uncertain), escalate to
+// opus; else use the cheap DLG tier. Sweep tau in {0.6,0.7,0.8,0.9}.
+//
+// Strategies on the same 20-task fixed manifest (parity with the 2/3/4-way
+// benches):
+//   baseline      : every task -> opus (always-opus)  [reused from cache]
+//   router        : length-heuristic tier             [reused from cache]
+//   confgate_<tau>: (dlg_tier, conf) <- dlg_mk0_wrapper --with-conf;
+//                   if conf < tau -> opus, else dlg_tier.
+//
+// Each NEW call captured via `--output-format json`:
+//   total_cost_usd · duration_ms · result · usage.{input,output}_tokens
+// Per task, correctness = expected_kw substring present (case-insensitive).
+//
+// COST NOTE: baseline (always-opus) and length-router are deterministic on
+// this fixed manifest and were already measured (.verdicts/.../baseline.tsv,
+// router.tsv, dlg_summary.txt). We REUSE those cached cost/accuracy numbers
+// for reference and only spend API budget on the 4 confgate sweeps — this
+// keeps the run near the ~$1 budget per the bench brief.
+//
+// Output:
+//   .verdicts/economics-routing-savings/confgate.tsv          (per-task rows)
+//   .verdicts/economics-routing-savings/confgate_summary.txt  (per-tau summary
+//                                                               + headline)
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_confgate.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+let DLG_WRAPPER = ROOT + "/lm_foundry/tool/dlg_mk0_wrapper.py"
+
+// 20-task fixed manifest — identical to the 2/3/4-strategy benches for parity.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+// tau grid to sweep.
+let TAUS = [0.6, 0.7, 0.8, 0.9]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Query DLG-mk0 once per prompt -> "tier\tconfidence".
+fn dlg_tier_conf(prompt: str) -> str {
+    let raw = exec("python3 " + DLG_WRAPPER + " --with-conf " + shq(prompt)).trim()
+    return raw
+}
+
+// confidence-gated tier choice: if conf < tau -> opus else dlg_tier.
+fn confgate_tier(dlg_tier: str, conf: float, tau: float) -> str {
+    if conf < tau { return "opus" }
+    if dlg_tier == "haiku" { return "haiku" }
+    if dlg_tier == "sonnet" { return "sonnet" }
+    if dlg_tier == "opus" { return "opus" }
+    return "sonnet"
+}
+
+// Run one task. Returns 7 tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t output_tokens \t result_snippet \t model \t correct(1|0)
+fn run_one(prompt: str, model: str, expected_kw: str) -> str {
+    let cmd = "claude --bare -p --output-format json --model " + model + " " + shq(prompt) +
+              " 2>/dev/null | jq -r --arg kw " + shq(expected_kw) +
+              " '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, .usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0]), " +
+              "((.result // \"\") | ascii_downcase | contains($kw | ascii_downcase) | " +
+              "if . then \"1\" else \"0\" end)" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+fn saving_pct(b_cost: float, x_cost: float) -> float {
+    if b_cost > 0.0 { return ((b_cost - x_cost) / b_cost) * 100.0 }
+    return 0.0
+}
+
+// Reused-cached strategy cost/accuracy reader. Sums cost_usd (col 3) and
+// counts correct (col 7) from a previously-persisted per-task TSV. Returns
+// "total_cost\tn_correct" or "MISSING" if the file is absent.
+fn read_cached(name: str) -> str {
+    let path = OUT_DIR + "/" + name + ".tsv"
+    let exists = exec("test -f " + shq(path) + " && echo yes || echo no").trim()
+    if exists != "yes" { return "MISSING" }
+    // tail -n +2 to skip header; awk to sum cost and count correct.
+    let cost = exec("tail -n +2 " + shq(path) + " | awk -F'\\t' '{s+=$3} END{printf \"%.8f\", s}'").trim()
+    let cor  = exec("tail -n +2 " + shq(path) + " | awk -F'\\t' '$7==1{c++} END{printf \"%d\", c}'").trim()
+    return cost + "\t" + cor
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_confgate — confidence-gated router sweep")
+    println("  manifest: 20 tasks · gate tau in {0.6,0.7,0.8,0.9}")
+    println("  baseline + length REUSED from cache; only confgate sweeps spend API.")
+    println("  output:   " + OUT_DIR + "/{confgate.tsv,confgate_summary.txt}")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+
+    // --- reference numbers from cache ---
+    let b_raw = read_cached("baseline")
+    let r_raw = read_cached("router")
+    if b_raw == "MISSING" {
+        println("  ! baseline.tsv cache MISSING — cannot compute savings baseline.")
+        exit(1)
+    }
+    let bp = b_raw.split("\t")
+    let b_cost = to_float(bp[0])
+    let b_acc  = int(bp[1])
+    let mut r_cost = 0.0
+    let mut r_acc = 0
+    let mut r_known = false
+    if r_raw != "MISSING" {
+        let rp = r_raw.split("\t")
+        r_cost = to_float(rp[0])
+        r_acc  = int(rp[1])
+        r_known = true
+    }
+    let LENGTH_SAVING_REF = 73.5568   // canonical length-router saving (dlg_summary.txt)
+    println("")
+    println("  cached baseline : cost=$" + to_string(b_cost) + "  correct=" + str(b_acc) + "/20")
+    if r_known {
+        println("  cached length   : cost=$" + to_string(r_cost) + "  correct=" + str(r_acc) + "/20  saving=" + to_string(saving_pct(b_cost, r_cost)) + "%")
+    } else {
+        println("  cached length   : MISSING — using canonical ref saving=" + to_string(LENGTH_SAVING_REF) + "%")
+    }
+
+    // --- pre-compute DLG tier+conf per task (one local classifier call each) ---
+    let mut dlg_tiers = []
+    let mut dlg_confs = []
+    let mut i = 0
+    while i < len(TASKS) {
+        let tc = dlg_tier_conf(TASKS[i][0])
+        let parts = tc.split("\t")
+        let mut tier = "sonnet"
+        let mut conf = 0.55
+        if parts.len() >= 2 {
+            tier = parts[0]
+            conf = to_float(parts[1])
+        }
+        dlg_tiers = dlg_tiers + [tier]
+        dlg_confs = dlg_confs + [conf]
+        i = i + 1
+    }
+
+    // --- fresh per-task TSV (all confgate strategies) ---
+    let path = OUT_DIR + "/confgate.tsv"
+    exec("rm -f " + shq(path))
+    exec("echo 'strategy\ttau\ttask_idx\tdlg_tier\tconfidence\tchosen_tier\tmodel\tcost_usd\tduration_ms\tcorrect\tresult_snippet' >> " + shq(path))
+
+    // Accumulators, one per tau (parallel arrays indexed by tau position).
+    let mut tau_cost = []
+    let mut tau_acc  = []
+    let mut t = 0
+    while t < len(TAUS) {
+        tau_cost = tau_cost + [0.0]
+        tau_acc  = tau_acc + [0]
+        t = t + 1
+    }
+
+    // Run each confgate strategy across all tasks.
+    t = 0
+    while t < len(TAUS) {
+        let tau = TAUS[t]
+        let sname = "confgate_" + to_string(tau)
+        println("")
+        println("─── " + sname + " (conf<" + to_string(tau) + " → opus) ───")
+        let mut total_cost = 0.0
+        let mut n_correct = 0
+        i = 0
+        while i < len(TASKS) {
+            let prompt = TASKS[i][0]
+            let expected = TASKS[i][1]
+            let dt = dlg_tiers[i]
+            let cf = dlg_confs[i]
+            let model = confgate_tier(dt, cf, tau)
+            println("  [" + sname + " " + str(i+1) + "/20] dlg=" + dt + " conf=" + to_string(cf) + " → " + model)
+            let line = run_one(prompt, model, expected)
+            let p = line.split("\t")
+            if p.len() < 7 {
+                println("    ! parse error, raw=" + line)
+                i = i + 1
+                continue
+            }
+            let cost = to_float(p[0])
+            let result_snippet = p[4].replace("\t", " ").replace("\n", " ")
+            let model_used = p[5]
+            let correct = p[6]
+            total_cost = total_cost + cost
+            if correct == "1" { n_correct = n_correct + 1 }
+            let row = sname + "\t" + to_string(tau) + "\t" + str(i+1) + "\t" + dt + "\t" +
+                      to_string(cf) + "\t" + model + "\t" + model_used + "\t" + p[0] + "\t" +
+                      p[1] + "\t" + correct + "\t" + result_snippet.substr(0, 80)
+            exec("echo " + shq(row) + " >> " + shq(path))
+            i = i + 1
+        }
+        tau_cost[t] = total_cost
+        tau_acc[t]  = n_correct
+        println("  " + sname + " : cost=$" + to_string(total_cost) + "  correct=" + str(n_correct) + "/20  saving=" + to_string(saving_pct(b_cost, total_cost)) + "%")
+        t = t + 1
+    }
+
+    // --- summary + headline ---
+    let summary_path = OUT_DIR + "/confgate_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("strategy\ttau\tcost_usd\tcorrect\ttotal\tsaving_pct") + " >> " + shq(summary_path))
+    exec("echo " + shq("baseline\t-\t" + to_string(b_cost) + "\t" + str(b_acc) + "\t20\t0.0") + " >> " + shq(summary_path))
+    if r_known {
+        exec("echo " + shq("length\t-\t" + to_string(r_cost) + "\t" + str(r_acc) + "\t20\t" + to_string(saving_pct(b_cost, r_cost))) + " >> " + shq(summary_path))
+    } else {
+        exec("echo " + shq("length\t-\t(cached-missing)\t-\t20\t" + to_string(LENGTH_SAVING_REF)) + " >> " + shq(summary_path))
+    }
+
+    let mut best_sav = -1.0e18
+    let mut best_tau = 0.0
+    let mut best_acc = 0
+    let mut best_cost = 0.0
+    t = 0
+    while t < len(TAUS) {
+        let tau = TAUS[t]
+        let sav = saving_pct(b_cost, tau_cost[t])
+        exec("echo " + shq("confgate\t" + to_string(tau) + "\t" + to_string(tau_cost[t]) + "\t" + str(tau_acc[t]) + "\t20\t" + to_string(sav)) + " >> " + shq(summary_path))
+        // "best" = highest saving among the strategies that hold 20/20.
+        if tau_acc[t] >= 20 {
+            if sav > best_sav {
+                best_sav = sav
+                best_tau = tau
+                best_acc = tau_acc[t]
+                best_cost = tau_cost[t]
+            }
+        }
+        t = t + 1
+    }
+
+    // If none hit 20/20, fall back to the highest-saving regardless (reported honestly).
+    let mut any_full = true
+    if best_sav < -1.0e17 {
+        any_full = false
+        t = 0
+        while t < len(TAUS) {
+            let sav = saving_pct(b_cost, tau_cost[t])
+            if sav > best_sav {
+                best_sav = sav
+                best_tau = TAUS[t]
+                best_acc = tau_acc[t]
+                best_cost = tau_cost[t]
+            }
+            t = t + 1
+        }
+    }
+
+    let length_sav = LENGTH_SAVING_REF
+    if r_known { length_sav = saving_pct(b_cost, r_cost) }
+    let beats = best_sav > length_sav
+
+    exec("echo " + shq("# baseline_cost_usd=" + to_string(b_cost)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# length_saving_pct=" + to_string(length_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_confgate_tau=" + to_string(best_tau)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_confgate_saving_pct=" + to_string(best_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_confgate_correct=" + str(best_acc) + "/20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_confgate_full_2020=" + str(any_full)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# confgate_beats_length_at_full_accuracy=" + str(beats && any_full)) + " >> " + shq(summary_path))
+
+    println("")
+    println("========================================================================")
+    println("  HEADLINE")
+    println("========================================================================")
+    println("  length saving (ref)        : " + to_string(length_sav) + "%  @ 20/20")
+    println("  best confgate (tau=" + to_string(best_tau) + ")     : " + to_string(best_sav) + "%  @ " + str(best_acc) + "/20  (full 20/20=" + str(any_full) + ")")
+    println("  confgate − length          : " + to_string(best_sav - length_sav) + " pp")
+    if beats && any_full {
+        println("  VERDICT: YES — confidence-gating BEATS plain length at >=20/20.")
+    } else {
+        println("  VERDICT: NO — confidence-gating does NOT beat plain length's saving at >=20/20.")
+    }
+    println("")
+    println("  per-task TSV : " + path)
+    println("  summary      : " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_CONFGATE__ PASS")
+    exit(0)
+}

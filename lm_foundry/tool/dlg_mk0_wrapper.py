@@ -87,8 +87,7 @@ _COSTTIER_TO_CLAUDE = {
 }
 
 
-def pick_claude_tier(prompt):
-    d = classify_prompt(prompt)
+def _tier_from_decision(d, prompt):
     if d.label == "hexa":
         return "sonnet"          # local-ish mid stand-in
     if d.label == "refuse":
@@ -100,10 +99,31 @@ def pick_claude_tier(prompt):
     return _COSTTIER_TO_CLAUDE.get(tname, "sonnet")
 
 
+def pick_claude_tier(prompt):
+    return _tier_from_decision(classify_prompt(prompt), prompt)
+
+
+def pick_claude_tier_conf(prompt):
+    """Return (tier, confidence) -- confidence is the classifier's 0..1 score.
+
+    Used by the confidence-gated router bench (economics_routing_confgate.hexa):
+    when conf < tau the caller escalates to opus; else uses `tier`.
+    """
+    d = classify_prompt(prompt)
+    return _tier_from_decision(d, prompt), float(d.confidence)
+
+
 def main(argv):
     if len(argv) < 2:
-        sys.stderr.write("usage: dlg_mk0_wrapper.py <prompt>\n")
+        sys.stderr.write("usage: dlg_mk0_wrapper.py [--with-conf] <prompt>\n")
         return 2
+    if argv[1] == "--with-conf":
+        if len(argv) < 3:
+            sys.stderr.write("usage: dlg_mk0_wrapper.py --with-conf <prompt>\n")
+            return 2
+        tier, conf = pick_claude_tier_conf(argv[2])
+        sys.stdout.write("%s\t%s\n" % (tier, conf))
+        return 0
     sys.stdout.write(pick_claude_tier(argv[1]))
     sys.stdout.write("\n")
     return 0

@@ -1,0 +1,10 @@
+# model=Qwen2.5-0.5B-Instruct-Q4_K_M
+# total_tasks=20
+# correct=19/20
+# accuracy_pct=95.0
+# total_wall_ms=26130
+# usable_threshold=15
+# usable_floor_reached=true
+# tool=llama-completion
+# host=mac-mini-m3 (brew llama.cpp + Metal)
+# cost_usd=0  (local serving; wall_ms is the proxy cost surface)

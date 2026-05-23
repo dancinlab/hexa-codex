@@ -1,0 +1,185 @@
+#!hexa strict
+// bench/sandbox_stage0_baseline.hexa — SANDBOX Stage 0 PoC: self-hosted accuracy floor.
+//
+// QUESTION: can a small OSS instruct model running on llama.cpp on mac mini
+// reach a "usable" accuracy floor on the canonical 20-task economics-routing
+// manifest? Usable threshold = >= 15/20 (baseline opus reference is 18-19/20
+// minus ~3-task drop for sonnet-noise margin).
+//
+// Single strategy `local_baseline` — no routing, every task → picked local model.
+// Cost field intentionally ZERO USD (local serving); wall-clock ms is the
+// proxy cost surface for downstream Pareto comparison.
+//
+// Picked model: Qwen2.5-0.5B-Instruct-Q4_K_M.gguf (~379 MB, well under 1 GB cap).
+// Tool: `llama-completion` (clean response parse — `assistant\n…\n> EOF by user`).
+// Scorer: byte_exact_subset on expected_kw, case-insensitive — parity with
+// economics_routing_2tier.hexa / confgate.hexa.
+//
+// Output:
+//   .verdicts/sandbox/stage0_accuracy_floor.tsv         (per-task rows)
+//   .verdicts/sandbox/stage0_accuracy_floor_summary.txt (aggregate + verdict)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage0_baseline.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-completion) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+let MAX_TOK = 96            // headroom for code-snippet tasks (sum range, fib, etc.)
+let USABLE_THRESHOLD = 15   // >= 15/20 = usable floor reached
+
+// 20-task fixed manifest — verbatim from economics_routing_2tier.hexa for parity.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Run one task via llama-completion, return tab-separated:
+//   wall_ms \t prompt_wc \t output_tok_est \t correct(1|0) \t output_snippet
+//
+// Parser: extract text between literal lines `assistant` and `> EOF by user`
+// from llama-completion stderr/stdout merged stream; substring-match on
+// expected_kw (case-insensitive). Wall-clock is gnu-style `date +%s%N`
+// taken before + after the exec, divided by 1e6 for milliseconds.
+fn run_one(prompt: str, expected_kw: str) -> str {
+    let wc = str(prompt.len())   // byte-length; cheap proxy for word-count
+    // 1. capture llama-completion output to a tmp file, then post-process.
+    //    raw subprocess line via shell — keeps quoting boundary inside shq().
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-completion -m " + shq(MODEL_PATH) +
+              " -p " + shq(prompt) +
+              " -n " + str(MAX_TOK) + " --temp 0 -st 2>&1); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-120); " +
+              "printf '%s\\t%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"" + wc + "\" \"$tok_est\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage0_baseline — self-hosted accuracy floor")
+    println("  model:    " + MODEL_NAME)
+    println("  tool:     llama-completion (llama.cpp, brew)")
+    println("  manifest: 20 tasks (verbatim from economics_routing_2tier.hexa)")
+    println("  threshold: >= " + str(USABLE_THRESHOLD) + "/20 = usable floor reached")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/stage0_accuracy_floor.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'idx\tprompt_wc\toutput_tok_est\twall_ms\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    let mut total_ms = 0
+    let mut n_correct = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let prompt = task[0]
+        let expected = task[1]
+        println("  [" + str(i+1) + "/" + str(len(TASKS)) + "] kw=" + expected + " prompt=" + prompt.substr(0, 50))
+        let line = run_one(prompt, expected)
+        let parts = line.split("\t")
+        if parts.len() < 5 {
+            println("    ! parse error, raw=" + line)
+            // Persist a failure row so downstream readers see the gap.
+            let bad = str(i+1) + "\t" + str(prompt.len()) + "\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+            exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+            i = i + 1
+            continue
+        }
+        let wall_ms = int(parts[0])
+        let prompt_wc = parts[1]
+        let tok_est = parts[2]
+        let correct = parts[3]
+        let snippet = parts[4].replace("\t", " ")
+        total_ms = total_ms + wall_ms
+        if correct == "1" { n_correct = n_correct + 1 }
+        let row = str(i+1) + "\t" + prompt_wc + "\t" + tok_est + "\t" + str(wall_ms) + "\t" + correct + "\t" + snippet.substr(0, 120)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("    -> wall_ms=" + str(wall_ms) + " correct=" + correct + " ans=" + snippet.substr(0, 60))
+        i = i + 1
+    }
+
+    let total = len(TASKS)
+    let mut acc_pct_x100 = 0
+    if total > 0 { acc_pct_x100 = (n_correct * 10000) / total }
+    let mut floor_ok = "false"
+    if n_correct >= USABLE_THRESHOLD { floor_ok = "true" }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — Stage 0 PoC accuracy floor")
+    println("========================================================================")
+    println("  model            : " + MODEL_NAME)
+    println("  total_tasks      : " + str(total))
+    println("  correct          : " + str(n_correct) + "/" + str(total))
+    println("  accuracy_pct     : " + str(acc_pct_x100 / 100) + "." + str(acc_pct_x100 % 100) + "%")
+    println("  total_wall_ms    : " + str(total_ms))
+    println("  threshold        : >= " + str(USABLE_THRESHOLD) + "/20")
+    println("  usable_floor     : " + floor_ok)
+    println("")
+
+    // Persist summary.
+    let summary_path = OUT_DIR + "/stage0_accuracy_floor_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_tasks=" + str(total)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# correct=" + str(n_correct) + "/" + str(total)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# accuracy_pct=" + str(acc_pct_x100 / 100) + "." + str(acc_pct_x100 % 100)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_wall_ms=" + str(total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# usable_threshold=" + str(USABLE_THRESHOLD)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# usable_floor_reached=" + floor_ok) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-completion") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cost_usd=0  (local serving; wall_ms is the proxy cost surface)") + " >> " + shq(summary_path))
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE0_BASELINE__ PASS")
+    exit(0)
+}

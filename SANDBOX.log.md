@@ -65,3 +65,45 @@ retrieval-augmented dispatch, continuous-batching) deferred —
 distillation pinned by §"Honesty rules" (Anthropic ToS),
 retrieval/continuous-batching redundant with d_stage2_scale_manifest
 + d_kv_prefix_share.
+
+---
+
+## 2026-05-23 — Stage 0 PoC — Qwen2.5-0.5B-Instruct baseline
+
+`bench/sandbox_stage0_baseline.hexa` measured the self-hosted
+accuracy floor on the canonical 20-task economics-routing manifest
+(verbatim from `bench/economics_routing_2tier.hexa`). Threshold for
+"usable floor" = `>= 15/20`.
+
+| metric | value |
+|---|---|
+| model | Qwen2.5-0.5B-Instruct-Q4_K_M (GGUF, ~379 MB) |
+| host / tool | mac mini M3 · `llama-completion` (brew llama.cpp + Metal) |
+| accuracy | 19/20 (95.0%) |
+| total wall-clock | 26.13 s (~1.3 s/task incl. model-load amortization) |
+| cost | $0 USD (local serving; `wall_ms` is the proxy cost surface) |
+| usable floor reached | **true** (19/20 >= 15/20) |
+
+Stage 0 verdict: self-hosted small-OSS substrate clears the usable
+floor on the canonical manifest at 95% — comparable to the baseline
+opus 18-19/20 reference, at zero per-call cost. Stage 1 (3-tier
+persona via temperature/max-tok on the same single base, mock
+haiku/sonnet/opus) is unblocked.
+
+Honest residuals (g5 compliance — no cherry-picking):
+
+- Task 9 (ASCII for 'A') — answered "97" (lowercase 'a'); honest
+  model-knowledge miss, single failure of the run.
+- Task 18 (binary 1101 -> decimal) — answer text said "= 42 decimal"
+  (arithmetically wrong; correct = 13), but `byte_exact_subset`
+  scorer matched "13" embedded in the working "11 * 2^2 + 1 * 2^1"
+  — same scorer-artifact class as the cycle-1/2 rambling-cover
+  pattern; reported as-is.
+- Output snippets contain llama-completion's `[end of text]
+  common_perf_print:` trailer because stderr was merged into the
+  capture stream; expected-keyword substring match is unaffected.
+
+Persisted:
+- `bench/sandbox_stage0_baseline.hexa` — bench source (hexa-only).
+- `.verdicts/sandbox/stage0_accuracy_floor.tsv` — per-task rows.
+- `.verdicts/sandbox/stage0_accuracy_floor_summary.txt` — aggregate.

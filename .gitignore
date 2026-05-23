@@ -24,6 +24,16 @@ build/out/
 build/artifacts/
 *.pdf
 
+# LaTeX paper build cruft (papers/*/main.{aux,bbl,blg,log,out})
+papers/**/*.aux
+papers/**/*.bbl
+papers/**/*.blg
+papers/**/*.log
+papers/**/*.out
+papers/**/*.fls
+papers/**/*.fdb_latexmk
+papers/**/*.synctex.gz
+
 # === lm_foundry/ (absorbed from hexa-forge, 2026-05-13) ===
 # model weights / large artifacts — NEVER commit; use HF Hub or external storage
 *.safetensors

@@ -58,6 +58,14 @@ Verification surface (recipe §3 ladder — see `docs/closure_status.md`):
   non-falsifier ECONOMICS verb to do so: T1 `calc_quality_scale.hexa`,
   T2 `numerics_quality_scale{,_solver}.hexa`, T3
   `numerics_quality_scale_parity.hexa` (8 + 10 + 10 + 10 checks).
+- ECONOMICS 3-pillar cross-cutter
+  `verify/numerics_economics_cross_pillar.hexa` (10 checks) ties the
+  three verbs to one n=6 lattice: lattice closure σ·φ = n·τ = J₂,
+  exponent recovery per verb (`N6_EXP·(J₂+1)=J₂` / `τ·n=J₂` /
+  `α·σ=φ`), triad ordering 0 < α (1/6) < N6_EXP (24/25) < 1 < τ (4),
+  3-pillar composite at the Chinchilla 70B / 1.4T / 8k anchor, and the
+  quality↔infer orthogonality (quality_scale free of ctx, infer_cost
+  free of (N,D)).
 
 ## Roadmap — v1.2.0 (2026-10, PLANNED · group focus = economics)
 

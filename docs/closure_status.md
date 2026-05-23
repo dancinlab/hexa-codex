@@ -95,6 +95,7 @@ the full T1+T2+T3 ladder.
 | `verify/lattice_check.hexa`           | 24 algebraic invariants of the n=6 lattice (T1 master, 24/24 PASS)   |
 | `verify/cross_doc_audit.hexa`         | Taxonomy + falsifier-prefix + provenance + identity drift across docs |
 | `verify/numerics_cross_pillar.hexa`   | Cross-pillar identities (F1×F2, F3×F4, coupled F1+F4 ODE)             |
+| `verify/numerics_economics_cross_pillar.hexa` | ECONOMICS-only cross-pillar (3-verb consistency on one n=6 lattice) |
 | `verify/numerics_lattice_arithmetic.hexa` | math_pure stability floor (10/10 invariants)                       |
 
 ### Meta (M)
@@ -102,7 +103,7 @@ the full T1+T2+T3 ladder.
 | File                              | Role                                                                 |
 |:----------------------------------|:----------------------------------------------------------------------|
 | `verify/falsifier_check.hexa`     | Closure tracker — emits per-pillar `closure_pct = 100%` (3/3 tiers)   |
-| `verify/lint_numerics.hexa`       | Recipe §4 invariants 1-5 over every `numerics_*.hexa` (17 files)      |
+| `verify/lint_numerics.hexa`       | Recipe §4 invariants 1-5 over every `numerics_*.hexa` (18 files)      |
 | `verify/saturation_check.hexa`    | Aggregate self-stop — emits `__HEXA_CODEX_RSC_SATURATED__ STOP`       |
 
 ---
@@ -138,12 +139,12 @@ directly — it prints each pillar's T1/T2/T3 status individually.
 | Category                          | Count |
 |:----------------------------------|:-----:|
 | Pillar layer scripts (5 × 4)      | 20    |
-| Cross-cutter scripts              |  4    |
+| Cross-cutter scripts              |  5    |
 | Meta scripts                      |  3    |
-| **Subtotal — recipe §3 ladder**   | **27** |
+| **Subtotal — recipe §3 ladder**   | **28** |
 | T4 PENDING stubs (`numerics_*_t4_parity`) | 11 |
-| **Total `run_all` subject scripts** | **38** |
-| Companion regression wrappers     | 29 (incl. `tests/test_all.hexa`) |
+| **Total `run_all` subject scripts** | **39** |
+| Companion regression wrappers     | 30 (incl. `tests/test_all.hexa`) |
 
 ---
 

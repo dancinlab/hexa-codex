@@ -4,6 +4,27 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ECONOMICS 3-pillar cross-cutter (2026-05-23)
+
+Sister of the general `numerics_cross_pillar.hexa` (which ties the
+four F-CODEX falsifiers), now restricted to the three ECONOMICS verbs
+and the one n=6 lattice they share.
+
+- `verify/numerics_economics_cross_pillar.hexa` (new, 10 checks all
+  PASS) — lattice closure, per-verb exponent recovery
+  (`N6_EXP·(J₂+1)=J₂` · `τ·n=J₂` · `α·σ=φ`), triad ordering
+  0 < α (1/6) < N6_EXP (24/25) < 1 < τ (4), 3-pillar composite at the
+  Chinchilla 70B / 1.4T / 8k anchor, quality⟂infer orthogonality, and
+  closed-form scaling rules (halving / doubling).
+- `tests/test_numerics_economics_cross_pillar.hexa` (new companion).
+- Meta wiring: `verify/run_all.hexa` (38 → 39 subjects),
+  `verify/lint_numerics.hexa` (green core 17 → 18),
+  `tests/test_all.hexa` (29 → 30 cases).
+- Domain SSOT: `ECONOMICS.md` State + `ECONOMICS.log.md` round entry.
+- Surface lockstep: `docs/closure_status.md` (cross-cutter row + inventory
+  counts 27 → 28 / 38 → 39 / 29 → 30) and `README.md` (verify badge
+  38 → 39, T2 numerical 17 → 18, cross-cutter 4 → 5 files, status block).
+
 ## [Unreleased] — verify-surface restoration: lattice + provenance (2026-05-23)
 
 `run_all` returns to a fully green 38/38 after two pre-existing doc

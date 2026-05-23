@@ -11,7 +11,7 @@
   <a href="https://doi.org/10.5281/zenodo.20102600"><img alt="DOI" src="https://zenodo.org/badge/DOI/10.5281/zenodo.20102600.svg"></a>
   <img alt="Spec" src="https://img.shields.io/badge/spec-v1.0.0-success">
   <img alt="Verbs" src="https://img.shields.io/badge/verbs-17%20(4%20groups)-informational">
-  <img alt="Verify" src="https://img.shields.io/badge/verify-38%2F38%20PASS-brightgreen">
+  <img alt="Verify" src="https://img.shields.io/badge/verify-39%2F39%20PASS-brightgreen">
   <img alt="Falsifiers" src="https://img.shields.io/badge/falsifiers-4%2F4%20at%20100%25-brightgreen">
   <img alt="lm_foundry" src="https://img.shields.io/badge/lm__foundry-94.29%25%20Mk.I-blueviolet">
   <img alt="Family" src="https://img.shields.io/badge/family-HEXA--senses%20·%20HEXA--mind%20·%20HEXA--brain-blueviolet">
@@ -228,20 +228,20 @@ python3 verify/release_params.py  # full per-version parameter table
 
 `verify/run_all.hexa` is the canonical `.hexa` orchestrator (sister of
 `hexa-rtsc` / `hexa-cern` / `hexa-fusion` / `hexa-ufo` / `hexa-chip` /
-`hexa-antimatter` `run_all.hexa` patterns). It runs **38 green-core
-verify subscripts** and emits `__HEXA_CODEX_RUN_ALL__ PASS — 38/38
+`hexa-antimatter` `run_all.hexa` patterns). It runs **39 green-core
+verify subscripts** and emits `__HEXA_CODEX_RUN_ALL__ PASS — 39/39
 green` on success.
 
 ```bash
-HEXA_CODEX_ROOT=$(pwd) hexa run verify/run_all.hexa     # 38/38 expected
+HEXA_CODEX_ROOT=$(pwd) hexa run verify/run_all.hexa     # 39/39 expected
 ```
 
-### Green-core inventory (38 subscripts, all PASS)
+### Green-core inventory (39 subscripts, all PASS)
 
 | Tier | Count | Scripts |
 |------|------:|---------|
 | T1 algebraic | 6 | `lattice_check` · `calc_train_cost` · `calc_infer_cost` · `calc_alignment` · `calc_interpret` · `calc_quality_scale` |
-| T2 numerical | 17 | `numerics_{train_cost,infer_cost,alignment,interpret,quality_scale}[_parity\|_solver]` · `numerics_cross_pillar` · `numerics_lattice_arithmetic` |
+| T2 numerical | 18 | `numerics_{train_cost,infer_cost,alignment,interpret,quality_scale}[_parity\|_solver]` · `numerics_cross_pillar` · `numerics_economics_cross_pillar` · `numerics_lattice_arithmetic` |
 | T4 PENDING stubs | 11 | `numerics_*_t4_parity` × 11 (train_cost, infer_cost, alignment, interpret, safety, adversarial, quality_scale, rlhf, eval, agent_serving, deploy) — emit PENDING per D-023 |
 | inventory | 1 | `cross_doc_audit` |
 | meta closure | 3 | `falsifier_check` · `lint_numerics` · `saturation_check` |
@@ -273,7 +273,7 @@ equivalence — see [`LIMIT_BREAKTHROUGH.log.md`](LIMIT_BREAKTHROUGH.log.md) §2
 
 ### Bookkeeping closure verdict
 
-- **100 % bookkeeping closure** within the green-core (38/38 PASS).
+- **100 % bookkeeping closure** within the green-core (39/39 PASS).
 - **NOT** AI safety / economics / capability *settled* — F-CODEX-1..4
   remain at "arithmetic floor closed, empirical T4 PENDING per release
   ladder"; the 11 T4 stubs are honestly PENDING.
@@ -294,13 +294,14 @@ at least one **runnable** verifier, and the surface is closed when each
 F-CODEX falsifier carries T1 (algebraic) + T2 ×3 (numerical /
 published-ref / ODE solver) layers — recipe §7.2 sat-1 saturation.
 
-**Status (post iter 27): 100% closure reached.** Under recipe §3
-(T1 = `calc_*`, T2 = `numerics_*` ∧ `numerics_*_solver`, T3 =
-`numerics_*_parity`), every F-CODEX-1..4 carries T1 ✓ + T2 ✓ + T3 ✓
-⇒ `closure_pct = 3/3 = 100%`. Plus 4 cross-cutters and 3 meta
-verifiers. Total **23 runnable verify scripts** + **24 companion
-regression tests**. `verify/saturation_check.hexa` emits the recipe
-§7.3 self-stop sentinel `__HEXA_CODEX_RSC_SATURATED__ STOP`.
+**Status: 100% closure reached.** Under recipe §3 (T1 = `calc_*`,
+T2 = `numerics_*` ∧ `numerics_*_solver`, T3 = `numerics_*_parity`),
+every F-CODEX-1..4 carries T1 ✓ + T2 ✓ + T3 ✓ ⇒ `closure_pct =
+3/3 = 100%`, and `quality_scale` carries the same T1+T2+T3 ladder
+as the first non-falsifier ECONOMICS verb. Plus 5 cross-cutters and
+3 meta verifiers. Total **28 runnable verify scripts** + **30
+companion regression tests**. `verify/saturation_check.hexa` emits
+the recipe §7.3 self-stop sentinel `__HEXA_CODEX_RSC_SATURATED__ STOP`.
 
 ### verify/ — 23 .hexa-native verifiers (math_pure, no deps)
 
@@ -335,13 +336,14 @@ T3 file alone is an empirical-contact drift. Both classes are caught
 by independent layers, which is what `closure_pct = 100%` (3/3 tiers)
 buys.
 
-**Cross-cutters (4 files):**
+**Cross-cutters (5 files):**
 
 | Verifier                              | What it checks                                                      |
 |---------------------------------------|---------------------------------------------------------------------|
 | `lattice_check.hexa`                  | 24 lattice algebraic invariants (σ·φ = n·τ = J₂ = 24, σ²=144, …)    |
 | `cross_doc_audit.hexa`                | Taxonomy + falsifier-prefix + provenance + master identity across docs |
 | `numerics_cross_pillar.hexa`          | Cross-pillar identities (F1×F2 composite, F3×F4 product, coupled ODE) |
+| `numerics_economics_cross_pillar.hexa`| ECONOMICS-only cross-pillar (train · infer · quality, one n=6 lattice) |
 | `numerics_lattice_arithmetic.hexa`    | math_pure stability floor (associativity, log/exp/pow round-trips)  |
 
 **Meta (3 files):**

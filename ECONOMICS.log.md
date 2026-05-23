@@ -6,6 +6,30 @@
 
 ---
 
+## 2026-05-23 — ECONOMICS 3-pillar cross-cutter added
+
+A new `verify/numerics_economics_cross_pillar.hexa` (10 checks, all
+PASS) ties the three ECONOMICS verbs to one n=6 lattice — sister of
+the general `verify/numerics_cross_pillar.hexa` (which only covers the
+four F-CODEX falsifiers). The 10 checks:
+
+| # | Check                                                                  |
+|--:|:-----------------------------------------------------------------------|
+| 1 | lattice closure σ·φ = n·τ = J₂ = 24 (shared by all 3 verbs)            |
+| 2 | train_cost exponent recovery — `N6_EXP·(J₂+1) = J₂` (24/25 · 25 = 24) |
+| 3 | infer_cost exponent recovery — `τ·n = J₂` (4 · 6 = 24)                |
+| 4 | quality_scale exponent recovery — `α·σ = φ = 2` AND `α = β`            |
+| 5 | exponent triad ordering — 0 < α (1/6) < N6_EXP (24/25) < 1 < τ (4)     |
+| 6 | 3-pillar composite at Chinchilla 70B / 1.4T / 8k — all 3 finite > 0    |
+| 7 | quality⟂infer orthogonality — quality free of ctx, infer free of (N,D) |
+| 8 | quality halving rule — `red_term(A,2N,α) / red_term(A,N,α) = 2^-α`    |
+| 9 | train doubling rule — `train_cost(N,2D) / train_cost(N,D) = 2^N6_EXP` |
+|10 | n6-vs-measured triple gap — quality·train·infer all distinct from emp. |
+
+Wired into `verify/run_all.hexa` (38 → 39 subject scripts),
+`verify/lint_numerics.hexa` (green core 17 → 18), and
+`tests/test_all.hexa` (29 → 30 cases).
+
 ## 2026-05-23 — quality_scale §3 verify ladder closed
 
 `quality_scale` gains its full recipe §3 verification ladder — the

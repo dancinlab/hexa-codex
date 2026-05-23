@@ -19,7 +19,7 @@ M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4) [ ] v?.?.?       
 ### M1 Surface — substrate exposes the domain's measurement axis
 
 - [x] M1.ECON — `lm_foundry/tool/route_dispatch.hexa` + cycle 1-6 dispatch surface
-- [ ] M1.SAFETY — `activation_capture_pipeline` wrapper (sandbox.tape candidate)
+- [ ] M1.SAFETY — `lm_foundry/tool/activation_capture.hexa` interface SHIPPED 2026-05-24 but self-test = `BLOCKED_AT_BUILD` (stock Homebrew `llama-server` exposes neither `--logits-all` nor `--n-probs`; intermediate residual/attn/mlp taps need a forked llama.cpp); logprob HTTP-body path remains live (cycle-5 d_logit_calibration)
 - [ ] M1.OPS — SLO measurement harness (`d_slo_under_load` candidate)
 - [ ] M1.SUBSTRATE — scale-ladder base model picked + GGUF on disk (≥1.5B)
 

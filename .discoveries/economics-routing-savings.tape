@@ -26,11 +26,17 @@
   raw  = ".verdicts/economics-routing-savings/confgate_summary.txt"
   note = "swept tau in {0.6,0.7,0.8,0.9}; best = tau=0.9 at 55.59% saving @ 19/20 — strictly dominated by length (70.10% @ 20/20). Length-cutoff Pareto bound reinforced; no confgate point holds full 20/20 accuracy."
 
-# ── next-batch candidates (kick levers, not yet run) ──
+@C d_difficulty_predict := "per-task difficulty score → tier (length × keyword × output-len prior)" :: dead [target_tier=GREEN actual_tier=GREEN]
+  raw  = ".verdicts/economics-routing-savings/difficulty_summary.txt"
+  note = "composite difficulty heuristic scored 62.15% saving @ 20/20 vs length 77.72% @ 20/20 (Δ=-15.58pp). Adding features HURTS — extra signals route some easy prompts up-tier, eroding the saving the simpler length rule captured."
 
-@C d_difficulty_predict := "per-task difficulty score → tier (length × keyword × output-len prior)" :: candidate [target_tier=GREEN cost_est=$0.5]
-  cmd = "composite difficulty heuristic vs pure length; same 20-task manifest"
-  hyp = "a 2-feature score may shave the 1 misroute length makes at scale"
+# ── confirmed-bonus (this batch — orthogonal win) ──
+
+@C d_two_tier_ablation := "2-tier (sonnet/opus) vs 3-tier (haiku/sonnet/opus) ablation" :: confirmed [target_tier=GREEN actual_tier=GREEN]
+  raw  = ".verdicts/economics-routing-savings/2tier_summary.txt"
+  note = "dropping haiku ADDS +6.59pp saving (3-tier 75.20% → 2-tier 81.79%, both 20/20). Cheaper per-token tier loses on output volume — haiku emits verbose answers (e.g. fib 779 out_tok @ $0.0166). 2-tier is simpler AND cheaper for this workload."
+
+# ── next-batch candidates (kick levers, not yet run) ──
 
 @C d_cache_aware := "cache-aware dispatch — repeat-prefix prompts → cache-warm tier" :: candidate [target_tier=GREEN cost_est=$0.3]
   cmd = "measure cache_read_input_tokens effect; route warm-prefix batches to cheaper effective cost"
@@ -40,12 +46,10 @@
   cmd = "compare claude --bare -p sync vs batch endpoint $/task on same manifest"
   hyp = "batch tier halves $/task for the offline routing workload"
 
-@C d_two_tier_ablation := "2-tier (sonnet/opus) vs 3-tier (haiku/sonnet/opus) ablation" :: candidate [target_tier=GREEN cost_est=$0.3]
-  cmd = "drop haiku from router; does losing the cheapest tier cost much?"
-  hyp = "haiku contributes little when most prompts route to sonnet anyway"
-
 # ── summary ──
-# this batch : 1 confirmed (Pareto) · 2 dead (token decomp, confidence_gated) · 4 next-batch candidates
-# strongest-next has flipped — confidence-gated proved a dead end, no GREEN lever now
-# has a known path to beat length. Remaining candidates (cache-aware, batch-amortized,
-# 2-tier ablation, difficulty-predict) probe orthogonal axes, not the Pareto frontier.
+# this batch : 2 confirmed (Pareto, 2-tier ablation) · 3 dead (token decomp,
+# confidence_gated, difficulty_predict) · 2 next-batch candidates
+# strongest-confirmed-so-far : 2-tier length router (81.79% saving @ 20/20).
+# Three failed levers (confgate, difficulty, dlg) all underperformed plain length —
+# the Pareto frontier is simple-by-construction. Remaining candidates (cache-aware,
+# batch-amortized) probe orthogonal axes, not the Pareto frontier.

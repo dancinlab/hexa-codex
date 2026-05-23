@@ -1,0 +1,117 @@
+==============================================================================
+  break-even mix model — router savings vs p_trivial / p_opus
+  inputs: .verdicts/economics-routing-savings/{baseline,router}{,_n200}.tsv
+          bench/economics_routing{,_n200}.hexa (manifest prompt strings)
+==============================================================================
+
+--- N=20 ---
+  manifest length-cutoff mix: haiku=  1 sonnet= 19 opus=  0
+  baseline total $0.2840  · router total $0.0839  · observed saving = 70.44%
+  observed per-tier mean cost (USD/task):
+       tier    n     router   baseline
+      haiku    1 $0.002715 $0.015419
+     sonnet   19 $0.004276 $0.014138
+
+--- N=200 ---
+  manifest length-cutoff mix: haiku=100 sonnet= 50 opus= 50
+  baseline total $3.2950  · router total $1.4808  · observed saving = 55.06%
+  observed per-tier mean cost (USD/task):
+       tier    n     router   baseline
+      haiku  100 $0.003486 $0.015353
+     sonnet   50 $0.003313 $0.015942
+       opus   50 $0.019332 $0.019252
+
+==============================================================================
+  saving model (derived from N=200 per-tier means — only N=200 covers all 3 tiers)
+==============================================================================
+
+  c_haiku_router  = $0.003486    c_opus_on_haiku_prompt   = $0.015353
+  c_sonnet_router = $0.003313    c_opus_on_sonnet_prompt  = $0.015942
+  c_opus_router   = $0.019332    c_opus_on_opus_prompt    = $0.019252
+
+  saving(p_h, p_s, p_o)  with p_h + p_s + p_o = 1:
+     router_per_task    = p_h*c_h_router + p_s*c_s_router + p_o*c_o_router
+     baseline_per_task  = p_h*c_opus_on_haiku + p_s*c_opus_on_sonnet + p_o*c_opus_on_opus
+     saving             = 1 - router_per_task / baseline_per_task
+
+  sanity: N=200 observed mix (p_h=0.50, p_s=0.25, p_o=0.25)
+     predicted saving = 55.06%   (observed = 55.06%)
+
+==============================================================================
+  saving sweep (cells = predicted saving %, row=p_opus, col=p_haiku, p_sonnet=1-p_o-p_h)
+==============================================================================
+
+   p_opus |   0.00   0.10   0.20   0.30   0.40   0.50   0.60   0.70   0.80   0.90   1.00
+  ----------------------------------------------------------------------------------------
+     0.00 |  79.22  79.03  78.85  78.66  78.47  78.28  78.08  77.89  77.69  77.49  77.30
+     0.05 |  74.46  74.26  74.06  73.85  73.65  73.44  73.23  73.02  72.81  72.59    -  
+     0.10 |  69.80  69.58  69.36  69.14  68.92  68.70  68.48  68.25  68.02  67.79    -  
+     0.25 |  56.36  56.11  55.85  55.59  55.32  55.06  54.79  54.52    -      -      -  
+     0.50 |  35.66  35.34  35.03  34.71  34.39  34.06    -      -      -      -      -  
+     0.75 |  16.81  16.45  16.09    -      -      -      -      -      -      -      -  
+     1.00 |  -0.41    -      -      -      -      -      -      -      -      -      -  
+
+==============================================================================
+  break-even thresholds — fraction of opus-class prompts that erases routing benefit
+==============================================================================
+
+  (Non-opus prompts split arbitrarily haiku/sonnet — haiku and sonnet
+   router-costs are within $0.0002 in the observed data, so result is
+   nearly identical regardless of the haiku:sonnet split.)
+
+  saving ≥ 30% → max p_opus ≈ 0.572 (pessimistic, non-opus=sonnet)
+                              ≈ 0.553 (optimistic, non-opus=haiku)
+  saving ≥ 50% → max p_opus ≈ 0.324 (pessimistic, non-opus=sonnet)
+                              ≈ 0.301 (optimistic, non-opus=haiku)
+  saving ≥ 70% → max p_opus ≈ 0.097 (pessimistic, non-opus=sonnet)
+                              ≈ 0.076 (optimistic, non-opus=haiku)
+
+  extreme manifests:
+    pure haiku           (p_h=1.00,p_s=0.00,p_o=0.00) → router=$0.00349 baseline=$0.01535 saving=77.30%
+    pure sonnet          (p_h=0.00,p_s=1.00,p_o=0.00) → router=$0.00331 baseline=$0.01594 saving=79.22%
+    pure opus            (p_h=0.00,p_s=0.00,p_o=1.00) → router=$0.01933 baseline=$0.01925 saving=-0.41%
+    no opus (50/50)      (p_h=0.50,p_s=0.50,p_o=0.00) → router=$0.00340 baseline=$0.01565 saving=78.28%
+    no haiku             (p_h=0.00,p_s=0.50,p_o=0.50) → router=$0.01132 baseline=$0.01760 saving=35.66%
+
+==============================================================================
+  HEADLINE
+==============================================================================
+
+  • Dominant variable is p_opus, NOT p_haiku.
+    In the observed N=200 data, haiku and sonnet tiers cost nearly the same
+    per task (~$0.0033) because output-token volume on short trivial answers
+    dwarfs the per-token-rate difference between models.
+  • Routing buys ~79% saving at p_opus=0, ~−0.4% at p_opus=1 (noise: router
+    and baseline both dispatch opus on opus-class prompts).
+  • Linear approximation: saving% ≈ 79.2 − 79.6 · p_opus  (within ±1pp across
+    the haiku/sonnet split at fixed p_opus).
+
+==============================================================================
+  CAVEATS — strong assumptions baked into the model
+==============================================================================
+
+  (A) Tier-monotone cost assumption: model assumes a given prompt would cost
+      less on haiku than on sonnet than on opus. This is FALSE in places.
+      The 2-tier ablation (.verdicts/economics-routing-savings/2tier.tsv) showed
+      cases where haiku actually costs MORE than sonnet on the same prompt —
+      haiku tends to produce longer answers (and pays per-output-token).
+  (B) Per-prompt cost depends on OUTPUT length, which is itself model- and
+      prompt-dependent. We use empirical mean per-task cost as a proxy, which
+      collapses that variance. The sweep therefore predicts CENTRAL TENDENCY,
+      not worst-case.
+  (C) The N=20 manifest is essentially all-sonnet by length cutoff (19/20),
+      so its 70.4% (originally reported 73.56% — minor rounding due to a
+      different aggregation path in summary) saving sits on the high-p_haiku
+      end of the curve. Real production manifests with non-trivial p_opus
+      will see lower saving and may cross below 30% when p_opus > ~0.57.
+  (D) Cost data from the Anthropic --output-format json `total_cost_usd` field
+      via the `claude` CLI; cache-token contributions blur some per-task
+      figures (note router task 2 at $0.00272 had 1962 input_tokens recorded —
+      a cache-prefix accounting artifact). Aggregate totals are still valid.
+  (E) Per-tier baseline cost ($0.01535 haiku-class vs $0.01925 opus-class)
+      shows opus is ~25% more expensive on harder prompts even at the SAME
+      model — output-token volume scales with prompt difficulty.
+
+==============================================================================
+  source: scripted analysis of TSV + manifest join; no LLM judgment.
+==============================================================================

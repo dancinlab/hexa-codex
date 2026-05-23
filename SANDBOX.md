@@ -1,5 +1,58 @@
 # SANDBOX — self-hosted measurement substrate (domain SSOT)
 
+@goal: Every hexa-codex domain T4 empirical claim measurable on self-hosted SANDBOX substrate — ECONOMICS SAFETY OPS SUBSTRATE all unblocked
+
+## Milestones (5 stages × 4 sibling domains = 20 sub-checkpoints)
+
+Each stage is a horizontal sweep across all 4 verb groups. Stage N
+graduates only when every domain has cleared it.
+
+```
+                  ECONOMICS              SAFETY                 OPS                   SUBSTRATE
+M1 Surface        ✓ done (cycles 1-6)   [ ] activation capture [ ] SLO harness       [ ] scale ladder pick
+M2 First verdict  ✓ done (7 confirmed)  [ ] 1st interp probe   [ ] 1st p50/p99       [ ] 1st capability eval
+M3 Saturation     [ ] F-CODEX-1/2 fit   [ ] 3+ SAE motifs      [ ] full SLO grid     [ ] scale ladder 0.5/1.5/3/7B
+M4 Paper          ✓ done (routing-svgs) [ ] safety canonical   [ ] ops canonical     [ ] substrate canonical
+M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4) [ ] v?.?.?            [ ] v?.?.?
+```
+
+### M1 Surface — substrate exposes the domain's measurement axis
+
+- [x] M1.ECON — `lm_foundry/tool/route_dispatch.hexa` + cycle 1-6 dispatch surface
+- [ ] M1.SAFETY — `activation_capture_pipeline` wrapper (sandbox.tape candidate)
+- [ ] M1.OPS — SLO measurement harness (`d_slo_under_load` candidate)
+- [ ] M1.SUBSTRATE — scale-ladder base model picked + GGUF on disk (≥1.5B)
+
+### M2 First verdict — `.verdicts/<domain>/*` first artefact lands
+
+- [x] M2.ECON — 7 confirmed verdicts (cycles 1-6: stage0/early_stop/maxtok/logit/manifest/kv_persistent/batching)
+- [ ] M2.SAFETY — 1st circuit-motif or SAE-feature probe verdict
+- [ ] M2.OPS — 1st p50/p99 latency SLO measurement
+- [ ] M2.SUBSTRATE — 1st capability-eval verdict on Stage-2 manifest at ≥1.5B
+
+### M3 Saturation — falsifier class core coverage reached
+
+- [ ] M3.ECON — F-CODEX-1 + F-CODEX-2 empirical fit (4-point scale grid)
+- [ ] M3.SAFETY — 3+ SAE motifs verified, refusal-matrix on canonical adversarial set
+- [ ] M3.OPS — full SLO grid (-np × offered-rate) at Stage-2 N=2000
+- [ ] M3.SUBSTRATE — scale ladder fully run (0.5B → 1.5B → 3B → 7B), cliff position located per stratum
+
+### M4 Paper canonical — 1 paper per domain (cx_paper_one_per_domain)
+
+- [x] M4.ECON — `PAPER/economics-routing-savings/` (already shipped)
+- [ ] M4.SAFETY — safety paper canonical, formula + bench + benefit
+- [ ] M4.OPS — ops paper canonical
+- [ ] M4.SUBSTRATE — substrate paper canonical
+
+### M5 Release — roadmap version landed
+
+- [ ] M5.ECON — ECONOMICS v1.2.0 (F-CODEX-1) + v1.3.0 (F-CODEX-2)
+- [ ] M5.SAFETY — SAFETY v2.0.0 (F-CODEX-4 empirical, interpret motifs)
+- [ ] M5.OPS — OPS release with empirical SLO landing
+- [ ] M5.SUBSTRATE — SUBSTRATE release with multimodal + capability eval landing
+
+---
+
 > Domain doc · dancinlab `domain-meta-domain` principle. Current-state
 > spec only; dated history → [`SANDBOX.log.md`](SANDBOX.log.md).
 >

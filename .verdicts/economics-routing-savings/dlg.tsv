@@ -1,0 +1,21 @@
+task_idx	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
+1	claude-haiku-4-5-20251001	0.0036963	1477	3	5	1	4
+2	claude-haiku-4-5-20251001	0.00252395	1337	3	5	1	Paris.
+3	claude-haiku-4-5-20251001	0.0025619500000000003	4857	3	5	1	olleh
+4	claude-sonnet-4-6	0.0020359500000000003	1457	3	5	1	49
+5	claude-haiku-4-5-20251001	0.0025772	1576	3	5	1	11
+6	claude-sonnet-4-6	0.0020359500000000003	1447	3	5	1	2
+7	claude-sonnet-4-6	0.0020359500000000003	1409	3	5	1	7
+8	claude-haiku-4-5-20251001	0.00259595	1706	3	5	1	100
+9	claude-sonnet-4-6	0.00205095	1606	3	5	1	65
+10	claude-haiku-4-5-20251001	0.00256745	1595	3	5	1	29
+11	claude-haiku-4-5-20251001	0.0028307000000000002	1517	3	19	1	```python print(sum(range(1, 101))) ```
+12	claude-haiku-4-5-20251001	0.0025974500000000003	2362	3	8	1	O(log n)
+13	claude-haiku-4-5-20251001	0.0026567	1456	3	10	1	`lst[::-1]`
+14	claude-haiku-4-5-20251001	0.0026617	1698	3	11	1	1, 2, 3
+15	claude-haiku-4-5-20251001	0.00332745	2722	3	56	1	**TCP** (Transmission Control Protocol) is connection-oriented — it establishe
+16	claude-haiku-4-5-20251001	0.00452245	3555	3	135	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+17	claude-haiku-4-5-20251001	0.03944505	29516	7	1776	1	Both versions produce identical results. ✅ Here's a breakdown of the final fil
+18	claude-haiku-4-5-20251001	0.0095958	6691	4	361	1	**Binary `1101` → Decimal `13`**  ``` 1×2³ + 1×2² + 0×2¹ + 1×2⁰ =  8 
+19	claude-haiku-4-5-20251001	0.017133999999999996	2775	6	63	1	Mergesort is O(n log n) because it recursively splits the array in half (log n l
+20	claude-haiku-4-5-20251001	0.0034427	2748	3	64	1	The halting problem is the proof that no general algorithm can exist which deter

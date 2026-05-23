@@ -51,7 +51,17 @@ A scale replication on a fresh 200-task manifest tempers the headline:
 the saving falls to \textbf{55.06\,\%} and the router costs $5$ correct
 answers ($-2.5\,$pp accuracy). The honest claim is a large cost
 reduction ($\sim 55\,\%$ at scale) at a small but non-zero accuracy
-cost. All results, the runner scripts, and the verbatim
+cost. We further compare two ``smarter'' routers on the same 20-task
+manifest --- a regex prompt-class router and the learned-style
+\textsc{DLG-mk0} pre-7B classifier from this repo's
+\texttt{lm\_foundry/} --- and find the ranking \emph{inverts} the usual
+intuition: the content-blind length cutoff saves the most
+($73.56\,\%$), the regex class router less ($71.28\,\%$), and DLG-mk0
+the least ($64.44\,\%$), with all three tied at $20/20$ accuracy. A
+learned router only wins when the manifest's cost axis matches what it
+was trained to discriminate; this factual manifest's cost axis
+(trivial-fact vs reasoning) is exactly what a length cutoff captures
+for free. All results, the runner scripts, and the verbatim
 \texttt{claude --bare -p --output-format json} stdout are persisted under
 \texttt{.verdicts/economics-routing-savings/} for bit-for-bit reproduction.
 \end{abstract}
@@ -92,7 +102,7 @@ sentences", "Halting problem in one sentence"). Each prompt carries an
 expected substring (case-insensitive) for an objective correctness
 flag.
 
-\textbf{Strategies.} Three strategies are compared on the same manifest:
+\textbf{Strategies.} Four strategies are compared on the same manifest:
 \begin{itemize}\itemsep0pt
 \item \textbf{Baseline} --- always Opus
       (\texttt{claude --model opus}).
@@ -113,6 +123,17 @@ flag.
             \texttt{describe}, \texttt{sentence}, \texttt{compare},
             \texttt{difference between}\}
       $\to$ Sonnet; else $\to$ Opus.
+\item \textbf{DLG-mk0 router (learned-style classifier)} --- the
+      pure-Python \texttt{lm\_foundry/} pre-7B classifier
+      (\texttt{classify\_prompt.py} + \texttt{select\_vendor\_tier.py},
+      a 440-LOC regex/keyword engine, no weights). Each prompt is
+      classified into \{\texttt{hexa}, \texttt{ood}, \texttt{refuse}\};
+      a thin bridge
+      (\texttt{lm\_foundry/tool/dlg\_mk0\_wrapper.py}) collapses that
+      decision onto a Claude tier: \texttt{hexa}$\to$Sonnet (the
+      local-7B-mid stand-in), \texttt{refuse}$\to$Haiku, and
+      \texttt{ood}$\to$\texttt{select\_vendor\_tier()}'s cost class
+      (flagship/long-ctx$\to$Opus, mid$\to$Sonnet, mini/nano$\to$Haiku).
 \end{itemize}
 
 \textbf{Measurement.} Each task invoked as
@@ -130,12 +151,14 @@ keyword (case-insensitive, computed inside \texttt{jq}).
 
 \textbf{Runner.} \texttt{bench/economics\_routing.hexa} (hexa-native)
 runs the baseline and length-router strategies; the companion
-\texttt{bench/economics\_routing\_class.hexa} runs all three
-strategies (baseline + length + class) for parity-on-rerun. Raw
-per-task TSV rows persist to
-\texttt{.verdicts/economics-routing-savings/\{baseline,router,class\}.tsv}
-and a 3-strategy comparison to
-\texttt{.verdicts/economics-routing-savings/class\_summary.txt}. The
+\texttt{bench/economics\_routing\_class.hexa} runs three
+strategies (baseline + length + class) and
+\texttt{bench/economics\_routing\_dlg.hexa} runs all four
+(baseline + length + class + DLG-mk0) on the same manifest for
+parity-on-rerun. Raw per-task TSV rows persist to
+\texttt{.verdicts/economics-routing-savings/\{baseline,router,class,dlg\}.tsv}
+and the 4-strategy comparison to
+\texttt{.verdicts/economics-routing-savings/dlg\_summary.txt}. The
 scale replication uses \texttt{bench/economics\_routing\_n200.hexa}
 (200-task manifest), persisting to
 \texttt{.verdicts/economics-routing-savings/\{baseline,router\}\_n200.tsv}.
@@ -166,26 +189,41 @@ $20\times$ \texttt{claude-opus-4-7} \\
 Router (length tier)    & $0.081914$  & $54\,285$ & $19/20$ &
 $19\times$ \texttt{sonnet-4-6}, $1\times$ \texttt{haiku-4-5} \\
 \midrule
-\multicolumn{5}{l}{\emph{3-strategy rerun (same manifest, same wrapper, fresh dispatch):}} \\
-Baseline (always opus) & $0.318367$  & $45\,697$ & $19/20$ &
-$20\times$ \texttt{claude-opus-4-7} \\
-Router (length tier)    & $0.082468$  & $56\,265$ & $20/20$ &
-$16\times$ \texttt{haiku-4-5}, $4\times$ \texttt{sonnet-4-6} \\
-Class router (regex)    & $0.096635$  & $57\,548$ & $19/20$ &
-$19\times$ \texttt{haiku-4-5}, $1\times$ \texttt{sonnet-4-6} \\
+\multicolumn{5}{l}{\emph{4-strategy rerun (same manifest, same wrappers, fresh dispatch):}} \\
+Baseline (always opus) & $0.317473$  & $52\,208$ & $19/20$ &
+$20\times$ opus \\
+Router (length tier)    & $0.083950$  & $61\,736$ & $20/20$ &
+$19\times$ sonnet, $1\times$ haiku \\
+Class router (regex)    & $0.091177$  & $52\,721$ & $20/20$ &
+$10\times$ haiku, $9\times$ sonnet, $1\times$ opus \\
+DLG-mk0 router          & $0.112896$  & $73\,507$ & $20/20$ &
+$19\times$ sonnet, $1\times$ opus \\
 \midrule
-$\Delta$ (router $-$ base, rerun)  & $-0.235899$ & $+10\,568$ & $+1$ & --- \\
-$\Delta$ (class $-$ base, rerun)   & $-0.221732$ & $+11\,851$ & $0$  & --- \\
-$\Delta$ (class $-$ router, rerun) & $+0.014167$ & $+1\,283$  & $-1$ & --- \\
+$\Delta$ (length $-$ base) & $-0.233523$ & $+9\,528$  & $+1$ & --- \\
+$\Delta$ (class $-$ base)  & $-0.226296$ & $+513$     & $+1$ & --- \\
+$\Delta$ (dlg $-$ base)    & $-0.204577$ & $+21\,299$ & $+1$ & --- \\
+$\Delta$ (dlg $-$ length)  & $+0.028946$ & $+11\,771$ & $0$  & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The single shared incorrect task was the same under both strategies
-(index 14, "Sort \{3,1,2\} ascending --- reply with the result only";
-both models added prose around the answer that did not include the
-literal substring "1, 2, 3" the keyword check expected). This is a
-limitation of the substring scorer, not of the models.
+The ``models used'' column above lists the \emph{dispatched} tier each
+router chose (the \texttt{--model} flag passed to \texttt{claude
+--bare -p}), which is the deterministic, reproducible output of each
+\texttt{pick\_tier\_*()} function. We deliberately do \emph{not} report
+the JSON \texttt{modelUsage} key, because under the Claude Code Max
+subscription that field is unreliable for this purpose --- even the
+all-Opus baseline reports a Haiku key on $18/20$ tasks (the CLI emits
+auxiliary side-call usage and \texttt{keys[0]} returns it
+alphabetically). The authoritative quantity is
+\texttt{total\_cost\_usd}, whose per-task sum reconciles exactly to the
+reported strategy totals (verified by closed-form sum on each
+\texttt{*.tsv}).
+
+On this rerun all three routers reach $20/20$; the one baseline miss
+(index 14, ``Sort \{3,1,2\} ascending --- reply with the result
+only'') is a substring-scorer artefact (the model wrapped the answer
+in prose that omitted the literal ``1, 2, 3''), not a model error.
 
 \subsection{Scale replication ($N = 200$)}
 \label{sec:scale}
@@ -263,11 +301,17 @@ length heuristic recovers.
       incorrect task (index 14) is a scorer artefact, not a model
       error. Cleaner correctness would use a per-task regex or LLM-
       graded rubric.
-\item \textbf{Heuristic is trivially simple.} Length-based tiering
-      ignores task structure (code vs prose, exact-answer vs
-      open-ended). A learned classifier (e.g.\ DLG-mk0 in this
-      repo's \texttt{lm\_foundry/}) would likely save more on a
-      mixed-difficulty manifest.
+\item \textbf{Heuristic is trivially simple --- and that is a
+      feature here.} Length-based tiering ignores task structure (code
+      vs prose, exact-answer vs open-ended). We tested whether the
+      learned-style DLG-mk0 classifier (this repo's
+      \texttt{lm\_foundry/}) saves more; on this factual manifest it
+      saves \emph{less} ($64.44\,\%$ vs $73.56\,\%$ for length, both
+      $20/20$ correct), because DLG was trained to discriminate code
+      domain, not the trivial-fact-vs-reasoning axis that drives cost
+      here (Sec.~\ref{sec:discussion}). A learned router would
+      plausibly overtake on the mixed code/refusal/long-context
+      workload it was built for.
 \item \textbf{Pricing is Anthropic's published rate at run time.}
       The dollar number embeds the rate card on \today; the
       \emph{percentage} saving is rate-card-independent at first
@@ -288,36 +332,59 @@ trivial (a length comparison), the operational cost is the JSON-output
 \texttt{claude --bare -p} call already supported by the CLI, and the
 saving is direct dollar-cost on the Anthropic rate card.
 
-The next natural extension is replacing the length heuristic with the
-\texttt{DLG-mk0} pre-7B classifier
-($\,0.9833$ tier-match score on a 300-task held-out manifest, per
-this repo's \texttt{lm\_foundry/}) and re-running the same
-\texttt{bench/economics\_routing.hexa} runner. The bench layout is
-fixed; only the \texttt{pick\_tier\_router()} body changes.
+\paragraph{Length vs class vs DLG-mk0: the learned classifier loses
+on this manifest.} The natural hypothesis is that progressively
+``smarter'' routers should save more: a content-aware regex class
+router should beat the content-blind length cutoff, and the
+\texttt{DLG-mk0} learned-style pre-7B classifier
+($\,0.9833$ tier-match score on its own 300-task held-out manifest,
+per this repo's \texttt{lm\_foundry/}) should beat both. On this
+20-task factual manifest, the ranking is the \emph{exact inverse}.
+All four-strategy results come from a single fresh dispatch
+(Table~\ref{tab:results}, 4-strategy block):
+\begin{center}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Router} & \textbf{cost saving vs baseline} & \textbf{correct} \\
+\midrule
+Length (content-blind) & $\mathbf{73.56\,\%}$ & $20/20$ \\
+Class (regex content)  & $71.28\,\%$          & $20/20$ \\
+DLG-mk0 (learned-style) & $64.44\,\%$         & $20/20$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+The length router wins on cost ($73.56\,\%$); \emph{all three routers
+tie on accuracy} ($20/20$). DLG-mk0 saves the \emph{least} of the
+three --- $9.12$\,pp behind the length heuristic --- while spending the
+most wall-time ($+21.3\,$s vs baseline). It buys no accuracy for that
+extra cost.
 
-\paragraph{Length router vs class router (regex).} A natural
-hypothesis is that a smarter \emph{prompt-class} heuristic --- regex
-prefixes for trivial-fact prompts, code/explain token-bag membership
-for moderate prompts, else Opus --- would save more than the
-content-blind length cutoff. On this manifest the opposite holds:
-the length router saves $74.10\,\%$ ($\$0.082$ vs $\$0.318$, $20/20$
-correct), while the class router saves only $69.65\,\%$
-($\$0.097$, $19/20$ correct). The length router \emph{both} costs
-$\$0.014$ less per batch \emph{and} scores one task higher
-($\Delta_{acc} = -1$ for class). The mechanism is visible in the
-per-task TSV: the length cutoff at $80$ chars routes one moderate-
-length prompt to Haiku that the class router routes to Sonnet
-(token match on \texttt{explain}/\texttt{sentence}/\texttt{python}
-hits more rows than the strict length threshold), and at least one
-class-router Sonnet pick triggers a verbose answer that the
-substring scorer marks wrong. The takeaway is the inverse of the
-usual ML intuition: on a short manifest dominated by prompts whose
-correct tier is set by \emph{compute requirement}, not by topical
-class, a length-bucketed router is both cheaper and quality-equal
-to a regex content router. The regex router would likely overtake
-on a workload that mixes short, deeply-technical prompts (where
-length under-routes) with long, simple-restatement prompts (where
-length over-routes); this manifest has neither shape.
+The mechanism is structural, not a tuning artefact. DLG-mk0 was
+designed for a different population --- hexa-canon code, out-of-domain
+programming, and security refusals --- and its cheapest output tier
+(Haiku) is reserved for \texttt{refuse} prompts and nano-class vendor
+routes. It has \emph{no} ``trivial English fact'' $\to$ Haiku path: a
+prompt like ``What is 2+2?'' carries no language, framework, math, or
+hexa signal, so it falls through DLG's pipeline to the
+\texttt{no-signal} default $\to$ \texttt{ood} $\to$ \texttt{general}
+$\to$ Sonnet. The result is that DLG sends $19/20$ of this manifest to
+Sonnet (only ``Why is mergesort $O(n\log n)$?'' fires the
+\texttt{complexity}/\texttt{prove-derive} signal $\to$ reason-deep
+$\to$ Opus), where the length router happily routes those same
+short-but-Sonnet-length prompts to the cheaper tier. A classifier
+tuned to discriminate \emph{code domain} is mis-applied when the real
+axis of cost is \emph{trivial-fact vs reasoning}, which a length cutoff
+captures almost for free.
+
+The honest takeaway: \emph{a learned router only beats a length cutoff
+when the manifest's cost axis matches what the router was trained to
+discriminate.} DLG-mk0 would plausibly overtake on a mixed
+code/refusal/long-context workload --- the population it was actually
+built for --- where length both under-routes short deeply-technical
+prompts and over-routes long restatement prompts. This factual-recall
+manifest has neither shape, so the simplest content-blind heuristic
+wins. Routing is a distribution-match problem, not a
+``more-intelligence-is-better'' problem.
 
 \section*{Reproducibility}
 \addcontentsline{toc}{section}{Reproducibility}

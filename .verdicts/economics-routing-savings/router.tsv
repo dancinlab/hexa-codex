@@ -1,21 +1,21 @@
 task_idx	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
-1	claude-haiku-4-5-20251001	0.007102999999999999	1486	3	5	1	4
-2	claude-haiku-4-5-20251001	0.002229	1367	1934	59	1	Paris.
-3	claude-sonnet-4-6	0.00203025	1367	3	5	1	olleh
-4	claude-haiku-4-5-20251001	0.00252725	1537	3	5	1	49
-5	claude-sonnet-4-6	0.0020265	1497	3	5	1	11
-6	claude-haiku-4-5-20251001	0.00252225	1853	3	5	1	2
-7	claude-haiku-4-5-20251001	0.00253225	1496	3	5	1	7
-8	claude-haiku-4-5-20251001	0.0025752500000000003	1354	3	5	1	100
-9	claude-sonnet-4-6	0.00203025	1399	3	5	1	65
-10	claude-haiku-4-5-20251001	0.0025467500000000004	1579	3	5	1	29
-11	claude-haiku-4-5-20251001	0.00281	1908	3	19	1	```python print(sum(range(1, 101))) ```
-12	claude-haiku-4-5-20251001	0.0025817500000000003	1712	3	8	1	O(log n)
-13	claude-haiku-4-5-20251001	0.002681	1559	3	13	1	```python lst[::-1] ```
-14	claude-haiku-4-5-20251001	0.002656	2136	3	12	1	{1, 2, 3}
-15	claude-haiku-4-5-20251001	0.0033817499999999998	2622	3	61	1	**TCP** (Transmission Control Protocol) is connection-oriented, establishing a r
-16	claude-haiku-4-5-20251001	0.00445175	3624	3	132	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
-17	claude-haiku-4-5-20251001	0.017455650000000003	14107	4	806	1	Here's the implementation, saved to `fibonacci.py`:  ```python from functools im
-18	claude-haiku-4-5-20251001	0.01087575	7927	4	378	1	**Binary `1101` → Decimal `13`**  ``` 1×2³ + 1×2² + 0×2¹ + 1×2⁰  =  8
-19	claude-haiku-4-5-20251001	0.0038472999999999997	2890	3	90	1	Mergesort splits the array in half **log n** times (the recursion depth), and at
-20	claude-haiku-4-5-20251001	0.0036038	2845	3	76	1	The halting problem is the undecidable problem of determining, given an arbitrar
+1	claude-haiku-4-5-20251001	0.007202999999999999	1368	3	5	1	4
+2	claude-haiku-4-5-20251001	0.0027150000000000004	1306	1962	51	1	Paris
+3	claude-haiku-4-5-20251001	0.00255965	2095	3	5	1	olleh
+4	claude-haiku-4-5-20251001	0.00253565	2248	3	5	1	49
+5	claude-haiku-4-5-20251001	0.0025649	2462	3	5	1	11
+6	claude-haiku-4-5-20251001	0.00253065	2288	3	5	1	2
+7	claude-haiku-4-5-20251001	0.00254065	1603	3	5	1	7
+8	claude-haiku-4-5-20251001	0.0025836500000000003	1507	3	5	1	100
+9	claude-haiku-4-5-20251001	0.00255965	2004	3	5	1	65
+10	claude-haiku-4-5-20251001	0.0025551500000000004	1488	3	5	1	29
+11	claude-haiku-4-5-20251001	0.0028184000000000004	1437	3	19	1	```python print(sum(range(1, 101))) ```
+12	claude-sonnet-4-6	0.00207615	1435	3	8	1	O(log n)
+13	claude-haiku-4-5-20251001	0.0026444	1514	3	10	1	`lst[::-1]`
+14	claude-haiku-4-5-20251001	0.0026493999999999997	1464	3	11	1	1, 2, 3
+15	claude-haiku-4-5-20251001	0.00343515	2723	3	64	1	**TCP** (Transmission Control Protocol) is connection-oriented — it establishe
+16	claude-haiku-4-5-20251001	0.004510149999999999	5427	3	135	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+17	claude-haiku-4-5-20251001	0.01655745	15083	4	772	1	Here's the implementation, saved to `fibonacci.py`:  ```python from functools im
+18	claude-haiku-4-5-20251001	0.011472900000000001	8429	4	404	1	**Binary `1101` → Decimal `13`**  ``` 1×2³ + 1×2² + 0×2¹ + 1×2⁰  =  8
+19	claude-haiku-4-5-20251001	0.0038256999999999996	3102	3	88	1	Mergesort splits the array in half **log n** times (the depth of the recursion t
+20	claude-haiku-4-5-20251001	0.0036122000000000003	2753	3	76	1	The halting problem is the undecidable problem of determining, given an arbitrar

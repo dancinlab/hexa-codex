@@ -48,9 +48,9 @@
   do   = "ship one canonical paper per domain group — replace in place when a stronger finding lands"
   dont = "ship multiple papers per group · accumulate paper backlog · fork same-group narratives"
 
-@D cx_discovery := "each verify cycle pairs with a discovery round" :: workflow [required active]
-  do   = "verify cycle paired with `/kick` or `/gap` round — new candidates feed next CLAIMS.tape"
-  dont = "stop the cycle after verification · skip discovery · treat audit-only as the whole loop"
+@D cx_discovery := "discovery runs continuously, not only at cycle tail" :: workflow [required active]
+  do   = "interleave `/kick` / `/gap` discovery every batch — a discovery lane runs alongside verify"
+  dont = "defer discovery to the end · single tail-only round · stop discovering once a paper ships"
 
 @D cx_discovery_log := "discoveries persist at .discoveries/<slug>.tape" :: workflow [required active]
   do   = "log every kick/gap discovery to `.discoveries/<slug>.tape` — id · seed · verdict-tier-target"

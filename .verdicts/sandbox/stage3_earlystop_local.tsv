@@ -1,0 +1,81 @@
+strategy	idx	output_tok_est	wall_ms	correct	output_snippet
+nostop	1	4	2204	1	4 [end of text]
+nostop	2	4	2223	1	Paris [end of text]
+nostop	3	4	1824	1	olleh [end of text]
+nostop	4	4	1682	1	49 [end of text]
+nostop	5	4	1654	1	11 [end of text]
+nostop	6	4	1150	1	2 [end of text]
+nostop	7	4	1710	0	6 [end of text]
+nostop	8	4	2388	1	100 [end of text]
+nostop	9	4	2199	0	97 [end of text]
+nostop	10	4	1654	0	28 [end of text]
+nostop	11	7	2203	1	```python sum(range(1, 101)) ``` [end of text]
+nostop	12	5	1147	1	O(log n) [end of text]
+nostop	13	4	1650	1	lst[::-1] [end of text]
+nostop	14	6	3752	1	1, 2, 3 [end of text]
+nostop	15	16	2173	1	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless. [end o
+nostop	16	77	4777	1	Breadth-First Search (BFS) and Depth-First Search (DFS) are two fundamental algorithms used for traversing graphs and so
+nostop	17	70	5347	1	To implement the Fibonacci sequence using memoization in Python, we can use the `functools.cache` decorator. This decora
+nostop	18	20	3024	0	1101 binary = 11 * 2^2 + 1 * 2^1 + 0 * 2^0 = 42 decimal [end of text]
+nostop	19	27	3536	1	Mergesort has an O(n log n) time complexity because it divides the array into smaller subarrays, sorts those, and then m
+nostop	20	24	3752	1	The Halting Problem is a fundamental problem in computer science that asks whether a given computer program will termina
+stop_dblnl	1	4	2702	1	4 [end of text]
+stop_dblnl	2	4	1709	1	Paris [end of text]
+stop_dblnl	3	4	2243	1	olleh [end of text]
+stop_dblnl	4	4	2228	1	49 [end of text]
+stop_dblnl	5	4	1654	1	11 [end of text]
+stop_dblnl	6	4	1147	1	2 [end of text]
+stop_dblnl	7	4	1144	0	6 [end of text]
+stop_dblnl	8	4	1128	1	100 [end of text]
+stop_dblnl	9	4	2143	0	97 [end of text]
+stop_dblnl	10	4	2956	0	28 [end of text]
+stop_dblnl	11	7	1648	1	```python sum(range(1, 101)) ``` [end of text]
+stop_dblnl	12	5	1646	1	O(log n) [end of text]
+stop_dblnl	13	4	1660	1	lst[::-1] [end of text]
+stop_dblnl	14	6	1712	1	1, 2, 3 [end of text]
+stop_dblnl	15	16	1655	1	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless. [end o
+stop_dblnl	16	77	4223	1	Breadth-First Search (BFS) and Depth-First Search (DFS) are two fundamental algorithms used for traversing graphs and so
+stop_dblnl	17	34	6425	1	To implement the Fibonacci sequence using memoization in Python, we can use the `functools.cache` decorator. This decora
+stop_dblnl	18	20	4486	0	1101 binary = 11 * 2^2 + 1 * 2^1 + 0 * 2^0 = 42 decimal [end of text]
+stop_dblnl	19	27	3292	1	Mergesort has an O(n log n) time complexity because it divides the array into smaller subarrays, sorts those, and then m
+stop_dblnl	20	24	2205	1	The Halting Problem is a fundamental problem in computer science that asks whether a given computer program will termina
+stop_dot	1	4	2275	1	4 [end of text]
+stop_dot	2	4	1678	1	Paris [end of text]
+stop_dot	3	4	2180	1	olleh [end of text]
+stop_dot	4	4	1181	1	49 [end of text]
+stop_dot	5	4	1653	1	11 [end of text]
+stop_dot	6	4	1659	1	2 [end of text]
+stop_dot	7	4	2161	0	6 [end of text]
+stop_dot	8	4	1197	1	100 [end of text]
+stop_dot	9	4	1149	0	97 [end of text]
+stop_dot	10	4	1167	0	28 [end of text]
+stop_dot	11	7	1120	1	```python sum(range(1, 101)) ``` [end of text]
+stop_dot	12	5	1667	1	O(log n) [end of text]
+stop_dot	13	4	1732	1	lst[::-1] [end of text]
+stop_dot	14	6	1653	1	1, 2, 3 [end of text]
+stop_dot	15	13	1182	1	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless.
+stop_dot	16	18	1646	1	Breadth-First Search (BFS) and Depth-First Search (DFS) are two fundamental algorithms used for traversing graphs and so
+stop_dot	17	15	1729	1	To implement the Fibonacci sequence using memoization in Python, we can use the `functools.cache` decorator.
+stop_dot	18	20	2185	0	1101 binary = 11 * 2^2 + 1 * 2^1 + 0 * 2^0 = 42 decimal [end of text]
+stop_dot	19	24	3205	1	Mergesort has an O(n log n) time complexity because it divides the array into smaller subarrays, sorts those, and then m
+stop_dot	20	21	2293	1	The Halting Problem is a fundamental problem in computer science that asks whether a given computer program will termina
+stop_eos_marker	1	0	1154	0	(empty)
+stop_eos_marker	2	0	1142	0	(empty)
+stop_eos_marker	3	0	1120	0	(empty)
+stop_eos_marker	4	0	1125	0	(empty)
+stop_eos_marker	5	0	1116	0	(empty)
+stop_eos_marker	6	0	1106	0	(empty)
+stop_eos_marker	7	0	1107	0	(empty)
+stop_eos_marker	8	0	588	0	(empty)
+stop_eos_marker	9	0	1099	0	(empty)
+stop_eos_marker	10	0	1118	0	(empty)
+stop_eos_marker	11	0	1150	0	(empty)
+stop_eos_marker	12	0	1178	0	(empty)
+stop_eos_marker	13	0	1118	0	(empty)
+stop_eos_marker	14	0	1124	0	(empty)
+stop_eos_marker	15	0	1151	0	(empty)
+stop_eos_marker	16	0	1142	0	(empty)
+stop_eos_marker	17	0	1133	0	(empty)
+stop_eos_marker	18	0	1139	0	(empty)
+stop_eos_marker	19	0	1121	0	(empty)
+stop_eos_marker	20	0	1119	0	(empty)

@@ -49,13 +49,15 @@
   cmd = "Stage-2 manifest with vLLM `enable_prefix_caching=true` vs OFF; measure hit-rate on the shared --system-prompt prefix; compare $/task and tok/s"
   hyp = "self-hosted prefix-cache hits >= 80% on the shared system-prompt prefix at >= 2x tok/s versus cold — the cycle-1 d_cache_aware (BLOCKED on API surface, cache_creation/read = 0) recovers as an actual saving once surface limit is removed"
 
-@C d_early_stop_local := "early-stop stop-token list — vLLM/llama.cpp `stop=` parameter (was BLOCKED on CLI)" :: candidate [target_tier=GREEN cost_est=$0]
+@C d_early_stop_local := "early-stop stop-token list — vLLM/llama.cpp `stop=` parameter (was BLOCKED on CLI)" :: confirmed [target_tier=GREEN cost_est=$0 verdict=.verdicts/sandbox/stage3_earlystop_local_summary.txt]
   cmd = "for the 20-task canonical manifest under Stage-1 persona, enable stop=['\\n\\n', 'Note:', 'Answer:'] on nano tier; compare output_tok and accuracy vs no-stop baseline"
   hyp = "nano-tier stop-token list cuts output_tok median by >= 30% at 0pp accuracy loss — d_response_budget_cap's pathological backfire (cycle-2: haiku quoting the cap into prose) disappears because stop= acts at the decoder level, not the prompt level"
+  result = "CONFIRMED on Stage 3 PoC (bench/sandbox_stage3_earlystop_local.hexa). Best variant `stop_dot` (-r '.') cuts output_tok by 41.55% (14 → 8 avg, exceeds the ≥30% target) at 0pp accuracy loss (16/20 parity with `nostop`). Wall_ms reduced 30.64% on the warm-cache canonical run (50.0s → 34.7s). `stop_dblnl` (-r '\\n\\n') near-no-op because Qwen2.5-0.5B emits compact prose without paragraph breaks. `stop_eos_marker` (prompt prepends `Answer with \"FINAL: <answer>\".` + -r '\\n') is DEAD at 0/20 — `-r '\\n'` activates on the `assistant\\n` chat-template prefix itself, halting before any answer token is emitted; the lever is blocked at reverse-prompt-scope semantics, not at instruction-following. d_response_budget_cap-style backfire (cycle-2 haiku-quoting-cap pattern) NOT observed on Qwen — the prompt-prefix variant fails for a different reason (premature stop trigger), not for capability."
 
-@C d_prompt_compress_local := "prompt-compression — LLMLingua local model on Stage-2 wc>=30 prompts (was DEGENERATE on wc<=14 manifest)" :: candidate [target_tier=GREEN cost_est=$0]
+@C d_prompt_compress_local := "prompt-compression — LLMLingua local model on Stage-2 wc>=30 prompts (was DEGENERATE on wc<=14 manifest)" :: confirmed [target_tier=GREEN cost_est=$0 verdict=.verdicts/sandbox/stage3_maxtokens_cap_summary.txt scope=max_tokens_cap_only]
   cmd = "run LLMLingua-2 ratio=0.5 on the Stage-2 wc∈[31,200] strata; compare $/task and accuracy vs uncompressed; require the wc<=14 strata pass through uncompressed (degenerate floor)"
   hyp = "compression saves >= 15% input-token cost on wc>=30 strata at 0pp accuracy loss; cycle-2 d_prompt_compress (DEGENERATE) was a manifest-shape artifact, not a fundamental dead end — substrate change + manifest reshape jointly recover the axis"
+  result = "CONFIRMED for the max_tokens-cap variant only (bench/sandbox_stage3_maxtokens_cap.hexa, cycle-4). NAMING MISMATCH disclosed: this slug was opened for LLMLingua-style input-side prompt compression; what's actually tested here is hard `-n N` max_tokens cap at the decoder layer — distinct lever (output-side truncation). The cycle-2 ancestor `d_response_budget_cap` was the prompt-prefix gimmick that backfired on haiku; -n is the structural replacement reachable only below the API surface. Stage 3 result on canonical 20-task manifest (Qwen2.5-0.5B): all 5 strategies (nocap=1024, cap256, cap128, cap64, cap32) score 16/20 — cap doesn't degrade accuracy at all on this manifest. Avg output_tok strictly decreasing 23→15→13→9→6 confirms decoder enforcement. cycle2_backfire_pathology_present=false (impossible at decoder layer — there's no prose channel for the model to quote the cap into). Wall_ms at cap32 vs nocap: 25662 vs 53018 = 51.59% reduction (single run, ~3x noise — informational only). HONEST: Stage 0's reported 19/20 ceiling was a scorer artifact — Stage 0 didn't strip llama.cpp's stderr `[end of text]+common_perf_print:` trailer, so substring scorer false-positive matched on perf-line digits (e.g. task 7 ans='6' kw='7' matched '7' from '/ 20 tokens'). Stage 3 strips that trailer; clean baseline = 16/20. Same 4 failures (idx 7,9,10,18) across all caps. LLMLingua input-side compression remains UNMEASURED — defer to a future Stage 2 cycle on the wc>=30 scaled manifest if pursued (true input-compression slug should be opened separately rather than reusing this one)."
 
 # ── kick round 1 new orthogonal axes (substrate-unlocked, not in SANDBOX.md ladder) ──
 
@@ -80,11 +82,32 @@
   hyp = "quantization-tier router (Q4 below cutoff / FP16 above) matches or beats persona-tier saving on the Stage-2 manifest at <= 1pp accuracy drop — an axis the API surface does not expose at all (vendor abstracts the quant) and a candidate for F-CODEX-2 cost-scale enrichment"
 
 # ── summary ──
-# round 1 cumulative: 1 confirmed (d_stage0_poc) · 2 dead (d_stage1_persona dead-on-manifest · d_kv_prefix_share BLOCKED_AT_SCALE) · 9 candidates inventoried
+# round 1 cumulative: 3 confirmed (d_stage0_poc · d_early_stop_local · d_prompt_compress_local[max_tokens_cap_only]) · 2 dead (d_stage1_persona dead-on-manifest · d_kv_prefix_share BLOCKED_AT_SCALE) · 7 candidates remaining
 #   5 SANDBOX.md ladder (d_stage0_poc ✓ confirmed · d_stage1_persona ✗ dead-on-manifest · d_stage2..4 candidate)
-# + 3 cycle-2 BLOCKED revivals (d_cache_aware_local, d_early_stop_local, d_prompt_compress_local)
-# + 4 kick round-1 orthogonal axes (d_logit_calibration, d_kv_prefix_share,
+# + 3 cycle-2 BLOCKED revivals (d_cache_aware_local candidate · d_early_stop_local ✓ confirmed · d_prompt_compress_local ✓ confirmed[max_tokens_cap_only])
+# + 4 kick round-1 orthogonal axes (d_logit_calibration, d_kv_prefix_share dead,
 #     d_speculative_decode_model, d_quantization_tier)
+# d_prompt_compress_local CONFIRMED 2026-05-23 (scope=max_tokens_cap_only,
+# NOT LLMLingua input-compression — slug naming mismatch disclosed inline):
+# hard `-n 32` cap holds 16/20 (full parity with nocap=1024) at avg
+# output_tok 6 vs 23 (-73.9% output_tok); wall_ms 25662 vs 53018 = 51.59%
+# reduction (single run, ~3x noise — informational only).
+# cycle2_backfire_pathology_present=false (structurally impossible at decoder
+# layer — no prose channel for the model to quote the cap into). Verdict:
+# .verdicts/sandbox/stage3_maxtokens_cap_summary.txt. Bench:
+# bench/sandbox_stage3_maxtokens_cap.hexa. HONEST: revealed that Stage 0's
+# reported 19/20 baseline was a scorer artifact (stderr `[end of text]` +
+# `common_perf_print:` trailer leaked into substring scorer; cleaned baseline
+# = 16/20). True LLMLingua input-side compression remains UNMEASURED.
+#
+# d_early_stop_local CONFIRMED 2026-05-23: stop_dot (-r '.') -41.55% output_tok
+# / -30.64% wall_ms @ 16/20 accuracy parity (cycle-4 d_early_stop_local task).
+# Verdict: .verdicts/sandbox/stage3_earlystop_local_summary.txt. Bench:
+# bench/sandbox_stage3_earlystop_local.hexa. The cycle-2 d_response_budget_cap
+# haiku-quoting-cap backfire was NOT replicated on Qwen2.5-0.5B: the
+# prompt-prefix variant (stop_eos_marker) failed 0/20 for an orthogonal reason
+# (reverse-prompt scope: -r '\n' fires on the `assistant\n` chat-template
+# prefix itself before any answer is emitted), not for capability.
 # Stage 1 flipped to dead-on-manifest (NOT falsified): convention dispatch +
 # scorer parity work; all 3 personas score 20/20 on the canonical 20-task
 # manifest. tier_separation_observed=false, spread_tasks=0,

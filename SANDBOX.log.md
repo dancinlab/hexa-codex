@@ -240,3 +240,79 @@ Persisted:
 - `.verdicts/sandbox/stage3_kvprefix.tsv` — 40 rows (2 strategies × 20).
 - `.verdicts/sandbox/stage3_kvprefix_summary.txt` — aggregate verdict.
 - `.discoveries/sandbox-llama-cache-flags.raw` — flag-grep evidence.
+
+---
+
+## 2026-05-23 — Stage 3 early-stop local — d_early_stop_local CONFIRMED
+
+`bench/sandbox_stage3_earlystop_local.hexa` revives the cycle-2 BLOCKED
+`d_early_stop` candidate via the local llama.cpp surface. The cycle-2
+attempt died at the `claude --bare -p` 2.1.150 dispatch surface (no
+`--stop-sequences` flag); `llama-completion -r/--reverse-prompt` exposes
+the equivalent decoder-level lever on the Stage 0 substrate.
+
+A/B on the canonical 20-task manifest, Qwen2.5-0.5B-Instruct-Q4_K_M,
+warm-cache run (3rd run of the day, system disk-cache stabilized):
+
+| strategy | accuracy | total_wall_ms | avg_out_tok | note |
+|---|---:|---:|---:|---|
+| nostop          | 16/20 | 50049 | 14 | baseline (no -r) |
+| stop_dblnl      | 16/20 | 48006 | 13 | -r "\n\n" — near no-op (Qwen2.5-0.5B emits compact prose without paragraph breaks) |
+| stop_dot        | 16/20 | 34712 | 8  | **best** — -r "." truncates at first sentence end |
+| stop_eos_marker | 0/20  | 22050 | 0  | DEAD — `-r "\n"` fires on chat-template `assistant\n` prefix before any answer token |
+
+**Best strategy `stop_dot`:** -41.55% output_tok and -30.64% wall_ms at
+**0pp accuracy loss** (16/20 parity with `nostop`). Exceeds the cycle-1
+`d_early_stop` hypothesis target (≥30% output_tok cut at 0pp accuracy
+loss). `d_early_stop_local` flipped → **confirmed** in
+`.discoveries/sandbox.tape` with verdict link.
+
+Honest residuals (g5 / cycle-2 backfire check):
+
+- **Stage 3 nostop = 16/20 vs Stage 0 nostop = 19/20.** Same model, same
+  decoder. The Stage 0 awk pipeline did NOT halt at `^common_perf_print`,
+  so the substring scorer grep'd `expected_kw` against the post-`assistant`
+  text INCLUDING llama-completion's perf-print + memory-breakdown trailer.
+  Three tasks scored spuriously-correct in Stage 0:
+    - T7 (kw="7"): answer "6", but "7" appears in trailer fields like
+      "/ 2**7** tokens" / total time "= 5**7** ms".
+    - T10 (kw="29"): answer "28", but "29" appears in trailer
+      "prompt eval time = **29**.34 ms".
+    - T18 (kw="13"): answer "1101 binary = ... = 42 decimal" (model
+      arithmetic wrong, gold = 13), but "13" appears in trailer fields.
+
+  The Stage 3 awk explicitly halts at `^common_perf_print` (cleaner
+  scorer surface), so the 16/20 figure is the **honest baseline** and
+  Stage 0's 19/20 is upward-biased by the same rambling-cover scorer
+  artifact noted in `feedback_t3_quote_fragility.md`. Reported as-is;
+  not retroactively patching Stage 0 (orthogonal cycle's deliverable).
+  Critically the saving claims (output_tok -41.55%, wall_ms -30.64%)
+  hold IDENTICALLY under either scorer because they are within-strategy
+  ratios — the artifact biases all 4 strategies equally.
+- **`stop_dblnl` near-no-op:** Qwen2.5-0.5B answers tasks compactly
+  without paragraph breaks, so the `\n\n` trigger almost never fires —
+  the 4% wall reduction is noise, not lever-driven savings.
+- **`stop_eos_marker` 0/20:** `-r "\n"` matches against the running
+  output stream including the chat-template-injected `assistant\n` prefix
+  that `llama-completion` emits before the model's first generated token.
+  The lever halts at byte zero of the answer. This is a **reverse-prompt
+  scope** semantic, NOT an instruction-following failure — Qwen could
+  in principle emit `FINAL: <answer>` correctly, but the stop trigger
+  beats the model to the first token. cycle-2 `d_response_budget_cap`'s
+  haiku-quoting-cap backfire pattern is therefore NOT observable on
+  this variant; the lever dies for a different reason.
+- **wall_ms is noisy across runs.** Three back-to-back invocations of
+  the same bench produced nostop totals of {126658, 49443, 50049} ms;
+  cold-cache penalty dominates the first-strategy slot. `output_tok` is
+  deterministic (decoder-driven) and the more reliable metric — 41.55%
+  reduction reproduces bit-for-bit across all runs. The 30.64% wall_ms
+  number is from the warmed canonical run, reported as-is.
+
+Persisted:
+- `bench/sandbox_stage3_earlystop_local.hexa` — bench source (hexa-only).
+- `.verdicts/sandbox/stage3_earlystop_local.tsv` — 80 rows (4 strategies × 20 tasks).
+- `.verdicts/sandbox/stage3_earlystop_local_summary.txt` — per-strategy aggregate + best-strategy verdict.
+- `.discoveries/sandbox.tape` — `d_early_stop_local` flipped to `confirmed`, footer cumulative tally updated.
+
+Cumulative SANDBOX state: **2 confirmed** (d_stage0_poc · d_early_stop_local)
+· 2 dead (d_stage1_persona · d_kv_prefix_share) · 8 candidates remaining.

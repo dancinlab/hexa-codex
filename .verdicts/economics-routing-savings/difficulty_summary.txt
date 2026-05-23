@@ -1,0 +1,9 @@
+strategy	cost_usd	duration_ms	correct	total	saving_pct
+baseline	0.284042	46401	19	20	0.0
+length	0.0632715	59154	20	20	77.7246
+difficulty	0.107523	44981	20	20	62.1454
+# length_savings_pct=77.7246
+# difficulty_savings_pct=62.1454
+# difficulty_minus_length_pp=-15.5792
+# length_reference_savings_pct=73.56
+# headline=NO — difficulty does not beat length

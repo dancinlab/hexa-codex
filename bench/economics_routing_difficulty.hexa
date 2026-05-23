@@ -1,0 +1,339 @@
+#!hexa strict
+// bench/economics_routing_difficulty.hexa — Claude Code CLI routing benchmark.
+//
+// Tests the HYPOTHESIS: a composite DIFFICULTY-PREDICTION score, computed from
+// cheap features available BEFORE the model call, routes better than the plain
+// prompt-length cutoff (the sole Pareto-optimal strategy in the prior 4-way
+// bench: economics_routing_dlg.hexa).
+//
+// Three strategies on the SAME 20-task fixed manifest (parity with the 2-/3-/
+// 4-strategy benches):
+//   baseline   : every task → claude --bare -p --model opus (always-opus)
+//   length     : reference length-cutoff router (the prior Pareto winner)
+//                   len <=  30  → haiku
+//                   len <=  80  → sonnet
+//                   else        → opus
+//   difficulty : composite-score router (the candidate under test)
+//
+// ───────────────────────────────────────────────────────────────────────────
+// DIFFICULTY SCORE FORMULA  (all features cheap + pre-call)
+// ───────────────────────────────────────────────────────────────────────────
+// Let p = lowercased prompt. Start score = 0.
+//
+//   (A) LENGTH  (anchors the score on the prior-winning signal):
+//         len <=  30 chars : score += 0
+//         len <=  80 chars : score += 2
+//         else             : score += 4
+//
+//   (B) EASY question-word class  (factual lookups → cheaper):
+//         p starts_with any of {"what is","capital of","how many",
+//           "smallest","first prime","days in","ascii","square of",
+//           "boiling"}                                : score -= 1
+//
+//   (C) HARDER reasoning / code keywords  (push toward a stronger tier):
+//         p contains any of {"python","explain","why","complexity",
+//           "memoization","justif","mergesort","prove","derive",
+//           "fibonacci","binary search"}             : score += 2 (once)
+//
+//   (D) SHORT-OUTPUT hint  (constrained output → easier to get right cheaply):
+//         p contains any of {"one sentence","one word","reply with",
+//           "digit only","number only","code only","big-o only",
+//           "expression only","reversed string only","result only"}
+//                                                    : score -= 1
+//
+// Map final score → tier:
+//         score <= 0  → haiku
+//         score <= 3  → sonnet
+//         else        → opus
+//
+// Rationale: length alone mis-tiers two task families — (i) SHORT prompts that
+// are actually hard (e.g. "Time complexity of binary search?" is 41 chars →
+// length sends it to sonnet, but it's a one-token fact → haiku could win) and
+// (ii) MID-length prompts carrying code/reasoning keywords that deserve opus.
+// The composite folds the easy/short-output signals to pull factual lookups
+// down and the keyword signal to push genuine reasoning up.
+// ───────────────────────────────────────────────────────────────────────────
+//
+// Each call captured via `--output-format json` — fields used:
+//   total_cost_usd · duration_ms · result · usage.{input,output}_tokens
+// Per task, correctness = expected_kw substring present (case-insensitive)
+// in the result string.
+//
+// Output per-task TSV to .verdicts/economics-routing-savings/<strategy>.tsv
+// (difficulty.tsv) and a difficulty_summary.txt 3-strategy comparison.
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_difficulty.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+
+// 20-task fixed manifest — identical to the 2-/3-/4-strategy benches for parity.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn pick_tier_baseline(prompt: str) -> str {
+    return "opus"
+}
+
+// Reference length-cutoff router (the prior Pareto winner).
+fn pick_tier_length(prompt: str) -> str {
+    let n = prompt.len()
+    if n <= 30 { return "haiku" }
+    if n <= 80 { return "sonnet" }
+    return "opus"
+}
+
+// Composite difficulty-prediction router. See the FORMULA block at the top.
+fn pick_tier_difficulty(prompt: str) -> str {
+    let p = prompt.to_lower()
+    let n = prompt.len()
+    let mut score = 0
+
+    // (A) LENGTH anchor
+    if n <= 30 {
+        score = score + 0
+    } else if n <= 80 {
+        score = score + 2
+    } else {
+        score = score + 4
+    }
+
+    // (B) EASY question-word class
+    let easy_prefixes = [
+        "what is", "capital of", "how many", "smallest",
+        "first prime", "days in", "ascii", "square of", "boiling",
+    ]
+    let mut i = 0
+    while i < len(easy_prefixes) {
+        if p.starts_with(easy_prefixes[i]) {
+            score = score - 1
+            i = len(easy_prefixes)
+        } else {
+            i = i + 1
+        }
+    }
+
+    // (C) HARDER reasoning / code keywords (apply once)
+    let hard_tokens = [
+        "python", "explain", "why", "complexity", "memoization",
+        "justif", "mergesort", "prove", "derive", "fibonacci",
+        "binary search",
+    ]
+    i = 0
+    while i < len(hard_tokens) {
+        if p.contains(hard_tokens[i]) {
+            score = score + 2
+            i = len(hard_tokens)
+        } else {
+            i = i + 1
+        }
+    }
+
+    // (D) SHORT-OUTPUT hint
+    let short_out = [
+        "one sentence", "one word", "reply with", "digit only",
+        "number only", "code only", "big-o only", "expression only",
+        "reversed string only", "result only",
+    ]
+    i = 0
+    while i < len(short_out) {
+        if p.contains(short_out[i]) {
+            score = score - 1
+            i = len(short_out)
+        } else {
+            i = i + 1
+        }
+    }
+
+    // Map score → tier
+    if score <= 0 { return "haiku" }
+    if score <= 3 { return "sonnet" }
+    return "opus"
+}
+
+// Run one task. Returns 7 tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t output_tokens \t result_snippet \t model \t correct(1|0)
+fn run_one(prompt: str, model: str, expected_kw: str) -> str {
+    let cmd = "claude --bare -p --output-format json --model " + model + " " + shq(prompt) +
+              " 2>/dev/null | jq -r --arg kw " + shq(expected_kw) +
+              " '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, .usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0]), " +
+              "((.result // \"\") | ascii_downcase | contains($kw | ascii_downcase) | " +
+              "if . then \"1\" else \"0\" end)" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+// Run a strategy across all tasks. Append per-task rows to a verdict file.
+// strategy_mode: "baseline" | "length" | "difficulty"
+// Returns "total_cost\ttotal_ms\tn_correct\tn_total".
+fn run_strategy(name: str, strategy_mode: str) -> str {
+    let path = OUT_DIR + "/" + name + ".tsv"
+    exec("rm -f " + shq(path))
+    exec("mkdir -p " + shq(OUT_DIR))
+    exec("echo 'task_idx\tmodel\tcost_usd\tduration_ms\tinput_tokens\toutput_tokens\tcorrect\tresult_snippet' >> " + shq(path))
+
+    let mut total_cost = 0.0
+    let mut total_ms   = 0
+    let mut n_correct  = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let prompt = task[0]
+        let expected = task[1]
+        let mut model = "opus"
+        if strategy_mode == "baseline"   { model = pick_tier_baseline(prompt) }
+        if strategy_mode == "length"     { model = pick_tier_length(prompt) }
+        if strategy_mode == "difficulty" { model = pick_tier_difficulty(prompt) }
+        println("  [" + name + " " + str(i+1) + "/" + str(len(TASKS)) + "] model=" + model + " prompt=" + prompt.substr(0, 50))
+        let line = run_one(prompt, model, expected)
+        let parts = line.split("\t")
+        if parts.len() < 7 {
+            println("    ! parse error, raw=" + line)
+            i = i + 1
+            continue
+        }
+        let cost = to_float(parts[0])
+        let ms   = int(parts[1])
+        let in_t = parts[2]
+        let out_t = parts[3]
+        let result_snippet = parts[4].replace("\t", " ").replace("\n", " ")
+        let model_used = parts[5]
+        let correct = parts[6]
+        total_cost = total_cost + cost
+        total_ms = total_ms + ms
+        if correct == "1" { n_correct = n_correct + 1 }
+        let row = str(i+1) + "\t" + model_used + "\t" + parts[0] + "\t" + parts[1] + "\t" +
+                  in_t + "\t" + out_t + "\t" + correct + "\t" + result_snippet.substr(0, 80)
+        exec("echo " + shq(row) + " >> " + shq(path))
+        i = i + 1
+    }
+    return to_string(total_cost) + "\t" + str(total_ms) + "\t" + str(n_correct) + "\t" + str(len(TASKS))
+}
+
+fn saving_pct(b_cost: float, x_cost: float) -> float {
+    if b_cost > 0.0 { return ((b_cost - x_cost) / b_cost) * 100.0 }
+    return 0.0
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_difficulty — composite difficulty router")
+    println("  manifest: 20 tasks · 3 strategies (baseline · length · difficulty)")
+    println("  output:   " + OUT_DIR + "/{baseline,length,difficulty}.tsv")
+    println("========================================================================")
+
+    println("")
+    println("─── baseline strategy (always opus) ───")
+    let b = run_strategy("baseline", "baseline")
+    let bp = b.split("\t")
+    let b_cost = to_float(bp[0])
+    let b_ms   = int(bp[1])
+    let b_acc  = int(bp[2])
+
+    println("")
+    println("─── length strategy (length-cutoff reference) ───")
+    let l = run_strategy("length", "length")
+    let lp = l.split("\t")
+    let l_cost = to_float(lp[0])
+    let l_ms   = int(lp[1])
+    let l_acc  = int(lp[2])
+
+    println("")
+    println("─── difficulty strategy (composite score) ───")
+    let d = run_strategy("difficulty", "difficulty")
+    let dp = d.split("\t")
+    let d_cost = to_float(dp[0])
+    let d_ms   = int(dp[1])
+    let d_acc  = int(dp[2])
+
+    let l_sav = saving_pct(b_cost, l_cost)
+    let d_sav = saving_pct(b_cost, d_cost)
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY (3 strategies)")
+    println("========================================================================")
+    println("  baseline   (opus×20)      : cost=$" + to_string(b_cost) + "  ms=" + str(b_ms) + "  correct=" + str(b_acc) + "/20")
+    println("  length     (length tier)  : cost=$" + to_string(l_cost) + "  ms=" + str(l_ms) + "  correct=" + str(l_acc) + "/20  saving=" + to_string(l_sav) + "%")
+    println("  difficulty (composite)    : cost=$" + to_string(d_cost) + "  ms=" + str(d_ms) + "  correct=" + str(d_acc) + "/20  saving=" + to_string(d_sav) + "%")
+
+    println("")
+    println("  length     savings : " + to_string(l_sav) + "% · acc Δ=" + str(l_acc - b_acc))
+    println("  difficulty savings : " + to_string(d_sav) + "% · acc Δ=" + str(d_acc - b_acc))
+    println("  difficulty − length savings Δ : " + to_string(d_sav - l_sav) + " pp (positive = difficulty saves more)")
+
+    // Headline verdict: difficulty beats length only if it saves MORE while
+    // staying at full accuracy (20/20). Pareto-dominance requires both.
+    let mut headline = "NO — difficulty does not beat length"
+    if d_acc >= 20 && d_acc >= l_acc && d_sav > l_sav {
+        headline = "YES — difficulty Pareto-beats length (more saving at >=20/20)"
+    } else if d_acc >= l_acc && d_sav > l_sav {
+        headline = "PARTIAL — difficulty saves more but acc<20/20 (not strict Pareto vs baseline)"
+    }
+    println("")
+    println("  HEADLINE: " + headline)
+
+    // Persist 3-strategy summary
+    let summary_path = OUT_DIR + "/difficulty_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    let header = "strategy\tcost_usd\tduration_ms\tcorrect\ttotal\tsaving_pct"
+    exec("echo " + shq(header) + " >> " + shq(summary_path))
+    exec("echo " + shq("baseline\t"   + to_string(b_cost) + "\t" + str(b_ms) + "\t" + str(b_acc) + "\t20\t0.0") + " >> " + shq(summary_path))
+    exec("echo " + shq("length\t"     + to_string(l_cost) + "\t" + str(l_ms) + "\t" + str(l_acc) + "\t20\t" + to_string(l_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("difficulty\t" + to_string(d_cost) + "\t" + str(d_ms) + "\t" + str(d_acc) + "\t20\t" + to_string(d_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# length_savings_pct=" + to_string(l_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# difficulty_savings_pct=" + to_string(d_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# difficulty_minus_length_pp=" + to_string(d_sav - l_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# length_reference_savings_pct=73.56") + " >> " + shq(summary_path))
+    exec("echo " + shq("# headline=" + headline) + " >> " + shq(summary_path))
+
+    println("")
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_DIFFICULTY__ PASS")
+    exit(0)
+}

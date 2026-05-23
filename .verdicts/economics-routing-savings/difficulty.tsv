@@ -1,0 +1,21 @@
+task_idx	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
+1	claude-haiku-4-5-20251001	0.002888	1344	2049	67	1	4
+2	claude-haiku-4-5-20251001	0.002816	1880	2043	53	1	Paris.
+3	claude-haiku-4-5-20251001	0.00257395	1640	3	5	1	olleh
+4	claude-haiku-4-5-20251001	0.002819	1831	2047	52	1	49
+5	claude-haiku-4-5-20251001	0.0030050000000000003	1614	2050	85	1	11
+6	claude-haiku-4-5-20251001	0.0030290000000000004	1650	2047	95	1	2
+7	claude-haiku-4-5-20251001	0.0033690000000000005	2275	2047	164	1	7
+8	claude-haiku-4-5-20251001	0.002965	1416	2055	76	1	100
+9	claude-haiku-4-5-20251001	0.0029319999999999997	1550	2051	68	1	65
+10	claude-haiku-4-5-20251001	0.003543	2139	2049	193	1	29
+11	claude-haiku-4-5-20251001	0.0028577	1440	3	19	1	```python print(sum(range(1, 101))) ```
+12	claude-haiku-4-5-20251001	0.0026144500000000004	2725	3	8	1	O(log n)
+13	claude-haiku-4-5-20251001	0.0012404	1407	3	10	1	`lst[::-1]`
+14	claude-haiku-4-5-20251001	0.0012454	1668	3	11	1	1, 2, 3
+15	claude-haiku-4-5-20251001	0.0016514999999999998	2452	3	38	1	**TCP** is connection-oriented (it establishes a handshake before data transfer)
+16	claude-haiku-4-5-20251001	0.018229	2633	6	93	1	BFS (Breadth-First Search) explores a graph level by level, visiting all neighbo
+17	claude-haiku-4-5-20251001	0.0232985	5738	6	288	1	```python from functools import cache  @cache def fib(n: int) -> int:     if n <
+18	claude-haiku-4-5-20251001	0.0050446499999999995	4128	3	168	1	**1×2³ + 1×2² + 0×2¹ + 1×2⁰ = 8 + 4 + 0 + 1 = 13**
+19	claude-haiku-4-5-20251001	0.0176715	2706	6	63	1	Mergesort recursively splits the array into halves (creating log₂n levels of r
+20	claude-haiku-4-5-20251001	0.0037304	2745	3	82	1	The halting problem is the proven-undecidable problem of determining, from an ar

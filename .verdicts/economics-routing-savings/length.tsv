@@ -1,0 +1,21 @@
+task_idx	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
+1	claude-haiku-4-5-20251001	0.00378255	1418	3	5	1	4
+2	claude-haiku-4-5-20251001	0.002764	1094	2026	46	1	Paris
+3	claude-haiku-4-5-20251001	0.00256885	2416	3	5	1	olleh
+4	claude-haiku-4-5-20251001	0.00255485	2152	3	5	1	49
+5	claude-sonnet-4-6	0.0020541	1369	3	5	1	11
+6	claude-haiku-4-5-20251001	0.00254985	1529	3	5	1	2
+7	claude-haiku-4-5-20251001	0.00254985	1522	3	5	1	7
+8	claude-haiku-4-5-20251001	0.00259785	1766	3	5	1	100
+9	claude-sonnet-4-6	0.00205785	1481	3	5	1	65
+10	claude-haiku-4-5-20251001	0.0011564000000000001	1473	3	5	1	29
+11	claude-haiku-4-5-20251001	0.0013955	1819	3	19	1	```python print(sum(range(1, 101))) ```
+12	claude-haiku-4-5-20251001	0.0011914	1621	3	8	1	O(log n)
+13	claude-haiku-4-5-20251001	0.0012802999999999998	2282	3	13	1	```python lst[::-1] ```
+14	claude-haiku-4-5-20251001	0.0012403	1952	3	11	1	1, 2, 3
+15	claude-haiku-4-5-20251001	0.0016464000000000001	1953	3	38	1	**TCP** is connection-oriented (it establishes a handshake before data transfer)
+16	claude-haiku-4-5-20251001	0.0031264	3825	3	136	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+17	claude-haiku-4-5-20251001	0.015201	13088	4	779	1	Here's the implementation:  ```python from functools import cache  @cache def fi
+18	claude-haiku-4-5-20251001	0.009141	11026	4	425	1	**Binary `1101` → Decimal `13`**  | Bit | Weight | Value | |-----|--------|---
+19	claude-haiku-4-5-20251001	0.0023029	2769	3	81	1	Mergesort splits the array in half recursively, creating **log n** levels of spl
+20	claude-haiku-4-5-20251001	0.0021101	2599	3	69	1	The halting problem is the proven-undecidable question of whether a general algo

@@ -42,9 +42,11 @@
   cmd = "for each of {cache_read, batch, stop_seq, max_tokens}, run a controlled A/B on the Stage-2 scaled manifest with the lever ON vs OFF; reuse cycle-1/2 measurement harness (cost_usd column reconciles)"
   hyp = "at least 1 of the 4 cycle-2-BLOCKED levers crosses the actuality threshold (>= 5pp saving at 100% accuracy parity) on the Stage-2 manifest; the rest exit DEGENERATE rather than BLOCKED — surface-limit removed, the lever's true value-add is now measurable"
 
-@C d_stage4_empirical_landing := "empirical landing — quality_scale · train_cost · infer_cost fit → F-CODEX-1/2" :: candidate [target_tier=BLUE cost_est=$50]
+@C d_stage4_empirical_landing := "empirical landing — quality_scale · train_cost · infer_cost fit → F-CODEX-1/2" :: harness_ready [target_tier=BLUE cost_est=$50 status=harness-only verifier=verify/numerics_economics_empirical_landing.hexa verdict_pending=M3.ECON]
   cmd = "fit F-CODEX-1 (quality vs scale) on {Qwen2.5-0.5B, 1.5B, 3B, 7B} × Stage-2 manifest accuracy; fit F-CODEX-2 (cost vs scale) on serving-cost telemetry per scale; gate ECONOMICS v1.2.0/1.3.0 releases on the fit residuals"
   hyp = "F-CODEX-1 quality-scale exponent matches the dancinlab quality_scale ≈ 0.5 hypothesis within ε ≤ 0.1 across the 4 scale grid; F-CODEX-2 cost-scale is super-linear (exponent >= 1.1) — both empirical curves close the v1.2.0/1.3.0 verify gate"
+  harness_status = "HARNESS WRITTEN 2026-05-24 (M3.ECON closed-form audit surface, NOT yet a verdict) — verify/numerics_economics_empirical_landing.hexa modelled on verify/numerics_economics_pareto_floor.hexa commit 5bbb9ad T1/BLUE structure. 10 closed-form checks · math_pure (log_pure + pow_pure + abs_pure) · no inference · no API · no subprocess. Theoretical exponents pulled from numerics_economics_scaling_laws.hexa (N6_EXP_TRAIN = 24/25, TAU_INFER = 4); residual gate ε = 0.10. Literal STAGE2_ACCURACY_0_5B row is HONEST cycle-6 input (per-stratum max{persona}, mean = 0.3667); 1.5B/3B/7B are explicit -1 PENDING_M2_SUBSTRATE_VERDICT sentinels. fit_exponent() requires k ≥ 2 valid (x, y) pairs; with k_active = 1 today both F-CODEX-1 and F-CODEX-2 fits return NAN_SLOPE → verdict 🟠 INSUFFICIENT (exit 0, honest-defer per g5). Placeholder verdict at .verdicts/sandbox/m3_econ_empirical_landing.txt marks status=harness-written-not-yet-empirical. SANDBOX.md M3.ECON checkbox STAYS [ ] — flips only when k_active == 4 AND both residuals ≤ ε=0.10 (separate later commit). Same family as cycle-7 d_activation_capture_pipeline (PARTIAL: interface ships, downstream gate honest) and cycle-8 d_slo_under_load (harness_only: script ships, verdict deferred)."
+  m3_econ_state = "SANDBOX.md M3.ECON checkbox STAYS [ ] — harness ships and 0.5B baseline row reconciles to cycle-6 verdict; the M3.ECON empirical-landing gate flips only when k_active == 4 (all 4 ladder rungs measured) AND both F-CODEX-1/2 residuals ≤ ε. Sibling M2.SUBSTRATE bench rerun on 1.5B in this cycle batch advances k_active from 1 to 2."
 
 # ── cycle-2 BLOCKED candidates revived by SANDBOX (re-inventoried with local cost_est) ──
 
@@ -386,3 +388,11 @@
 # BLOCKED_AT_PROJECT) · 8 candidates remaining. d_activation_capture_pipeline stays PARTIAL
 # (logprob path live, intermediate path now-permanently blocked at the project level until
 # a ggml-graph callback patch lands — out of scope here).
+#
+# 2026-05-24 — d_stage4_empirical_landing candidate → harness_ready (cycle-8 sibling lane,
+# M3.ECON closed-form audit surface). Harness ships at verify/numerics_economics_empirical_landing.hexa
+# (10 checks · math_pure · BLUE-tier structure mirroring numerics_economics_pareto_floor.hexa).
+# 0.5B row HONEST cycle-6 input; 1.5B/3B/7B are -1 PENDING sentinels. k_active = 1 → verdict
+# 🟠 INSUFFICIENT (exit 0). SANDBOX.md M3.ECON checkbox stays [ ] until 4-of-4 scale rungs
+# measured AND both F-CODEX-1/2 residuals ≤ ε=0.10. Same harness_only family as cycle-8
+# d_slo_under_load. Placeholder verdict at .verdicts/sandbox/m3_econ_empirical_landing.txt.

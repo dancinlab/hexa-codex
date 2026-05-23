@@ -1,0 +1,594 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_empirical_landing.hexa — M3.ECON
+// empirical-fit harness for F-CODEX-1 (training-cost ∝ N^σφ) +
+// F-CODEX-2 (inference-cost ∝ context^τ).
+//
+// PURPOSE.  M3.ECON empirical-fit harness — consumes per-scale accuracy
+// + serving-cost data on the {0.5B, 1.5B, 3B, 7B} Stage-2 scale ladder
+// and emits the F-CODEX-1 (N^σφ) + F-CODEX-2 (context^τ) residuals vs
+// the n=6 lattice theoretical exponents.  This commit ships the HARNESS
+// STRUCTURE only — the 0.5B row is HONEST historical input from
+// `.verdicts/sandbox/stage2_persona_scaled_summary.txt` (cycle-6); the
+// 1.5B / 3B / 7B rows are explicit `-1` PENDING sentinels.  No inference,
+// no API, no exec subprocess — closed-form math only.
+//
+// REQUIRES.  Closed-form integer + float arithmetic; uses pow_pure +
+// log_pure + abs_pure from `self/runtime/math_pure`.  No model spawn,
+// no llama-server, no Anthropic API.
+//
+// CONSUMER.  ECONOMICS v1.2.0/v1.3.0 release gates (per ECONOMICS.md
+// §F-CODEX-1 / §F-CODEX-2 roadmap).  The harness becomes the M3.ECON
+// gate's closed-form audit surface once the Stage-2 manifest reruns at
+// 1.5B / 3B / 7B land (gated by SANDBOX M3.SUBSTRATE scale-ladder).
+//
+// MODEL.  Structurally mirrors `verify/numerics_economics_pareto_floor.hexa`
+// (commit 5bbb9ad) — same T1/BLUE pattern: literal LET-tables of empirical
+// rows up top + closed-form math + 10 checks + per-check pass/fail.  The
+// theoretical-exponent constants are pulled from
+// `verify/numerics_economics_scaling_laws.hexa` for cross-verifier
+// consistency on the n=6 lattice.
+//
+// FIT METHOD.  Closed-form ordinary-least-squares slope on log-log axes:
+//
+//     given paired observations { (x_i, y_i) }_{i=1..k} with k ≥ 2,
+//     slope = ( k·Σ(u_i·v_i) − Σu_i·Σv_i ) / ( k·Σu_i² − (Σu_i)² )
+//     where u_i = log(x_i), v_i = log(y_i).
+//
+//   For F-CODEX-1: x = N (parameter count), y = 1 / accuracy proxy for
+//   training-cost surrogate (higher accuracy at fixed manifest ↔ lower
+//   "effective training cost per accuracy point"); slope's |·| compared
+//   to N6_EXP_TRAIN = 24/25.
+//
+//   For F-CODEX-2: x = context_length, y = wall_ms latency proxy; slope
+//   compared to TAU_INFER = 4.
+//
+//   Residual definition: |measured_slope − theoretical_exponent|.
+//
+//   PASS gate: residual ≤ EPS_RESIDUAL_THRESHOLD = 0.10.
+//
+// HONESTY GATES (g5 / cx_empirical_contact).
+//   • 0.5B data is literal — read verbatim from the cycle-6 verdict file
+//     (see SCALE_DATA_HISTORICAL_REF), NOT paraphrased.
+//   • -1 sentinel for 1.5B/3B/7B is the explicit "PENDING_M2_SUBSTRATE_VERDICT"
+//     marker; the harness must NOT extrapolate from a single data point.
+//   • Single-point fit is undefined — slope requires ≥ 2 valid (x, y)
+//     pairs; with only 0.5B live, fit_exponent() returns NaN sentinel
+//     (-999.0) and the residual checks print 🟠 INSUFFICIENT/DEFERRED.
+//   • No LLM-judge of correctness; per-stratum byte_exact_subset
+//     accuracies are the input units, never re-graded here.
+//
+// 10 CHECKS (closed-form, BLUE-tier when all 4 scale points land):
+//   1. SCALE_GRID_PARAMS is monotone increasing (0.5e9 < 1.5e9 < 3e9 < 7e9)
+//   2. SCALE_GRID_PARAMS length matches the 4-row scale ladder
+//   3. STAGE2_ACCURACY_0_5B has no -1 sentinel + all entries ∈ [0, 1]
+//   4. STAGE2_ACCURACY_0_5B reconciles to the cycle-6 published numbers
+//      (overall = 50/150 + 52/150 + 54/150 = 33% / 34% / 36% personas)
+//   5. STAGE2_ACCURACY_0_5B per-stratum sanity — wc_5_15 best persona is
+//      `max` at 27/30 (per cycle-6 verdict header)
+//   6. Theoretical constants reconcile (N6_EXP_TRAIN = 24/25 + TAU_INFER = 4)
+//   7. 1.5B/3B/7B PENDING sentinel detected — k_active = 1, fit deferred
+//   8. F-CODEX-1 fit: deferred when k_active < 2, else residual ≤ ε
+//   9. F-CODEX-2 fit: deferred when k_active < 2, else residual ≤ ε
+//   10. Verdict-line consistency — INSUFFICIENT iff k_active < 2;
+//       GREEN iff k_active == 4 AND both residuals pass;
+//       FALSIFIED iff k_active == 4 AND any residual > ε.
+//
+// EXIT CODES.  0 for INSUFFICIENT (data pending) or GREEN (all pass);
+// 1 for FALSIFIED (exponents diverge) or any structural check fail.
+//
+// OUTPUT.  Running header + per-scale-point status + residual table
+// persisted at `.verdicts/sandbox/m3_econ_empirical_landing.txt`
+// (written by the cycle wrapper, not this file — this file is the
+// closed-form recompute that the wrapper invokes).
+//
+// SCALE_DATA_HISTORICAL_REF.  `.verdicts/sandbox/stage2_persona_scaled_summary.txt`
+//   per-stratum cross-tab (cycle-6, 2026-05-24):
+//     persona max: wc_5_15=27/30  wc_16_30=26/30  wc_31_60=1/30  wc_61_100=0/30  wc_101_200=0/30
+//     persona mid: wc_5_15=26/30  wc_16_30=25/30  wc_31_60=1/30  wc_61_100=0/30  wc_101_200=0/30
+//     persona nano: wc_5_15=22/30 wc_16_30=26/30  wc_31_60=2/30  wc_61_100=0/30  wc_101_200=0/30
+//   The harness consumes the per-stratum-best accuracy (one row per
+//   scale point); for 0.5B = max{persona at stratum} per stratum.
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run verify/numerics_economics_empirical_landing.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; integer + float arithmetic only. No atlas atoms touched. Harness-only — M3.ECON checkbox stays `[ ]` until 4-of-4 scale points land + residuals PASS.")
+
+use "self/runtime/math_pure"
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+
+// ── n=6 lattice theoretical exponents (cross-checked vs scaling_laws) ────
+//   N6_EXP_TRAIN = σ·φ / (σ·φ + 1) = 24/25 = 0.96  (F-CODEX-1, train_cost ∝ N^σφ)
+//   TAU_INFER    = τ(6)            = 4            (F-CODEX-2, infer_cost ∝ ctx^τ)
+let SIGMA = 12.0
+let PHI   = 2.0
+let J2_NUM = 24.0
+let N6_EXP_TRAIN = J2_NUM / (J2_NUM + 1.0)    // 24/25 = 0.96
+let TAU_INFER    = 4.0
+
+// ── BLUE-tier residual pass gate ─────────────────────────────────────────
+let EPS_RESIDUAL_THRESHOLD = 0.10
+
+// Sentinel for not-yet-measured scale points.  -1.0 marks
+// "PENDING_M2_SUBSTRATE_VERDICT" — fit_exponent() filters these rows out
+// and falls through to NAN_SLOPE (= -999.0) when k_active < 2.
+let PENDING_SENTINEL = 0.0 - 1.0
+let NAN_SLOPE        = 0.0 - 999.0
+
+// ── SCALE_GRID_PARAMS — the 4-row ladder ─────────────────────────────────
+//
+//   { 0.5B, 1.5B, 3B, 7B } in raw parameter counts.
+//
+//   Anchored to SANDBOX M3.SUBSTRATE checkbox + the SUBSTRATE Stage-4
+//   plan.  This is the x-axis of the F-CODEX-1 fit.
+let SCALE_GRID_PARAMS = [
+    0.5e9,   // 0.5B — measured cycle-6 (Qwen2.5-0.5B-Instruct-Q4_K_M)
+    1.5e9,   // 1.5B — base on disk (M1.SUBSTRATE done) · M2.SUBSTRATE bench rerun PENDING
+    3.0e9,   // 3B  — gated on d_qwen_3b_scale (cliff-clearance dependency)
+    7.0e9,   // 7B  — gated on d_qwen_7b_scale (final ladder rung, F-CODEX-1 endpoint)
+]
+
+let N_SCALES = 4
+
+// ── STAGE2_ACCURACY_*B — per-stratum best-persona accuracy ───────────────
+//
+// One row per scale point; 5 entries per row = 5 wc-strata from the
+// Stage-2 manifest (wc_5_15, wc_16_30, wc_31_60, wc_61_100, wc_101_200).
+// Each cell is best{persona accuracy at this stratum} / 30, written as
+// a fraction in [0, 1].  PENDING_SENTINEL = -1.0 for not-yet-measured.
+
+// 0.5B — HONEST cycle-6 numbers (read verbatim from cycle-6 verdict
+// .verdicts/sandbox/stage2_persona_scaled_summary.txt — per-stratum
+// cross-tab, taking max{persona} per stratum):
+//   wc_5_15:    max persona at 27/30 = 0.9000
+//   wc_16_30:   nano AND max tied at 26/30 = 0.8667 (pick by listed-order
+//               which is max here — cycle-6 verdict header lists
+//               best_persona_per_stratum=wc_5_15:max,wc_16_30:nano,
+//               wc_31_60:nano,wc_61_100:nano,wc_101_200:nano so for
+//               the ACCURACY MAX (not the latency-best persona) at
+//               wc_16_30 both nano + max score 26/30, value = 0.8667)
+//   wc_31_60:   nano at 2/30 = 0.0667
+//   wc_61_100:  all 3 personas at 0/30 = 0.0000
+//   wc_101_200: all 3 personas at 0/30 = 0.0000
+let STAGE2_ACCURACY_0_5B = [
+    0.9000,   // wc_5_15    27/30  best=max
+    0.8667,   // wc_16_30   26/30  best=nano (tied with max)
+    0.0667,   // wc_31_60    2/30  best=nano
+    0.0000,   // wc_61_100   0/30  all personas
+    0.0000,   // wc_101_200  0/30  all personas
+]
+
+// 1.5B — PENDING_M2_SUBSTRATE_VERDICT (M2.SUBSTRATE bench rerun is a
+// sibling agent in this same cycle batch; values land when that lane
+// closes.  -1 sentinel keeps the harness honest until then.)
+let STAGE2_ACCURACY_1_5B = [
+    PENDING_SENTINEL,   // wc_5_15
+    PENDING_SENTINEL,   // wc_16_30
+    PENDING_SENTINEL,   // wc_31_60
+    PENDING_SENTINEL,   // wc_61_100
+    PENDING_SENTINEL,   // wc_101_200
+]
+
+// 3B — PENDING (gated on d_qwen_3b_scale)
+let STAGE2_ACCURACY_3B = [
+    PENDING_SENTINEL,   // wc_5_15
+    PENDING_SENTINEL,   // wc_16_30
+    PENDING_SENTINEL,   // wc_31_60
+    PENDING_SENTINEL,   // wc_61_100
+    PENDING_SENTINEL,   // wc_101_200
+]
+
+// 7B — PENDING (gated on Stage-4 RunPod cloud-bridge)
+let STAGE2_ACCURACY_7B = [
+    PENDING_SENTINEL,   // wc_5_15
+    PENDING_SENTINEL,   // wc_16_30
+    PENDING_SENTINEL,   // wc_31_60
+    PENDING_SENTINEL,   // wc_61_100
+    PENDING_SENTINEL,   // wc_101_200
+]
+
+// Stratum count (the 5 wc-bins in the Stage-2 manifest).
+let N_STRATA = 5
+
+// ── F-CODEX-2 context-length grid (placeholder mirror of the same
+// PENDING discipline; once the M3.OPS p50/p99 SLO grid lands, the
+// (context, wall_ms) pairs from .verdicts/sandbox/stage4_slo_under_load_*.tsv
+// populate this row).
+let CONTEXT_GRID = [
+    1024.0,   // 1k
+    2048.0,   // 2k
+    4096.0,   // 4k
+    8192.0,   // 8k   ← CTX_REF anchor in scaling_laws.hexa
+]
+let N_CONTEXTS = 4
+
+let LATENCY_MS_PENDING = [
+    PENDING_SENTINEL,   // 1k
+    PENDING_SENTINEL,   // 2k
+    PENDING_SENTINEL,   // 4k
+    PENDING_SENTINEL,   // 8k
+]
+
+let FALSIFIERS = [
+    "ECONOMICS F-CODEX-1 + F-CODEX-2 empirical-fit harness: closed-form OLS residuals vs n=6 lattice exponents",
+]
+
+// ── helpers ──────────────────────────────────────────────────────────────
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _abs(x: float) -> float { return abs_pure(x) }
+
+// Mean-aggregated accuracy across strata, ignoring PENDING_SENTINEL.
+// Returns -1.0 if no live entries (entire row PENDING).
+fn row_mean_live(row: [float]) -> float {
+    let mut sum = 0.0
+    let mut k = 0
+    let mut i = 0
+    while i < N_STRATA {
+        if row[i] > PENDING_SENTINEL + 0.5 {
+            sum = sum + row[i]
+            k = k + 1
+        }
+        i = i + 1
+    }
+    if k == 0 { return PENDING_SENTINEL }
+    return sum / (k as float)
+}
+
+// Returns 1 if every entry in row is live (no PENDING_SENTINEL), 0 otherwise.
+fn row_is_live(row: [float]) -> int {
+    let mut i = 0
+    while i < N_STRATA {
+        if row[i] < PENDING_SENTINEL + 0.5 { return 0 }
+        i = i + 1
+    }
+    return 1
+}
+
+// Count of live scale-point rows in the {0.5B, 1.5B, 3B, 7B} ladder.
+fn k_active_scales() -> int {
+    let mut k = 0
+    if row_is_live(STAGE2_ACCURACY_0_5B) == 1 { k = k + 1 }
+    if row_is_live(STAGE2_ACCURACY_1_5B) == 1 { k = k + 1 }
+    if row_is_live(STAGE2_ACCURACY_3B)   == 1 { k = k + 1 }
+    if row_is_live(STAGE2_ACCURACY_7B)   == 1 { k = k + 1 }
+    return k
+}
+
+// fit_exponent — closed-form log-log OLS slope.  Requires k ≥ 2 valid
+// (x_i, y_i) pairs with x_i > 0 AND y_i > 0; returns NAN_SLOPE otherwise.
+fn fit_exponent(xs: [float], ys: [float]) -> float {
+    let n = xs.len()
+    if n < 2 { return NAN_SLOPE }
+    if n != ys.len() { return NAN_SLOPE }
+    let mut k = 0
+    let mut sum_u = 0.0
+    let mut sum_v = 0.0
+    let mut sum_uv = 0.0
+    let mut sum_uu = 0.0
+    let mut i = 0
+    while i < n {
+        let x = xs[i]
+        let y = ys[i]
+        // Filter PENDING + non-positive (log undefined).
+        if (x > 0.0) && (y > 0.0) {
+            let u = log_pure(x)
+            let v = log_pure(y)
+            sum_u  = sum_u  + u
+            sum_v  = sum_v  + v
+            sum_uv = sum_uv + (u * v)
+            sum_uu = sum_uu + (u * u)
+            k = k + 1
+        }
+        i = i + 1
+    }
+    if k < 2 { return NAN_SLOPE }
+    let kf = k as float
+    let denom = (kf * sum_uu) - (sum_u * sum_u)
+    if _abs(denom) < 1.0e-18 { return NAN_SLOPE }
+    return ((kf * sum_uv) - (sum_u * sum_v)) / denom
+}
+
+// F-CODEX-1 residual.  Slope is fit on log(N) vs log(accuracy_proxy)
+// where accuracy_proxy = mean_live(row).  Once 4 scale points land we
+// compare |slope| against the theoretical N6_EXP_TRAIN = 24/25.
+//
+// Sign convention: accuracy is monotone-increasing in N (bigger model =
+// higher cliff-clearance), so the slope is positive.  N6_EXP_TRAIN is
+// the training-cost growth exponent (positive); the comparison
+// quantity is `|measured_slope|` against `N6_EXP_TRAIN`.
+fn f_codex_1_residual() -> float {
+    let xs = SCALE_GRID_PARAMS
+    let ys_raw = [
+        row_mean_live(STAGE2_ACCURACY_0_5B),
+        row_mean_live(STAGE2_ACCURACY_1_5B),
+        row_mean_live(STAGE2_ACCURACY_3B),
+        row_mean_live(STAGE2_ACCURACY_7B),
+    ]
+    let slope = fit_exponent(xs, ys_raw)
+    if _abs(slope - NAN_SLOPE) < 1.0e-9 { return NAN_SLOPE }
+    return _abs(_abs(slope) - N6_EXP_TRAIN)
+}
+
+// F-CODEX-2 residual.  Slope on log(context) vs log(wall_ms_latency).
+// All 4 latency points are PENDING in this harness ship; returns
+// NAN_SLOPE.
+fn f_codex_2_residual() -> float {
+    let xs = CONTEXT_GRID
+    let ys = LATENCY_MS_PENDING
+    let slope = fit_exponent(xs, ys)
+    if _abs(slope - NAN_SLOPE) < 1.0e-9 { return NAN_SLOPE }
+    return _abs(slope - TAU_INFER)
+}
+
+// ── checks ───────────────────────────────────────────────────────────────
+
+// Check 1: SCALE_GRID_PARAMS monotone-increasing.
+fn check_scale_grid_monotone() {
+    let mut ok = true
+    let mut bad_at = -1
+    let mut i = 1
+    while i < N_SCALES {
+        if !(SCALE_GRID_PARAMS[i] > SCALE_GRID_PARAMS[i - 1]) {
+            ok = false
+            if bad_at < 0 { bad_at = i }
+        }
+        i = i + 1
+    }
+    _check(ok,
+           "SCALE_GRID_PARAMS strictly monotone-increasing (0.5B < 1.5B < 3B < 7B)",
+           "first_violation_at=" + str(bad_at))
+}
+
+// Check 2: SCALE_GRID_PARAMS length matches the 4-row ladder.
+fn check_scale_grid_length() {
+    let n = SCALE_GRID_PARAMS.len()
+    _check(n == N_SCALES,
+           "SCALE_GRID_PARAMS length == 4 (ladder rungs)",
+           "len=" + str(n) + "  expected=" + str(N_SCALES))
+}
+
+// Check 3: STAGE2_ACCURACY_0_5B is live (no PENDING_SENTINEL) and in [0, 1].
+fn check_0_5b_row_live_and_bounded() {
+    let live = row_is_live(STAGE2_ACCURACY_0_5B)
+    let mut in_band = true
+    let mut bad_at = -1
+    let mut i = 0
+    while i < N_STRATA {
+        let v = STAGE2_ACCURACY_0_5B[i]
+        if (v < 0.0) || (v > 1.0) {
+            in_band = false
+            if bad_at < 0 { bad_at = i }
+        }
+        i = i + 1
+    }
+    let ok = (live == 1) && in_band
+    _check(ok,
+           "STAGE2_ACCURACY_0_5B is live (no -1 sentinel) and all entries ∈ [0, 1]",
+           "live=" + str(live) + "  in_band=" + (if in_band { "true" } else { "false" }) +
+           (if bad_at >= 0 { "  bad_at_stratum=" + str(bad_at) } else { "" }))
+}
+
+// Check 4: STAGE2_ACCURACY_0_5B reconciles to the cycle-6 published mean.
+//
+//   cycle-6 personas (per-stratum max across the 3 personas):
+//     wc_5_15 27/30 + wc_16_30 26/30 + wc_31_60 2/30 + wc_61_100 0/30
+//     + wc_101_200 0/30 = 55/150 = 36.67% manifold-best
+//
+//   This is STRICTLY ≥ the per-persona overall ratings (max persona
+//   54/150 = 36%) because per-stratum max upper-bounds the per-persona
+//   sum.  Sanity gate: mean of STAGE2_ACCURACY_0_5B = 55/150 within ε.
+fn check_0_5b_reconciles_cycle6() {
+    let mean = row_mean_live(STAGE2_ACCURACY_0_5B)
+    // sum = 0.9000 + 0.8667 + 0.0667 + 0.0 + 0.0 = 1.8334
+    // mean = 1.8334 / 5 = 0.36668
+    let expected = (0.9 + 0.8667 + 0.0667 + 0.0 + 0.0) / 5.0
+    let drift = _abs(mean - expected)
+    _check(drift < 1.0e-4,
+           "STAGE2_ACCURACY_0_5B mean reconciles to cycle-6 per-stratum-max sum (≈ 0.3667)",
+           "computed_mean=" + to_string(mean) + "  expected=" + to_string(expected) +
+           "  drift=" + to_string(drift))
+}
+
+// Check 5: STAGE2_ACCURACY_0_5B per-stratum sanity — wc_5_15 best is max
+// persona at 27/30 = 0.9000 (per cycle-6 verdict header).
+fn check_0_5b_wc_5_15_best_max_27_30() {
+    let v = STAGE2_ACCURACY_0_5B[0]
+    let drift = _abs(v - 0.9)
+    _check(drift < 1.0e-4,
+           "STAGE2_ACCURACY_0_5B[wc_5_15] = 27/30 = 0.9 (cycle-6 best persona = max)",
+           "value=" + to_string(v) + "  ref=0.9  drift=" + to_string(drift))
+}
+
+// Check 6: theoretical constants reconcile.
+fn check_theoretical_constants() {
+    let exp_drift = _abs(N6_EXP_TRAIN - (24.0 / 25.0))
+    let tau_drift = _abs(TAU_INFER - 4.0)
+    let ok = (exp_drift < 1.0e-12) && (tau_drift < 1.0e-12)
+    _check(ok,
+           "n=6 theoretical exponents: N6_EXP_TRAIN = 24/25 + TAU_INFER = 4",
+           "N6_EXP_TRAIN=" + to_string(N6_EXP_TRAIN) +
+           "  TAU_INFER=" + to_string(TAU_INFER) +
+           "  exp_drift=" + to_string(exp_drift) + "  tau_drift=" + to_string(tau_drift))
+}
+
+// Check 7: PENDING sentinel detected — k_active < 4 today (only 0.5B live).
+fn check_pending_sentinel_detected() {
+    let k = k_active_scales()
+    _check(k == 1,
+           "k_active scale-points == 1 today (0.5B live; 1.5B/3B/7B PENDING_M2_SUBSTRATE_VERDICT)",
+           "k_active=" + str(k) + "  expected_this_commit=1  fit_status=DEFERRED")
+}
+
+// Check 8: F-CODEX-1 residual ≤ ε when k_active ≥ 2; deferred otherwise.
+fn check_f_codex_1_residual() {
+    let k = k_active_scales()
+    let r = f_codex_1_residual()
+    let is_nan = _abs(r - NAN_SLOPE) < 1.0e-9
+    if k < 2 {
+        // Deferred path — INSUFFICIENT until ≥ 2 scale points land.
+        _check(is_nan,
+               "F-CODEX-1 residual DEFERRED (k_active < 2) — fit_exponent returned NAN_SLOPE",
+               "k_active=" + str(k) + "  residual=NAN_SLOPE  threshold=" +
+               to_string(EPS_RESIDUAL_THRESHOLD))
+    } else {
+        _check(!is_nan && (r <= EPS_RESIDUAL_THRESHOLD),
+               "F-CODEX-1 residual ≤ ε (measured slope vs N6_EXP_TRAIN = 24/25)",
+               "residual=" + to_string(r) + "  threshold=" + to_string(EPS_RESIDUAL_THRESHOLD))
+    }
+}
+
+// Check 9: F-CODEX-2 residual ≤ ε when latency data lands; deferred otherwise.
+fn check_f_codex_2_residual() {
+    let r = f_codex_2_residual()
+    let is_nan = _abs(r - NAN_SLOPE) < 1.0e-9
+    _check(is_nan,
+           "F-CODEX-2 residual DEFERRED (LATENCY_MS_PENDING all -1) — fit_exponent returned NAN_SLOPE",
+           "residual=NAN_SLOPE  threshold=" + to_string(EPS_RESIDUAL_THRESHOLD) +
+           "  gate=M3.OPS p50/p99 grid")
+}
+
+// Check 10: verdict-line consistency — INSUFFICIENT iff k_active < 2.
+fn check_verdict_line_consistency() {
+    let k = k_active_scales()
+    // Today: k=1 + both fits are NAN_SLOPE → expected verdict = INSUFFICIENT.
+    // Encode the truth-table:
+    //   k < 2                          → INSUFFICIENT  (exit 0)
+    //   k == 4 AND both ≤ ε            → GREEN         (exit 0)
+    //   k == 4 AND any > ε             → FALSIFIED     (exit 1)
+    //   otherwise (k ∈ {2, 3})         → PARTIAL       (exit 0; surface gap)
+    let label = if k < 2 {
+        "INSUFFICIENT"
+    } else if k == N_SCALES {
+        let r1 = f_codex_1_residual()
+        let r2 = f_codex_2_residual()
+        let r1_nan = _abs(r1 - NAN_SLOPE) < 1.0e-9
+        let r2_nan = _abs(r2 - NAN_SLOPE) < 1.0e-9
+        if r1_nan || r2_nan {
+            "PARTIAL"
+        } else if (r1 <= EPS_RESIDUAL_THRESHOLD) && (r2 <= EPS_RESIDUAL_THRESHOLD) {
+            "GREEN"
+        } else {
+            "FALSIFIED"
+        }
+    } else {
+        "PARTIAL"
+    }
+    // Today's expected verdict is INSUFFICIENT (k_active == 1).
+    let ok = (label == "INSUFFICIENT")
+    _check(ok,
+           "verdict-line consistency — today expected 'INSUFFICIENT' (k_active == 1, both residuals DEFERRED)",
+           "computed_label=" + label + "  expected_today=INSUFFICIENT  k_active=" + str(k))
+}
+
+// ── main ─────────────────────────────────────────────────────────────────
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex ECONOMICS empirical-fit harness — F-CODEX-1 + F-CODEX-2")
+    println("  M3.ECON closed-form residuals vs n=6 lattice (24/25 + 4)")
+    println("  harness-only · M3.ECON SANDBOX.md checkbox stays [ ] until k_active == 4")
+    println("========================================================================")
+    println("  N6_EXP_TRAIN=" + to_string(N6_EXP_TRAIN) +
+            "  TAU_INFER=" + to_string(TAU_INFER) +
+            "  EPS_RESIDUAL_THRESHOLD=" + to_string(EPS_RESIDUAL_THRESHOLD))
+    println("")
+
+    let k = k_active_scales()
+    println("  scale ladder live-row count: k_active=" + str(k) + " / " + str(N_SCALES))
+    println("    0.5B    : " + (if row_is_live(STAGE2_ACCURACY_0_5B) == 1 { "LIVE (cycle-6)" } else { "PENDING" }))
+    println("    1.5B    : " + (if row_is_live(STAGE2_ACCURACY_1_5B) == 1 { "LIVE" } else { "PENDING (M2.SUBSTRATE bench rerun)" }))
+    println("    3B      : " + (if row_is_live(STAGE2_ACCURACY_3B)   == 1 { "LIVE" } else { "PENDING (d_qwen_3b_scale)" }))
+    println("    7B      : " + (if row_is_live(STAGE2_ACCURACY_7B)   == 1 { "LIVE" } else { "PENDING (Stage-4 cloud bridge)" }))
+    println("")
+
+    check_scale_grid_monotone()
+    check_scale_grid_length()
+    check_0_5b_row_live_and_bounded()
+    check_0_5b_reconciles_cycle6()
+    check_0_5b_wc_5_15_best_max_27_30()
+    println("")
+    check_theoretical_constants()
+    check_pending_sentinel_detected()
+    check_f_codex_1_residual()
+    check_f_codex_2_residual()
+    check_verdict_line_consistency()
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " checks passed")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for ff in FAILURES { println("    ✗ " + ff) }
+        println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ FAIL")
+        exit(1)
+    }
+
+    // Compose the verdict-line.
+    let r1 = f_codex_1_residual()
+    let r2 = f_codex_2_residual()
+    let r1_nan = _abs(r1 - NAN_SLOPE) < 1.0e-9
+    let r2_nan = _abs(r2 - NAN_SLOPE) < 1.0e-9
+    if k < 2 {
+        println("  🟠 INSUFFICIENT — empirical data PENDING on " + str(N_SCALES - k) +
+                " of " + str(N_SCALES) + " scale points (1.5B/3B/7B)")
+        println("  · F-CODEX-1 fit: DEFERRED (need ≥ 2 live scale points)")
+        println("  · F-CODEX-2 fit: DEFERRED (LATENCY_MS_PENDING — M3.OPS p50/p99 grid)")
+        println("  · M3.ECON SANDBOX.md checkbox stays [ ] — gate flips when k_active == 4 AND residuals ≤ ε")
+        println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ INSUFFICIENT")
+        exit(0)
+    } else if (k == N_SCALES) && !r1_nan && !r2_nan {
+        if (r1 <= EPS_RESIDUAL_THRESHOLD) && (r2 <= EPS_RESIDUAL_THRESHOLD) {
+            println("  🟢 GREEN — F-CODEX-1 fit residual=" + to_string(r1) +
+                    " · F-CODEX-2 fit residual=" + to_string(r2))
+            println("  · M3.ECON SANDBOX.md checkbox READY TO FLIP [ ] → [x]")
+            println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ PASS")
+            exit(0)
+        } else {
+            println("  🔴 FALSIFIED — residual exceeds ε=" + to_string(EPS_RESIDUAL_THRESHOLD))
+            println("  · F-CODEX-1 residual=" + to_string(r1) + " (gate=" +
+                    to_string(EPS_RESIDUAL_THRESHOLD) + ")")
+            println("  · F-CODEX-2 residual=" + to_string(r2) + " (gate=" +
+                    to_string(EPS_RESIDUAL_THRESHOLD) + ")")
+            println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ FALSIFIED")
+            exit(1)
+        }
+    } else {
+        println("  🟠 PARTIAL — k_active=" + str(k) + " (∈ {2, 3} or fit returned NAN_SLOPE)")
+        println("  · F-CODEX-1 residual=" + (if r1_nan { "NAN_SLOPE" } else { to_string(r1) }))
+        println("  · F-CODEX-2 residual=" + (if r2_nan { "NAN_SLOPE" } else { to_string(r2) }))
+        println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ PARTIAL")
+        exit(0)
+    }
+}

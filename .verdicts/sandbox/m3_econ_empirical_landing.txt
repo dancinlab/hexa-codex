@@ -1,0 +1,43 @@
+# bench=numerics_economics_empirical_landing (M3.ECON harness, harness-only)
+# verifier=verify/numerics_economics_empirical_landing.hexa
+# model_pure=closed-form (math_pure: log_pure + pow_pure + abs_pure)
+# falsifier_class=F-CODEX-1 (train_cost ∝ N^σφ) + F-CODEX-2 (infer_cost ∝ ctx^τ)
+# n6_lattice_exponents=N6_EXP_TRAIN=24/25=0.96  TAU_INFER=4  alpha=phi/sigma=1/6
+# eps_residual_threshold=0.10
+# scale_ladder=[0.5B, 1.5B, 3B, 7B]
+# k_active=1  (only 0.5B from cycle-6)
+# k_pending=3  (1.5B M2.SUBSTRATE bench rerun, 3B d_qwen_3b_scale, 7B Stage-4 cloud bridge)
+# status=harness-written-not-yet-empirical  (M3.ECON checkbox stays [ ])
+# cost_usd=0  (no inference, no API, no subprocess — pure local math)
+#
+# stage2_accuracy_0_5b_source=.verdicts/sandbox/stage2_persona_scaled_summary.txt (cycle-6 verbatim)
+# stage2_accuracy_0_5b_per_stratum=[wc_5_15:0.9000, wc_16_30:0.8667, wc_31_60:0.0667, wc_61_100:0.0000, wc_101_200:0.0000]
+# stage2_accuracy_0_5b_mean=0.3667  (= 55/150 per-stratum-max across the 3 personas)
+# stage2_accuracy_1_5b=[PENDING, PENDING, PENDING, PENDING, PENDING]
+# stage2_accuracy_3b=[PENDING, PENDING, PENDING, PENDING, PENDING]
+# stage2_accuracy_7b=[PENDING, PENDING, PENDING, PENDING, PENDING]
+# latency_ms_per_context=[PENDING, PENDING, PENDING, PENDING]  (M3.OPS p50/p99 grid)
+#
+# 10-check skeleton (today's expected outcome on this row of the ladder):
+# check_01_scale_grid_monotone                       PASS
+# check_02_scale_grid_length_4                       PASS
+# check_03_0_5b_row_live_and_in_band                 PASS
+# check_04_0_5b_mean_reconciles_cycle6               PASS
+# check_05_0_5b_wc_5_15_max_27_30                    PASS
+# check_06_theoretical_constants_24_25_and_4         PASS
+# check_07_pending_sentinel_detected_k_active_1      PASS
+# check_08_f_codex_1_residual_DEFERRED               PASS  (k_active < 2 → NAN_SLOPE)
+# check_09_f_codex_2_residual_DEFERRED               PASS  (LATENCY_MS_PENDING)
+# check_10_verdict_line_INSUFFICIENT                 PASS
+#
+# verdict_line=🟠 INSUFFICIENT — empirical data PENDING on 3 of 4 scale points (1.5B/3B/7B)
+# exit_code=0  (INSUFFICIENT is honest-defer per g5, not a structural fail)
+#
+# m3_econ_checkbox_stays_unflipped=true  (gate flips when k_active == 4 AND residuals ≤ ε)
+# consumers=ECONOMICS v1.2.0 (F-CODEX-1) + v1.3.0 (F-CODEX-2) release gates
+# model_after=verify/numerics_economics_pareto_floor.hexa  (commit 5bbb9ad, T1/BLUE structure)
+# cross_verifier=verify/numerics_economics_scaling_laws.hexa  (theoretical n6_exp + tau constants source)
+#
+# honest_note_1=The 0.5B row is HONEST historical input from cycle-6 stage2_persona_scaled_summary.txt (per-stratum max{persona}), NOT paraphrased; -1 sentinel for 1.5B/3B/7B is explicit PENDING_M2_SUBSTRATE_VERDICT.
+# honest_note_2=fit_exponent() requires ≥ 2 valid (x, y) pairs; with k_active=1 the slope is NAN_SLOPE (-999.0) and BOTH residual checks print DEFERRED. No extrapolation is performed from a single data point.
+# honest_note_3=When 1.5B lands (sibling-agent M2.SUBSTRATE in this cycle batch), this verdict file is regenerated; when 4-of-4 land AND residuals ≤ ε=0.10, the SANDBOX.md M3.ECON checkbox flips [ ] → [x] in a separate later commit (not this one).

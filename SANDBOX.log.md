@@ -1168,3 +1168,71 @@ SAFETY interpretability work.
 Cumulative SANDBOX state: **8 confirmed** (added
 `d_activation_capture_pipeline` PARTIAL — interface-only) · 3 dead · 5
 candidates remaining.
+
+## 2026-05-24 — M3.ECON F-CODEX-1/2 empirical-fit harness shipped (closed-form, harness-only)
+
+Shipped `verify/numerics_economics_empirical_landing.hexa` — the
+M3.ECON closed-form audit surface for the F-CODEX-1 (training-cost
+`∝ N^σφ`) and F-CODEX-2 (inference-cost `∝ context^τ`) empirical
+landings. Modelled on `verify/numerics_economics_pareto_floor.hexa`
+(commit `5bbb9ad`) — same T1/BLUE structure: literal `let` tables of
+empirical rows at the top, closed-form math middle, 10 checks +
+per-check PASS/FAIL bottom. Pure `math_pure` (`log_pure`, `pow_pure`,
+`abs_pure`) — no inference, no API, no exec subprocess.
+
+Constants table (cross-checked against
+`verify/numerics_economics_scaling_laws.hexa` for n=6-lattice
+consistency):
+
+| const | value | source |
+|:------|:------|:-------|
+| `N6_EXP_TRAIN` | 24/25 = 0.96 | F-CODEX-1 — `σ·φ / (σ·φ + 1)` |
+| `TAU_INFER` | 4 | F-CODEX-2 — `τ(6) = 4` |
+| `EPS_RESIDUAL_THRESHOLD` | 0.10 | BLUE-tier pass gate |
+
+Data ladder (4 scale points × 5 wc-strata):
+
+| scale | row | state | source |
+|:------|:----|:------|:-------|
+| 0.5B | `[0.9000, 0.8667, 0.0667, 0.0000, 0.0000]` | LIVE | cycle-6 verbatim (`stage2_persona_scaled_summary.txt` per-stratum max{persona}) |
+| 1.5B | `[-1, -1, -1, -1, -1]` | PENDING | M2.SUBSTRATE bench rerun (sibling agent this cycle batch) |
+| 3B | `[-1, -1, -1, -1, -1]` | PENDING | `d_qwen_3b_scale` candidate (gated on cliff-clearance) |
+| 7B | `[-1, -1, -1, -1, -1]` | PENDING | Stage-4 RunPod cloud bridge |
+
+The `-1.0` sentinel is the explicit `PENDING_M2_SUBSTRATE_VERDICT`
+marker; `fit_exponent()` filters those rows out and returns
+`NAN_SLOPE = -999.0` when fewer than 2 valid `(x, y)` pairs survive.
+With `k_active = 1` today, both F-CODEX-1 and F-CODEX-2 fits are
+deferred → verdict-line `🟠 INSUFFICIENT — empirical data PENDING on
+3 of 4 scale points (1.5B/3B/7B)`, exit code 0 (honest-defer per g5,
+not a structural fail).
+
+10-check skeleton (today's expected outcome):
+
+```
+01  scale_grid_monotone                       PASS
+02  scale_grid_length_4                       PASS
+03  0_5b_row_live_and_in_band                 PASS
+04  0_5b_mean_reconciles_cycle6  (≈ 0.3667)   PASS
+05  0_5b_wc_5_15_max_27_30                    PASS
+06  theoretical_constants_24_25_and_4         PASS
+07  pending_sentinel_detected_k_active_1      PASS
+08  f_codex_1_residual_DEFERRED               PASS  (NAN_SLOPE)
+09  f_codex_2_residual_DEFERRED               PASS  (LATENCY_MS_PENDING)
+10  verdict_line_INSUFFICIENT                 PASS
+```
+
+Placeholder verdict file at
+`.verdicts/sandbox/m3_econ_empirical_landing.txt` marks
+`status=harness-written-not-yet-empirical`. **SANDBOX.md M3.ECON
+checkbox STAYS `[ ]`** — per the cx_empirical_contact honesty rule,
+the M3.ECON gate flips `[ ] → [x]` only when `k_active == 4` (all 4
+ladder rungs measured) AND both residuals `≤ ε = 0.10`. The sibling
+M2.SUBSTRATE bench rerun on the 1.5B base in this cycle batch
+advances `k_active` from 1 to 2 (still INSUFFICIENT, but begins the
+fit), and downstream Stage-4 work fills 3B/7B.
+
+`.discoveries/sandbox.tape` `d_stage4_empirical_landing` flipped
+`candidate → harness_ready` (same family as cycle-7
+`d_activation_capture_pipeline` PARTIAL and cycle-8
+`d_slo_under_load` `harness_only`). Cost $0, wall <1 s.

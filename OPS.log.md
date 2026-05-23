@@ -6,6 +6,37 @@
 
 ---
 
+## 2026-05-24 — SANDBOX server-mode unlocks OPS SLO measurement (substrate cross-link)
+
+SANDBOX (per `SANDBOX.md` §Sibling domains) is now registered as the
+shared empirical-contact substrate for the OPS group. OPS's declared
+falsifier class in `OPS.md` — "SLO checks — deployment-tier recipes,
+tool-use service-level objectives, eval-handoff schema conformance" —
+cannot execute on the external `claude --bare -p` surface, which
+hides the serving process and the scheduler. SLO measurement needs a
+serving process *we own*.
+
+Cycle-6 evidence (commit `24c8218`) that SANDBOX server-mode is the
+substrate-side mechanism for OPS-style throughput / latency / batch
+SLO work:
+
+| candidate | verdict | numbers (verbatim from verdict file) |
+|:---|:---|:---|
+| `d_kv_prefix_share_persistent` | confirmed | `warm_server_with_prefix` vs `cold_cli` = **89.71%** wall reduction; `warm_server_with_prefix_total_wall_ms=10142`, `cold_cli_total_wall_ms=98594`, accuracy parity (17/20 ≥ 16/20) — `stage4_kvprefix_persistent_summary.txt` |
+| `d_continuous_batching_server` | confirmed | `np4_speedup_vs_np1_pct=30.65`, `np4_batch_wall_ms=10068`, `np1_batch_wall_ms=14518`, `accuracy_preserved=true` — `stage4_continuous_batching_summary.txt`. **Honest:** cycle-1's 50%-discount target NOT reached (`beats_cycle1_batch_amortized_50pct=false`); `np8` 27.9% slower than np4 (UMA-saturated on 16GB) |
+
+OPS gates that SANDBOX now unblocks (derived from OPS.md falsifier
+class, not fabricated): p50/p99 latency SLO sweep at `-np ∈ {1,2,4,8}`
+× Stage-2 N=2000 manifest · throughput frontier (tok/s) vs concurrency
+· tool-use loop overhead · queue-depth backpressure · eval-handoff
+schema conformance via the `--json-schema` substrate surface
+(cycle-6 commit `b72567f` proved exposed).
+
+The substrate-only-surface framing matches SAFETY's cross-link
+(2026-05-24, commit `a233bff`) and ECONOMICS's cross-link (2026-05-24,
+commit `8e8d1a2`). SANDBOX is the codex's `cx_empirical_contact` gate
+made physical — one substrate, every domain's T4 claims.
+
 ## 2026-05-23 — domain doc opened
 
 `OPS.md` / `OPS.log.md` created in the per-domain root-SSOT restructure

@@ -1,0 +1,127 @@
+==============================================================================
+  ECONOMICS Pareto $/task floor — closed-form lower bound (T_BLUE)
+  20-task manifest · canonical 2-tier router within-ε of analytic floor
+==============================================================================
+
+# floor_cost_usd=0.0567804
+# length2_cost_usd=0.0581707
+# baseline_cost_usd=0.319375
+# floor_saving_pct=82.2214
+# 2tier_saving_pct=81.7861
+# gap_pp=0.4353
+# 2tier_within_eps_of_floor=true   (ε = 1.0 pp, observed gap = 0.44 pp)
+
+CONSTRUCTION.  Given strategies S = {baseline (opus×20), length3 (3-tier:
+haiku/sonnet/opus), length2 (2-tier: sonnet/opus)} and per-(strategy, task)
+measurements from .verdicts/economics-routing-savings/2tier.tsv,
+
+    floor_i  =  min { cost(s, i)  |  s ∈ S  and  correct(s, i) = 1 }
+    floor    =  Σ_{i=1..20} floor_i
+
+floor is a strict lower bound on any router operating in S at 20/20
+accuracy: any 20/20 router on task i picks some s* with correct(s*, i) = 1,
+so its per-task cost is ≥ floor_i; summing preserves the inequality.
+The floor is TIGHT — the witness assignment {T_i} achieving floor_i for
+all i is constructed explicitly in verify/numerics_economics_pareto_floor.hexa
+(FLOOR_TIER_IDX table, lines 153-176).
+
+NUMERICAL RESULT.
+
+  baseline (opus×20)        : $0.319375    (reference, 19/20 — baseline
+                                            missed task 14 with "{1,2,3}")
+  length3  (haiku/son/opus) : $0.079218    saving=75.20%  20/20
+  length2  (sonnet/opus)    : $0.058171    saving=81.79%  20/20   ← canonical
+  floor    (argmin-witness) : $0.056780    saving=82.22%  20/20   ← Pareto floor
+
+  absolute $ gap   :  length2 − floor = $0.001390  (over 20 tasks)
+  saving gap       :  floor − length2 = 0.44 pp
+  within-ε verdict :  TRUE at ε = 1.0 pp  (canonical 2-tier is 0.44pp from floor)
+
+WITNESS DISTRIBUTION (FLOOR_TIER_IDX).
+  length2 chosen on 13 / 20 tasks   (tasks 1, 3-12, 17, 18)
+  length3 chosen on  7 / 20 tasks   (tasks 2, 13-16, 19, 20)
+  baseline chosen on 0 / 20 tasks   (always-opus is never cheapest at 20/20)
+
+INTERPRETATION.
+  • The canonical 2-tier length router (length2) captures 99.5% of the
+    achievable saving on this manifest — only $0.00139 / 20 tasks of room
+    remains under the strongest closed-form floor we can construct from
+    the strategies actually sampled.
+  • The remaining 7 tasks where length3 is cheaper than length2 are all
+    "borderline" prompts where the 3-tier router happened to dispatch
+    haiku and saved $0.00005-$0.00076 each (mostly stochastic noise:
+    same-tier, slightly fewer output tokens on a particular call).
+  • The 0.44 pp gap is below per-call sonnet/haiku stochastic variance
+    on this manifest (cf. threshold_sweep_summary.txt — τ-sweep showed
+    ~1.5 pp noise at the same all-sonnet dispatch).
+  • CONCLUSION: length2 is "operationally at the floor" — no heuristic
+    router using these strategies can save materially more at 20/20.
+
+HONEST LIMITATIONS.
+  (a) MANIFEST-CONDITIONAL.  The floor holds for THIS 20-task workload
+      and the 3 strategies actually run.  A cheaper tier/strategy that
+      was never sampled (e.g. a hypothetical "haiku2" or a different
+      decoding) cannot lower it.  Adding strategies can only tighten
+      the bound, not relax it.
+  (b) STRATEGY-LEVEL, NOT TIER-LEVEL.  Anthropic's `total_cost_usd`
+      field is authoritative; the per-task `model` column in the TSV
+      is unreliable under `claude --bare -p` (cache-prefix accounting
+      artifact, cf. 2tier_summary.txt CAVEAT D).  We treat each
+      (strategy, task) pair as the proof atom rather than (tier, task).
+      This is operationally correct — what a router can dispatch IS a
+      strategy, not a tier in isolation.
+  (c) ACCURACY-MONOTONE FLOOR.  The floor only counts (s, i) entries
+      with correct(s, i) = 1.  If a cheaper strategy answered wrong
+      (e.g. baseline task 14), its cost is excluded by construction.
+
+VERDICT (hexa verify, T_BLUE, deterministic — verbatim).
+
+==========================  hexa verify run  ==========================
+Run:
+  HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+    HEXA_CODEX_ROOT="$PWD" \
+    ~/.hx/packages/hexa/hexa.real run verify/numerics_economics_pareto_floor.hexa
+
+========================================================================
+  hexa-codex ECONOMICS Pareto $/task floor (manifest-conditional)
+  20-task manifest · closed-form lower bound · canonical 2-tier within-ε
+========================================================================
+  baseline (opus×20)        : $0.319375  (saving = baseline reference)
+  length3  (haiku/son/opus) : $0.079218  saving=75.1959%
+  length2  (sonnet/opus)    : $0.0581707  saving=81.7861%
+  floor    (argmin-witness) : $0.0567804  saving=82.2214%
+  gap (length2_sav − floor_sav) = -0.435319 pp
+
+  [PASS] baseline column sum reconciles to 2tier_summary header ($0.319375)
+         · computed=$0.319375  ref=$0.319375  drift=2.5e-07
+  [PASS] length2 column sum + saving% reproduce 2tier_summary (81.79%)
+         · cost=$0.0581707  saving=81.7861%  cost_drift=5e-08  sav_drift=1.21048e-05pp
+  [PASS] FLOOR_TIER_IDX[i] is the per-task argmin{cost | correct=1} for all 20 tasks
+         · mismatches=0
+  [PASS] floor_cost ≤ length2_cost (manifest-level lower-bound property)
+         · floor=$0.0567804  length2=$0.0581707  gap=$0.0013903
+  [PASS] per-task: floor_i ≤ length2_i for all i (elementwise lower-bound)
+         · violations=0
+
+  [PASS] floor_saving% ≥ length2_saving% (saving is monotone-decreasing in cost)
+         · floor_saving=82.2214%  length2_saving=81.7861%  Δ=0.435319pp
+  [PASS] gap |length2_saving − floor_saving| < 1.0 pp (canonical 2-tier is within-ε of floor)
+         · floor=82.2214%  length2=81.7861%  gap=0.435319pp
+  [PASS] cost chain: baseline > length2 > floor (strict on this manifest)
+         · baseline=$0.319375  length2=$0.0581707  floor=$0.0567804
+  [PASS] floor witness preserves 20/20 accuracy (every FLOOR_TIER_IDX[i] picks a correct=1 strategy)
+         · correct_at_floor=20/20
+
+  [PASS] baseline 19/20: lone miss is task 14 (sort {3,1,2}, baseline emitted '{1,2,3}')
+         · baseline_correct=19/20  task14_baseline_correct=0  other_baseline_misses=0
+
+========================================================================
+  10/10 checks passed
+  ECONOMICS Pareto $/task floor: closed (manifest-conditional).
+__HEXA_CODEX_NUMERICS_ECONOMICS_PARETO_FLOOR__ PASS
+==========================  end hexa verify  ==========================
+
+==============================================================================
+  source: verify/numerics_economics_pareto_floor.hexa + 2tier.tsv;
+  no LLM judgment, $0 spend.
+==============================================================================

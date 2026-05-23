@@ -6,6 +6,64 @@
 
 ---
 
+## 2026-05-23 — Pareto $/task lower bound — closed-form floor at 82.22%, canonical 2-tier within 0.44pp
+
+Resolved the `d_pareto_lower_bound` candidate from
+`.discoveries/economics-routing-savings.tape` — the round-2 T_BLUE
+gap-closing question: how far above the analytic floor does the
+canonical length2 (sonnet/opus) router sit on the 20-task manifest at
+20/20 accuracy? Constructed the closed-form floor
+
+> floor = Σ<sub>i=1..20</sub> min { cost(s, i) | s ∈ S and correct(s, i) = 1 }
+
+over the three actually-sampled strategies S = {baseline (opus×20),
+length3 (3-tier), length2 (2-tier)} using the per-(strategy, task)
+measurements in `.verdicts/economics-routing-savings/2tier.tsv`. The
+witness assignment (cheapest correct strategy per task) is encoded
+inline in `verify/numerics_economics_pareto_floor.hexa` as the
+`FLOOR_TIER_IDX` table, so the floor is TIGHT in the proof-of-construction
+sense — not an unreachable infimum.
+
+| strategy                  | cost (USD)   | correct | saving  |
+|:--------------------------|-------------:|:-------:|--------:|
+| baseline (opus×20)        |   0.319375   |  19/20  |  ref    |
+| length3 (haiku/son/opus)  |   0.079218   |  20/20  | 75.20%  |
+| **length2 (sonnet/opus)** | **0.058171** | **20/20** | **81.79%** |
+| **floor (argmin-witness)**| **0.056780** | **20/20** | **82.22%** |
+
+**Verdict: canonical 2-tier within-ε of the floor at ε = 1.0 pp.**
+Absolute gap is $0.00139 over 20 tasks (length2 pays ~2.4% more than
+the achievable floor); saving gap is 0.44 pp (length2 captures 99.5%
+of achievable saving among sampled strategies). The witness assignment
+chose `length2` on 13/20 tasks, `length3` on 7/20, and `baseline`
+never — always-opus is never cheapest at 20/20 on this manifest. The
+seven `length3`-wins are sub-stochastic-noise gains ($0.000005 to
+$0.000765 per task) — same-tier stochastic call variance, not a
+systematic improvement opportunity. Closed-form proof verified at
+math_pure precision: all 10 invariants in
+`verify/numerics_economics_pareto_floor.hexa` PASS (baseline column
+reconciles to summary header at drift 2.5e-7; length2 saving reproduces
+to 1.2e-5 pp; per-task elementwise lower-bound holds for all 20 tasks;
+floor witness preserves 20/20 accuracy; baseline 19/20 lone miss
+anchors to task 14 by direct row lookup).
+
+**Honest limitations.** (a) Manifest-conditional: holds for THIS
+20-task workload and the 3 strategies actually run; a cheaper
+strategy never sampled cannot lower the bound. (b) Strategy-level,
+not tier-level: per-task `model` column is unreliable under
+`claude --bare -p` (cache-prefix accounting artifact), so we treat
+each `(strategy, task)` pair as the proof atom rather than
+`(tier, task)`. Operationally this is correct — a router dispatches
+strategies, not tiers in isolation. (c) Accuracy-monotone floor:
+only `correct(s, i) = 1` entries count, so baseline's task-14 miss
+("{1,2,3}" not "1, 2, 3") is excluded by construction.
+
+The round-2 T_BLUE result closes the heuristic-router frontier
+proof-side and complements `d_threshold_sweep` (τ axis degenerate,
+boundary already optimal). Discovery tape updated:
+`d_pareto_lower_bound` flips candidate → confirmed [BLUE]; summary
+footer now reads `4 confirmed · 7 dead · 6 next-batch candidates`.
+
 ## 2026-05-23 — 2-tier τ sweep — boundary already optimal
 
 Resolved the open question on the canonical 2-tier router's cutoff —

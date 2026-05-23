@@ -1,0 +1,32 @@
+task_idx	floor_strategy	floor_model_observed	cost_floor	cost_length2	cost_baseline	correct_length2	correct_baseline	delta_l2_minus_floor
+1	length2	claude-haiku-4-5-20251001	0.0011364	0.0011364	0.01528275	1	1	0.0
+2	length3	claude-haiku-4-5-20251001	0.00223100	0.00252585	0.015263	1	1	0.00029485
+3	length2	claude-haiku-4-5-20251001	0.001144	0.001144	0.015354	1	1	0.0
+4	length2	claude-haiku-4-5-20251001	0.0011438	0.0011438	0.01476125	1	1	0.0
+5	length2	claude-haiku-4-5-20251001	0.0011627	0.0011627	0.01531625	1	1	0.0
+6	length2	claude-haiku-4-5-20251001	0.0011388	0.0011388	0.01528075	1	1	0.0
+7	length2	claude-haiku-4-5-20251001	0.0011338	0.0011338	0.015257	1	1	0.0
+8	length2	claude-haiku-4-5-20251001	0.0011642	0.0011642	0.01536	1	1	0.0
+9	length2	claude-haiku-4-5-20251001	0.0011590	0.0011590	0.015332	1	1	0.0
+10	length2	claude-haiku-4-5-20251001	0.0011614	0.0011614	0.015454	1	1	0.0
+11	length2	claude-haiku-4-5-20251001	0.0013955	0.0013955	0.0159485	1	1	0.0
+12	length2	claude-sonnet-4-6	0.0006774	0.0006774	0.01502375	1	1	0.0
+13	length3	claude-haiku-4-5-20251001	0.0026636	0.00342855	0.015682	1	1	0.00076495
+14	length3	claude-haiku-4-5-20251001	0.0026686	0.0026737	0.0156095	1	0	0.0000051
+15	length3	claude-haiku-4-5-20251001	0.00339435	0.00339945	0.01707275	1	1	0.0000051
+16	length3	claude-haiku-4-5-20251001	0.00452935	0.00454945	0.01894775	1	1	0.0000201
+17	length2	claude-haiku-4-5-20251001	0.0165348	0.0165348	0.0179485	1	1	0.0
+18	length2	claude-haiku-4-5-20251001	0.00503895	0.00503895	0.016786	1	1	0.0
+19	length3	claude-haiku-4-5-20251001	0.0037531	0.0038482	0.016785	1	1	0.0000951
+20	length3	claude-haiku-4-5-20251001	0.0035496	0.0037547	0.0169105	1	1	0.0002051
+# floor_total_usd=0.0567804
+# length2_total_usd=0.0581707
+# baseline_total_usd=0.319375
+# floor_saving_pct=82.2214
+# length2_saving_pct=81.7861
+# gap_pp=-0.4353
+# absolute_floor_minus_length2=-0.0013903  (length2 pays $0.00139 more than the floor over 20 tasks)
+# floor_witnesses_chose_length2_on_13_tasks_length3_on_7_tasks
+# floor_accuracy=20/20  baseline_accuracy=19/20  length2_accuracy=20/20
+# source: .verdicts/economics-routing-savings/2tier.tsv (3-strategy per-task TSV)
+# witness: verify/numerics_economics_pareto_floor.hexa (BLUE-tier, 10/10 PASS)

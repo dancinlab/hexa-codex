@@ -6,6 +6,35 @@
 
 ---
 
+## 2026-05-23 — ECONOMICS scaling-laws sweep added
+
+A companion of the 3-pillar cross-cutter, restricted to closed-form
+ratio identities — `verify/numerics_economics_scaling_laws.hexa`
+(10 checks, all PASS). Sweeps the full scaling-law surface of the
+three ECONOMICS verbs and the cost-vs-quality competition ratio
+emerging from their distinct n=6 exponents:
+
+| # | Check                                                                |
+|--:|:---------------------------------------------------------------------|
+| 1 | q-side N halving — `red_term(A,2N,α)/red_term(A,N,α) = 2^-α`         |
+| 2 | q-side D halving — `red_term(B,2D,α)/red_term(B,D,α) = 2^-α`         |
+| 3 | q-side N 4× — `red_term(A,4N,α)/red_term(A,N,α) = 4^-α`              |
+| 4 | q-side D 4× — `red_term(B,4D,α)/red_term(B,D,α) = 4^-α`              |
+| 5 | train N doubling — `train(2N,D)/train(N,D) = 2^N6_EXP`                |
+| 6 | train D doubling — `train(N,2D)/train(N,D) = 2^N6_EXP`                |
+| 7 | train ND 4× — `train(2N,2D)/train(N,D) = 4^N6_EXP`                   |
+| 8 | infer ctx doubling — `infer(2c)/infer(c) = 2^τ = 16`                 |
+| 9 | infer ctx 4× — `infer(4c)/infer(c) = 4^τ = 256`                      |
+|10 | cost/quality ratio — `N6_EXP / α = (24/25)/(1/6) = 144/25 = 5.76`    |
+
+The check 10 ratio is the ECONOMICS surface's "diminishing returns"
+signature: per log doubling the training cost rises ~5.76× as fast
+as the quality reducible-loss term shrinks.
+
+Wired into `verify/run_all.hexa` (39 → 40 subjects),
+`verify/lint_numerics.hexa` (green core 18 → 19), and
+`tests/test_all.hexa` (30 → 31 cases).
+
 ## 2026-05-23 — ECONOMICS 3-pillar cross-cutter added
 
 A new `verify/numerics_economics_cross_pillar.hexa` (10 checks, all

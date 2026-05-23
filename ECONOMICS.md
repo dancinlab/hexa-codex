@@ -66,6 +66,13 @@ Verification surface (recipe §3 ladder — see `docs/closure_status.md`):
   3-pillar composite at the Chinchilla 70B / 1.4T / 8k anchor, and the
   quality↔infer orthogonality (quality_scale free of ctx, infer_cost
   free of (N,D)).
+- ECONOMICS scaling-law sweep
+  `verify/numerics_economics_scaling_laws.hexa` (10 checks) verifies
+  the full closed-form ratio surface: q-side halving / 4× in N and D,
+  train doubling in N and D, train ND quadrupling, infer ctx doubling
+  and 4×, and the cost-vs-quality competition ratio
+  `N6_EXP / α = 144/25 = 5.76` (per log doubling, training cost rises
+  ~5.76× as fast as the quality reducible-loss term shrinks).
 
 ## Roadmap — v1.2.0 (2026-10, PLANNED · group focus = economics)
 

@@ -4,6 +4,25 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ECONOMICS scaling-laws sweep (2026-05-23)
+
+Companion of `numerics_economics_cross_pillar.hexa`, restricted to
+closed-form ratio identities across the three ECONOMICS verbs.
+
+- `verify/numerics_economics_scaling_laws.hexa` (new, 10 checks all
+  PASS) — q-side N/D halving + 4× (`2^-α`, `4^-α`), train N/D
+  doubling + ND quadrupling (`2^N6_EXP`, `4^N6_EXP`), infer ctx
+  doubling + 4× (`2^τ = 16`, `4^τ = 256`), and the cost/quality
+  competition ratio `N6_EXP / α = (24/25)/(1/6) = 144/25 = 5.76`.
+- `tests/test_numerics_economics_scaling_laws.hexa` (new companion).
+- Meta wiring: `verify/run_all.hexa` (39 → 40 subjects),
+  `verify/lint_numerics.hexa` (green core 18 → 19),
+  `tests/test_all.hexa` (30 → 31 cases).
+- Surface lockstep: `docs/closure_status.md` (cross-cutter 5 → 6,
+  §3 ladder 28 → 29, run_all 39 → 40, companion 30 → 31) +
+  `README.md` (verify badge 39 → 40, T2 numerical 18 → 19,
+  cross-cutter 5 → 6 files) + `ECONOMICS.md` / `ECONOMICS.log.md`.
+
 ## [Unreleased] — ECONOMICS 3-pillar cross-cutter (2026-05-23)
 
 Sister of the general `numerics_cross_pillar.hexa` (which ties the

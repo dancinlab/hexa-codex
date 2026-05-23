@@ -1,0 +1,523 @@
+#!hexa strict
+// bench/sandbox_stage4_continuous_batching.hexa — SANDBOX Stage 4:
+// continuous-batching wall-clock measurement at the inference layer.
+// Substrate revival of cycle-1 `d_batch_amortized` (Anthropic batch
+// endpoint 50% discount, never run because `claude --bare -p` is
+// single-shot).
+//
+// CONTEXT (cycle-1 d_batch_amortized, BLOCKED):
+//   .verdicts/economics-routing-savings/cache_summary.txt — claude --bare -p
+//   exposes no batch surface. The 50% batch-endpoint discount is a VENDOR
+//   pricing artifact whose PHYSICAL substrate is continuous batching:
+//   N parallel slots over a shared decode loop. llama-server's
+//   `-np N --cont-batching` exposes the same substrate locally at $0.
+//
+// QUESTION:
+//   Does opening N parallel server slots and dispatching K=20 tasks at
+//   concurrency-N cut total batch wall-clock vs serial dispatch, at
+//   identical accuracy? The cycle-1 hypothesis was 50% saving — does
+//   np4 or np8 actually clear that bar on the mac-mini M3 Metal substrate?
+//
+// METHOD:
+//   For each strategy:
+//     1. boot `llama-server -m <model> --host 127.0.0.1 --port 8082
+//        -np <N> -cb --log-disable` (note port 8082, distinct from
+//        sibling kv_prefix_persistent agent at 8081 + logit calib at 8088)
+//     2. poll /health until 200 (~3-4s warmup)
+//     3. write 20 task bodies to /tmp/sandbox_stage4_payloads/{0..19}.json
+//     4. dispatch:
+//        - serial_np1: a for-loop, one curl per task (concurrency 1)
+//        - parallel_npN: `xargs -P N -n 1` fans N curls concurrently
+//        wall-clock measured from FIRST request issued to LAST response
+//        landed (gnu/bsd `date +%s%N` brackets the whole xargs invocation)
+//     5. kill server (SIGTERM, then SIGKILL after 2s); rm payload dir
+//   Per-task results read back via per-task response files
+//   /tmp/sandbox_stage4_responses/{0..19}.json (parallelism-safe — each
+//   curl writes to its own path, then we score serially after the batch).
+//
+// STRATEGIES (4):
+//   serial_np1     — -np 1, dispatch 20 tasks one-by-one
+//   parallel_np2   — -np 2, 2 concurrent curls
+//   parallel_np4   — -np 4, 4 concurrent curls
+//   parallel_np8   — -np 8, 8 concurrent curls
+//
+// HONESTY GATES:
+//   - server killed between strategies (clean -np state)
+//   - if np8 OOMs / thrashes / fails /health, we record np8 as
+//     UNAVAILABLE and continue (mac-mini ~16GB shared RAM)
+//   - accuracy parity is REQUIRED for the speedup claim; if parallel
+//     dispatch diverges in correctness count vs np1 by >1 task we flag
+//     accuracy_preserved=false (concurrent KV slots are non-deterministic
+//     across batches on some builds — surfaces honestly)
+//
+// Output:
+//   .verdicts/sandbox/stage4_continuous_batching.tsv          (per-task per-strategy)
+//   .verdicts/sandbox/stage4_continuous_batching_summary.txt  (per-strategy + verdict)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage4_continuous_batching.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External HTTP subprocess (curl → llama-server) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+let SERVER_HOST = "127.0.0.1"
+let SERVER_PORT = "8082"
+let SERVER_URL  = "http://127.0.0.1:8082"
+let MAX_TOK = 96
+let PAYLOAD_DIR  = "/tmp/sandbox_stage4_payloads"
+let RESP_DIR     = "/tmp/sandbox_stage4_responses"
+let SERVER_LOG   = "/tmp/sandbox_stage4_server.log"
+let SERVER_PIDF  = "/tmp/sandbox_stage4_server.pid"
+
+// Canonical 20-task manifest — verbatim parity with Stage 0/1/3 benches.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn json_escape(s: str) -> str {
+    let mut t = s.replace("\\", "\\\\")
+    t = t.replace("\"", "\\\"")
+    t = t.replace("\n", "\\n")
+    t = t.replace("\r", "\\r")
+    t = t.replace("\t", "\\t")
+    return t
+}
+
+// Kill any stale server on our port + remove pidfile. Idempotent.
+fn kill_server() {
+    // Try graceful SIGTERM by pid file, then SIGKILL fallback, then port-sweep.
+    exec("if [ -f " + shq(SERVER_PIDF) + " ]; then " +
+         "  pid=$(cat " + shq(SERVER_PIDF) + " 2>/dev/null); " +
+         "  if [ -n \"$pid\" ] && kill -0 $pid 2>/dev/null; then " +
+         "    kill -TERM $pid 2>/dev/null; sleep 1; " +
+         "    if kill -0 $pid 2>/dev/null; then kill -KILL $pid 2>/dev/null; fi; " +
+         "  fi; " +
+         "  rm -f " + shq(SERVER_PIDF) + "; " +
+         "fi; " +
+         // belt-and-suspenders: anything still on :8082
+         "for p in $(lsof -iTCP:" + SERVER_PORT + " -sTCP:LISTEN -t 2>/dev/null); do " +
+         "  kill -TERM $p 2>/dev/null; sleep 1; kill -KILL $p 2>/dev/null; " +
+         "done; " +
+         "true")
+}
+
+// Boot llama-server with given -np N. Returns "ok" or "fail:<reason>".
+// We wait up to 30s for /health to return 200; if not, we kill and report.
+fn boot_server(np: int) -> str {
+    kill_server()
+    // small settle so the prior process releases the port
+    exec("sleep 1")
+    let cmd = "( llama-server -m " + shq(MODEL_PATH) +
+              " --host " + SERVER_HOST + " --port " + SERVER_PORT +
+              " -np " + str(np) + " -cb --log-disable " +
+              " > " + shq(SERVER_LOG) + " 2>&1 & echo $! > " + shq(SERVER_PIDF) + " ); " +
+              "sleep 0.3; cat " + shq(SERVER_PIDF)
+    let pid = exec(cmd).trim()
+    if pid.len() == 0 {
+        return "fail:no_pid"
+    }
+    // poll /health for up to 30s
+    let probe = "for i in $(seq 1 60); do " +
+                "  code=$(curl -s -o /dev/null -w '%{http_code}' " + SERVER_URL + "/health 2>/dev/null); " +
+                "  if [ \"$code\" = \"200\" ]; then echo READY; exit 0; fi; " +
+                "  if ! kill -0 " + pid + " 2>/dev/null; then echo DIED; exit 1; fi; " +
+                "  sleep 0.5; " +
+                "done; echo TIMEOUT; exit 1"
+    let r = exec(probe).trim()
+    if r.contains("READY") { return "ok" }
+    if r.contains("DIED")  { return "fail:server_died" }
+    return "fail:health_timeout"
+}
+
+// Pre-stage each task's JSON request body into /tmp/sandbox_stage4_payloads/<i>.json.
+// We do this once at startup — strategies share the payloads, no rewrite.
+fn stage_payloads() {
+    exec("rm -rf " + shq(PAYLOAD_DIR) + "; mkdir -p " + shq(PAYLOAD_DIR))
+    let mut i = 0
+    while i < len(TASKS) {
+        let prompt_j = json_escape(TASKS[i][0])
+        let body = "{\"messages\":[{\"role\":\"user\",\"content\":\"" + prompt_j +
+                   "\"}],\"max_tokens\":" + str(MAX_TOK) +
+                   ",\"temperature\":0}"
+        let path = PAYLOAD_DIR + "/" + str(i) + ".json"
+        // write atomically — single shell printf, no echo (preserves backslashes)
+        exec("printf '%s' " + shq(body) + " > " + shq(path))
+        i = i + 1
+    }
+}
+
+// Dispatch K tasks at parallelism P. Returns wall_ms of the whole batch.
+// Per-task response written to RESP_DIR/<i>.json (each curl writes its own
+// file — safe under xargs -P). When P=1 we use a serial loop to make the
+// "no concurrency" semantics unambiguous in the harness as well.
+fn dispatch_batch(parallelism: int) -> int {
+    exec("rm -rf " + shq(RESP_DIR) + "; mkdir -p " + shq(RESP_DIR))
+    let k = len(TASKS)
+
+    // Build per-task index list (0..k-1) on stdin for xargs.
+    // Each line is a single integer; xargs spawns one curl per line.
+    let dispatch_one =
+        "_dispatch_one() { " +
+        "  local i=\"$1\"; " +
+        "  curl -s --max-time 120 -o " + shq(RESP_DIR) + "/${i}.json " +
+        "       -X POST " + SERVER_URL + "/v1/chat/completions " +
+        "       -H 'Content-Type: application/json' " +
+        "       --data-binary @" + shq(PAYLOAD_DIR) + "/${i}.json; " +
+        "}; export -f _dispatch_one; "
+
+    let mut runner = ""
+    if parallelism <= 1 {
+        // explicit serial loop — no xargs at all
+        runner = "for i in $(seq 0 " + str(k - 1) + "); do _dispatch_one $i; done"
+    } else {
+        runner = "seq 0 " + str(k - 1) +
+                 " | xargs -n 1 -P " + str(parallelism) +
+                 " bash -c '_dispatch_one \"$0\"'"
+    }
+
+    let cmd = dispatch_one +
+              "t0=$(date +%s%N); " +
+              runner + "; " +
+              "t1=$(date +%s%N); " +
+              "echo $(( (t1 - t0) / 1000000 ))"
+    let out = exec(cmd).trim()
+    if out.len() == 0 { return -1 }
+    return int(out)
+}
+
+// Score one response file against expected keyword. Returns "wall_ms\tcorrect\tsnippet".
+// (wall_ms is the per-task curl_time pulled out of the response — but we don't
+// have curl --write-out timing inside the parallel run, so we use the JSON
+// timings.predicted_ms field from llama-server which reports model-level
+// per-request decode wall. If absent, fall back to 0.)
+fn score_one(idx: int, expected_kw: str) -> str {
+    let path = RESP_DIR + "/" + str(idx) + ".json"
+    let cmd = "if [ ! -f " + shq(path) + " ]; then printf '%s' '0\\t0\\tMISSING'; exit 0; fi; " +
+              "ans=$(jq -r '.choices[0].message.content // \"\"' < " + shq(path) +
+              " 2>/dev/null | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              // server-side timing: prompt_ms + predicted_ms covers prefill + decode.
+              "tp=$(jq -r '.timings.predicted_ms // 0' < " + shq(path) + " 2>/dev/null); " +
+              "tpp=$(jq -r '.timings.prompt_ms // 0' < " + shq(path) + " 2>/dev/null); " +
+              "wall_ms=$(awk -v a=\"$tp\" -v b=\"$tpp\" 'BEGIN{printf \"%d\", a + b}'); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-120); " +
+              "printf '%s\\t%s\\t%s' \"$wall_ms\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn render_signed_2dp(x_x100: int) -> str {
+    let mut sign = ""
+    let mut absv = x_x100
+    if x_x100 < 0 { sign = "-"; absv = -x_x100 }
+    let mut frac = str(absv % 100)
+    if absv % 100 < 10 { frac = "0" + frac }
+    return sign + str(absv / 100) + "." + frac
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage4_continuous_batching")
+    println("  model:    " + MODEL_NAME)
+    println("  surface:  llama-server -np N -cb on " + SERVER_URL)
+    println("  manifest: 20 tasks (verbatim from sandbox_stage0_baseline.hexa)")
+    println("  strategies: serial_np1 · parallel_np2 · parallel_np4 · parallel_np8")
+    println("  reviving: cycle-1 d_batch_amortized (BLOCKED at claude --bare -p)")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/stage4_continuous_batching.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'strategy\tidx\twall_ms\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    // Pre-flight: -np / -cb exposure (we already grepped --help into
+    // .discoveries/sandbox-llama-server-batching.raw before bench-time;
+    // this is a runtime confirm).
+    let np_flag = exec("llama-server --help 2>&1 | grep -c -- '-np,' | tr -d ' '").trim()
+    let cb_flag = exec("llama-server --help 2>&1 | grep -c -- '--cont-batching' | tr -d ' '").trim()
+    let np_exposed = (np_flag != "0")
+    let cb_exposed = (cb_flag != "0")
+    println("  llama_server_np_flag_exposed:  " + str(np_exposed))
+    println("  llama_server_cb_flag_exposed:  " + str(cb_exposed))
+    if !np_exposed {
+        println("  ! -np flag not exposed in this build — bench cannot run")
+        let sp = OUT_DIR + "/stage4_continuous_batching_summary.txt"
+        exec("rm -f " + shq(sp))
+        exec("echo " + shq("# verdict=BLOCKED_AT_BUILD") + " >> " + shq(sp))
+        exec("echo " + shq("# llama_server_np_flag_exposed=false") + " >> " + shq(sp))
+        exit(2)
+    }
+
+    stage_payloads()
+
+    let strategies = [
+        ["serial_np1",   1],
+        ["parallel_np2", 2],
+        ["parallel_np4", 4],
+        ["parallel_np8", 8],
+    ]
+
+    // Per-strategy aggregates
+    let mut s_names    = []
+    let mut s_batch_ms = []
+    let mut s_correct  = []
+    let mut s_avg_ms   = []
+    let mut s_status   = []   // "ok" | "fail:<reason>"
+
+    let mut si = 0
+    while si < len(strategies) {
+        let strat = strategies[si]
+        let name = strat[0]
+        let np = int(strat[1])
+        println("")
+        println("  --- " + name + " (np=" + str(np) + ", parallelism=" + str(np) + ") ---")
+
+        let boot = boot_server(np)
+        if boot != "ok" {
+            println("  ! server boot failed: " + boot + " — recording UNAVAILABLE")
+            s_names    = s_names    + [name]
+            s_batch_ms = s_batch_ms + [-1]
+            s_correct  = s_correct  + [-1]
+            s_avg_ms   = s_avg_ms   + [-1]
+            s_status   = s_status   + [boot]
+            kill_server()
+            si = si + 1
+            continue
+        }
+
+        let batch_ms = dispatch_batch(np)
+        println("  batch_wall_ms = " + str(batch_ms))
+
+        // score the 20 responses serially
+        let mut n_correct = 0
+        let mut sum_per_task_ms = 0
+        let mut i = 0
+        while i < len(TASKS) {
+            let expected = TASKS[i][1]
+            let line = score_one(i, expected)
+            let parts = line.split("\t")
+            let mut wall_ms = 0
+            let mut correct = "0"
+            let mut snippet = ""
+            if parts.len() >= 3 {
+                wall_ms = int(parts[0])
+                correct = parts[1]
+                snippet = parts[2].replace("\t", " ")
+            }
+            sum_per_task_ms = sum_per_task_ms + wall_ms
+            if correct == "1" { n_correct = n_correct + 1 }
+            let row = name + "\t" + str(i+1) + "\t" + str(wall_ms) + "\t" + correct + "\t" + snippet.substr(0, 120)
+            exec("echo " + shq(row) + " >> " + shq(tsv_path))
+            i = i + 1
+        }
+        let k = len(TASKS)
+        let mut avg_per_task = 0
+        if k > 0 { avg_per_task = sum_per_task_ms / k }
+        println("  accuracy=" + str(n_correct) + "/" + str(k) +
+                "  total_batch_wall_ms=" + str(batch_ms) +
+                "  avg_per_task_wall_ms=" + str(avg_per_task))
+
+        s_names    = s_names    + [name]
+        s_batch_ms = s_batch_ms + [batch_ms]
+        s_correct  = s_correct  + [n_correct]
+        s_avg_ms   = s_avg_ms   + [avg_per_task]
+        s_status   = s_status   + ["ok"]
+
+        kill_server()
+        exec("sleep 1")
+        si = si + 1
+    }
+
+    // ── verdict math ──
+    // Find serial_np1 baseline (index 0). If missing, all speedups are NA.
+    let mut np1_ms = -1
+    let mut np1_correct = -1
+    let mut s = 0
+    while s < len(s_names) {
+        if s_names[s] == "serial_np1" {
+            np1_ms = s_batch_ms[s]
+            np1_correct = s_correct[s]
+        }
+        s = s + 1
+    }
+
+    let mut np2_speedup_x100 = 0
+    let mut np4_speedup_x100 = 0
+    let mut np8_speedup_x100 = 0
+    let mut np2_correct = -1
+    let mut np4_correct = -1
+    let mut np8_correct = -1
+    let mut np2_ms = -1
+    let mut np4_ms = -1
+    let mut np8_ms = -1
+    let mut s2 = 0
+    while s2 < len(s_names) {
+        let n  = s_names[s2]
+        let ms = s_batch_ms[s2]
+        let cc = s_correct[s2]
+        if np1_ms > 0 && ms > 0 {
+            let red_x100 = ((np1_ms - ms) * 10000) / np1_ms
+            if n == "parallel_np2" { np2_speedup_x100 = red_x100; np2_ms = ms; np2_correct = cc }
+            if n == "parallel_np4" { np4_speedup_x100 = red_x100; np4_ms = ms; np4_correct = cc }
+            if n == "parallel_np8" { np8_speedup_x100 = red_x100; np8_ms = ms; np8_correct = cc }
+        } else {
+            if n == "parallel_np2" { np2_ms = ms; np2_correct = cc }
+            if n == "parallel_np4" { np4_ms = ms; np4_correct = cc }
+            if n == "parallel_np8" { np8_ms = ms; np8_correct = cc }
+        }
+        s2 = s2 + 1
+    }
+
+    // Per-strategy accuracy-preserved flag — within ±1 of np1 (noise tolerance).
+    // Collective acc_preserved_all requires EVERY parallel strategy to be within
+    // ±1; per-strategy flags let the verdict math distinguish "this strategy
+    // wins individually" from "every concurrency level is safe to deploy".
+    let mut np2_acc_ok = "false"
+    let mut np4_acc_ok = "false"
+    let mut np8_acc_ok = "false"
+    if np1_correct >= 0 && np2_correct >= 0 {
+        let mut d2 = np1_correct - np2_correct
+        if d2 < 0 { d2 = -d2 }
+        if d2 <= 1 { np2_acc_ok = "true" }
+    }
+    if np1_correct >= 0 && np4_correct >= 0 {
+        let mut d4 = np1_correct - np4_correct
+        if d4 < 0 { d4 = -d4 }
+        if d4 <= 1 { np4_acc_ok = "true" }
+    }
+    if np1_correct >= 0 && np8_correct >= 0 {
+        let mut d8 = np1_correct - np8_correct
+        if d8 < 0 { d8 = -d8 }
+        if d8 <= 1 { np8_acc_ok = "true" }
+    }
+    let mut acc_preserved_all = "true"
+    if np2_correct >= 0 && np2_acc_ok == "false" { acc_preserved_all = "false" }
+    if np4_correct >= 0 && np4_acc_ok == "false" { acc_preserved_all = "false" }
+    if np8_correct >= 0 && np8_acc_ok == "false" { acc_preserved_all = "false" }
+    // legacy name retained for output text below
+    let acc_preserved = acc_preserved_all
+
+    let beat_threshold_x100 = 5000   // 50.00%
+    // Spec semantics: beats_50 = true iff np4 OR np8 individually achieves
+    // >=50% reduction AT its own accuracy parity. A flaky sibling strategy
+    // (np2 timeout) does not invalidate the winning strategy's claim.
+    let mut beats_50 = "false"
+    let np4_beats = (np4_speedup_x100 >= beat_threshold_x100 && np4_acc_ok == "true")
+    let np8_beats = (np8_speedup_x100 >= beat_threshold_x100 && np8_acc_ok == "true")
+    if np4_beats || np8_beats { beats_50 = "true" }
+
+    let np2_str = render_signed_2dp(np2_speedup_x100)
+    let np4_str = render_signed_2dp(np4_speedup_x100)
+    let np8_str = render_signed_2dp(np8_speedup_x100)
+
+    // best speedup (numerically max across the 3 parallel strats that succeeded)
+    let mut best_x100 = -1000000
+    let mut best_name = "none"
+    if np2_ms > 0 && np2_speedup_x100 > best_x100 { best_x100 = np2_speedup_x100; best_name = "parallel_np2" }
+    if np4_ms > 0 && np4_speedup_x100 > best_x100 { best_x100 = np4_speedup_x100; best_name = "parallel_np4" }
+    if np8_ms > 0 && np8_speedup_x100 > best_x100 { best_x100 = np8_speedup_x100; best_name = "parallel_np8" }
+    if best_x100 == -1000000 { best_x100 = 0 }
+    let best_str = render_signed_2dp(best_x100)
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — Stage 4 continuous batching")
+    println("========================================================================")
+    println("  np1   batch_ms=" + str(np1_ms) + "  correct=" + str(np1_correct))
+    println("  np2   batch_ms=" + str(np2_ms) + "  correct=" + str(np2_correct) + "  speedup=" + np2_str + "%")
+    println("  np4   batch_ms=" + str(np4_ms) + "  correct=" + str(np4_correct) + "  speedup=" + np4_str + "%")
+    println("  np8   batch_ms=" + str(np8_ms) + "  correct=" + str(np8_correct) + "  speedup=" + np8_str + "%")
+    println("  best  = " + best_name + " @ " + best_str + "%")
+    println("  np2_acc_ok=" + np2_acc_ok + "  np4_acc_ok=" + np4_acc_ok + "  np8_acc_ok=" + np8_acc_ok)
+    println("  accuracy_preserved (collective ±1 task noise)   : " + acc_preserved)
+    println("  beats_cycle1_batch_amortized_50pct (winning)    : " + beats_50)
+    println("")
+
+    // Persist per-strategy summary header
+    let sp = OUT_DIR + "/stage4_continuous_batching_summary.txt"
+    exec("rm -f " + shq(sp))
+    exec("echo " + shq("strategy\ttotal\tcorrect\tbatch_wall_ms\tavg_per_task_wall_ms\tstatus") + " >> " + shq(sp))
+    let mut s3 = 0
+    while s3 < len(s_names) {
+        let row = s_names[s3] + "\t" + str(len(TASKS)) + "\t" + str(s_correct[s3]) +
+                  "\t" + str(s_batch_ms[s3]) + "\t" + str(s_avg_ms[s3]) +
+                  "\t" + s_status[s3]
+        exec("echo " + shq(row) + " >> " + shq(sp))
+        s3 = s3 + 1
+    }
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(sp))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal)") + " >> " + shq(sp))
+    exec("echo " + shq("# server=llama-server --host " + SERVER_HOST + " --port " + SERVER_PORT + " -np <N> -cb --log-disable") + " >> " + shq(sp))
+    exec("echo " + shq("# tasks=" + str(len(TASKS))) + " >> " + shq(sp))
+    exec("echo " + shq("# np_flag_exposed=" + str(np_exposed)) + " >> " + shq(sp))
+    exec("echo " + shq("# cb_flag_exposed=" + str(cb_exposed)) + " >> " + shq(sp))
+    exec("echo " + shq("# np1_batch_wall_ms=" + str(np1_ms)) + " >> " + shq(sp))
+    exec("echo " + shq("# np2_batch_wall_ms=" + str(np2_ms)) + " >> " + shq(sp))
+    exec("echo " + shq("# np4_batch_wall_ms=" + str(np4_ms)) + " >> " + shq(sp))
+    exec("echo " + shq("# np8_batch_wall_ms=" + str(np8_ms)) + " >> " + shq(sp))
+    exec("echo " + shq("# np2_speedup_vs_np1_pct=" + np2_str) + " >> " + shq(sp))
+    exec("echo " + shq("# np4_speedup_vs_np1_pct=" + np4_str) + " >> " + shq(sp))
+    exec("echo " + shq("# np8_speedup_vs_np1_pct=" + np8_str) + " >> " + shq(sp))
+    exec("echo " + shq("# best_strategy=" + best_name) + " >> " + shq(sp))
+    exec("echo " + shq("# best_speedup_pct=" + best_str) + " >> " + shq(sp))
+    exec("echo " + shq("# np2_accuracy_within_1_of_np1=" + np2_acc_ok) + " >> " + shq(sp))
+    exec("echo " + shq("# np4_accuracy_within_1_of_np1=" + np4_acc_ok) + " >> " + shq(sp))
+    exec("echo " + shq("# np8_accuracy_within_1_of_np1=" + np8_acc_ok) + " >> " + shq(sp))
+    exec("echo " + shq("# accuracy_preserved=" + acc_preserved + "  (collective — true iff EVERY parallel strategy correct count within +/- 1 of np1)") + " >> " + shq(sp))
+    exec("echo " + shq("# beats_cycle1_batch_amortized_50pct=" + beats_50 + "  (true iff np4 OR np8 batch_wall_ms reduction >= 50.00% AT its own +/- 1 accuracy parity to np1 — winning-strategy semantics, a flaky sibling does not invalidate the claim)") + " >> " + shq(sp))
+    exec("echo " + shq("# cycle1_d_batch_amortized=BLOCKED at claude --bare -p (no batch endpoint exposed; the 50% Anthropic batch discount is a vendor pricing artifact whose physical substrate is continuous batching — N parallel slots on a shared decode loop)") + " >> " + shq(sp))
+    exec("echo " + shq("# substrate=llama-server -np N -cb is the local, $0 mechanism that makes vendor batch discounts physically possible") + " >> " + shq(sp))
+    exec("echo " + shq("# honest_note_1=batch wall-clock is measured from FIRST request issued to LAST response landed (date +%s%N brackets the xargs invocation); per-task wall_ms is prompt_ms+predicted_ms from server timings JSON") + " >> " + shq(sp))
+    exec("echo " + shq("# honest_note_2=if any strategy boot failed it appears with status=fail:<reason> in the per-strategy table (np8 OOM-fail on 16GB UMA is the expected mode at np=8)") + " >> " + shq(sp))
+    exec("echo " + shq("# honest_note_3=accuracy parity is the gate for the speedup claim; +/- 1 task is noise tolerance, larger divergence flags concurrent-KV-slot non-determinism (this build: 0.5B Qwen2.5 q4_k_m at temperature=0)") + " >> " + shq(sp))
+
+    // teardown — make sure no llama-server outlives the bench
+    kill_server()
+    exec("rm -rf " + shq(PAYLOAD_DIR) + " " + shq(RESP_DIR))
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + sp)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE4_CONTINUOUS_BATCHING__ PASS")
+    exit(0)
+}

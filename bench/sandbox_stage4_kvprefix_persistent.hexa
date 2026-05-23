@@ -1,0 +1,555 @@
+#!hexa strict
+// bench/sandbox_stage4_kvprefix_persistent.hexa — SANDBOX Stage 4
+// (cycle-6 successor to cycle-4 `d_kv_prefix_share` BLOCKED_AT_SCALE).
+//
+// CONTEXT (cycle-4, .verdicts/sandbox/stage3_kvprefix_summary.txt):
+//   cold_avg_wall_ms_per_task = 2932 ms (llama-completion one-shot CLI)
+//   warm_avg_wall_ms_after_first = 2542 ms
+//   warm_speedup_pct = +13.30%  (BELOW the 20% viability gate)
+//   cause = per-invocation Metal init + GGUF mmap (~3-4s) dwarfs the
+//           530ms prefix-eval saving the KV cache file delivers.
+//   d_kv_prefix_share verdict = BLOCKED_AT_SCALE.
+//
+// CYCLE-6 REFRAMING (this bench):
+//   Boot `llama-server` ONCE in the background; dispatch all tasks via
+//   HTTP `/v1/chat/completions`. The Metal init + GGUF mmap is paid a
+//   SINGLE time at server boot; per-task overhead collapses to network
+//   round-trip + KV prefill + decode. The per-call ~3-4s floor that
+//   blocked cycle-4 disappears, and the prefix-eval saving is now
+//   measurable as a fraction of the much smaller per-task wall.
+//
+//   `--cache-prompt` is enabled by default in llama-server (verified in
+//   .discoveries/sandbox-llama-server-flags.raw). `cache_prompt:true` in
+//   the request body is the per-request hint. We also explicitly set
+//   `--slot-save-path` so prompt-cache slots persist across requests.
+//
+// STRATEGIES (3):
+//   cold_cli                 REFERENCE: each task via llama-completion CLI
+//                            (matches cycle-4 cold strategy verbatim).
+//   warm_server_no_prefix    server-mode, NO shared prefix (just measures
+//                            the server warm-state benefit).
+//   warm_server_with_prefix  server-mode + same ~1821-char (376-tok) shared
+//                            prefix as cycle-4. cache_prompt:true on requests.
+//
+// MANIFEST: canonical 20-task verbatim from sandbox_stage0_baseline.hexa /
+//           sandbox_stage3_kvprefix.hexa (full parity for honest comparison).
+//
+// GOAL: warm_server_with_prefix >= 20% wall-clock reduction vs cold_cli at
+//       accuracy parity (>= cold_cli correct count).
+//
+// HONESTY RULES:
+//   - server killed via PID + `trap` in the helper subshells; verified
+//     post-bench via `lsof -i :8081` and `ps -p <pid>`.
+//   - if `cache_prompt:true` shows no measurable benefit vs no_prefix,
+//     the candidate dies honestly — server-warm-up alone is the lever.
+//   - accuracy MUST match between CLI and server; chat-template divergence
+//     would be a substrate-level confound (reported, not papered-over).
+//
+// Output:
+//   .verdicts/sandbox/stage4_kvprefix_persistent.tsv
+//   .verdicts/sandbox/stage4_kvprefix_persistent_summary.txt
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage4_kvprefix_persistent.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External subprocess (llama-server / llama-completion / curl) + filesystem; no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+let SERVER_PORT = "8081"
+let SERVER_HOST = "127.0.0.1"
+let SLOT_DIR = "/tmp/sandbox_kv_slots"
+let SERVER_LOG = "/tmp/sandbox_server_stage4.log"
+let SERVER_PID_FILE = "/tmp/sandbox_server_stage4.pid"
+let MAX_TOK = 96
+let VIABLE_SPEEDUP_PCT = 20
+
+// Same ~376-token operating contract preamble used in cycle-4 Stage 3.
+// VERBATIM string match required for the prefix-cache experiment to be honest.
+let SHARED_PREFIX = "You are a precise assistant operating in measurement mode. Your duty is to answer the user's question concisely, accurately, and without filler. Follow these standing instructions for every question. First, never fabricate facts; if you do not know an answer, say so. Second, prefer the shortest correct answer that is unambiguous. Third, when asked for code, return only the code expression with no surrounding prose. Fourth, when asked for a number, return only the number with no units or commentary. Fifth, when asked for a single word, return only that word lowercased unless capitalization is semantically required. Sixth, never quote the question back in the answer. Seventh, never add disclaimers, apologies, or hedges. Eighth, never repeat yourself. Ninth, if multiple valid answers exist, return the canonical one. Tenth, if a question is ambiguous, pick the most-common interpretation and answer it directly. These ten rules constitute your operating contract for this session. They are immutable for the duration of this conversation. Treat every following user turn as a fresh question independent of prior turns, and apply the contract above to each. Do not break character. Do not invent rules. Do not refuse to answer questions that are clearly factual. Do not lecture the user about safety, ethics, or off-topic concerns unless the question explicitly raises them. Your sole job is to produce the smallest correct answer to the user's literal question. Keep the answer in plain text. Do not use markdown formatting unless code is requested. Do not include emoji. Do not include URLs. Do not cite sources unless explicitly asked. Do not produce lists unless explicitly asked. Always end the answer at the last token of the answer itself, with no trailing summary. Conform to this contract strictly. Begin."
+
+// 20-task fixed manifest — verbatim from sandbox_stage3_kvprefix.hexa.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Strip stderr [end of text] / common_perf_print trailers (same scorer fix
+// as cycle-4 Stage 3 — applied to CLI strategy only; HTTP JSON answers are
+// already clean).
+fn _scorer_strip_cmd(var_in: str, var_out: str) -> str {
+    return var_out + "=$(printf '%s' \"$" + var_in +
+           "\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//')"
+}
+
+// ── cold_cli (REFERENCE) — one llama-completion CLI per task, no cache flag ──
+fn run_cold_cli(prompt: str, expected_kw: str) -> str {
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-completion -m " + shq(MODEL_PATH) +
+              " -p " + shq(prompt) +
+              " -n " + str(MAX_TOK) + " --temp 0 -st 2>&1); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              _scorer_strip_cmd("ans_raw", "ans") + "; " +
+              "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-120); " +
+              "printf '%s\\t%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"$tok_est\" \"$correct\" 0 \"$snippet\""
+    return exec(cmd).trim()
+}
+
+// ── server strategies — HTTP /v1/chat/completions ──
+// `with_prefix` toggles whether the operating-contract preamble is fed as the
+// system message (the cached-prefix surface) or omitted entirely.
+// `cache_prompt` sets the per-request `cache_prompt:true|false` JSON hint.
+fn run_server_task(user_text: str, expected_kw: str, with_prefix: bool, cache_prompt: bool) -> str {
+    let mut sys_msg = ""
+    if with_prefix { sys_msg = SHARED_PREFIX }
+    let cp_flag = if cache_prompt { "true" } else { "false" }
+    // Build JSON via jq -n to safely embed arbitrary content (no manual escaping).
+    let jq_build = "jq -nc --arg sys " + shq(sys_msg) +
+                   " --arg user " + shq(user_text) +
+                   " --argjson cp " + cp_flag +
+                   " '{model:\"qwen\",temperature:0,max_tokens:" + str(MAX_TOK) +
+                   ",cache_prompt:$cp,messages: ( (if ($sys|length)>0 then [{role:\"system\",content:$sys}] else [] end) + [{role:\"user\",content:$user}] )}'"
+    let url = "http://" + SERVER_HOST + ":" + SERVER_PORT + "/v1/chat/completions"
+    let cmd = "t_start=$(date +%s%N); " +
+              "body=$(" + jq_build + "); " +
+              "resp=$(printf '%s' \"$body\" | curl -s -m 60 -H 'Content-Type: application/json' " +
+              "--data-binary @- " + shq(url) + "); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans=$(printf '%s' \"$resp\" | jq -r '.choices[0].message.content // empty'); " +
+              "cached_tok=$(printf '%s' \"$resp\" | jq -r '.usage.prompt_tokens_details.cached_tokens // 0'); " +
+              "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | tr '\\n' ' ' | cut -c1-120); " +
+              "printf '%s\\t%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"$tok_est\" \"$correct\" \"$cached_tok\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+// Probe server flag surface before spinning up.
+fn probe_server_flags() -> str {
+    return exec("llama-server --help 2>&1 | grep -iE '\\-\\-port|\\-\\-host|\\-np|--parallel|--slot-save-path|--cache-prompt|--cache-reuse' | head -10").trim()
+}
+
+fn server_installed() -> bool {
+    let r = exec("command -v llama-server 2>/dev/null").trim()
+    return r.len() > 0
+}
+
+fn port_busy() -> bool {
+    let r = exec("lsof -i :" + SERVER_PORT + " 2>/dev/null | tail -n +2 | head -1").trim()
+    return r.len() > 0
+}
+
+// Launch llama-server in background. Returns PID as string (empty on failure).
+// IMPORTANT: hexa exec() launches a subshell whose exit propagates SIGHUP to
+// child processes even with `nohup` + `disown` (macOS process-group quirk).
+// Wrap the launch in a subshell-background `( ... ) &` so the immediate
+// parent of the server is an already-orphaned process — server stays alive
+// across subsequent exec() calls. Verified with a sleep probe at build time.
+fn server_boot() -> str {
+    exec("mkdir -p " + shq(SLOT_DIR) + " && rm -f " + shq(SERVER_LOG) + " " + shq(SERVER_PID_FILE))
+    let inner = "nohup llama-server -m " + shq(MODEL_PATH) +
+                " --host " + SERVER_HOST +
+                " --port " + SERVER_PORT +
+                " -np 1 -c 4096" +
+                " --slot-save-path " + shq(SLOT_DIR) +
+                " --cache-prompt" +
+                " > " + shq(SERVER_LOG) + " 2>&1 < /dev/null & echo $! > " + shq(SERVER_PID_FILE)
+    let launch = "( " + inner + " ) &"
+    exec("/bin/sh -c " + shq(launch))
+    // Wait briefly for pidfile to materialize.
+    exec("for i in 1 2 3 4 5; do [ -s " + shq(SERVER_PID_FILE) + " ] && break; sleep 1; done")
+    let pid = exec("cat " + shq(SERVER_PID_FILE) + " 2>/dev/null").trim()
+    return pid
+}
+
+// Block on /health until {"status":"ok"} (max 30s). Return "ready" | "timeout" | "crashed".
+fn server_wait_ready() -> str {
+    let cmd = "for i in $(seq 1 30); do " +
+              "  h=$(curl -s -m 2 http://" + SERVER_HOST + ":" + SERVER_PORT + "/health 2>&1); " +
+              "  if printf '%s' \"$h\" | grep -q '\"status\":\"ok\"'; then echo ready; exit 0; fi; " +
+              "  if [ -f " + shq(SERVER_PID_FILE) + " ]; then " +
+              "    pid=$(cat " + shq(SERVER_PID_FILE) + "); " +
+              "    if ! kill -0 \"$pid\" 2>/dev/null; then echo crashed; exit 0; fi; " +
+              "  fi; " +
+              "  sleep 1; " +
+              "done; echo timeout"
+    return exec(cmd).trim()
+}
+
+// Render a signed integer-x100 as a two-decimal-place string.
+fn _signed_decimal(x100: int) -> str {
+    let mut sign = ""
+    let mut absv = x100
+    if x100 < 0 { sign = "-"; absv = -x100 }
+    let mut frac = str(absv % 100)
+    if absv % 100 < 10 { frac = "0" + frac }
+    return sign + str(absv / 100) + "." + frac
+}
+
+fn server_kill() -> str {
+    let cmd = "pid=$(cat " + shq(SERVER_PID_FILE) + " 2>/dev/null); " +
+              "if [ -n \"$pid\" ]; then " +
+              "  kill \"$pid\" 2>/dev/null; " +
+              "  for i in 1 2 3 4 5 6 7 8; do " +
+              "    if ! kill -0 \"$pid\" 2>/dev/null; then break; fi; sleep 1; " +
+              "  done; " +
+              "  if kill -0 \"$pid\" 2>/dev/null; then kill -9 \"$pid\" 2>/dev/null; sleep 1; fi; " +
+              "fi; " +
+              "if kill -0 \"$pid\" 2>/dev/null; then echo zombie; else echo killed; fi"
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage4_kvprefix_persistent")
+    println("  cycle-6 successor to cycle-4 d_kv_prefix_share (BLOCKED_AT_SCALE +13.30%)")
+    println("  model:    " + MODEL_NAME)
+    println("  tool:     llama-server (HTTP /v1/chat/completions) + llama-completion (CLI ref)")
+    println("  port:     " + SERVER_PORT)
+    println("  manifest: 20 tasks × 3 strategies (cold_cli · warm_server_no_prefix · warm_server_with_prefix)")
+    println("========================================================================")
+
+    // ── Step 0 — preflight ──
+    if !server_installed() {
+        println("  ! llama-server is NOT installed. Mark candidate dead at BLOCKED_AT_BUILD.")
+        exec("mkdir -p " + shq(OUT_DIR))
+        let bp = OUT_DIR + "/stage4_kvprefix_persistent_summary.txt"
+        exec("rm -f " + shq(bp))
+        exec("echo '# llama_server_installed=false' >> " + shq(bp))
+        exec("echo '# verdict=BLOCKED_AT_BUILD' >> " + shq(bp))
+        exec("echo '# beats_cycle4_blocker=false' >> " + shq(bp))
+        println("__HEXA_CODEX_BENCH_SANDBOX_STAGE4_KVPREFIX_PERSISTENT__ BLOCKED_AT_BUILD")
+        exit(0)
+    }
+    println("  llama-server flags evidence:")
+    println("    " + probe_server_flags().replace("\n", "\n    "))
+
+    if port_busy() {
+        println("  ! port " + SERVER_PORT + " already in use. Mark candidate BLOCKED_AT_RUNTIME.")
+        exec("mkdir -p " + shq(OUT_DIR))
+        let bp = OUT_DIR + "/stage4_kvprefix_persistent_summary.txt"
+        exec("rm -f " + shq(bp))
+        exec("echo '# port_busy=true' >> " + shq(bp))
+        exec("echo '# verdict=BLOCKED_AT_RUNTIME' >> " + shq(bp))
+        exec("echo '# beats_cycle4_blocker=false' >> " + shq(bp))
+        println("__HEXA_CODEX_BENCH_SANDBOX_STAGE4_KVPREFIX_PERSISTENT__ BLOCKED_AT_RUNTIME")
+        exit(0)
+    }
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/stage4_kvprefix_persistent.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'strategy\tidx\twall_ms\toutput_tok_est\tcorrect\tcached_tokens\toutput_snippet' >> " + shq(tsv_path))
+
+    // ── Step 1 — boot server ──
+    println("")
+    println("  --- BOOT llama-server ---")
+    let pid = server_boot()
+    println("  server_pid=" + pid)
+    let ready_state = server_wait_ready()
+    println("  server_ready_state=" + ready_state)
+    if ready_state != "ready" {
+        println("  ! server failed to become ready. Capturing log tail:")
+        let log_tail = exec("tail -30 " + shq(SERVER_LOG) + " 2>&1").trim()
+        println("    " + log_tail.replace("\n", "\n    "))
+        // Best-effort cleanup.
+        server_kill()
+        let bp = OUT_DIR + "/stage4_kvprefix_persistent_summary.txt"
+        exec("rm -f " + shq(bp))
+        exec("echo '# server_ready_state=" + ready_state + "' >> " + shq(bp))
+        exec("echo '# verdict=BLOCKED_AT_RUNTIME' >> " + shq(bp))
+        exec("echo '# beats_cycle4_blocker=false' >> " + shq(bp))
+        println("__HEXA_CODEX_BENCH_SANDBOX_STAGE4_KVPREFIX_PERSISTENT__ BLOCKED_AT_RUNTIME")
+        exit(0)
+    }
+
+    // ── Step 2 — cold_cli (reference) ──
+    println("")
+    println("  --- cold_cli (REFERENCE; matches cycle-4 cold) ---")
+    let mut cold_total_ms = 0
+    let mut cold_n_correct = 0
+    let mut cold_first_ms = 0
+    let mut cold_after_first_ms = 0
+    let mut ci = 0
+    while ci < len(TASKS) {
+        let task = TASKS[ci]
+        let prompt = SHARED_PREFIX + " User: " + task[0]
+        let expected = task[1]
+        let line = run_cold_cli(prompt, expected)
+        let parts = line.split("\t")
+        let mut wall_ms = 0
+        let mut tok_est = "0"
+        let mut correct = "0"
+        let mut cached_tok = "0"
+        let mut snippet = ""
+        if parts.len() >= 5 {
+            wall_ms = int(parts[0])
+            tok_est = parts[1]
+            correct = parts[2]
+            cached_tok = parts[3]
+            snippet = parts[4].replace("\t", " ")
+        } else {
+            snippet = "PARSE_ERROR:" + line.substr(0, 80)
+        }
+        cold_total_ms = cold_total_ms + wall_ms
+        if ci == 0 { cold_first_ms = wall_ms } else { cold_after_first_ms = cold_after_first_ms + wall_ms }
+        if correct == "1" { cold_n_correct = cold_n_correct + 1 }
+        let row = "cold_cli\t" + str(ci+1) + "\t" + str(wall_ms) + "\t" + tok_est + "\t" + correct + "\t" + cached_tok + "\t" + snippet.substr(0, 120)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("  cold_cli[" + str(ci+1) + "/" + str(len(TASKS)) + "] wall_ms=" + str(wall_ms) + " correct=" + correct + " kw=" + expected)
+        ci = ci + 1
+    }
+
+    // ── Step 3 — warm_server_no_prefix ──
+    println("")
+    println("  --- warm_server_no_prefix (server, no system-msg prefix) ---")
+    let mut wn_total_ms = 0
+    let mut wn_after_first_ms = 0
+    let mut wn_first_ms = 0
+    let mut wn_n_correct = 0
+    let mut ni = 0
+    while ni < len(TASKS) {
+        let task = TASKS[ni]
+        let line = run_server_task(task[0], task[1], false, true)
+        let parts = line.split("\t")
+        let mut wall_ms = 0
+        let mut tok_est = "0"
+        let mut correct = "0"
+        let mut cached_tok = "0"
+        let mut snippet = ""
+        if parts.len() >= 5 {
+            wall_ms = int(parts[0])
+            tok_est = parts[1]
+            correct = parts[2]
+            cached_tok = parts[3]
+            snippet = parts[4].replace("\t", " ")
+        } else {
+            snippet = "PARSE_ERROR:" + line.substr(0, 80)
+        }
+        wn_total_ms = wn_total_ms + wall_ms
+        if ni == 0 { wn_first_ms = wall_ms } else { wn_after_first_ms = wn_after_first_ms + wall_ms }
+        if correct == "1" { wn_n_correct = wn_n_correct + 1 }
+        let row = "warm_server_no_prefix\t" + str(ni+1) + "\t" + str(wall_ms) + "\t" + tok_est + "\t" + correct + "\t" + cached_tok + "\t" + snippet.substr(0, 120)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("  no_prefix[" + str(ni+1) + "/" + str(len(TASKS)) + "] wall_ms=" + str(wall_ms) + " correct=" + correct + " cached_tok=" + cached_tok)
+        ni = ni + 1
+    }
+
+    // ── Step 4 — warm_server_with_prefix ──
+    println("")
+    println("  --- warm_server_with_prefix (server + ~376-tok shared system prefix, cache_prompt:true) ---")
+    let mut wp_total_ms = 0
+    let mut wp_after_first_ms = 0
+    let mut wp_first_ms = 0
+    let mut wp_n_correct = 0
+    let mut wp_cached_tok_sum = 0
+    let mut wp_cached_tok_after_first_sum = 0
+    let mut pi = 0
+    while pi < len(TASKS) {
+        let task = TASKS[pi]
+        let line = run_server_task(task[0], task[1], true, true)
+        let parts = line.split("\t")
+        let mut wall_ms = 0
+        let mut tok_est = "0"
+        let mut correct = "0"
+        let mut cached_tok = "0"
+        let mut snippet = ""
+        if parts.len() >= 5 {
+            wall_ms = int(parts[0])
+            tok_est = parts[1]
+            correct = parts[2]
+            cached_tok = parts[3]
+            snippet = parts[4].replace("\t", " ")
+        } else {
+            snippet = "PARSE_ERROR:" + line.substr(0, 80)
+        }
+        wp_total_ms = wp_total_ms + wall_ms
+        if pi == 0 { wp_first_ms = wall_ms } else {
+            wp_after_first_ms = wp_after_first_ms + wall_ms
+            wp_cached_tok_after_first_sum = wp_cached_tok_after_first_sum + int(cached_tok)
+        }
+        wp_cached_tok_sum = wp_cached_tok_sum + int(cached_tok)
+        if correct == "1" { wp_n_correct = wp_n_correct + 1 }
+        let row = "warm_server_with_prefix\t" + str(pi+1) + "\t" + str(wall_ms) + "\t" + tok_est + "\t" + correct + "\t" + cached_tok + "\t" + snippet.substr(0, 120)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("  with_prefix[" + str(pi+1) + "/" + str(len(TASKS)) + "] wall_ms=" + str(wall_ms) + " correct=" + correct + " cached_tok=" + cached_tok)
+        pi = pi + 1
+    }
+
+    // ── Step 5 — kill server, verify ──
+    println("")
+    println("  --- KILL llama-server ---")
+    let kill_state = server_kill()
+    println("  server_kill_state=" + kill_state)
+    let post_port = exec("lsof -i :" + SERVER_PORT + " 2>/dev/null | tail -n +2 | head -1").trim()
+    let port_clean = if post_port.len() == 0 { "true" } else { "false" }
+    println("  port_clean_after_kill=" + port_clean)
+
+    // ── Step 6 — aggregate ──
+    let total = len(TASKS)
+    let mut cold_avg = 0
+    let mut cold_avg_after_first = 0
+    if total > 0 { cold_avg = cold_total_ms / total }
+    if total > 1 { cold_avg_after_first = cold_after_first_ms / (total - 1) }
+
+    let mut wn_avg = 0
+    let mut wn_avg_after_first = 0
+    if total > 0 { wn_avg = wn_total_ms / total }
+    if total > 1 { wn_avg_after_first = wn_after_first_ms / (total - 1) }
+
+    let mut wp_avg = 0
+    let mut wp_avg_after_first = 0
+    if total > 0 { wp_avg = wp_total_ms / total }
+    if total > 1 { wp_avg_after_first = wp_after_first_ms / (total - 1) }
+
+    // Use TOTAL wall times for the headline speedup (matches "wall-clock reduction"
+    // framing in the task). cycle-4 reported avg_after_first; we report both.
+    let mut speedup_total_x100 = 0
+    if cold_total_ms > 0 {
+        speedup_total_x100 = ((cold_total_ms - wp_total_ms) * 10000) / cold_total_ms
+    }
+    let mut speedup_after_first_x100 = 0
+    if cold_avg_after_first > 0 {
+        speedup_after_first_x100 = ((cold_avg_after_first - wp_avg_after_first) * 10000) / cold_avg_after_first
+    }
+    // Isolate the prefix lever from the server-warm-up lever.
+    let mut prefix_vs_noprefix_x100 = 0
+    if wn_total_ms > 0 {
+        prefix_vs_noprefix_x100 = ((wn_total_ms - wp_total_ms) * 10000) / wn_total_ms
+    }
+
+    let speedup_total_str = _signed_decimal(speedup_total_x100)
+    let speedup_after_first_str = _signed_decimal(speedup_after_first_x100)
+    let prefix_vs_noprefix_str = _signed_decimal(prefix_vs_noprefix_x100)
+
+    let mut beats = "false"
+    if speedup_total_x100 >= (VIABLE_SPEEDUP_PCT * 100) && wp_n_correct >= cold_n_correct {
+        beats = "true"
+    }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — Stage 4 KV-prefix persistent (cycle-6)")
+    println("========================================================================")
+    println("  total tasks                                : " + str(total))
+    println("  shared_prefix_chars                        : " + str(SHARED_PREFIX.len()))
+    println("")
+    println("  cold_cli:")
+    println("    total_wall_ms                            : " + str(cold_total_ms))
+    println("    avg_wall_ms_per_task                     : " + str(cold_avg))
+    println("    avg_wall_ms_per_task_after_first         : " + str(cold_avg_after_first))
+    println("    accuracy                                 : " + str(cold_n_correct) + "/" + str(total))
+    println("")
+    println("  warm_server_no_prefix:")
+    println("    total_wall_ms                            : " + str(wn_total_ms))
+    println("    avg_wall_ms_per_task                     : " + str(wn_avg))
+    println("    avg_wall_ms_per_task_after_first         : " + str(wn_avg_after_first))
+    println("    accuracy                                 : " + str(wn_n_correct) + "/" + str(total))
+    println("")
+    println("  warm_server_with_prefix:")
+    println("    total_wall_ms                            : " + str(wp_total_ms))
+    println("    avg_wall_ms_per_task                     : " + str(wp_avg))
+    println("    avg_wall_ms_per_task_after_first         : " + str(wp_avg_after_first))
+    println("    cached_tokens_sum (incl first)           : " + str(wp_cached_tok_sum))
+    println("    cached_tokens_sum_after_first            : " + str(wp_cached_tok_after_first_sum))
+    println("    accuracy                                 : " + str(wp_n_correct) + "/" + str(total))
+    println("")
+    println("  warm_server_with_prefix vs cold_cli total  : " + speedup_total_str + "%")
+    println("  warm_server_with_prefix vs cold_cli avg_after_first: " + speedup_after_first_str + "%")
+    println("  warm_with_prefix vs warm_no_prefix (prefix-only lever): " + prefix_vs_noprefix_str + "%")
+    println("  beats_cycle4_blocker (>= 20% AND accuracy parity): " + beats)
+    println("")
+
+    // ── Step 7 — persist summary ──
+    let summary_path = OUT_DIR + "/stage4_kvprefix_persistent_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool_ref=llama-completion (CLI one-shot)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool_server=llama-server HTTP /v1/chat/completions") + " >> " + shq(summary_path))
+    exec("echo " + shq("# server_port=" + SERVER_PORT) + " >> " + shq(summary_path))
+    exec("echo " + shq("# server_kill_state=" + kill_state) + " >> " + shq(summary_path))
+    exec("echo " + shq("# port_clean_after_kill=" + port_clean) + " >> " + shq(summary_path))
+    exec("echo " + shq("# shared_prefix_chars=" + str(SHARED_PREFIX.len())) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tasks=" + str(total)) + " >> " + shq(summary_path))
+    // cold_cli
+    exec("echo " + shq("# cold_cli_total_wall_ms=" + str(cold_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cold_cli_avg_wall_ms_per_task=" + str(cold_avg)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cold_cli_avg_wall_ms_per_task_after_first=" + str(cold_avg_after_first)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cold_cli_accuracy=" + str(cold_n_correct) + "/" + str(total)) + " >> " + shq(summary_path))
+    // warm_server_no_prefix
+    exec("echo " + shq("# warm_server_no_prefix_total_wall_ms=" + str(wn_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_no_prefix_avg_wall_ms_per_task=" + str(wn_avg)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_no_prefix_avg_wall_ms_per_task_after_first=" + str(wn_avg_after_first)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_no_prefix_accuracy=" + str(wn_n_correct) + "/" + str(total)) + " >> " + shq(summary_path))
+    // warm_server_with_prefix
+    exec("echo " + shq("# warm_server_with_prefix_total_wall_ms=" + str(wp_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_with_prefix_avg_wall_ms_per_task=" + str(wp_avg)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_with_prefix_avg_wall_ms_per_task_after_first=" + str(wp_avg_after_first)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_with_prefix_cached_tokens_sum=" + str(wp_cached_tok_sum)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_with_prefix_cached_tokens_sum_after_first=" + str(wp_cached_tok_after_first_sum)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_with_prefix_accuracy=" + str(wp_n_correct) + "/" + str(total)) + " >> " + shq(summary_path))
+    // viability
+    exec("echo " + shq("# viable_speedup_threshold_pct=" + str(VIABLE_SPEEDUP_PCT)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_speedup_vs_cold_cli_pct=" + speedup_total_str) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_speedup_vs_cold_cli_avg_after_first_pct=" + speedup_after_first_str) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_server_with_prefix_speedup_vs_warm_server_no_prefix_pct=" + prefix_vs_noprefix_str) + " >> " + shq(summary_path))
+    exec("echo " + shq("# beats_cycle4_blocker=" + beats) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cycle4_d_kv_prefix_share_warm_speedup_pct=13.30 (BLOCKED_AT_SCALE per .verdicts/sandbox/stage3_kvprefix_summary.txt)") + " >> " + shq(summary_path))
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    if beats == "true" {
+        println("__HEXA_CODEX_BENCH_SANDBOX_STAGE4_KVPREFIX_PERSISTENT__ PASS")
+    } else {
+        println("__HEXA_CODEX_BENCH_SANDBOX_STAGE4_KVPREFIX_PERSISTENT__ DEAD")
+    }
+    exit(0)
+}

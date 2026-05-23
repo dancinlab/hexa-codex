@@ -867,3 +867,75 @@ Persisted:
 
 Cumulative SANDBOX state: 5 confirmed · 3 dead (added
 d_json_schema_constrained at threshold) · 8 candidates remaining.
+
+---
+
+## 2026-05-24 — cycle-6 Stage 4 — two server-mode wins + a difficulty cliff
+
+Three benches dispatched in parallel (json-schema logged above). All
+on Qwen2.5-0.5B-Instruct-Q4_K_M, mac-mini-m3, $0. The two
+`llama-server` long-lived-process benches both landed strong wins;
+the Stage 1 reopen surfaced a model-capability cliff.
+
+**⭐ `d_kv_prefix_share_persistent` — CONFIRMED, cycle-4 BLOCKED_AT_SCALE fully reversed.**
+The cycle-4 one-shot CLI floor (~3-4 s Metal-init + GGUF mmap per call
+dwarfing the 530 ms prefix-eval saving) collapses once the server is
+long-lived:
+
+| strategy | total wall | avg/task | accuracy |
+|:---|---:|---:|:---:|
+| `cold_cli` (cycle-4 mode) | 98 594 ms | 4 929 ms | 16/20 |
+| `warm_server_no_prefix` | 17 362 ms | 868 ms | 15/20 |
+| `warm_server_with_prefix` | 10 142 ms | 507 ms | 17/20 |
+
+`warm_server_with_prefix` vs `cold_cli` = **89.71%** wall reduction
+(gate: 20%). Prefix lever isolated (with- vs no-prefix) = 41.58%.
+`cached_tokens_sum_after_first=6992` (368 tok/call = full hit on the
+376-tok shared prefix). Accuracy parity holds (17 ≥ 16).
+
+**`d_continuous_batching_server` — CONFIRMED at +30.65%, cycle-1 50% target honestly missed.**
+`llama-server -np N -cb`, batch wall-clock over the 20-task manifest:
+
+| -np | batch wall | speedup vs np1 | accuracy |
+|:---:|---:|---:|:---:|
+| 1 | 14 518 ms | — | 15/20 |
+| 2 | 12 204 ms | +15.93% | 15/20 |
+| **4** | **10 068 ms** | **+30.65%** | 15/20 |
+| 8 | 12 878 ms | +11.29% | 15/20 |
+
+np4 is the sweet spot; np8 is 27.9% *slower* than np4 — UMA
+memory-bandwidth saturation on the M3 (the predicted failure mode).
+All hold 15/20. cycle-1 `d_batch_amortized` (BLOCKED — no batch
+surface on `claude --bare -p`) is now substrate-confirmed: the
+vendor's 50% discount is a pricing decision atop this physical
+mechanism, which here yields +30.65% at $0. The 50% target needs a
+larger model + longer-output strata where decode dominates setup.
+
+**`d_stage1_persona_at_scale` — tier separation real but routing not viable; difficulty cliff found.**
+Re-ran the 3 personas on 150 Stage-2 tasks (30/stratum). nano 33% ≈
+mid 34% ≈ max 36% (spread 4 tasks). `tier_separation_observed=true`
+(per-stratum ranking differs) but `routing_simulation_viable=false`
+(< 3pp gate). The dominant signal is a **capability cliff**:
+
+| stratum | nano | mid | max |
+|:---|:---:|:---:|:---:|
+| wc_5_15 | 73% | 86% | 90% |
+| wc_16_30 | 86% | 83% | 86% |
+| wc_31_60 | 6% | 3% | 3% |
+| wc_61_100 | 0% | 0% | 0% |
+| wc_101_200 | 0% | 0% | 0% |
+
+Qwen2.5-0.5B cannot solve the wc≥31 multi-step arithmetic strata at
+all. So cycle-4's "dead-on-manifest" has a NEW root cause at scale —
+not saturation (too easy) but a model-capability cliff (too hard
+above wc=30). A real routing simulation needs a larger base (Stage 4
+scale ladder) or a Stage-2b manifest whose long strata stay within
+0.5B capability.
+
+Cumulative SANDBOX state: **7 confirmed** (d_stage0_poc ·
+d_early_stop_local · d_prompt_compress_local · d_logit_calibration ·
+d_stage2_scale_manifest · d_kv_prefix_share_persistent ·
+d_continuous_batching_server) · 3 dead (d_stage1_persona ·
+d_kv_prefix_share · d_json_schema_constrained) · 6 candidates
+remaining. d_stage1_persona_at_scale ran but is inconclusive (cliff
+blocks routing signal — gated on a larger base model).

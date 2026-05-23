@@ -1,0 +1,30 @@
+strategy	total	correct	batch_wall_ms	avg_per_task_wall_ms	status
+serial_np1	20	15	14518	690	ok
+parallel_np2	20	15	12204	998	ok
+parallel_np4	20	15	10068	1712	ok
+parallel_np8	20	15	12878	3853	ok
+# model=Qwen2.5-0.5B-Instruct-Q4_K_M
+# host=mac-mini-m3 (brew llama.cpp + Metal)
+# server=llama-server --host 127.0.0.1 --port 8082 -np <N> -cb --log-disable
+# tasks=20
+# np_flag_exposed=true
+# cb_flag_exposed=true
+# np1_batch_wall_ms=14518
+# np2_batch_wall_ms=12204
+# np4_batch_wall_ms=10068
+# np8_batch_wall_ms=12878
+# np2_speedup_vs_np1_pct=15.93
+# np4_speedup_vs_np1_pct=30.65
+# np8_speedup_vs_np1_pct=11.29
+# best_strategy=parallel_np4
+# best_speedup_pct=30.65
+# np2_accuracy_within_1_of_np1=true
+# np4_accuracy_within_1_of_np1=true
+# np8_accuracy_within_1_of_np1=true
+# accuracy_preserved=true  (collective — true iff EVERY parallel strategy correct count within +/- 1 of np1)
+# beats_cycle1_batch_amortized_50pct=false  (true iff np4 OR np8 batch_wall_ms reduction >= 50.00% AT its own +/- 1 accuracy parity to np1 — winning-strategy semantics, a flaky sibling does not invalidate the claim)
+# cycle1_d_batch_amortized=BLOCKED at claude --bare -p (no batch endpoint exposed; the 50% Anthropic batch discount is a vendor pricing artifact whose physical substrate is continuous batching — N parallel slots on a shared decode loop)
+# substrate=llama-server -np N -cb is the local, $0 mechanism that makes vendor batch discounts physically possible
+# honest_note_1=batch wall-clock is measured from FIRST request issued to LAST response landed (date +%s%N brackets the xargs invocation); per-task wall_ms is prompt_ms+predicted_ms from server timings JSON
+# honest_note_2=if any strategy boot failed it appears with status=fail:<reason> in the per-strategy table (np8 OOM-fail on 16GB UMA is the expected mode at np=8)
+# honest_note_3=accuracy parity is the gate for the speedup claim; +/- 1 task is noise tolerance, larger divergence flags concurrent-KV-slot non-determinism (this build: 0.5B Qwen2.5 q4_k_m at temperature=0)

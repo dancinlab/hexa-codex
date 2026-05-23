@@ -1,0 +1,61 @@
+strategy	idx	wall_ms	output_tok_est	correct	cached_tokens	output_snippet
+cold_cli	1	10308	1	1	0	4
+cold_cli	2	8128	1	1	0	Paris
+cold_cli	3	3765	1	1	0	olleh
+cold_cli	4	6055	1	1	0	49
+cold_cli	5	6104	1	1	0	11
+cold_cli	6	3095	1	1	0	2
+cold_cli	7	1849	1	0	0	6
+cold_cli	8	4253	1	0	0	0
+cold_cli	9	6082	1	1	0	65
+cold_cli	10	6782	1	0	0	27
+cold_cli	11	5807	4	1	0	```python sum(range(1, 101)) ```
+cold_cli	12	6032	2	1	0	O(log n)
+cold_cli	13	9537	1	1	0	lst[::-1]
+cold_cli	14	5086	3	1	0	{1, 2, 3}
+cold_cli	15	3600	7	1	0	TCP is connection-oriented, while UDP is connectionless.
+cold_cli	16	4253	66	1	0	Breadth-First Search (BFS) explores all nodes at the current level before moving on to the next level. DFS, on the other
+cold_cli	17	3402	32	1	0	```python import functools def fibonacci_memoized(n, memo={}): if n in memo: return memo[n] if n <= 1: return n memo[n]
+cold_cli	18	1687	7	0	0	1101 binary = 1101 decimal = 19
+cold_cli	19	1650	15	1	0	Mergesort has an average time complexity of O(n log n) due to its divide-and-conquer approach.
+cold_cli	20	1119	11	1	0	A halting problem is a problem that has no algorithmic solution.
+warm_server_no_prefix	1	58	1	1	0	4
+warm_server_no_prefix	2	58	1	1	24	Paris.
+warm_server_no_prefix	3	162	7	1	24	The reversed string of 'hello' is 'olleh'.
+warm_server_no_prefix	4	62	1	1	24	49
+warm_server_no_prefix	5	63	1	1	24	11
+warm_server_no_prefix	6	64	1	0	24	1
+warm_server_no_prefix	7	103	1	0	24	6
+warm_server_no_prefix	8	185	3	0	24	95. 5 Celsius
+warm_server_no_prefix	9	101	1	1	24	65
+warm_server_no_prefix	10	70	1	0	24	28
+warm_server_no_prefix	11	230	4	1	24	```python sum(range(1, 101)) ```
+warm_server_no_prefix	12	903	58	1	24	The time complexity of a binary search algorithm is O(log n), where n is the number of elements in the array. This is be
+warm_server_no_prefix	13	186	1	1	24	lst[::-1]
+warm_server_no_prefix	14	424	9	1	24	The sorted list of {3,1,2} is {1, 2, 3}.
+warm_server_no_prefix	15	296	13	1	24	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless.
+warm_server_no_prefix	16	2694	76	1	24	Breadth-First Search (BFS) and Depth-First Search (DFS) are two fundamental algorithms used for traversing and searching
+warm_server_no_prefix	17	3281	79	1	25	Certainly! Memoization is a technique that allows you to store the results of expensive function calls and reuse them wh
+warm_server_no_prefix	18	3157	52	0	24	To convert the binary number 1101 to its decimal equivalent, we can follow these steps:  1. **Understand the binary numb
+warm_server_no_prefix	19	3184	82	1	24	Mergesort is an efficient sorting algorithm that operates by recursively dividing the input array into smaller subarrays
+warm_server_no_prefix	20	2081	60	1	24	The Halting Problem is a fundamental challenge in computer science, specifically in the field of theoretical computer sc
+warm_server_with_prefix	1	380	1	1	5	4
+warm_server_with_prefix	2	159	1	1	368	Paris
+warm_server_with_prefix	3	195	1	1	368	"olleh"
+warm_server_with_prefix	4	253	1	1	368	49
+warm_server_with_prefix	5	173	1	1	368	11
+warm_server_with_prefix	6	125	1	1	368	2
+warm_server_with_prefix	7	163	1	0	368	6
+warm_server_with_prefix	8	160	2	1	368	100 Celsius
+warm_server_with_prefix	9	121	1	1	368	65
+warm_server_with_prefix	10	179	1	0	368	28
+warm_server_with_prefix	11	447	4	1	368	```python sum(range(1, 101)) ```
+warm_server_with_prefix	12	166	2	1	368	O(log n)
+warm_server_with_prefix	13	313	1	1	368	lst[::-1]
+warm_server_with_prefix	14	325	3	1	368	{1, 2, 3}
+warm_server_with_prefix	15	345	7	1	368	TCP is connection-oriented, while UDP is connectionless.
+warm_server_with_prefix	16	2688	76	1	368	Breadth-First Search (BFS) is a graph traversal algorithm that explores the graph level by level, starting from the root
+warm_server_with_prefix	17	1443	18	1	368	```python import functools  @functools.cache def fibonacci(n):     if n <= 1:         return n     else:         return
+warm_server_with_prefix	18	1208	20	1	368	1101 binary = 1*2^3 + 1*2^2 + 0*2^1 + 1*2^0 = 8 + 4 + 0 + 1 = 13
+warm_server_with_prefix	19	854	15	1	368	Mergesort has an average time complexity of O(n log n) due to its divide-and-conquer approach.
+warm_server_with_prefix	20	445	10	0	368	A problem that cannot be solved by a finite automaton.

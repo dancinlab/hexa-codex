@@ -1,0 +1,10 @@
+-b,    --batch-size N                   logical maximum batch size (default: 2048)
+-ub,   --ubatch-size N                  physical maximum batch size (default: 512)
+                                        - row: split weight across GPUs by rows (parallelized)
+                                        - tensor: split weights and KV across GPUs (parallelized,
+-np,   --parallel N                     number of server slots (default: -1, -1 = auto)
+                                        (env: LLAMA_ARG_N_PARALLEL)
+-cb,   --cont-batching, -nocb, --no-cont-batching
+--slots, --no-slots                     expose slots monitoring endpoint (default: enabled)
+--slot-save-path PATH                   path to save slot kv cache (default: disabled)
+-sps,  --slot-prompt-similarity SIMILARITY

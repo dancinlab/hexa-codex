@@ -293,9 +293,11 @@
 # unlocks multiple domains at once?"
 # raw: .discoveries/sandbox-kick3.raw (mk9, smash+414 free+211 res+28(σ=0.10), 653 total)
 
-@C d_qwen_1_5b_scale := "Qwen2.5-1.5B-Instruct scale step — re-run Stage 2 N=150 persona bench on the 1.5B base, locate the difficulty-cliff position" :: candidate [target_tier=GREEN cost_est=$0 source=cycle-6-cliff-direct-successor]
+@C d_qwen_1_5b_scale := "Qwen2.5-1.5B-Instruct scale step — re-run Stage 2 N=150 persona bench on the 1.5B base, locate the difficulty-cliff position" :: confirmed_base_pick [target_tier=GREEN cost_actual=$0 source=cycle-6-cliff-direct-successor verdict=.verdicts/sandbox/m1_substrate_base_pick.txt scope=base-on-disk+smoke-test-only bench_rerun_pending=true]
   cmd = "huggingface-cli download bartowski/Qwen2.5-1.5B-Instruct-GGUF Qwen2.5-1.5B-Instruct-Q4_K_M.gguf (~1.0GB); rerun bench/sandbox_stage2_persona_scaled.hexa with the 1.5B model path; compare per-stratum accuracy to cycle-6's 0.5B run (cliff was at wc>=31 strata, 0-6% accuracy across all personas)"
   hyp = "1.5B clears the wc_31_60 stratum to >= 30% accuracy on at least one persona AND the cliff position shifts to wc_61_100 or higher — confirms a model-capability gradient exists and Stage 4 scale-ladder has measurable saving frontier; failure mode if false = the manifest's (a+b)*c chain is beyond 1.5B too, must escalate to 3B"
+  base_pick_result = "M1.SUBSTRATE complete (2026-05-24). huggingface-cli NOT installed on host; fell back to direct `curl -L` from bartowski/Qwen2.5-1.5B-Instruct-GGUF (HF resolve URL). Downloaded 986048768 bytes (~940 MB) in 134 s (≈7.0 MB/s). sha256=1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370. Smoke-test PASS: `llama-completion -m … -p 'What is 2+2? Reply with the digit only.' -n 32 --temp 0 -st` emitted `4 [end of text]` (substring match on kw '4' ✓), total wall 5440 ms (load 1516 ms · prompt-eval 130 ms · decode 16 ms / 1 tok · eval throughput 62.15 tok/s on M3 Metal). Verdict at .verdicts/sandbox/m1_substrate_base_pick.txt. SANDBOX.md M1.SUBSTRATE matrix-cell + checkbox flipped `[ ] → [x]`."
+  bench_rerun_state = "PENDING — successor cycle = M2.SUBSTRATE (rerun bench/sandbox_stage2_persona_scaled.hexa with model_path=Qwen2.5-1.5B-Instruct-Q4_K_M.gguf; measure per-stratum accuracy vs cycle-6's 0.5B run; locate cliff position). NOT executed in this cycle — task scope was strictly M1 (base-on-disk + load-verified), not M2 (bench rerun)."
 
 @C d_qwen_3b_scale := "Qwen2.5-3B-Instruct scale step — extend the ladder if 1.5B doesn't clear cliff" :: candidate [target_tier=GREEN cost_est=$0 gated_on=d_qwen_1_5b_scale]
   cmd = "if 1.5B still hits 0% on wc>=31 strata, download Qwen2.5-3B-Instruct-Q4_K_M (~1.9GB); same rerun procedure; measure cliff position + wall_ms ratio vs 0.5B / 1.5B"
@@ -345,7 +347,21 @@
 # either a forked build lands OR M1.SAFETY is redefined around logprob-only
 # probes (refusal-matrix margins, decode-confidence calibration).
 #
-# Cumulative: 8 confirmed (added d_activation_capture_pipeline PARTIAL) · 3 dead ·
-# 10 candidates remaining. Top-1 ROI next: d_qwen_1_5b_scale (GREEN $0, cliff
-# successor) OR d_activation_capture_forked_llama (fork the build to land the
-# residual/attn/mlp taps, unlocking M1.SAFETY fully).
+# 2026-05-24 — d_qwen_1_5b_scale candidate → confirmed_base_pick (PARTIAL,
+# scope=base-on-disk+smoke-test-only): Qwen2.5-1.5B-Instruct-Q4_K_M GGUF
+# downloaded to ~/Models/gguf/ (986 MB, sha256 1adf0b11065d8ad2…) via `curl -L`
+# (huggingface-cli not installed; task-spec fallback). Smoke-test PASS via
+# `llama-completion` on M3 Metal: prompt "What is 2+2? Reply with the digit
+# only." → output `4 [end of text]` (kw '4' ✓), wall 5440 ms (load 1516 ms ·
+# decode 62.15 tok/s). Verdict at .verdicts/sandbox/m1_substrate_base_pick.txt.
+# Closes SANDBOX.md M1.SUBSTRATE matrix-cell + checkbox [ ]→[x]. Bench rerun
+# (M2.SUBSTRATE — bench/sandbox_stage2_persona_scaled.hexa on 1.5B base for
+# cliff-position measurement) PENDING — successor cycle.
+#
+# Cumulative: 9 confirmed (d_stage0_poc · d_early_stop_local ·
+# d_prompt_compress_local · d_logit_calibration · d_stage2_scale_manifest ·
+# d_kv_prefix_share_persistent · d_continuous_batching_server · plus PARTIAL
+# d_activation_capture_pipeline + d_qwen_1_5b_scale_base_pick) · 3 dead · 9
+# candidates remaining. Top-2 ROI next: d_activation_capture_forked_llama (fork
+# the build to unlock M1.SAFETY fully) + d_stage1_persona_at_scale rerun on
+# the 1.5B base (M2.SUBSTRATE cliff-position measurement).

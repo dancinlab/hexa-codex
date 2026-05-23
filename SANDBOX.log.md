@@ -7,6 +7,22 @@
 
 ---
 
+## 2026-05-24 — M1.SUBSTRATE done — scale-ladder base on disk
+
+Qwen2.5-1.5B-Instruct-Q4_K_M GGUF downloaded (940 MB, sha256
+`1adf0b11065d8ad2…`) and load-verified via a 1-prompt smoke test on
+the M3 Metal `llama-completion` surface — answered "What is 2+2?" with
+clean `4 [end of text]` in 5 440 ms (load 1 516 ms · 62.15 tok/s
+decode). Closes the SANDBOX M1.SUBSTRATE matrix checkbox and directly
+executes the cycle-7 `d_qwen_1_5b_scale` candidate (.discoveries/sandbox.tape,
+commit `f98e858`). Full provenance — model path, size, sha256, smoke
+output, throughput, source URL, download method — persisted at
+`.verdicts/sandbox/m1_substrate_base_pick.txt`. Detailed table cross-ref
+in `SUBSTRATE.log.md` 2026-05-24 entry (this turn). Cost $0,
+download ~2 min, smoke test ~5 s. Next on the substrate lane:
+M2.SUBSTRATE — rerun `bench/sandbox_stage2_persona_scaled.hexa`
+against the 1.5B base to map the cycle-6 wc≥31 difficulty cliff.
+
 ## 2026-05-24 — M1.OPS done — `slo_under_load` harness script written (no exec yet)
 
 Shipped `bench/sandbox_stage4_slo_under_load.hexa` — the OPS SLO

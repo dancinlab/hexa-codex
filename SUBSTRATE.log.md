@@ -6,6 +6,42 @@
 
 ---
 
+## 2026-05-24 — M1.SUBSTRATE done — Qwen2.5-1.5B-Instruct-Q4_K_M on disk, smoke-test PASS
+
+The SANDBOX M1.SUBSTRATE milestone (scale-ladder base model picked +
+GGUF on disk + load-verified, ≥1.5B) closes. Direct execution of the
+cycle-7 `d_qwen_1_5b_scale` candidate (`.discoveries/sandbox.tape`,
+commit `f98e858`) and the explicit prerequisite for M2.SUBSTRATE
+(1st capability eval at ≥1.5B on Stage-2 manifest).
+
+| field | value |
+|:---|:---|
+| base_model | Qwen2.5-1.5B-Instruct-Q4_K_M (bartowski GGUF) |
+| model_path | `~/Models/gguf/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf` |
+| model_size | 986 048 768 bytes (≈ 940 MB) |
+| sha256 | `1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370` |
+| download via | `curl -L` (huggingface-cli not installed; task-spec fallback) |
+| download wall | 134 s (≈ 7.0 MB/s, 940 MB total) |
+| smoke prompt | "What is 2+2? Reply with the digit only." |
+| smoke output | `4 [end of text]` (substring match on kw "4" ✓) |
+| smoke verdict | **PASS** |
+| smoke wall | 5 440 ms total · load 1 516 ms · prompt-eval 130 ms · decode 16 ms (1 tok) |
+| eval throughput | 62.15 tok/s on M3 Metal (vs ~70-80 tok/s typical for 0.5B Q4_K_M — visible capability/scale tradeoff) |
+| host / tool | mac mini M3 · `llama-completion` (brew llama.cpp + Metal) |
+| cost | $0 (local download + local inference) |
+
+Persisted: `.verdicts/sandbox/m1_substrate_base_pick.txt` carries the
+full provenance header (sha256, size, smoke verdict, source URL,
+download method, next-milestone link).
+
+M1.SUBSTRATE matrix cell in `SANDBOX.md` flipped `[ ] → [x]`; the
+`d_qwen_1_5b_scale` candidate in `.discoveries/sandbox.tape` flips
+to `confirmed_base_pick` with the verdict reference attached. Next
+on the substrate lane: rerun `bench/sandbox_stage2_persona_scaled.hexa`
+against this 1.5B base to locate the cycle-6 difficulty cliff (the
+wc≥31 strata Qwen2.5-0.5B failed at 0-6% accuracy) — M2.SUBSTRATE
+proper.
+
 ## 2026-05-24 — SANDBOX provides determinism + scale for SUBSTRATE capability evals (substrate cross-link)
 
 SANDBOX (per `SANDBOX.md` §Sibling domains) is now registered as the

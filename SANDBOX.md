@@ -9,7 +9,7 @@ graduates only when every domain has cleared it.
 
 ```
                   ECONOMICS              SAFETY                 OPS                   SUBSTRATE
-M1 Surface        ✓ done (cycles 1-6)   [ ] activation capture [x] SLO harness       [ ] scale ladder pick
+M1 Surface        ✓ done (cycles 1-6)   [ ] activation capture [x] SLO harness       [x] scale ladder pick
 M2 First verdict  ✓ done (7 confirmed)  [ ] 1st interp probe   [ ] 1st p50/p99       [ ] 1st capability eval
 M3 Saturation     [ ] F-CODEX-1/2 fit   [ ] 3+ SAE motifs      [ ] full SLO grid     [ ] scale ladder 0.5/1.5/3/7B
 M4 Paper          ✓ done (routing-svgs) [ ] safety canonical   [ ] ops canonical     [ ] substrate canonical
@@ -21,7 +21,7 @@ M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4) [ ] v?.?.?       
 - [x] M1.ECON — `lm_foundry/tool/route_dispatch.hexa` + cycle 1-6 dispatch surface
 - [ ] M1.SAFETY — `lm_foundry/tool/activation_capture.hexa` interface SHIPPED 2026-05-24 but self-test = `BLOCKED_AT_BUILD` (stock Homebrew `llama-server` exposes neither `--logits-all` nor `--n-probs`; intermediate residual/attn/mlp taps need a forked llama.cpp); logprob HTTP-body path remains live (cycle-5 d_logit_calibration)
 - [x] M1.OPS — SLO measurement harness (`d_slo_under_load` candidate) — `bench/sandbox_stage4_slo_under_load.hexa` (script-only, M2.OPS run pending)
-- [ ] M1.SUBSTRATE — scale-ladder base model picked + GGUF on disk (≥1.5B)
+- [x] M1.SUBSTRATE — Qwen2.5-1.5B-Instruct-Q4_K_M GGUF on disk (986 MB, sha256 `1adf0b11065d8ad2…`) + smoke-test PASS (5440 ms, 62.15 tok/s on M3 Metal) — `.verdicts/sandbox/m1_substrate_base_pick.txt`
 
 ### M2 First verdict — `.verdicts/<domain>/*` first artefact lands
 

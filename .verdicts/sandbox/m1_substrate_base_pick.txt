@@ -1,0 +1,20 @@
+# base_model=Qwen2.5-1.5B-Instruct-Q4_K_M
+# model_path=/Users/ghost/Models/gguf/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf
+# model_size_bytes=986048768
+# sha256=1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370
+# smoke_test_prompt=What is 2+2? Reply with the digit only.
+# smoke_test_expected_kw=4
+# smoke_test_passed=true
+# smoke_test_wall_ms=5440
+# smoke_test_raw_output=4 [end of text]
+# smoke_test_load_ms=1516.39
+# smoke_test_prompt_eval_ms=129.84
+# smoke_test_eval_tps=62.15
+# smoke_test_host=mac-mini-M3 / llama-completion (brew llama.cpp + Metal)
+# downloaded_at=2026-05-24
+# downloaded_via=curl (huggingface-cli not installed; fallback per task spec)
+# source_url=https://huggingface.co/bartowski/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf
+# download_wall_seconds=134
+# next_milestone=M2.SUBSTRATE (1st capability eval at >=1.5B on Stage-2 manifest)
+# discovery_tape_slug=d_qwen_1_5b_scale (.discoveries/sandbox.tape cycle-7)
+# note=Smoke test PASS — model loaded on M3 Metal, answered "4" cleanly with [end of text] marker; eval throughput 62.15 tok/s (vs ~70-80 tok/s typical for 0.5B at the same quant — capability/scale tradeoff visible).

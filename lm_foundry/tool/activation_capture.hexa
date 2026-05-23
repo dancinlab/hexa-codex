@@ -1,0 +1,379 @@
+#!hexa strict
+// lm_foundry/tool/activation_capture.hexa — SAFETY interpretability capture wrapper.
+//
+// SANDBOX milestone M1.SAFETY (per SANDBOX.md §Milestones matrix).
+// Sibling of `lm_foundry/tool/route_dispatch.hexa` (commit b376590) — same
+// structural pattern (top doc block · `shq()` helper · exec()-wrapped
+// subprocess · self-test main · NO LLM call inside the wrapper file
+// itself). Downstream SAFETY probe benches (circuit motifs, SAE features,
+// attention patterns, refusal-matrix logit margins) call
+// `capture_activations(...)` instead of re-implementing the
+// `llama-server /v1/chat/completions logprobs=true top_logprobs=N` HTTP
+// pattern that cycle-5 `d_logit_calibration` (commit c7e03a5) proved out.
+//
+// ============================================================================
+// INTERFACE
+// ============================================================================
+//   capture_activations(
+//       prompt:        str,    // user content (single turn; multi-turn TBD)
+//       model_path:    str,    // absolute path to GGUF, or basename resolved
+//                              //   against $LLAMA_MODEL_DIR / $HOME/.cache/llama-models
+//       layers:        str,    // comma-separated layer indices ("0,8,16,24"
+//                              //   or "all"). HONEST: stock llama-server does
+//                              //   NOT expose per-layer intermediate residuals
+//                              //   on its HTTP surface — the value is recorded
+//                              //   to the TSV `layer` column for downstream
+//                              //   consumers but only the final-layer logprob
+//                              //   path is populated today. Forked-build
+//                              //   territory; see REQUIRES below.
+//       capture_kinds: str,    // comma-separated subset of
+//                              //   {"residual","attn","mlp","logprobs"}.
+//                              //   Only "logprobs" is stock-llama-server
+//                              //   reachable today; the other three are
+//                              //   recorded as schema rows with value=""
+//                              //   and a BLOCKED_BUILD note, so consumers
+//                              //   can detect the gap deterministically
+//                              //   rather than via missing rows.
+//       n_probs:       int,    // top-N logprobs (-1 = none). Maps to the
+//                              //   POST body `top_logprobs` field on
+//                              //   `/v1/chat/completions`; the `--n-probs`
+//                              //   CLI flag is NOT present on this build
+//                              //   (Homebrew llama-server, evidence in
+//                              //   .discoveries/sandbox-logprob-flags.raw).
+//       out_path:      str,    // TSV destination (overwritten — caller owns
+//                              //   the rotation policy)
+//   ) -> str
+//
+// RETURN (tab-separated, 4 fields, deterministic shape):
+//   status \t total_tokens \t bytes_written \t schema_version
+//
+//   status ∈ {"PASS", "BLOCKED_AT_BUILD", "ERROR_<reason>"}.
+//
+// ============================================================================
+// TSV OUTPUT SCHEMA (schema_version = "v1")
+// ============================================================================
+//   token_idx · layer · kind · activation_dim_or_token · value · model · schema_version
+//
+//   Per-row meaning:
+//   - token_idx                 — 0-based completion token index from
+//                                 llama-server's `logprobs.content[i]` array
+//                                 (logprobs kind), or "" for BLOCKED_BUILD rows.
+//   - layer                     — layer index ("final" for kind=logprobs since
+//                                 stock llama-server only exposes the
+//                                 final-layer distribution); otherwise the
+//                                 requested layer index from `layers` arg.
+//   - kind                      — one of {residual, attn, mlp, logprobs}.
+//   - activation_dim_or_token   — for kind=logprobs: the candidate token
+//                                 string (e.g. " 42", "Hello"). For the
+//                                 other kinds: dimension index when /
+//                                 if exposed (currently always "" — BLOCKED).
+//   - value                     — for kind=logprobs: the logprob (float, e.g.
+//                                 "-0.1234"). For other kinds: "" today.
+//   - model                     — basename of model_path (for cross-run join).
+//   - schema_version            — literal "v1".
+//
+// ============================================================================
+// REQUIRES
+// ============================================================================
+//   - `llama-server` on PATH (Homebrew `llama.cpp` formula — verified via
+//     `which llama-server` at /opt/homebrew/bin/llama-server on M1.SAFETY
+//     build date 2026-05-24).
+//   - `curl` + `jq` on PATH for the HTTP round-trip and JSON parse.
+//   - GGUF weights at `model_path` (or resolvable via $LLAMA_MODEL_DIR).
+//   - For kind=logprobs ONLY: the OpenAI-compatible endpoint
+//     `/v1/chat/completions` accepts `logprobs=true` + `top_logprobs=N` in
+//     the request body (cycle-5 d_logit_calibration evidence at
+//     .verdicts/sandbox/stage3_logit_calibration_summary.txt).
+//   - For kind ∈ {residual, attn, mlp}: a FORKED llama.cpp build with an
+//     intermediate-tensor tap (e.g. an `--activation-dump` extension or a
+//     direct ggml-graph hook). Stock upstream Homebrew build does NOT
+//     expose `--logits-all` or `--n-probs` CLI flags (evidence:
+//     `llama-server --help | grep -E 'logits-all|n-probs'` = 0 matches —
+//     see .discoveries/sandbox-logprob-flags.raw). Without a forked
+//     build, the wrapper still ships; downstream interp benches must
+//     detect status=BLOCKED_AT_BUILD and either fork or fence.
+//
+// ============================================================================
+// HONESTY CAVEATS (cx_empirical_contact discipline)
+// ============================================================================
+//   1. INTERMEDIATE ACTIVATIONS — residual / attn / mlp — are NOT reachable
+//      from stock llama-server. Its HTTP surface returns *final-layer*
+//      logprobs only. A real SAE / circuit-motif probe needs either
+//      (a) a forked llama.cpp with a tensor-tap shim writing intermediate
+//      tensors to a sidecar pipe, OR (b) a different runtime entirely
+//      (transformers + HF hooks; vLLM with custom plugins). The wrapper
+//      interface is still useful — downstream benches can stub against
+//      this signature today and swap the body later — but the cliff is
+//      below the wrapper, not above it.
+//
+//   2. LOGPROBS PATH IS DECODE-SIDE ONLY. The `top_logprobs=N` field
+//      returns the model's predicted top-N candidates AT EACH GENERATED
+//      TOKEN — useful for refusal-matrix probes and confidence calibration
+//      (cycle-5 d_logit_calibration), but NOT a substitute for residual-
+//      stream taps which interp work needs.
+//
+//   3. NO LLM CALL FROM THIS FILE'S MAIN. Self-test does not spawn
+//      llama-server (per task spec). It only verifies the CLI flag
+//      surface and emits a 3-row "schema_only" TSV demonstrating the
+//      format. Real capture happens when a downstream bench calls
+//      `capture_activations(...)`.
+//
+//   4. CONSUMER REFERENCE — SAFETY interp probes per SAFETY.log.md
+//      2026-05-24 entry (commit a233bff). Status: SAFETY group's
+//      F-CODEX-4 SAE motif count (`interpret_motifs = σ−φ = 10`)
+//      depends on this wrapper's residual-stream path landing — which is
+//      BLOCKED_AT_BUILD today.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External subprocess + JSON parse + TSV write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+// shq — shell-quote a string for safe embedding in a /bin/sh -c command.
+// Verbatim from route_dispatch.hexa for behavioral parity (same shell-quote
+// rules; same pattern; same audit shape).
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+// _root — anchor for relative artifact paths. Mirrors the route_dispatch
+// `HOME` constant pattern; today we only need the model-resolution helper.
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    return env("PWD")
+}
+
+// _resolve_model — basename → absolute path under $LLAMA_MODEL_DIR
+// (default $HOME/.cache/llama-models), with .gguf suffix added if absent.
+// Absolute paths pass through unchanged. Copied verbatim from
+// route_dispatch._resolve_llama_model for surface parity.
+fn _resolve_model(model: str) -> str {
+    if model.len() > 0 && model.substr(0, 1) == "/" { return model }
+    let dir = env("LLAMA_MODEL_DIR")
+    let mut base = dir
+    if base.len() == 0 { base = HOME + "/.cache/llama-models" }
+    let mut name = model
+    if name.len() < 5 || name.substr(name.len() - 5, 5) != ".gguf" {
+        name = name + ".gguf"
+    }
+    return base + "/" + name
+}
+
+// _basename — trailing path component for the TSV `model` column.
+fn _basename(p: str) -> str {
+    let n = p.len()
+    let mut i = n - 1
+    while i >= 0 {
+        if p.substr(i, 1) == "/" { return p.substr(i + 1, n - i - 1) }
+        i = i - 1
+    }
+    return p
+}
+
+// _split_csv — split "a,b,c" into a list; empty input → empty list.
+fn _split_csv(s: str) -> [str] {
+    if s.len() == 0 { return [] }
+    return s.split(",")
+}
+
+// _probe_cli_flag — returns 1 iff `llama-server --help` mentions `flag`.
+// Used by the self-test to detect BLOCKED_AT_BUILD honestly.
+fn _probe_cli_flag(flag: str) -> int {
+    let n = exec("llama-server --help 2>&1 | grep -c " + shq(flag)).trim()
+    if n.len() == 0 { return 0 }
+    return int(n)
+}
+
+// _tsv_row — assemble one TSV row (7 fields, schema v1) with newline.
+fn _tsv_row(token_idx: str, layer: str, kind: str, dim_or_tok: str,
+            value: str, model: str) -> str {
+    return token_idx + "\t" + layer + "\t" + kind + "\t" + dim_or_tok +
+           "\t" + value + "\t" + model + "\tv1\n"
+}
+
+// _tsv_header — schema v1 header (matches the per-row field order above).
+fn _tsv_header() -> str {
+    return "token_idx\tlayer\tkind\tactivation_dim_or_token\tvalue\tmodel\tschema_version\n"
+}
+
+// ---------------------------------------------------------------------------
+// PUBLIC: capture_activations
+// ---------------------------------------------------------------------------
+// Body shells out to a long-lived `llama-server` (caller's responsibility
+// to ensure one is running on $ACT_CAP_PORT or to spawn one — the wrapper
+// does NOT manage server lifecycle; see d_kv_prefix_share_persistent
+// cycle-6 for the double-fork pattern). It then POSTs the prompt to
+// `/v1/chat/completions` with `logprobs=true` + `top_logprobs=n_probs`,
+// parses `choices[0].logprobs.content[]` via jq, and writes one TSV row
+// per (completion_token, top_candidate). Intermediate-layer rows
+// (residual/attn/mlp) are emitted as schema placeholders with value=""
+// so consumers can detect the gap.
+fn capture_activations(
+    prompt: str,
+    model_path: str,
+    layers: str,
+    capture_kinds: str,
+    n_probs: int,
+    out_path: str
+) -> str {
+    let mp   = _resolve_model(model_path)
+    let mbn  = _basename(mp)
+    let kinds = _split_csv(capture_kinds)
+    let lyrs  = _split_csv(layers)
+
+    // Surface check: if the user asked for any intermediate-tap kind AND
+    // the stock build doesn't expose the prereq flag, return
+    // BLOCKED_AT_BUILD WITHOUT touching the network — same honesty
+    // discipline as route_dispatch's unknown-backend row.
+    let want_residual = capture_kinds.contains("residual")
+    let want_attn     = capture_kinds.contains("attn")
+    let want_mlp      = capture_kinds.contains("mlp")
+    let want_logprobs = capture_kinds.contains("logprobs")
+    let needs_intermediate = want_residual || want_attn || want_mlp
+
+    let has_logits_all = _probe_cli_flag("logits-all")
+    let has_n_probs    = _probe_cli_flag("n-probs")
+
+    if needs_intermediate && (has_logits_all == 0 || has_n_probs == 0) {
+        // Write a schema-only TSV so consumers see a deterministic gap,
+        // not a missing file.
+        let mut body = _tsv_header()
+        let mut i = 0
+        while i < lyrs.len() {
+            body = body + _tsv_row("", lyrs[i], "residual", "", "", mbn)
+            body = body + _tsv_row("", lyrs[i], "attn", "", "", mbn)
+            body = body + _tsv_row("", lyrs[i], "mlp", "", "", mbn)
+            i = i + 1
+        }
+        exec("printf %s " + shq(body) + " > " + shq(out_path))
+        let sz = exec("wc -c < " + shq(out_path)).trim()
+        return "BLOCKED_AT_BUILD\t0\t" + sz + "\tv1"
+    }
+
+    // Logprobs-only path. Requires a running llama-server on $ACT_CAP_PORT
+    // (default 8088 — parity with cycle-5 d_logit_calibration). The
+    // wrapper does NOT start the server here (lifecycle is the bench's
+    // job); we just probe its readiness and POST the request. If the
+    // server isn't up, return ERROR_NO_SERVER honestly.
+    let port_env = env("ACT_CAP_PORT")
+    let mut port = port_env
+    if port.len() == 0 { port = "8088" }
+
+    let ready = exec("curl -s -o /dev/null -w '%{http_code}' " +
+                     "http://127.0.0.1:" + port + "/health").trim()
+    if ready != "200" {
+        return "ERROR_NO_SERVER_AT_" + port + "\t0\t0\tv1"
+    }
+
+    let mut topn = n_probs
+    if topn < 0 { topn = 0 }
+
+    // Build the JSON body. We embed the prompt safely via jq -n -arg.
+    let body_cmd = "jq -n --arg p " + shq(prompt) +
+                   " --argjson lp " + (want_logprobs ? "true" : "false") +
+                   " --argjson tn " + str(topn) +
+                   " '{messages:[{role:\"user\",content:$p}]," +
+                   "logprobs:$lp,top_logprobs:$tn,temperature:0,n:1}'"
+    let req_body = exec(body_cmd)
+
+    let curl_cmd = "curl -s -X POST http://127.0.0.1:" + port +
+                   "/v1/chat/completions -H 'Content-Type: application/json'" +
+                   " -d " + shq(req_body) + " 2>/dev/null"
+    let resp = exec(curl_cmd)
+
+    // Parse: choices[0].logprobs.content is an array of
+    //   { token, logprob, top_logprobs:[{token, logprob}, ...] }
+    // Emit one row per (token_idx, candidate) plus a row for the chosen
+    // token itself (candidate = "<chosen>").
+    let parse_cmd = "printf %s " + shq(resp) +
+        " | jq -r '.choices[0].logprobs.content // [] | to_entries[] | " +
+        ".key as $i | .value as $t | " +
+        "[ ($i|tostring), \"final\", \"logprobs\", \"<chosen>\", " +
+        "  ($t.logprob|tostring), " + shq(mbn) + ", \"v1\" ] as $chosen | " +
+        "( [$chosen] + ([$t.top_logprobs // [] | .[] | " +
+        "  [ ($i|tostring), \"final\", \"logprobs\", .token, " +
+        "    (.logprob|tostring), " + shq(mbn) + ", \"v1\" ] ])) | " +
+        ".[] | @tsv'"
+    let rows = exec(parse_cmd)
+
+    let mut body_text = _tsv_header() + rows
+    // Ensure trailing newline.
+    if body_text.len() > 0 &&
+       body_text.substr(body_text.len() - 1, 1) != "\n" {
+        body_text = body_text + "\n"
+    }
+    exec("printf %s " + shq(body_text) + " > " + shq(out_path))
+
+    let bytes = exec("wc -c < " + shq(out_path)).trim()
+    let tokens = exec("printf %s " + shq(rows) + " | grep -c '<chosen>'").trim()
+    let mut tot_tok = "0"
+    if tokens.len() > 0 { tot_tok = tokens }
+
+    return "PASS\t" + tot_tok + "\t" + bytes + "\tv1"
+}
+
+// ---------------------------------------------------------------------------
+// Self-test main — NO network, NO GPU, NO llama-server spawn.
+//
+//   (a) print the function signature line for human inspection,
+//   (b) probe `llama-server --help` for the two CLI flags this wrapper's
+//       intermediate-tap path requires (--logits-all, --n-probs); if
+//       EITHER is absent, declare BLOCKED_AT_BUILD honestly,
+//   (c) write a 3-row schema_only TSV demonstrating the v1 format
+//       (one row per kind ∈ {residual, attn, logprobs}).
+//
+// Exit code 0 on PASS (both flags present), 1 on BLOCKED_AT_BUILD.
+// Same family as cycle-4 kv_prefix_share's BLOCKED_AT_SCALE — honest
+// downstream signal, file still ships.
+// ---------------------------------------------------------------------------
+fn main() {
+    println("activation_capture.hexa — self-test (no network, no GPU)")
+    println("  signature: capture_activations(prompt, model_path, layers, " +
+            "capture_kinds, n_probs, out_path) -> status\\ttotal_tokens" +
+            "\\tbytes_written\\tschema_version")
+
+    let has_logits_all = _probe_cli_flag("logits-all")
+    let has_n_probs    = _probe_cli_flag("n-probs")
+    println("  probe: --logits-all matches in `llama-server --help` = " +
+            str(has_logits_all))
+    println("  probe: --n-probs matches in `llama-server --help` = " +
+            str(has_n_probs))
+
+    // Emit the 3-row schema_only TSV to /tmp for the human to inspect.
+    let out = "/tmp/activation_capture_schema.tsv"
+    let mut body = _tsv_header()
+    body = body + _tsv_row("0", "8", "residual", "", "", "schema_only")
+    body = body + _tsv_row("0", "8", "attn", "", "", "schema_only")
+    body = body + _tsv_row("0", "final", "logprobs", " 42", "-0.1234",
+                            "schema_only")
+    exec("printf %s " + shq(body) + " > " + shq(out))
+    let lines = exec("wc -l < " + shq(out)).trim()
+    println("  wrote " + lines + " lines (1 header + 3 schema rows) to " + out)
+
+    let verdict_required = "PASS"
+    let mut verdict = verdict_required
+    if has_logits_all == 0 || has_n_probs == 0 {
+        verdict = "BLOCKED_AT_BUILD"
+    }
+
+    println("  verdict: " + verdict)
+    if verdict == "BLOCKED_AT_BUILD" {
+        println("  reason: stock llama-server (Homebrew) does not expose " +
+                "`--logits-all` and/or `--n-probs` CLI flags; logprob path " +
+                "still works via /v1/chat/completions HTTP body params, " +
+                "but residual/attn/mlp intermediate taps require a forked " +
+                "llama.cpp build with a tensor-tap shim. The wrapper " +
+                "interface ships unchanged — downstream interp benches " +
+                "must detect status=BLOCKED_AT_BUILD from the return row.")
+        println("__HEXA_CODEX_ACTIVATION_CAPTURE_SELFTEST__ BLOCKED_AT_BUILD")
+        exit(1)
+    }
+
+    println("__HEXA_CODEX_ACTIVATION_CAPTURE_SELFTEST__ PASS")
+    exit(0)
+}

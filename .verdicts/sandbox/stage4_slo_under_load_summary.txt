@@ -1,0 +1,19 @@
+# status=harness-written-not-yet-run
+# milestone=M1.OPS (SANDBOX.md — SLO measurement harness)
+# bench_script=bench/sandbox_stage4_slo_under_load.hexa
+# llama_server_port=8090
+# manifest=.verdicts/sandbox/stage2_manifest.tsv (N=2000)
+# np_grid={1,2,4}
+# rate_grid_qps={5,20,100}
+# cells_total=9
+# np_8_skipped=cycle-6 d_continuous_batching_server found np=8 is 27.9% slower than np=4 (16GB UMA mem-bw saturation); sustained-load run at np=8 would OOM/thrash
+# warmup_sec=30 (EXCLUDED from percentile rollup)
+# measure_sec=60 (included)
+# p999_min_n=1000 (cells failing this gate report p999=NA)
+# best_np_per_rate=(filled by M2.OPS run)
+# p99_at_offered_load_0.7_peak=(filled by M2.OPS run — primary hypothesis check vs M/M/c queue model)
+# next=hexa.real run bench/sandbox_stage4_slo_under_load.hexa (estimated wall-clock ~30 min: 9 cells x ~90s each + boot/teardown overhead)
+# honest_note_1=warmup phase fires for 30s at target_rate_qps but is dropped from percentile rollup; only measure-phase rows feed p50/p95/p99/p999
+# honest_note_2=arrival generator uses fixed-tick sleep $(1/r) s — Poisson jitter omitted (macOS sleep sub-ms resolution unreliable); continuous-batching queue stats dominate arrival jitter
+# honest_note_3=p999 only reported when n_completed >= 1000; the 5 qps cells (300 measure-phase arrivals) will report p999=NA by design — that's the correct honesty stance, not a bug
+# honest_note_4=accuracy_drop_under_load is a SECONDARY signal — byte_exact_subset on Stage-2 manifest expected_kw; compare to np=1/rate=5 reference cell (lowest contention) when judging whether saturation perturbs correctness

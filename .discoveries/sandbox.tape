@@ -301,13 +301,18 @@
   cmd = "if 1.5B still hits 0% on wc>=31 strata, download Qwen2.5-3B-Instruct-Q4_K_M (~1.9GB); same rerun procedure; measure cliff position + wall_ms ratio vs 0.5B / 1.5B"
   hyp = "3B is the smallest base that crosses the manifest's wc_31_60 cliff at >= 60% accuracy on the `max` persona, at <= 4x per-task wall vs 0.5B (mac mini M3 unified-memory fits Q4_K_M up to 7B comfortably); IF FALSE the manifest's wc>=31 strata measure something other than scale (e.g., chain-of-thought activation), and SUBSTRATE's full capability-eval scope still needs work beyond mere parameter count"
 
-@C d_activation_capture_pipeline := "activation capture .hexa wrapper — exposes layer-N intermediate activations from llama-server for SAFETY interp probes" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SAFETY+SUBSTRATE]
+@C d_activation_capture_pipeline := "activation capture .hexa wrapper — exposes layer-N intermediate activations from llama-server for SAFETY interp probes" :: confirmed [actual_tier=PARTIAL cost_actual=$0 cross_cut=SAFETY+SUBSTRATE verdict=interface-ships+self-test-BLOCKED_AT_BUILD]
   cmd = "build lm_foundry/tool/activation_capture.hexa wrapping llama-server with `--lookup-cache` + `--logits-all` + a layer-tap shim; emit per-token activation vectors (residual stream, attention output, MLP output) to TSV/parquet; consumer: SAFETY circuit-motif + SAE probes (SAFETY.log.md 2026-05-24 entry) + SUBSTRATE RLHF reward-shaping probes"
   hyp = "the substrate exposes activations cleanly enough (no opaque CUDA-fast-path) that a single .hexa wrapper unlocks both SAFETY's interpretability falsifier class AND SUBSTRATE's RLHF probing without per-domain re-instrumentation; failure mode = llama.cpp's logits-all is decode-side only and intermediate activations require a forked build (then revive as `d_activation_capture_forked_llama`)"
+  result = "INTERFACE SHIPPED (cycle-7, 2026-05-24): lm_foundry/tool/activation_capture.hexa — one public fn `capture_activations(prompt, model_path, layers, capture_kinds, n_probs, out_path) -> status\\ttotal_tokens\\tbytes_written\\tschema_version`. TSV schema v1: `token_idx · layer · kind · activation_dim_or_token · value · model · schema_version`. Self-test runs no llama-server (per task spec — interface only), probes `llama-server --help` for the two CLI flags the intermediate-tap path requires: --logits-all matches=0, --n-probs matches=0 (stock Homebrew build, evidence parity with .discoveries/sandbox-logprob-flags.raw). Verdict = BLOCKED_AT_BUILD (same family as cycle-4 d_kv_prefix_share BLOCKED_AT_SCALE — wrapper ships, downstream signal honest). Logprob HTTP-body path remains live (cycle-5 d_logit_calibration confirmed `/v1/chat/completions` logprobs=true + top_logprobs=N end-to-end); residual/attn/mlp intermediate taps gated on forked llama.cpp build with a ggml-graph hook. Failure-mode prediction in hyp confirmed: 'llama.cpp's logits-all is decode-side only and intermediate activations require a forked build' — revive as `d_activation_capture_forked_llama` when fork lands."
+  actual_tier_note = "PARTIAL: interface fully landed and callable by SAFETY consumers; the logprob path is live today (kind=logprobs returns final-layer top-N); the residual/attn/mlp paths return schema-only placeholder rows with status=BLOCKED_AT_BUILD so consumers detect the gap deterministically, not via missing rows."
+  m1_safety_state = "SANDBOX.md M1.SAFETY checkbox STAYS `[ ]` — wrapper ships, but the SAFETY falsifier class (circuit motifs, SAE features on intermediate residuals) is not unblocked at the substrate level yet. The checkbox flips when the forked build lands OR when consumers redefine M1.SAFETY around logprob-only probes (refusal-matrix logit margins, decode-confidence calibration — both reachable today)."
+  consumer_ref = "SAFETY.log.md 2026-05-24 entry (commit a233bff) — `interpret` (F-CODEX-4 SAE motifs) depends on the residual-stream path landing; `safety` refusal-matrix probes can already use the logprob path today."
 
-@C d_slo_under_load := "OPS SLO measurement harness — p50/p99 latency + queue depth at concurrent load on Stage-2 N=2000 manifest" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=OPS+ECONOMICS]
+@C d_slo_under_load := "OPS SLO measurement harness — p50/p99 latency + queue depth at concurrent load on Stage-2 N=2000 manifest" :: harness_only [actual_tier=GREEN status=harness-only cost_actual=$0 cross_cut=OPS+ECONOMICS bench=bench/sandbox_stage4_slo_under_load.hexa verdict_pending=M2.OPS]
   cmd = "build bench/sandbox_stage4_slo_under_load.hexa: spawn llama-server -np 4 -cb; fire concurrent client load at rates {5, 20, 100, 500} req/s using hexa-managed xargs/parallel dispatch over Stage-2 manifest; capture per-request wait_ms + decode_ms; emit p50/p99/p999 percentile tables per concurrency × rate cell"
   hyp = "p99 latency stays within 3x of p50 at offered load <= 0.7 × peak throughput, with knee at 0.8-0.9 × peak — classic M/M/c queue signature; consumer: OPS SLO falsifier class (OPS.log.md 2026-05-24 entry) + ECONOMICS $/latency (cycle-1 d_parallel_dispatch revisit). Failure mode = mac mini thermal throttling at sustained load (then `d_slo_under_load_thermal_factored` as successor)"
+  harness_status = "HARNESS WRITTEN 2026-05-24 (M1.OPS milestone) — bench/sandbox_stage4_slo_under_load.hexa modelled on cycle-6 d_continuous_batching_server pattern (double-fork nohup, port 8090 isolation distinct from sibling 8081/8082/8083/8088, `date +%s%N` bracketing, `xargs -P` concurrent dispatch). Grid rescoped to 9 cells: np ∈ {1,2,4} × rate ∈ {5,20,100} qps. np=8 omitted per cycle-6 finding (27.9% slower than np=4 on 16GB UMA, sustained-load would OOM). 30s warmup (excluded) + 60s measurement window. Honesty gates baked in: p999=NA when n_completed < 1000 (the 5qps cells by design); error_rate captured separately from latency so HTTP failures don't pollute percentiles; accuracy as secondary signal vs np=1/rate=5 reference cell (byte_exact_subset on Stage-2 expected_kw). Server killed between cells for clean -np state. Placeholder verdict at .verdicts/sandbox/stage4_slo_under_load_summary.txt marks `# status=harness-written-not-yet-run`. M2.OPS run is a separate later cycle (~30 min wall-clock estimate: 9 cells × ~90s + boot/teardown). NOT YET A VERDICT — substrate primitive confirmed (continuous-batching server already proven by cycle-6 d_continuous_batching_server), but no p50/p99 numbers landed yet."
 
 @C d_multimodal_base := "multimodal SANDBOX base — Qwen2.5-VL or LLaVA-3 as substrate addition, unblocks SUBSTRATE multimodal-fusion falsifier" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SUBSTRATE-only gated_on=d_qwen_3b_scale]
   cmd = "extend SANDBOX with a multimodal base (Qwen2.5-VL-7B GGUF if available; else LLaVA-1.6-Mistral-7B); add image+text input path to lm_foundry/tool/route_dispatch.hexa; SUBSTRATE's multimodal-fusion verb gets its first measurable bench (small image+caption manifest, byte-exact_subset on caption)"
@@ -319,3 +324,28 @@
 # (1) d_activation_capture_pipeline (GREEN $0, unlocks SAFETY interp + SUBSTRATE RLHF — 2 domains)
 # (2) d_qwen_1_5b_scale (GREEN $0, direct cycle-6 cliff successor, ungates all subsequent
 #     stage-4 work including SUBSTRATE capability evals on multi-step reasoning).
+#
+# 2026-05-24 — d_activation_capture_pipeline candidate → CONFIRMED-PARTIAL (cycle-7):
+# Interface SHIPPED at lm_foundry/tool/activation_capture.hexa (modelled on
+# lm_foundry/tool/route_dispatch.hexa commit b376590, same structural pattern —
+# top doc block · shq() helper · exec()-wrapped subprocess · self-test main ·
+# NO LLM call from this file). Public fn capture_activations(prompt, model_path,
+# layers, capture_kinds, n_probs, out_path) -> 4-field TSV row. Schema v1 row:
+# token_idx · layer · kind · activation_dim_or_token · value · model · schema_version.
+# Self-test (no network, no GPU, no llama-server spawn) probes the stock Homebrew
+# llama-server --help surface: --logits-all matches=0, --n-probs matches=0; both
+# absent → self-test verdict = BLOCKED_AT_BUILD (exit 1; same family as cycle-4
+# d_kv_prefix_share BLOCKED_AT_SCALE). The wrapper still ships — the failure
+# mode predicted in the round-3 hypothesis ("llama.cpp's logits-all is decode-side
+# only and intermediate activations require a forked build") is empirically
+# observed. logprob HTTP-body path remains live (cycle-5 d_logit_calibration
+# confirmed end-to-end at /v1/chat/completions); only the residual / attn / mlp
+# intermediate-tensor taps are blocked. SANDBOX.md M1.SAFETY checkbox stays
+# `[ ]` (per BLOCKED_AT_BUILD honesty rule) — the matrix cell flips only when
+# either a forked build lands OR M1.SAFETY is redefined around logprob-only
+# probes (refusal-matrix margins, decode-confidence calibration).
+#
+# Cumulative: 8 confirmed (added d_activation_capture_pipeline PARTIAL) · 3 dead ·
+# 10 candidates remaining. Top-1 ROI next: d_qwen_1_5b_scale (GREEN $0, cliff
+# successor) OR d_activation_capture_forked_llama (fork the build to land the
+# residual/attn/mlp taps, unlocking M1.SAFETY fully).

@@ -7,6 +7,53 @@
 
 ---
 
+## 2026-05-24 — M1.OPS done — `slo_under_load` harness script written (no exec yet)
+
+Shipped `bench/sandbox_stage4_slo_under_load.hexa` — the OPS SLO
+measurement harness modelled on the cycle-6 server-spawn-trap-teardown
+pattern from `bench/sandbox_stage4_continuous_batching.hexa` (double-fork
+nohup, port isolation, `date +%s%N` bracketing, `xargs -P` concurrent
+dispatch). Port 8090 (distinct from sibling benches at 8081/8082/8083/8088).
+
+The harness sweeps a 3 × 3 SLO grid (9 cells total):
+
+```
+                   rate=5 qps     rate=20 qps    rate=100 qps
+   np=1            cell (1,5)     cell (1,20)    cell (1,100)
+   np=2            cell (2,5)     cell (2,20)    cell (2,100)
+   np=4            cell (4,5)     cell (4,20)    cell (4,100)
+```
+
+`np=8` intentionally omitted — cycle-6 `d_continuous_batching_server`
+found np=8 was 27.9% slower than np=4 on the 16GB UMA mac-mini M3
+(memory-bandwidth saturation), and a sustained-load run there would
+OOM/thrash. Documented as `np_8_skipped` in the summary header.
+
+Per cell: 30s warm-up (excluded from rollup) + 60s measurement window,
+arrivals at fixed-tick `sleep $(1/r)` s; per-request bracket
+`enqueue_t → complete_t` via `date +%s%N`; percentile rollup offline via
+`sort -n | awk NR==floor(N*q)`. Shard files at
+`/tmp/sandbox_stage4_slo_shards/<np>_<rate>.tsv`.
+
+Honesty gates baked in: (a) `p999=NA` whenever `n_completed < 1000`
+(the 5 qps cells deliver only ~300 measure-phase arrivals — that's by
+design, not a bug); (b) `error_rate` captured separately from latency
+so HTTP failures don't pollute percentiles as sub-ms p50s;
+(c) `accuracy` per cell tracked as a secondary signal against the
+Stage-2 manifest `expected_kw` (byte_exact_subset), compared to the
+`np=1 / rate=5` reference cell at lowest contention; (d) server
+killed between cells for clean `-np` state.
+
+**This commit ships the SCRIPT only — no execution.** Placeholder
+verdict at `.verdicts/sandbox/stage4_slo_under_load_summary.txt` marks
+`# status=harness-written-not-yet-run` and projects the grid + next
+command. The first verdict (M2.OPS) is a separate later cycle —
+estimated wall-clock ~30 min (9 cells × ~90s + boot/teardown).
+
+`.discoveries/sandbox.tape` `d_slo_under_load` flipped to
+`harness_only` (substrate confirmed, verdict pending). M1.OPS
+SANDBOX.md checkbox + matrix cell flipped to `[x]`.
+
 ## 2026-05-24 — kick round 3 — Stage 4 scale-ladder + all-domain candidates
 
 Ran `hexa kick --rounds 1` against the post-cycle-6 + post-rescope
@@ -1002,3 +1049,53 @@ d_continuous_batching_server) · 3 dead (d_stage1_persona ·
 d_kv_prefix_share · d_json_schema_constrained) · 6 candidates
 remaining. d_stage1_persona_at_scale ran but is inconclusive (cliff
 blocks routing signal — gated on a larger base model).
+
+## 2026-05-24 — M1.SAFETY interface SHIPPED, self-test BLOCKED_AT_BUILD (honest gap)
+
+`lm_foundry/tool/activation_capture.hexa` (interface only, no bench
+execution) landed as the SAFETY-side substrate entry point, modelled
+on `lm_foundry/tool/route_dispatch.hexa` (commit `b376590`). One
+public function:
+
+```
+capture_activations(prompt, model_path, layers, capture_kinds,
+                    n_probs, out_path) -> status\ttotal_tokens\t
+                                          bytes_written\tschema_version
+```
+
+TSV schema v1 (one row per (token, layer, capture_kind)):
+
+```
+token_idx · layer · kind · activation_dim_or_token · value · model · schema_version
+```
+
+Self-test (no `llama-server` spawn, no network) probes the stock
+Homebrew `llama-server --help` surface for the two CLI flags the
+intermediate-tap path requires:
+
+| flag | matches in `llama-server --help` |
+|:-----|---:|
+| `--logits-all` | 0 |
+| `--n-probs` | 0 |
+
+Both absent → self-test verdict = **`BLOCKED_AT_BUILD`** (same family
+as cycle-4 `d_kv_prefix_share` BLOCKED_AT_SCALE — the wrapper still
+ships; the downstream signal is honest). The logprob HTTP-body path
+remains live (cycle-5 `d_logit_calibration` proved
+`/v1/chat/completions` with `logprobs=true · top_logprobs=N` works
+end-to-end); only the residual / attn / mlp intermediate-tensor taps
+that SAFETY's interpretability falsifier class needs are gated on a
+forked llama.cpp build with a ggml-graph hook.
+
+M1.SAFETY checkbox stays `[ ]` (per the BLOCKED_AT_BUILD honesty
+rule), now annotated with the forked-build dependency. The
+`d_activation_capture_pipeline` candidate in
+`.discoveries/sandbox.tape` flips candidate → confirmed with
+`actual_tier=PARTIAL`: interface ships, logprob path live, intermediate
+taps gated on fork. Consumer reference per `SAFETY.log.md` 2026-05-24
+entry (commit `a233bff`) — SANDBOX is the only viable surface for
+SAFETY interpretability work.
+
+Cumulative SANDBOX state: **8 confirmed** (added
+`d_activation_capture_pipeline` PARTIAL — interface-only) · 3 dead · 5
+candidates remaining.

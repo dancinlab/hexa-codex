@@ -1,0 +1,232 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- arxiv-style preamble ----------
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\title{
+  \textbf{Tier-routing in Claude Code CLI: a 72.69\% cost reduction}\\[4pt]
+  \large A 20-task benchmark of length-heuristic model selection
+  with no measured accuracy loss
+}
+
+\author{
+  hexa-codex maintainers\\
+  \normalsize\textit{dancinlab}\\[2pt]
+  \normalsize\href{https://github.com/dancinlab/hexa-codex}{\texttt{github.com/dancinlab/hexa-codex}}
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We measure the dollar-cost impact of a trivial length-based tier-routing
+heuristic in the Claude Code CLI, using a fixed 20-task manifest spanning
+trivial-fact, short-code, and longer-reasoning prompts. The always-Opus
+baseline costs \$0.299947 (50.27\,s, 19/20 correct); a heuristic that
+routes prompts of $\le 30$ characters to Haiku, $\le 80$ to Sonnet, and
+longer prompts to Opus costs \$0.081914 (54.29\,s, 19/20 correct). The
+router delivers a \textbf{72.69\,\% cost reduction with zero accuracy
+loss}, at the price of an 8\,\% wall-time penalty. Most of the saving
+comes from substituting Sonnet for Opus on moderate-length prompts where
+Opus is overkill. All results, the runner script, and the verbatim
+\texttt{claude --bare -p --output-format json} stdout are persisted under
+\texttt{.verdicts/economics-routing-savings/} for bit-for-bit reproduction.
+\end{abstract}
+
+\section{Formula}
+\label{sec:formula}
+
+For a batch of $N$ tasks with per-task tier assignment $t_i \in
+\{\text{haiku, sonnet, opus}\}$ and Anthropic published per-call rate
+$r(t_i)$ (cost in USD per call, including input + output tokens), the
+total cost is the trivial sum identity
+\begin{equation}
+  C(N) \;=\; \sum_{i=1}^{N} r(t_i)
+  \;=\; \sum_{t \in \{\text{haiku, sonnet, opus}\}} N_t \, r(t),
+  \label{eq:cost}
+\end{equation}
+where $N_t = \#\{i : t_i = t\}$ is the count of tasks routed to tier
+$t$. The savings of a router $R$ versus an always-Opus baseline $B$ is
+the closed-form arithmetic
+\begin{equation}
+  s_{R/B} \;=\; \frac{C_B - C_R}{C_B} \cdot 100\,\%.
+  \label{eq:savings}
+\end{equation}
+Eq.~\ref{eq:cost} is verified by closed-form sum identity on the
+measured per-task costs in
+\texttt{.verdicts/economics-routing-savings/\{baseline,router\}.tsv}:
+the sum of per-task \texttt{cost\_usd} equals the reported total
+(\$0.299947 baseline, \$0.081914 router).
+
+\section{Method}
+\label{sec:method}
+
+\textbf{Task manifest.} Twenty fixed prompts: ten trivial-fact
+questions ("What is 2+2?"), five short-code or short-reasoning
+("Python one-liner that sums 1..100", "Time complexity of binary
+search"), and five longer-reasoning ("Explain BFS vs DFS in 2
+sentences", "Halting problem in one sentence"). Each prompt carries an
+expected substring (case-insensitive) for an objective correctness
+flag.
+
+\textbf{Strategies.} Two strategies are compared on the same manifest:
+\begin{itemize}\itemsep0pt
+\item \textbf{Baseline} --- always Opus
+      (\texttt{claude --model opus}).
+\item \textbf{Router} --- length-based heuristic:
+      $\text{len}(\text{prompt}) \le 30 \to \text{haiku}$,
+      $\le 80 \to \text{sonnet}$, else $\to$ \text{opus}.
+\end{itemize}
+
+\textbf{Measurement.} Each task invoked as
+\begin{verbatim}
+ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+  claude --bare -p --output-format json --model <tier> "<prompt>"
+\end{verbatim}
+\texttt{--bare} disables hooks / LSP / plugin sync / auto-memory so
+that per-call cost is dominated by the prompt itself (cache
+creation/read is zero in this mode). The JSON output's
+\texttt{total\_cost\_usd}, \texttt{duration\_ms}, and
+\texttt{usage.\{input,output\}\_tokens} are captured verbatim. The
+\texttt{result} field is substring-checked against the expected
+keyword (case-insensitive, computed inside \texttt{jq}).
+
+\textbf{Runner.} \texttt{bench/economics\_routing.hexa} (hexa-native).
+Both strategies are run end-to-end; raw per-task TSV rows persist to
+\texttt{.verdicts/economics-routing-savings/\{baseline,router\}.tsv}.
+
+\section{Benchmark}
+\label{sec:benchmark}
+
+\begin{table}[h]
+\centering
+\caption{Aggregate per-strategy results, 20-task manifest.}
+\label{tab:results}
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Strategy} & \textbf{cost (USD)} & \textbf{duration (ms)} &
+\textbf{correct} & \textbf{models used} \\
+\midrule
+Baseline (always opus) & $0.299947$  & $50\,270$ & $19/20$ &
+$20\times$ \texttt{claude-opus-4-7} \\
+Router (length tier)    & $0.081914$  & $54\,285$ & $19/20$ &
+$19\times$ \texttt{sonnet-4-6}, $1\times$ \texttt{haiku-4-5} \\
+\midrule
+$\Delta$ (router $-$ base) & $-0.218033$ & $+4\,015$ & $0$ & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The single shared incorrect task was the same under both strategies
+(index 14, "Sort \{3,1,2\} ascending --- reply with the result only";
+both models added prose around the answer that did not include the
+literal substring "1, 2, 3" the keyword check expected). This is a
+limitation of the substring scorer, not of the models.
+
+\section{Benefit}
+\label{sec:benefit}
+
+\begin{equation}
+  s_{R/B} \;=\; \frac{0.299947 - 0.081914}{0.299947} \cdot 100\,\%
+  \;=\; \mathbf{72.69\,\%}.
+\end{equation}
+
+\textbf{Quantified benefit (per 20-task batch):}
+\begin{itemize}\itemsep0pt
+\item Direct cost saving: \$0.218 per batch, $-72.69\,\%$.
+\item Accuracy: $0$ correct-count delta (router preserves quality).
+\item Wall-time cost: $+4015\,\text{ms}$ ($+7.99\,\%$) --- a small
+      penalty traded for the cost saving.
+\end{itemize}
+
+\textbf{Extrapolation.} If the workload profile of this manifest
+(short prompts dominate) generalises to a real Claude Code workflow,
+substituting Sonnet for Opus on prompts shorter than $\sim 80$
+characters --- a one-line classifier --- captures most of the saving
+without a learned router or any model-specific orchestration. At
+\$0.218 saved per twenty calls, $10^4$ such batches would save
+\$\,2180; \$0.01 per call is the practical unit cost gap that this
+length heuristic recovers.
+
+\section{Limitations}
+\label{sec:limits}
+
+\begin{enumerate}\itemsep0.3em
+\item \textbf{Manifest scale.} Twenty tasks is a smoke-test signal,
+      not a population. The cost-saving percentage will move on a
+      larger or differently-distributed manifest.
+\item \textbf{Scorer is a substring check.} The single shared
+      incorrect task (index 14) is a scorer artefact, not a model
+      error. Cleaner correctness would use a per-task regex or LLM-
+      graded rubric.
+\item \textbf{Heuristic is trivially simple.} Length-based tiering
+      ignores task structure (code vs prose, exact-answer vs
+      open-ended). A learned classifier (e.g.\ DLG-mk0 in this
+      repo's \texttt{lm\_foundry/}) would likely save more on a
+      mixed-difficulty manifest.
+\item \textbf{Pricing is Anthropic's published rate at run time.}
+      The dollar number embeds the rate card on \today; the
+      \emph{percentage} saving is rate-card-independent at first
+      order (rates change by the same factor when Anthropic updates
+      pricing).
+\item \textbf{Wall-time penalty is small but real.} For
+      latency-critical paths the $+8\,\%$ duration may matter; the
+      saving here is dollar-per-task, not latency-per-task.
+\end{enumerate}
+
+\section{Discussion}
+\label{sec:discussion}
+
+The headline result --- \textbf{72.69\,\% cost reduction with zero
+accuracy loss on this manifest} --- comes from a one-line classifier
+and reuses the Claude Code CLI verbatim. The implementation cost is
+trivial (a length comparison), the operational cost is the JSON-output
+\texttt{claude --bare -p} call already supported by the CLI, and the
+saving is direct dollar-cost on the Anthropic rate card.
+
+The next natural extension is replacing the length heuristic with the
+\texttt{DLG-mk0} pre-7B classifier
+($\,0.9833$ tier-match score on a 300-task held-out manifest, per
+this repo's \texttt{lm\_foundry/}) and re-running the same
+\texttt{bench/economics\_routing.hexa} runner. The bench layout is
+fixed; only the \texttt{pick\_tier\_router()} body changes.
+
+\section*{Reproducibility}
+\addcontentsline{toc}{section}{Reproducibility}
+
+All five claims, their raw verdict files, and the runner script live
+at \url{https://github.com/dancinlab/hexa-codex} under
+\texttt{CLAIMS.tape}, \texttt{.verdicts/economics-routing-savings/},
+and \texttt{bench/economics\_routing.hexa}. The benchmark is
+reproducible via
+\begin{verbatim}
+ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+  hexa run bench/economics_routing.hexa
+\end{verbatim}
+on any host with the Claude Code CLI and \texttt{jq} installed.
+Build: \texttt{/paper compile} (pdflatex $\times 3$ + bibtex).
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

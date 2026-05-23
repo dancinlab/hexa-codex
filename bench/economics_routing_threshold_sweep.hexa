@@ -1,0 +1,307 @@
+#!hexa strict
+// bench/economics_routing_threshold_sweep.hexa — 2-tier word-count cutoff τ sweep.
+//
+// QUESTION: the 2-tier (haiku-dropped) length router saves 81.79% @ 20/20 at a
+// default cutoff τ_default. Is τ* at the boundary of the swept range or in the
+// interior? Sweep τ ∈ {30,50,80,100,120,150} on word-count(prompt) for the
+// canonical 20-task manifest and read off the optimum.
+//
+// 2-tier router rule (per the brief):
+//   if word_count(prompt) <= tau -> claude-sonnet-4-6
+//   else                          -> claude-opus-4-7
+//
+// Each NEW call captured via `claude --bare -p --output-format json`:
+//   total_cost_usd · duration_ms · result · usage.{input,output}_tokens
+// Per task, correctness = expected_kw substring present (case-insensitive).
+//
+// COST: baseline (always-opus) cost is REUSED from the cached
+// .verdicts/economics-routing-savings/baseline.tsv (same read_cached() shape
+// as bench/economics_routing_confgate.hexa). Only the 6 τ-sweep strategies
+// spend API budget.
+//
+// Output:
+//   .verdicts/economics-routing-savings/threshold_sweep.tsv         (per-task rows)
+//   .verdicts/economics-routing-savings/threshold_sweep_summary.txt (per-τ summary
+//                                                                    + best_tau header)
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_threshold_sweep.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+
+// 20-task fixed manifest — verbatim from economics_routing_2tier.hexa /
+// economics_routing_confgate.hexa for parity.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+// τ grid (word-count cutoff).
+let TAUS = [30, 50, 80, 100, 120, 150]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// word-count(prompt) — whitespace-separated tokens. Uses `wc -w` for parity
+// with how an ops surface would count words at the shell.
+fn word_count(prompt: str) -> int {
+    let raw = exec("printf %s " + shq(prompt) + " | wc -w").trim()
+    return int(raw)
+}
+
+// 2-tier router by word-count: <=tau -> sonnet, else opus.
+fn pick_tier(prompt: str, tau: int) -> str {
+    let wc = word_count(prompt)
+    if wc <= tau { return "sonnet" }
+    return "opus"
+}
+
+// Run one task. Returns 7 tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t output_tokens \t result_snippet \t model \t correct(1|0)
+fn run_one(prompt: str, model: str, expected_kw: str) -> str {
+    let cmd = "claude --bare -p --output-format json --model " + model + " " + shq(prompt) +
+              " 2>/dev/null | jq -r --arg kw " + shq(expected_kw) +
+              " '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, .usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0]), " +
+              "((.result // \"\") | ascii_downcase | contains($kw | ascii_downcase) | " +
+              "if . then \"1\" else \"0\" end)" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+fn saving_pct(b_cost: float, x_cost: float) -> float {
+    if b_cost > 0.0 { return ((b_cost - x_cost) / b_cost) * 100.0 }
+    return 0.0
+}
+
+// Cached strategy reader. Sums cost_usd (col 3) and counts correct (col 7) from a
+// previously-persisted per-task TSV. Same shape as economics_routing_confgate.hexa.
+fn read_cached(name: str) -> str {
+    let path = OUT_DIR + "/" + name + ".tsv"
+    let exists = exec("test -f " + shq(path) + " && echo yes || echo no").trim()
+    if exists != "yes" { return "MISSING" }
+    let cost = exec("tail -n +2 " + shq(path) + " | awk -F'\\t' '{s+=$3} END{printf \"%.8f\", s}'").trim()
+    let cor  = exec("tail -n +2 " + shq(path) + " | awk -F'\\t' '$7==1{c++} END{printf \"%d\", c}'").trim()
+    return cost + "\t" + cor
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_threshold_sweep — 2-tier τ sweep (word-count)")
+    println("  manifest: 20 tasks · τ ∈ {30,50,80,100,120,150}")
+    println("  baseline REUSED from cache; only τ sweeps spend API.")
+    println("  output:   " + OUT_DIR + "/{threshold_sweep.tsv,threshold_sweep_summary.txt}")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+
+    // --- baseline cost from cache ---
+    let b_raw = read_cached("baseline")
+    if b_raw == "MISSING" {
+        println("  ! baseline.tsv cache MISSING — cannot compute savings denominator.")
+        exit(1)
+    }
+    let bp = b_raw.split("\t")
+    let b_cost = to_float(bp[0])
+    let b_acc  = int(bp[1])
+    println("")
+    println("  cached baseline : cost=$" + to_string(b_cost) + "  correct=" + str(b_acc) + "/20")
+
+    // --- pre-compute word_count per task (deterministic, no API spend) ---
+    let mut wcs = []
+    let mut i = 0
+    while i < len(TASKS) {
+        wcs = wcs + [word_count(TASKS[i][0])]
+        i = i + 1
+    }
+    println("")
+    println("  per-task word counts (idx:wc):")
+    i = 0
+    let mut wc_line = "  "
+    while i < len(TASKS) {
+        wc_line = wc_line + str(i+1) + ":" + str(wcs[i]) + " "
+        if (i+1) % 10 == 0 {
+            println(wc_line)
+            wc_line = "  "
+        }
+        i = i + 1
+    }
+    if wc_line.trim().len() > 0 { println(wc_line) }
+
+    // --- fresh per-task TSV (all τ strategies) ---
+    let path = OUT_DIR + "/threshold_sweep.tsv"
+    exec("rm -f " + shq(path))
+    exec("echo 'strategy\ttau\ttask_idx\tword_count\tchosen_tier\tmodel\tcost_usd\tduration_ms\tinput_tokens\toutput_tokens\tcorrect\tresult_snippet' >> " + shq(path))
+
+    // Accumulators, one per τ.
+    let mut tau_cost = []
+    let mut tau_acc  = []
+    let mut t = 0
+    while t < len(TAUS) {
+        tau_cost = tau_cost + [0.0]
+        tau_acc  = tau_acc + [0]
+        t = t + 1
+    }
+
+    // Run each τ strategy across all tasks.
+    t = 0
+    while t < len(TAUS) {
+        let tau = TAUS[t]
+        let sname = "tau_" + str(tau)
+        println("")
+        println("─── " + sname + " (wc<=" + str(tau) + " → sonnet, else opus) ───")
+        let mut total_cost = 0.0
+        let mut n_correct = 0
+        i = 0
+        while i < len(TASKS) {
+            let prompt = TASKS[i][0]
+            let expected = TASKS[i][1]
+            let wc = wcs[i]
+            let mut model = "opus"
+            if wc <= tau { model = "sonnet" }
+            println("  [" + sname + " " + str(i+1) + "/20] wc=" + str(wc) + " → " + model)
+            let line = run_one(prompt, model, expected)
+            let p = line.split("\t")
+            if p.len() < 7 {
+                println("    ! parse error, raw=" + line)
+                i = i + 1
+                continue
+            }
+            let cost = to_float(p[0])
+            let in_t = p[2]
+            let out_t = p[3]
+            let result_snippet = p[4].replace("\t", " ").replace("\n", " ")
+            let model_used = p[5]
+            let correct = p[6]
+            total_cost = total_cost + cost
+            if correct == "1" { n_correct = n_correct + 1 }
+            let row = sname + "\t" + str(tau) + "\t" + str(i+1) + "\t" + str(wc) + "\t" +
+                      model + "\t" + model_used + "\t" + p[0] + "\t" + p[1] + "\t" +
+                      in_t + "\t" + out_t + "\t" + correct + "\t" + result_snippet.substr(0, 80)
+            exec("echo " + shq(row) + " >> " + shq(path))
+            i = i + 1
+        }
+        tau_cost[t] = total_cost
+        tau_acc[t]  = n_correct
+        println("  " + sname + " : cost=$" + to_string(total_cost) + "  correct=" + str(n_correct) + "/20  saving=" + to_string(saving_pct(b_cost, total_cost)) + "%")
+        t = t + 1
+    }
+
+    // --- summary + headline ---
+    let summary_path = OUT_DIR + "/threshold_sweep_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("strategy\ttau\tcost_usd\tcorrect\ttotal\tsaving_pct") + " >> " + shq(summary_path))
+    exec("echo " + shq("baseline\t-\t" + to_string(b_cost) + "\t" + str(b_acc) + "\t20\t0.0") + " >> " + shq(summary_path))
+
+    // best at full 20/20 = highest saving among τs that hold 20/20.
+    let mut best_sav = -1.0e18
+    let mut best_tau = 0
+    let mut best_acc = 0
+    let mut best_cost = 0.0
+    t = 0
+    while t < len(TAUS) {
+        let tau = TAUS[t]
+        let sav = saving_pct(b_cost, tau_cost[t])
+        exec("echo " + shq("tau_sweep\t" + str(tau) + "\t" + to_string(tau_cost[t]) + "\t" + str(tau_acc[t]) + "\t20\t" + to_string(sav)) + " >> " + shq(summary_path))
+        if tau_acc[t] >= 20 {
+            if sav > best_sav {
+                best_sav = sav
+                best_tau = tau
+                best_acc = tau_acc[t]
+                best_cost = tau_cost[t]
+            }
+        }
+        t = t + 1
+    }
+
+    // Fallback if NO τ hits 20/20 — pick the highest-saving regardless and report honestly.
+    let mut any_full = true
+    if best_sav < -1.0e17 {
+        any_full = false
+        t = 0
+        while t < len(TAUS) {
+            let sav = saving_pct(b_cost, tau_cost[t])
+            if sav > best_sav {
+                best_sav = sav
+                best_tau = TAUS[t]
+                best_acc = tau_acc[t]
+                best_cost = tau_cost[t]
+            }
+            t = t + 1
+        }
+    }
+
+    // Reference: canonical 2-tier saving from prior run (drop-haiku).
+    let CANON_2TIER_SAVING = 81.79
+    let beats_canon = best_sav > CANON_2TIER_SAVING
+
+    exec("echo " + shq("# baseline_cost_usd=" + to_string(b_cost)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# canonical_2tier_saving_pct_ref=" + to_string(CANON_2TIER_SAVING)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_tau=" + str(best_tau)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_saving_pct=" + to_string(best_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_correct=" + str(best_acc) + "/20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_full_2020=" + str(any_full)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_beats_canonical_2tier=" + str(beats_canon && any_full)) + " >> " + shq(summary_path))
+
+    println("")
+    println("========================================================================")
+    println("  HEADLINE — 2-tier τ sweep (word-count)")
+    println("========================================================================")
+    println("  best τ                         : " + str(best_tau))
+    println("  best saving                    : " + to_string(best_sav) + "%  @ " + str(best_acc) + "/20  (full 20/20=" + str(any_full) + ")")
+    println("  canonical 2-tier ref           : " + to_string(CANON_2TIER_SAVING) + "%")
+    println("  delta (best − canonical)       : " + to_string(best_sav - CANON_2TIER_SAVING) + " pp")
+    if beats_canon && any_full {
+        println("  VERDICT: confirmed-bonus — interior τ beats canonical 2-tier at >=20/20.")
+    } else {
+        if any_full {
+            println("  VERDICT: boundary already optimal — no swept τ beats canonical 2-tier at >=20/20.")
+        } else {
+            println("  VERDICT: NO τ holds 20/20 — best is " + str(best_acc) + "/20 at τ=" + str(best_tau) + ".")
+        }
+    }
+    println("")
+    println("  per-task TSV : " + path)
+    println("  summary      : " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_THRESHOLD_SWEEP__ PASS")
+    exit(0)
+}

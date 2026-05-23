@@ -1,0 +1,15 @@
+strategy	tau	cost_usd	correct	total	saving_pct
+baseline	-	0.284042	19	20	0.0
+tau_sweep	30	0.0874144	19	20	69.2249
+tau_sweep	50	0.0839799	20	20	70.434
+tau_sweep	80	0.0770798	20	20	72.8633
+tau_sweep	100	0.0604496	20	20	78.7181
+tau_sweep	120	0.0562256	20	20	80.2052
+tau_sweep	150	0.0890695	20	20	68.6422
+# baseline_cost_usd=0.284042
+# canonical_2tier_saving_pct_ref=81.79
+# best_tau=120
+# best_saving_pct=80.2052
+# best_correct=20/20
+# best_full_2020=true
+# best_beats_canonical_2tier=false

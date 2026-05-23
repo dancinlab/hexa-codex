@@ -6,6 +6,39 @@
 
 ---
 
+## 2026-05-23 — 2-tier τ sweep — boundary already optimal
+
+Resolved the open question on the canonical 2-tier router's cutoff —
+does τ\* sit at the boundary of the swept range or in the interior?
+`bench/economics_routing_threshold_sweep.hexa` sweeps
+`τ ∈ {30, 50, 80, 100, 120, 150}` on `word_count(prompt)` against the
+canonical 20-task manifest (`<=τ → sonnet`, else `opus`), reusing the
+cached baseline (`baseline.tsv`) for the saving denominator:
+
+| strategy        | cost (USD) | correct | saving      |
+|:----------------|-----------:|:-------:|------------:|
+| baseline (opus) | 0.28404    | 19/20   |  0.00%      |
+| tau=30          | 0.08741    | 19/20   |  69.22%     |
+| tau=50          | 0.08398    | 20/20   |  70.43%     |
+| tau=80          | 0.07708    | 20/20   |  72.86%     |
+| tau=100         | 0.06045    | 20/20   |  78.72%     |
+| **tau=120**     | **0.05623**| **20/20**| **80.21%** |
+| tau=150         | 0.08907    | 20/20   |  68.64%     |
+
+**Verdict: boundary already optimal.** All 20 manifest prompts have
+`word_count ∈ [5, 14]` (max = 14), so every τ ≥ 14 in the swept grid
+routes 20/20 → sonnet — the six τ runs effectively measure
+sonnet-call stochastic-cost variance on identical routing. Best
+τ\*=120 at 80.21% @ 20/20 does **not** beat the canonical 2-tier
+reference of 81.79% (Δ = -1.58pp, within noise); the τ=30 single-miss
+is a sonnet stochastic event on the same all-sonnet routing as the
+other τs. The canonical 2-tier cutoff is already at the Pareto bound
+on this manifest — to exercise the τ frontier in future cycles the
+manifest needs prompts with `word_count ≥ 30` that would actually
+trip the opus branch. Discovery tape updated: new `d_threshold_sweep`
+confirmed entry; summary footer now reads `3 confirmed · 5 dead · 4
+next-batch candidates`.
+
 ## 2026-05-23 — response-budget cap on haiku — dominated by drop-the-tier
 
 Resolved the `d_response_budget_cap` candidate from

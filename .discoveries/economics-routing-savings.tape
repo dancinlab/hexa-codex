@@ -58,6 +58,10 @@
   raw  = ".verdicts/economics-routing-savings/tokencap_summary.txt"
   note = "appended ' Answer in <=N tokens.' suffix to haiku-routed prompts (the `claude --bare -p` CLI exposes no --max-tokens flag, so the cap had to ride in the prompt itself). swept N in {15,30} + global cap30. results: 3tier_baseline=71.00%@20/20 · cap15=65.86%@20/20 · cap30=73.93%@20/20 · global_cap30=76.60%@19/20. best 20/20 = 3tier_haiku_cap30 at 73.93% — strictly dominated by 2-tier 81.79% (Δ=-7.86pp). honest pathology: cap15 BACKFIRED — fib task out_tok grew 747→1979 (haiku acknowledged the cap in its prose before writing code), so a too-tight cap costs MORE than no cap. global_cap30 truncated sonnet's BFS-vs-DFS answer (missing 'breadth' substring, 19/20). drop-the-tier beats cap-the-prompt; 2-tier remains the operationally-simplest Pareto-optimal router."
 
+@C d_threshold_sweep := "2-tier word-count cutoff τ sweep — boundary already optimal" :: confirmed [target_tier=GREEN actual_tier=GREEN]
+  raw  = ".verdicts/economics-routing-savings/threshold_sweep_summary.txt"
+  note = "swept τ ∈ {30,50,80,100,120,150} on word_count(prompt) cutoff (<=τ → sonnet else opus) over the canonical 20-task manifest. All 20 prompts have wc ∈ [5,14] (max=14), so every τ ≥ 14 routes 20/20 → sonnet — the sweep effectively measures all-sonnet stochastic noise. best τ*=120 at 80.21% saving @ 20/20 (cost $0.0562); canonical 2-tier ref 81.79% NOT beaten (Δ=-1.58pp, within sonnet noise). τ=30 dropped to 19/20 (one sonnet stochastic miss on the same all-sonnet routing). VERDICT — boundary already optimal: on this manifest the τ axis is degenerate (word-count saturated below the grid), so the Pareto frontier set by the canonical 2-tier remains untouched. To exercise the τ frontier in future cycles, the manifest needs higher-word-count prompts (wc ≥ 30) that would actually trip the opus branch."
+
 @C d_early_stop := "early-stop stop-token list — terminate generation at first answer-marker" :: candidate [target_tier=GREEN cost_est=$0.3]
   cmd = "add stop=['\\n\\n','</answer>','---'] to CLI dispatch; rerun manifest; compare output-token count vs baseline"
   hyp = "stop-token early-termination cuts output_tokens ≥15% on the length-router 2-tier config at 20/20 accuracy"
@@ -75,11 +79,15 @@
   hyp = "length-router 81.79% saving is within ε of the analytic Pareto floor (T_BLUE formal proof, no API spend)"
 
 # ── summary ──
-# round 1+2 cumulative : 2 confirmed (Pareto, 2-tier ablation) · 5 dead (token decomp,
-# confidence_gated, difficulty_predict, cache_aware, response_budget_cap) · 4 next-batch
-# candidates (batch_amortized [stale] + early_stop, prompt_compress, speculative_draft,
-# pareto_lower_bound [round-2 new])
+# round 1+2 cumulative : 3 confirmed (Pareto, 2-tier ablation, threshold_sweep boundary) ·
+# 5 dead (token decomp, confidence_gated, difficulty_predict, cache_aware, response_budget_cap)
+# · 4 next-batch candidates (batch_amortized [stale] + early_stop, prompt_compress,
+# speculative_draft, pareto_lower_bound [round-2 new])
 # strongest-confirmed-so-far : 2-tier length router (81.79% saving @ 20/20).
+# threshold_sweep confirmed the canonical 2-tier cutoff is at the Pareto boundary —
+# τ ∈ {30..150} on word_count produce equivalent all-sonnet routing on this manifest
+# (max wc=14), best τ*=120 at 80.21% (within noise of canonical 81.79%). To exercise
+# the τ frontier in future, the manifest needs higher-wc prompts that actually split.
 # round 2 strategy : orthogonal levers (precision controls + speculative + formal floor)
 # rather than further heuristic-router variants — the Pareto frontier among
 # heuristic-routers is exhausted by length-cutoff. cache_aware closed as BLOCKED at

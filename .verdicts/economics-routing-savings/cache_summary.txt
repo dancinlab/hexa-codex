@@ -1,0 +1,13 @@
+strategy	cost_usd	input_tokens	cache_create	cache_read	output_tokens	correct	total
+cold	0.029419	20187	0	0	913	10	10
+warm	0.036509	26689	0	0	1039	10	10
+# cold_cost_usd=0.029419
+# warm_cost_usd=0.036509
+# warm_saving_pct=-24.1001
+# cache_read_tokens_total=0
+# cache_create_tokens_total=0
+# warm_input_tokens_total=26689
+# cache_read_share_pct=0.0
+# cli_supports_explicit_cache=false
+# shared_prefix_chars=4048
+# dispatch_surface=claude --bare -p --output-format json --system-prompt <prefix>

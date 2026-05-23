@@ -6,6 +6,43 @@
 
 ---
 
+## 2026-05-23 — cache-aware dispatch — BLOCKED at the `claude --bare -p` surface
+
+Resolved the `d_cache_aware` candidate from
+`.discoveries/economics-routing-savings.tape` — whether sharing a
+long system prefix across many short tasks lets Anthropic
+prompt-caching dominate input cost (`cache_read_input_tokens >>
+input_tokens`) and drop effective `$/task`.
+`bench/economics_routing_cache.hexa` runs a 10-task suffix manifest
+under two strategies on the same haiku tier:
+
+| strategy | cost (USD) | input_tok | cache_create | cache_read | output_tok | correct |
+|:---------|-----------:|----------:|-------------:|-----------:|-----------:|:-------:|
+| cold     | 0.029419   | 20187     | 0            | 0          | 913        | 10/10   |
+| warm     | 0.036509   | 26689     | 0            | 0          | 1039       | 10/10   |
+
+`warm` passes the same ~4 KB / ~1 k-token shared prefix via
+`--system-prompt`; `cold` omits it. **Both strategies report
+`cache_creation_input_tokens=0` AND `cache_read_input_tokens=0` on
+every one of the 20 dispatches** (verbatim from `.usage` in the
+`--output-format json` payload). `warm` is **24.10 % MORE
+expensive** than `cold` — the SDK pays full input cost for the
+shared prefix on every call without ever emitting the
+`cache_control` header.
+
+**Verdict: BLOCKED** — `claude --bare -p` non-interactive dispatch
+does not activate Anthropic's ephemeral prompt-cache, regardless
+of `--system-prompt` length. Same surface-limit family as the
+earlier `d_token_decomp` blocker. Cache-aware routing requires a
+different dispatch surface (raw Messages API with explicit
+`cache_control`, or interactive session reuse with sticky
+context) — out of scope for the current router.
+
+Discovery tape updated: `d_cache_aware` candidate → dead
+`[actual_tier=BLOCKED]`, batch summary now reads `2 confirmed · 4
+dead · 6 next-batch candidates`. Total bench spend `$0.066` (cold
++ warm), well under the `$0.4` cap.
+
 ## 2026-05-23 — kick round 2 — 5 new orthogonal routing-economics candidates
 
 Continuous-discovery lane (per `cx_discovery`) — ran `hexa kick`

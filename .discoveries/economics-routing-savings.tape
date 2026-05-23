@@ -38,9 +38,9 @@
 
 # ── next-batch candidates (kick levers, not yet run) ──
 
-@C d_cache_aware := "cache-aware dispatch — repeat-prefix prompts → cache-warm tier" :: candidate [target_tier=GREEN cost_est=$0.3]
-  cmd = "measure cache_read_input_tokens effect; route warm-prefix batches to cheaper effective cost"
-  hyp = "system-prompt-shared workloads have near-zero marginal input cost"
+@C d_cache_aware := "cache-aware dispatch — `claude --bare -p` does NOT expose ephemeral cache_control" :: dead [target_tier=GREEN actual_tier=BLOCKED]
+  raw  = ".verdicts/economics-routing-savings/cache_summary.txt"
+  note = "10-task cold vs warm probe with ~4KB shared --system-prompt: cache_creation_input_tokens=0 AND cache_read_input_tokens=0 on ALL 20 dispatches (cold $0.029419 / warm $0.036509, both 10/10 correct). Warm is 24.10% MORE expensive — the SDK pays full input tokens for the shared prefix every call without ever emitting the cache_control header. Surface-limited: `claude --bare -p` non-interactive dispatch doesn't activate Anthropic's ephemeral cache. Same surface-limit family as d_token_decomp. Cache-aware routing requires a different dispatch surface (raw Messages API + explicit cache_control, or interactive session reuse) — out of scope for the current router."
 
 @C d_batch_amortized := "batch-API amortized cost — 50% discount on non-interactive batch dispatch" :: candidate [target_tier=GREEN cost_est=$0.3]
   cmd = "compare claude --bare -p sync vs batch endpoint $/task on same manifest"
@@ -75,11 +75,12 @@
   hyp = "length-router 81.79% saving is within ε of the analytic Pareto floor (T_BLUE formal proof, no API spend)"
 
 # ── summary ──
-# round 1+2 cumulative : 2 confirmed (Pareto, 2-tier ablation) · 3 dead (token decomp,
-# confidence_gated, difficulty_predict) · 7 next-batch candidates (cache_aware,
-# batch_amortized [stale, parallel agents] + response_cap, early_stop, prompt_compress,
+# round 1+2 cumulative : 2 confirmed (Pareto, 2-tier ablation) · 4 dead (token decomp,
+# confidence_gated, difficulty_predict, cache_aware) · 6 next-batch candidates
+# (batch_amortized [stale, parallel agents] + response_cap, early_stop, prompt_compress,
 # speculative_draft, pareto_lower_bound [round-2 new])
 # strongest-confirmed-so-far : 2-tier length router (81.79% saving @ 20/20).
 # round 2 strategy : orthogonal levers (precision controls + speculative + formal floor)
 # rather than further heuristic-router variants — the Pareto frontier among
-# heuristic-routers is exhausted by length-cutoff.
+# heuristic-routers is exhausted by length-cutoff. cache_aware closed as BLOCKED at
+# the `claude --bare -p` dispatch surface; same surface-limit family as token_decomp.

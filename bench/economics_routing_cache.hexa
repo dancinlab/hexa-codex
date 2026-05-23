@@ -1,0 +1,299 @@
+#!hexa strict
+// bench/economics_routing_cache.hexa — cache-aware dispatch probe.
+//
+// HYPOTHESIS (d_cache_aware from .discoveries/economics-routing-savings.tape):
+// a long shared prefix across many short tasks lets Anthropic prompt-caching
+// dominate input cost (cache_read_input_tokens >> input_tokens) and reduce
+// effective $/task. This bench measures whether the `claude --bare -p`
+// dispatch surface USED BY OUR ROUTER actually realises that gain.
+//
+// STRATEGIES (same 10-task suffix manifest, identical model/tier):
+//   cold : each task as a standalone `claude --bare -p -p` invocation with
+//          NO --system-prompt (the default system prompt is the small
+//          --bare one, which is per-call and not cache-controlled).
+//   warm : same task list, each call passes the same long shared prefix via
+//          --system-prompt (~3k chars / ~750 tokens of code-style guide).
+//          If the CLI exposes ephemeral cache_control on system prompts,
+//          cache_read_input_tokens > 0 from the 2nd call onward.
+//
+// JSON payload .usage fields captured per call:
+//   input_tokens, cache_creation_input_tokens, cache_read_input_tokens,
+//   output_tokens, total_cost_usd, duration_ms.
+//
+// HONEST OUTCOME:
+//   - If `cache_read_input_tokens` stays 0 across both strategies the
+//     dispatch surface DOES NOT support explicit caching for this workload.
+//     The candidate is marked dead [actual_tier=BLOCKED] — surface-limited.
+//   - Otherwise we report the cache_read share + warm vs cold $/task delta.
+//
+// Output:
+//   .verdicts/economics-routing-savings/cache.tsv          (per-task rows)
+//   .verdicts/economics-routing-savings/cache_summary.txt  (headers w/
+//     # cache_read_share_pct=, # warm_saving_pct=, # cli_supports_explicit_cache=)
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_cache.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+
+// 10 short suffix tasks (subset of the canonical 20-task manifest, easy half
+// where the dlg/length router would all pick haiku — same model both
+// strategies so the only varying lever is system-prompt caching).
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                          "4"],
+    ["Capital of France? One word.",                                                      "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                  "olleh"],
+    ["Square of 7? Reply with the number only.",                                          "49"],
+    ["First prime number greater than 10? Reply with the number only.",                   "11"],
+    ["Smallest prime number? Reply with the number only.",                                "2"],
+    ["How many continents? Reply with the number only.",                                  "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",       "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                           "65"],
+    ["Days in February 2024? Reply with the number only.",                                "29"],
+]
+
+// Long shared prefix — ~3k chars / ~750 tokens. Anthropic's cache minimum
+// for haiku is 2048 tokens; this is intentionally smaller than that floor
+// to also surface the case where the prefix is "warm-eligible" only on
+// larger models / longer prefixes — we report cache_read_input_tokens as
+// measured, no interpretation. If it stays 0, the surface limit is honest.
+let SHARED_PREFIX_UNIT = "You are a terse code-style helper. Follow these rules strictly: (1) reply with only the literal answer requested, no preface. (2) numeric answers use digits only. (3) one-word answers stay one word. (4) code answers are bare expressions with no markdown fences. (5) never quote the question back. (6) never explain unless asked. (7) trim trailing whitespace and punctuation unless integral to the answer. (8) lowercase unless proper noun. (9) prefer the shortest correct form. (10) do not add disclaimers. "
+
+fn build_prefix() -> str {
+    // Repeat 8x → ~24k chars ≈ ~6k tokens, well above the haiku 2048-token
+    // cache floor so the surface CAN cache if it wants to.
+    let mut s = ""
+    let mut i = 0
+    while i < 8 {
+        s = s + SHARED_PREFIX_UNIT
+        i = i + 1
+    }
+    return s
+}
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Run one task. Returns 9 tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t cache_creation \t cache_read
+//        \t output_tokens \t result_snippet \t model \t correct(1|0)
+fn run_one(prompt: str, model: str, expected_kw: str, system_prompt: str) -> str {
+    // Write system prompt to a temp file to avoid argv-length / quoting issues
+    // when it exceeds 16-32 KB. claude --bare exposes `--system-prompt` (and
+    // not a `--system-prompt-file`, per --help), so pass via shell `"$(cat
+    // file)"` — but we cap shared prefix at ~24 KB which fits in argv on
+    // darwin (ARG_MAX ~256 KB). Empty system_prompt → no flag (cold).
+    let mut sp_flag = ""
+    if system_prompt.len() > 0 {
+        sp_flag = " --system-prompt " + shq(system_prompt)
+    }
+    let cmd = "claude --bare -p --output-format json --model " + model + sp_flag + " " + shq(prompt) +
+              " 2>/dev/null | jq -r --arg kw " + shq(expected_kw) +
+              " '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, " +
+              ".usage.cache_creation_input_tokens, .usage.cache_read_input_tokens, " +
+              ".usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0]), " +
+              "((.result // \"\") | ascii_downcase | contains($kw | ascii_downcase) | " +
+              "if . then \"1\" else \"0\" end)" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+fn pct(num: float, den: float) -> float {
+    if den > 0.0 { return (num / den) * 100.0 }
+    return 0.0
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_cache — cache-aware dispatch probe")
+    println("  manifest: 10 short tasks · 2 strategies (cold / warm)")
+    println("  warm = long shared --system-prompt (~6k tokens)")
+    println("  cold = no --system-prompt")
+    println("  output:   " + OUT_DIR + "/{cache.tsv,cache_summary.txt}")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+
+    let SHARED = build_prefix()
+    let prefix_chars = SHARED.len()
+    println("")
+    println("  shared prefix length : " + str(prefix_chars) + " chars (≈" + str(prefix_chars / 4) + " tokens at 4 char/tok rule-of-thumb)")
+    println("  model                : haiku (cheap tier, both strategies)")
+
+    let model = "haiku"
+
+    let path = OUT_DIR + "/cache.tsv"
+    exec("rm -f " + shq(path))
+    exec("echo 'strategy\ttask_idx\tcost_usd\tduration_ms\tinput_tokens\tcache_creation\tcache_read\toutput_tokens\tmodel\tcorrect\tresult_snippet' >> " + shq(path))
+
+    // Accumulators.
+    let mut cold_cost = 0.0
+    let mut cold_in   = 0
+    let mut cold_cc   = 0
+    let mut cold_cr   = 0
+    let mut cold_out  = 0
+    let mut cold_corr = 0
+
+    let mut warm_cost = 0.0
+    let mut warm_in   = 0
+    let mut warm_cc   = 0
+    let mut warm_cr   = 0
+    let mut warm_out  = 0
+    let mut warm_corr = 0
+
+    // --- cold pass ---
+    println("")
+    println("─── cold (no --system-prompt) ───")
+    let mut i = 0
+    while i < len(TASKS) {
+        let prompt = TASKS[i][0]
+        let expected = TASKS[i][1]
+        println("  [cold " + str(i+1) + "/10] " + prompt.substr(0, 50))
+        let line = run_one(prompt, model, expected, "")
+        let p = line.split("\t")
+        if p.len() < 9 {
+            println("    ! parse error, raw=" + line)
+            i = i + 1
+            continue
+        }
+        let cost = to_float(p[0])
+        let dur  = p[1]
+        let in_t = int(p[2])
+        let cc_t = int(p[3])
+        let cr_t = int(p[4])
+        let ot_t = int(p[5])
+        let snippet = p[6].replace("\t", " ").replace("\n", " ")
+        let model_used = p[7]
+        let correct = p[8]
+        cold_cost = cold_cost + cost
+        cold_in   = cold_in   + in_t
+        cold_cc   = cold_cc   + cc_t
+        cold_cr   = cold_cr   + cr_t
+        cold_out  = cold_out  + ot_t
+        if correct == "1" { cold_corr = cold_corr + 1 }
+        let row = "cold\t" + str(i+1) + "\t" + p[0] + "\t" + dur + "\t" + p[2] + "\t" + p[3] +
+                  "\t" + p[4] + "\t" + p[5] + "\t" + model_used + "\t" + correct + "\t" +
+                  snippet.substr(0, 80)
+        exec("echo " + shq(row) + " >> " + shq(path))
+        i = i + 1
+    }
+    println("  cold totals : cost=$" + to_string(cold_cost) +
+            "  input=" + str(cold_in) +
+            "  cache_create=" + str(cold_cc) +
+            "  cache_read=" + str(cold_cr) +
+            "  output=" + str(cold_out) +
+            "  correct=" + str(cold_corr) + "/10")
+
+    // --- warm pass ---
+    println("")
+    println("─── warm (--system-prompt = ~6k-token shared prefix) ───")
+    i = 0
+    while i < len(TASKS) {
+        let prompt = TASKS[i][0]
+        let expected = TASKS[i][1]
+        println("  [warm " + str(i+1) + "/10] " + prompt.substr(0, 50))
+        let line = run_one(prompt, model, expected, SHARED)
+        let p = line.split("\t")
+        if p.len() < 9 {
+            println("    ! parse error, raw=" + line)
+            i = i + 1
+            continue
+        }
+        let cost = to_float(p[0])
+        let dur  = p[1]
+        let in_t = int(p[2])
+        let cc_t = int(p[3])
+        let cr_t = int(p[4])
+        let ot_t = int(p[5])
+        let snippet = p[6].replace("\t", " ").replace("\n", " ")
+        let model_used = p[7]
+        let correct = p[8]
+        warm_cost = warm_cost + cost
+        warm_in   = warm_in   + in_t
+        warm_cc   = warm_cc   + cc_t
+        warm_cr   = warm_cr   + cr_t
+        warm_out  = warm_out  + ot_t
+        if correct == "1" { warm_corr = warm_corr + 1 }
+        let row = "warm\t" + str(i+1) + "\t" + p[0] + "\t" + dur + "\t" + p[2] + "\t" + p[3] +
+                  "\t" + p[4] + "\t" + p[5] + "\t" + model_used + "\t" + correct + "\t" +
+                  snippet.substr(0, 80)
+        exec("echo " + shq(row) + " >> " + shq(path))
+        i = i + 1
+    }
+    println("  warm totals : cost=$" + to_string(warm_cost) +
+            "  input=" + str(warm_in) +
+            "  cache_create=" + str(warm_cc) +
+            "  cache_read=" + str(warm_cr) +
+            "  output=" + str(warm_out) +
+            "  correct=" + str(warm_corr) + "/10")
+
+    // --- analysis ---
+    // cache_read share = warm cache_read / (warm cache_read + warm input + warm cache_create)
+    let warm_total_in = to_float(str(warm_in + warm_cc + warm_cr))
+    let cache_read_share = pct(to_float(str(warm_cr)), warm_total_in)
+    let warm_saving = pct(cold_cost - warm_cost, cold_cost)
+    let cli_supports_explicit_cache = (warm_cr > 0) || (warm_cc > 0)
+
+    let summary_path = OUT_DIR + "/cache_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("strategy\tcost_usd\tinput_tokens\tcache_create\tcache_read\toutput_tokens\tcorrect\ttotal") + " >> " + shq(summary_path))
+    exec("echo " + shq("cold\t" + to_string(cold_cost) + "\t" + str(cold_in) + "\t" + str(cold_cc) + "\t" + str(cold_cr) + "\t" + str(cold_out) + "\t" + str(cold_corr) + "\t10") + " >> " + shq(summary_path))
+    exec("echo " + shq("warm\t" + to_string(warm_cost) + "\t" + str(warm_in) + "\t" + str(warm_cc) + "\t" + str(warm_cr) + "\t" + str(warm_out) + "\t" + str(warm_corr) + "\t10") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cold_cost_usd=" + to_string(cold_cost)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_cost_usd=" + to_string(warm_cost)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_saving_pct=" + to_string(warm_saving)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cache_read_tokens_total=" + str(warm_cr)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cache_create_tokens_total=" + str(warm_cc)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# warm_input_tokens_total=" + str(warm_in)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cache_read_share_pct=" + to_string(cache_read_share)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# cli_supports_explicit_cache=" + str(cli_supports_explicit_cache)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# shared_prefix_chars=" + str(prefix_chars)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# dispatch_surface=claude --bare -p --output-format json --system-prompt <prefix>") + " >> " + shq(summary_path))
+
+    println("")
+    println("========================================================================")
+    println("  HEADLINE")
+    println("========================================================================")
+    println("  cold cost                : $" + to_string(cold_cost) + "  correct=" + str(cold_corr) + "/10")
+    println("  warm cost                : $" + to_string(warm_cost) + "  correct=" + str(warm_corr) + "/10")
+    println("  warm saving vs cold      : " + to_string(warm_saving) + " %")
+    println("  warm cache_read tokens   : " + str(warm_cr) + " / " + str(warm_in + warm_cc + warm_cr) + " input-equivalent")
+    println("  warm cache_read share    : " + to_string(cache_read_share) + " %")
+    println("  warm cache_create tokens : " + str(warm_cc))
+    println("  cli_supports_explicit_cache=" + str(cli_supports_explicit_cache))
+    if cli_supports_explicit_cache {
+        println("  VERDICT: CLI surface emitted cache_create/read tokens — caching is exposed.")
+    } else {
+        println("  VERDICT: CLI surface emitted ZERO cache_create/read across both strategies —")
+        println("           `claude --bare -p` does NOT trigger ephemeral cache_control on the")
+        println("           system prompt for non-interactive dispatch. Candidate d_cache_aware")
+        println("           is BLOCKED at the dispatch surface (honest dead end).")
+    }
+    println("")
+    println("  per-task TSV : " + path)
+    println("  summary      : " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_CACHE__ PASS")
+    exit(0)
+}

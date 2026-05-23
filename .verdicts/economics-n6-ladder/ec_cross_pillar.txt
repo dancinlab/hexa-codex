@@ -1,0 +1,32 @@
+========================================================================
+  hexa-codex ECONOMICS cross-pillar (3 verbs, one n=6 lattice, math_pure)
+  train_cost · infer_cost · quality_scale — verify 3-pillar consistency
+========================================================================
+  σ=12.0 φ=2.0 τ=4.0 n=6.0 J₂=24.0
+  N6_EXP=0.96 (train)  τ=4.0 (infer)  α=β=0.166667 (quality)
+
+  [PASS] lattice closure σ·φ = n·τ = J₂ = 24 (shared by train·infer·quality)
+         · σ·φ=24.0 n·τ=24.0 J₂=24.0 drift=0.0
+  [PASS] train_cost: N6_EXP · (J₂+1) = J₂  (24/25 · 25 = 24)
+         · lhs=24.0 J₂=24.0 drift=0.0
+  [PASS] infer_cost: τ · n = J₂  (4 · 6 = 24)
+         · lhs=24.0 J₂=24.0 drift=0.0
+  [PASS] quality_scale: α · σ = φ = 2  AND  α = β (n=6 collapse)
+         · α·σ=2.0 φ=2.0 drift=0.0 symmetric=true
+  [PASS] exponent triad: 0 < α (1/6) < N6_EXP (24/25) < 1 < τ (4)
+         · α=0.166667 N6_EXP=0.96 τ=4.0
+
+  [PASS] 3-pillar composite at Chinchilla 70B / 1.4T / 8k: all 3 ratios finite > 0
+         · train=8.94493 infer=1.0 quality_loss=11.9035 (E=1.69)
+  [PASS] quality⟂infer: quality_scale free of ctx · infer_cost free of (N,D)
+         · q_drift=0.0 i_drift=0.0
+  [PASS] quality halving rule: red_term(A,2N,α) / red_term(A,N,α) = 2^-α
+         · ratio=0.890899 2^-α=0.890899 drift=3.33067e-16
+  [PASS] train doubling rule: train_cost(N,2D) / train_cost(N,D) = 2^N6_EXP
+         · ratio=1.94531 2^N6_EXP=1.94531 drift=4.44089e-16
+  [PASS] n6-vs-measured triple gap: quality·train·infer all distinct from empirical baseline
+         · |α−0.34|=0.173333 |N6_EXP−0.34|=0.62 |τ−1|=3.0
+========================================================================
+  10/10 checks passed
+  ECONOMICS 3-pillar T2 cross-cutter: closed.
+__HEXA_CODEX_NUMERICS_ECONOMICS_CROSS_PILLAR__ PASS

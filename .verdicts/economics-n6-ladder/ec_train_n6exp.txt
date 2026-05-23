@@ -1,0 +1,6 @@
+verify --fence
+  claim  = train_cost exponent N6_EXP = J2/(J2+1) = 24/25 (n=6 modeling claim, J2 = sigma*phi = 24)
+  tier   = ⚪ SPECULATION-FENCED
+  reason = imagination/metaphor class (hexa-bio AXIS) — verification
+           N/A by design; NOT a proven atlas atom (g4 honest fence,
+           SF ≠ verified — atlas certification intrinsically N/A)

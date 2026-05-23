@@ -30,3 +30,11 @@
 @D cx_paper_sections := "paper sections are all-verified" :: workflow [required active]
   do   = "every paper section claim links to its .verdicts/<slug>/<id>.txt formal-blue verdict"
   dont = "ship paper with any unresolved residual section · treat verdict matrix as optional"
+
+@D cx_discovery := "each verify cycle pairs with a discovery round" :: workflow [required active]
+  do   = "verify cycle paired with `/kick` or `/gap` round — new candidates feed next CLAIMS.tape"
+  dont = "stop the cycle after verification · skip discovery · treat audit-only as the whole loop"
+
+@D cx_discovery_log := "discoveries persist at .discoveries/<slug>.tape" :: workflow [required active]
+  do   = "log every kick/gap discovery to `.discoveries/<slug>.tape` — id · seed · verdict-tier-target"
+  dont = "discard discovery output · paraphrase findings · skip linking discovery → next-cycle claim"

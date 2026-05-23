@@ -6,6 +6,63 @@
 
 ---
 
+## 2026-05-24 — SANDBOX substrate revives 3 routing-savings BLOCKED levers (cross-domain)
+
+Cross-domain link recorded from the ECONOMICS side. Three cycle-1/2
+routing-savings candidates that this log filed as **dead/BLOCKED at
+the `claude --bare -p` 2.1.150 dispatch surface** turned out to have
+real value-add once the measurement surface was reopened on a
+self-hosted substrate. The SANDBOX domain (cycles 3-6,
+Qwen2.5-0.5B-Instruct-Q4_K_M on mac-mini-m3 · llama.cpp + Metal, $0
+per-call) was opened specifically to revive these dead-ends; the
+substrate-side resolution is logged in full in `SANDBOX.log.md` and
+`.discoveries/sandbox.tape`. This entry mirrors the causal link into
+the ECONOMICS history so the domain shows how its blocked levers
+were resolved.
+
+| ECONOMICS cycle-1/2 verdict | SANDBOX resolution |
+|:---|:---|
+| `d_cache_aware` — **BLOCKED** (no `cache_control` on CLI; warm −24.10% vs cold) | flag exposed but **dead [BLOCKED_AT_SCALE]** — `--prompt-cache` works, `warm_speedup_pct=13.30%` < 20% viable threshold; surface-limit narrowed to scale-limit (one-shot CLI ~3-4s Metal-init+mmap dominates the prefix-eval saving) |
+| `d_early_stop` — **BLOCKED** (no `--stop-sequences` flag) | **CONFIRMED** via `llama-completion -r/--reverse-prompt` — `best_strategy=stop_dot`, `output_tok_reduction_pct=47.10`, `wall_ms_reduction_pct=86.40`, `accuracy_preserved=true` |
+| `d_response_budget_cap` — **dead** (prompt-prefix gimmick backfired; haiku quoted the cap, output grew 747→1979 tok) | **CONFIRMED** via hard `-n` decoder-level cap — tightest floor-holding cap32, `wall_ms_reduction_vs_nocap_pct=51.59`, `cycle2_backfire_pathology_present=false` (avg_out_tok monotone 23→15→13→9→6, no prose channel for the cap to leak into) |
+| `d_confidence_gated` — **dead** (DLG-mk0 heuristic surface; best τ=0.9 saved 55.59% @ 19/20, dominated by length 70.10% @ 20/20) | **SIGNAL_PRESENT** on real model logits — first-token logprob margin (top1−top2) via `llama-server` `/v1/chat/completions` `logprobs`; `margin_corr_signal=53.33`, `calibration_signal_present=true` (top-quartile 100% acc vs bottom-quartile 60%) |
+
+A fourth substrate lever was probed and filed honestly as a
+dead-at-threshold: `d_json_schema_constrained` (cycle-6) — the
+`claude --bare -p` surface exposes no constrained-decoding option at
+all, but `llama-server` enforces a strict JSON grammar. Best
+(`json_strict`) hit `json_strict_output_tok_reduction_pct=18.8` /
+`json_strict_wall_ms_reduction_pct=19.38`, short of the 30%
+`reduction_target_pct` and with `accuracy_preserved=false` (lost 1
+task). It survives as `REVIVAL_CANDIDATE_AT_STAGE_2` for a
+verbose-output workload.
+
+**Framing.** The external `claude --bare -p` surface foreclosed
+these precision levers (no `cache_control`, no `--stop-sequences`, no
+hard `--max-tokens`, no logits), making them look like fundamental
+dead-ends. Self-hosting reopened the measurement surface, and **3 of
+4 turned out to have real value-add the API surface had hidden** —
+two CONFIRMED savings levers (early-stop, max_tokens cap) plus one
+confirmed calibration signal (logit margin), with cache-aware
+narrowed from unfixable-at-the-vendor-surface to
+fixable-by-changing-dispatch-shape. This is the empirical
+justification for the SANDBOX domain's existence, recorded here from
+the ECONOMICS side.
+
+**Corrections vs. the recollection at log time.** (a) `d_early_stop`
+revival was recollected as "~30% wall_ms reduction"; the verdict file
+(`stage3_earlystop_local_summary.txt`) reports `wall_ms_reduction_pct
+=86.40` for `stop_dot` (the SANDBOX narrative's −30.64% figure is from
+an earlier, differently-warmed run — file figure quoted here per the
+trust-the-file rule; output_tok reduction is the deterministic signal
+at 47.10%). (b) `d_cache_aware` was recollected as a clean "surface→
+scale narrowing"; honestly it is **still dead** post-revival
+(`kv_prefix_share_viable=false` at `warm_speedup_pct=13.30%`) — the
+narrowing is to the *blocker class* (surface-limit → scale-limit), not
+to a positive saving. The saving figures for early-stop and
+max_tokens cap are quoted verbatim from the summary files; numbers are
+not paraphrased.
+
 ## 2026-05-23 — speculative-draft hybrid — dominated across all strategies
 
 Resolved the `d_speculative_draft` candidate (cycle-2). Architecture:

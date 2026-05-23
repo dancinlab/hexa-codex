@@ -1,1 +1,0 @@
-DEFERRED — T4 empirical contact requires GPU pod dispatch (lm_foundry train + hexa-eval + serving bench)

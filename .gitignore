@@ -33,6 +33,7 @@ PAPER/**/*.out
 PAPER/**/*.fls
 PAPER/**/*.fdb_latexmk
 PAPER/**/*.synctex.gz
+PAPER/**/build/
 papers/**/*.aux
 papers/**/*.bbl
 papers/**/*.blg

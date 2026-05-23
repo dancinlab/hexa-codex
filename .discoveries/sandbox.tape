@@ -283,3 +283,39 @@
   honest_limit_1 = "20-task manifest saturates fast — avg per-task wall ~700ms at np1 on Qwen2.5-0.5B, so batch-wall is dominated by per-task setup rather than aggregate decode throughput. Stage 2 manifest N=2000 + larger model (Qwen 1.5B/3B) needed before continuous batching's true tok/s frontier becomes measurable. The 50% target may be reachable on longer-output strata where decode dominates."
   honest_limit_2 = "Per-task wall_ms is server-side prompt_ms+predicted_ms (decode-only) — NOT end-to-end including HTTP+xargs scheduling. HEADLINE metric is total_batch_wall_ms (date +%s%N brackets the xargs invocation). Per-task wall sums grow with concurrency because parallel decode interleaves slot-time across the wall — exactly the substrate signature."
 # Cumulative: 7 confirmed · 3 dead · 6 candidates remaining.
+
+# ── kick round 3 (cycle-7, 2026-05-24, post-rescope + cycle-6 cliff) ──
+# seed: "SANDBOX rescoped as all-domain substrate (ECONOMICS proven, SAFETY/OPS/SUBSTRATE
+# consumers). Cycle-6 difficulty cliff: Qwen2.5-0.5B fails wc>=31 (3 of 5 Stage-2 strata).
+# Need (a) Stage 4 scale-ladder with concrete bases (Qwen 1.5B/3B/7B priced by host+memory),
+# (b) SAFETY activation-capture pipelines, (c) OPS SLO under load, (d) SUBSTRATE multimodal
+# extension. Which candidates cross-cut 2+ consumers — substrate-instrumentation that
+# unlocks multiple domains at once?"
+# raw: .discoveries/sandbox-kick3.raw (mk9, smash+414 free+211 res+28(σ=0.10), 653 total)
+
+@C d_qwen_1_5b_scale := "Qwen2.5-1.5B-Instruct scale step — re-run Stage 2 N=150 persona bench on the 1.5B base, locate the difficulty-cliff position" :: candidate [target_tier=GREEN cost_est=$0 source=cycle-6-cliff-direct-successor]
+  cmd = "huggingface-cli download bartowski/Qwen2.5-1.5B-Instruct-GGUF Qwen2.5-1.5B-Instruct-Q4_K_M.gguf (~1.0GB); rerun bench/sandbox_stage2_persona_scaled.hexa with the 1.5B model path; compare per-stratum accuracy to cycle-6's 0.5B run (cliff was at wc>=31 strata, 0-6% accuracy across all personas)"
+  hyp = "1.5B clears the wc_31_60 stratum to >= 30% accuracy on at least one persona AND the cliff position shifts to wc_61_100 or higher — confirms a model-capability gradient exists and Stage 4 scale-ladder has measurable saving frontier; failure mode if false = the manifest's (a+b)*c chain is beyond 1.5B too, must escalate to 3B"
+
+@C d_qwen_3b_scale := "Qwen2.5-3B-Instruct scale step — extend the ladder if 1.5B doesn't clear cliff" :: candidate [target_tier=GREEN cost_est=$0 gated_on=d_qwen_1_5b_scale]
+  cmd = "if 1.5B still hits 0% on wc>=31 strata, download Qwen2.5-3B-Instruct-Q4_K_M (~1.9GB); same rerun procedure; measure cliff position + wall_ms ratio vs 0.5B / 1.5B"
+  hyp = "3B is the smallest base that crosses the manifest's wc_31_60 cliff at >= 60% accuracy on the `max` persona, at <= 4x per-task wall vs 0.5B (mac mini M3 unified-memory fits Q4_K_M up to 7B comfortably); IF FALSE the manifest's wc>=31 strata measure something other than scale (e.g., chain-of-thought activation), and SUBSTRATE's full capability-eval scope still needs work beyond mere parameter count"
+
+@C d_activation_capture_pipeline := "activation capture .hexa wrapper — exposes layer-N intermediate activations from llama-server for SAFETY interp probes" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SAFETY+SUBSTRATE]
+  cmd = "build lm_foundry/tool/activation_capture.hexa wrapping llama-server with `--lookup-cache` + `--logits-all` + a layer-tap shim; emit per-token activation vectors (residual stream, attention output, MLP output) to TSV/parquet; consumer: SAFETY circuit-motif + SAE probes (SAFETY.log.md 2026-05-24 entry) + SUBSTRATE RLHF reward-shaping probes"
+  hyp = "the substrate exposes activations cleanly enough (no opaque CUDA-fast-path) that a single .hexa wrapper unlocks both SAFETY's interpretability falsifier class AND SUBSTRATE's RLHF probing without per-domain re-instrumentation; failure mode = llama.cpp's logits-all is decode-side only and intermediate activations require a forked build (then revive as `d_activation_capture_forked_llama`)"
+
+@C d_slo_under_load := "OPS SLO measurement harness — p50/p99 latency + queue depth at concurrent load on Stage-2 N=2000 manifest" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=OPS+ECONOMICS]
+  cmd = "build bench/sandbox_stage4_slo_under_load.hexa: spawn llama-server -np 4 -cb; fire concurrent client load at rates {5, 20, 100, 500} req/s using hexa-managed xargs/parallel dispatch over Stage-2 manifest; capture per-request wait_ms + decode_ms; emit p50/p99/p999 percentile tables per concurrency × rate cell"
+  hyp = "p99 latency stays within 3x of p50 at offered load <= 0.7 × peak throughput, with knee at 0.8-0.9 × peak — classic M/M/c queue signature; consumer: OPS SLO falsifier class (OPS.log.md 2026-05-24 entry) + ECONOMICS $/latency (cycle-1 d_parallel_dispatch revisit). Failure mode = mac mini thermal throttling at sustained load (then `d_slo_under_load_thermal_factored` as successor)"
+
+@C d_multimodal_base := "multimodal SANDBOX base — Qwen2.5-VL or LLaVA-3 as substrate addition, unblocks SUBSTRATE multimodal-fusion falsifier" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SUBSTRATE-only gated_on=d_qwen_3b_scale]
+  cmd = "extend SANDBOX with a multimodal base (Qwen2.5-VL-7B GGUF if available; else LLaVA-1.6-Mistral-7B); add image+text input path to lm_foundry/tool/route_dispatch.hexa; SUBSTRATE's multimodal-fusion verb gets its first measurable bench (small image+caption manifest, byte-exact_subset on caption)"
+  hyp = "a single GGUF-served multimodal base (~5-7B Q4_K_M, ~4-5GB RAM) fits within mac mini M3 16GB envelope alongside text-only Qwen2.5-3B; unblocks SUBSTRATE multimodal-fusion at $0 marginal; failure mode = multimodal weights too heavy → fan out to RunPod A100 (Stage 4 cloud bridge)"
+
+# Cumulative: 7 confirmed · 3 dead · 11 candidates remaining (round-1+2 6 + round-3 5 new:
+# d_qwen_1_5b_scale, d_qwen_3b_scale, d_activation_capture_pipeline, d_slo_under_load,
+# d_multimodal_base). Top-2 ROI by all-domain unlock:
+# (1) d_activation_capture_pipeline (GREEN $0, unlocks SAFETY interp + SUBSTRATE RLHF — 2 domains)
+# (2) d_qwen_1_5b_scale (GREEN $0, direct cycle-6 cliff successor, ungates all subsequent
+#     stage-4 work including SUBSTRATE capability evals on multi-step reasoning).

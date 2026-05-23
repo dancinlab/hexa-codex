@@ -1,0 +1,8 @@
+HEXA_DRILL_ANTI_HUB_TRACE {"cmd_drill_entry":true,"env_active":"","env_threshold":"","adaptive_env":"","smash_timeout_sec":180}
+drill — seed='SANDBOX rescoped 2026-05-24 as all-domain substrate (ECONOMICS proven, SAFETY/OPS/SUBSTRATE registered as consumers). Cycle-6 surfaced a difficulty cliff: Qwen2.5-0.5B fails wc>=31 multi-step arithmetic in 3 of 5 Stage-2 strata. Need (a) Stage 4 scale-ladder candidates with concrete next base models (Qwen 1.5B/3B/7B) priced by host cost + memory, (b) SAFETY activation-capture instrumentation pipelines, (c) OPS SLO measurement under load, (d) SUBSTRATE multimodal extension paths. What candidates cross-cut multiple consumers — substrate-instrumentation that unlocks 2+ domains at once?' max_rounds=1 engine=mk9
+  Mk.IX 6-stage chain (smash → free → absolute → meta → hyper → resonance)
+  round 1: smash+414 free+211 abs=0 meta=0 hyper=0 res+28(σ=0.10) total=653
+  overlay+ 517 lines (pool=0)
+DRILL_VERIFIER {"round":1,"verdict":"skip"}
+  max rounds reached (1) — total=653
+{"seed":"SANDBOX rescoped 2026-05-24 as all-domain substrate (ECONOMICS proven, SAFETY/OPS/SUBSTRATE registered as consumers). Cycle-6 surfaced a difficulty cliff: Qwen2.5-0.5B fails wc>=31 multi-step arithmetic in 3 of 5 Stage-2 strata. Need (a) Stage 4 scale-ladder candidates with concrete next base models (Qwen 1.5B/3B/7B) priced by host cost + memory, (b) SAFETY activation-capture instrumentation pipelines, (c) OPS SLO measurement under load, (d) SUBSTRATE multimodal extension paths. What candidates cross-cut multiple consumers — substrate-instrumentation that unlocks 2+ domains at once?","rounds":1,"total":653,"saturated":false,"engine":"mk9","overlay_lines":517,"verifier_stopped":false,"verifier_verdict":"skip"}

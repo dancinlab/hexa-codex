@@ -7,6 +7,39 @@
 
 ---
 
+## 2026-05-24 — kick round 3 — Stage 4 scale-ladder + all-domain candidates
+
+Ran `hexa kick --rounds 1` against the post-cycle-6 + post-rescope
+context: cycle-6 surfaced a difficulty cliff (Qwen2.5-0.5B fails wc≥31
+multi-step arithmetic in 3 of 5 Stage-2 strata, 0-6% accuracy) and
+SANDBOX rescoped (commit `d983211`) to host SAFETY/OPS/SUBSTRATE as
+consumers. Seed explicitly asked for *cross-cutting* candidates that
+unlock 2+ consumer domains at once. Raw at
+`.discoveries/sandbox-kick3.raw` (mk9, 653 atoms, 517 overlay lines).
+
+Five new `@C` entries appended to `.discoveries/sandbox.tape`:
+
+| slug | tier | $est | cross-cuts | gate |
+|:---|:-:|:-:|:---|:---|
+| `d_qwen_1_5b_scale` | GREEN | $0 | ECONOMICS + SUBSTRATE | direct cycle-6 cliff successor |
+| `d_qwen_3b_scale` | GREEN | $0 | SUBSTRATE | gated_on=d_qwen_1_5b_scale |
+| `d_activation_capture_pipeline` | GREEN | $0 | **SAFETY + SUBSTRATE** | substrate-instrumentation |
+| `d_slo_under_load` | GREEN | $0 | **OPS + ECONOMICS** | server-mode follow-up |
+| `d_multimodal_base` | GREEN | $0 | SUBSTRATE | gated_on=d_qwen_3b_scale |
+
+Top-2 ROI by all-domain unlock: (1) `d_activation_capture_pipeline`
+(2 domains: SAFETY interp + SUBSTRATE RLHF — the single .hexa
+wrapper unlocks both falsifier classes), (2) `d_qwen_1_5b_scale`
+(direct cycle-6 successor that ungates all subsequent Stage 4 work).
+
+`d_slo_under_load` is the second cross-cutting candidate (OPS SLO +
+ECONOMICS $/latency on the same harness). Both `d_qwen_*_scale`
+follow the same pattern cycle-4's `d_kv_prefix_share_persistent`
+established for cycle-4 successors (kick-derived but cycle-direct).
+
+Cumulative SANDBOX tape: **7 confirmed · 3 dead · 11 candidates
+remaining** (round-1+2 6 + round-3 5 new).
+
 ## 2026-05-24 — scope redefined — all-domain shared experiment substrate
 
 SANDBOX.md rescoped from an ECONOMICS-only measurement ground to the

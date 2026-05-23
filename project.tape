@@ -23,11 +23,19 @@
   do   = "T4 claims run lm_foundry train · hexa-eval infer · serving bench — metrics in .verdicts"
   dont = "fence empirical claim · accept simulator-only output · skip T4 bench when claim is empirical"
 
-@D cx_paper_gate := "/paper scaffolding gated on 100% formal-blue" :: workflow [required active]
-  do   = "`/paper new <slug>` only when verdict 100% formal-blue — no other tier residual permitted"
-  dont = "scaffold w/ any non-blue verdict · numerical/citation/fenced/deferred/falsified all blocked"
+@D cx_paper_gate := "/paper scaffolding gated on 100% formal-blue AND significance" :: workflow [required active]
+  do   = "`/paper new <slug>` only when verdict 100% formal-blue AND cx_paper_significance satisfied"
+  dont = "scaffold w/ any non-blue residual · scaffold for trivial atom recheck / bookkeeping closure"
 
-@D cx_paper_sections := "paper sections are all-verified" :: workflow [required active]
+@D cx_paper_significance := "paper requires formula + benchmark + measured benefit" :: workflow [required active]
+  do   = "paper triggers only on formula + real bench + quantified benefit (cost/latency/accuracy delta)"
+  dont = "paper for atlas atom recheck · known identity · bookkeeping closure · unverified prediction"
+
+@D cx_paper_format := "paper sections — formula · method · benchmark · benefit" :: workflow [required active]
+  do   = "paper §formula · §method · §benchmark (real run) · §benefit (delta vs baseline)"
+  dont = "narrative-only · benchmark substitute for formula · skip §benefit · vague qualitative claims"
+
+@D cx_paper_sections := "every paper section claim links to its verdict" :: workflow [required active]
   do   = "every paper section claim links to its .verdicts/<slug>/<id>.txt formal-blue verdict"
   dont = "ship paper with any unresolved residual section · treat verdict matrix as optional"
 

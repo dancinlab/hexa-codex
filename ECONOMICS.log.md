@@ -588,3 +588,68 @@ ACROSS wall-clock (parallel), or on the EXISTING verdict surface
 _Next: v1.2.0 (2026-10, PLANNED) — wire the economics verbs, ship the
 training/inference cost scaling fit, land F-CODEX-1 empirical. Append
 round entries here as the group progresses._
+
+---
+
+## 2026-05-24 · ECONOMICS round-3 d_oracle_optimality CONFIRMED (BLUE) — second independent $/task floor proof
+
+Cross-link to the SECOND independent BLUE-tier formal proof of the
+$/task lower bound on the canonical 20-task economics-routing
+manifest, joining the cycle-2 5bbb9ad
+`verify/numerics_economics_pareto_floor.hexa` proof from a different
+framing (per-task argmin certificate vs distribution-level analytic
+Pareto floor).
+
+**Closure surface**:
+- Harness: `verify/numerics_economics_oracle_optimal.hexa` (NEW,
+  10 closed-form checks, math_pure only, 10/10 PASS)
+- Verdict: `.verdicts/sandbox/oracle_optimality.txt` (BLUE)
+- Tape row: `.discoveries/economics-routing-savings.tape`
+  `d_oracle_optimality` flipped `candidate → confirmed [actual_tier=BLUE]`
+- SANDBOX cross-link: `SANDBOX.log.md` (2026-05-24 section)
+
+**Result headline**:
+
+| quantity                         | value         |
+|----------------------------------|---------------|
+| oracle_floor                     | $0.0567804    |
+| oracle saving% vs baseline       | 82.2214%      |
+| length2 saving% (canonical 2-tier)| 81.7861%     |
+| length2 − oracle_floor           | $0.0013903    |
+| oracle − pareto_floor (inline)   | $0.0 USD EXACT|
+| oracle − pareto_floor (cycle-2 ref)| $4e-07      |
+
+**Honesty fence**. The cycle-2 pareto_floor proof and this cycle-8
+oracle_optimality proof operate on the IDENTICAL strategy grid
+{baseline, length3, length2} from 2tier.tsv. They therefore agree
+EXACTLY (gap $0.0 USD inline) — this is the strongest form of
+cross-validation available without sampling new strategies, but it
+does NOT constitute a tighter bound. The value of the second proof
+is the independent recomputation from a different framing
+(per-prompt argmin certificate vs distribution-level analytic
+Pareto): two formal proofs from different angles agreeing on the
+same data. A genuinely richer strategy grid (class / dlg_mk0 /
+threshold_sweep / difficulty-router as orthogonal strategies) could
+in principle lower the floor; on the sampled grid it does not, and
+the canonical 2-tier length router captures 99.5% of achievable
+saving among sampled strategies.
+
+**Cumulative ECONOMICS round-1+2+3 ledger** (post cycle-8):
+5 confirmed (Pareto frontier · 2-tier length-router 81.79% ablation ·
+threshold_sweep boundary at τ\*=120 · `pareto_lower_bound` BLUE
+[cycle-2 5bbb9ad] · `oracle_optimality` BLUE [cycle-8 THIS]) ·
+8 dead (token decomp · confidence_gated · difficulty_predict ·
+cache_aware · response_budget_cap · early_stop · prompt_compress ·
+speculative_draft) · 4 next-batch candidates remaining
+(`offline_memoize` · `parallel_dispatch` · `prompt_cluster_reuse` ·
+`router_cost_amortize`). Heuristic-router frontier among sampled
+strategies is exhausted — remaining slack lives across passes,
+prompts, wall-clock, or on richer strategy grids not yet sampled.
+
+**Atlas / paper gate**. SANDBOX.md M3.ECON checkbox STAYS `[ ]`.
+oracle_optimality is per-task tier optimality (BLUE formal,
+manifest-conditional). M3.ECON gate flips `[ ] → [x]` only when
+F-CODEX-1/2 4-point scale-grid empirical fit lands (per-scale cost
+exponent), a separate axis tracked by `d_stage4_empirical_landing`
+(harness_ready, k_active=1, INSUFFICIENT until k_active=4 with both
+residuals ≤ ε=0.10).

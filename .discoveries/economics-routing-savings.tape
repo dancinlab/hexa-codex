@@ -89,9 +89,10 @@
 # bounds · impossibility · optimality conditions)?"
 # raw: .discoveries/economics-routing-kick3.raw (mk9, smash+414 free+211 res+25, 650 total)
 
-@C d_oracle_optimality := "oracle instance-optimal $/task — formal certificate vs length-router gap" :: candidate [target_tier=BLUE cost_est=$0]
+@C d_oracle_optimality := "oracle instance-optimal $/task — formal certificate vs length-router gap" :: confirmed [actual_tier=BLUE cost_actual=$0 verdict=.verdicts/sandbox/oracle_optimality.txt harness=verify/numerics_economics_oracle_optimal.hexa cycle=8]
   cmd = "for each of 20 prompts, look up CHEAPEST tier that produced a correct answer in cycle-1/2 .verdicts/economics-routing-savings/baseline.tsv (and class/dlg traces); sum tier-$ to get instance-optimal $/task floor; compare to length-router 81.79%"
   hyp = "length-router is within ε ≤ 5pp of the instance-optimal oracle floor (T_BLUE formal — certificate is per-prompt lookup from existing verdicts, no new spend, distinct from d_pareto_lower_bound's distribution-level analytic floor)"
+  result = "CONFIRMED BLUE (10/10 closed-form checks pass). oracle_floor=$0.0567804 (82.2214% saving vs baseline opus×20), length2=$0.0581707 (81.7861%) within $0.0013903 (0.44 pp) of oracle. Pareto-floor agreement: $0.0 USD EXACT vs inline recomputation, $4e-07 vs cycle-2 5bbb9ad published reference ($0.05677995). Independent BLUE proof joining cycle-2 numerics_economics_pareto_floor.hexa — operates on identical {baseline, length3, length2} grid in 2tier.tsv, frames the same bound as a per-task argmin certificate rather than a distribution-level analytic Pareto floor. Both proofs agree exactly by construction; the value of THIS second proof is the independent recomputation from a different angle (per-prompt argmin over multi-strategy data vs distribution-level). Manifest-conditional — a richer strategy grid (class / dlg / threshold_sweep as orthogonal strategies) could in principle lower the floor below this value, but on the sampled grid the canonical 2-tier captures 99.5% of achievable saving. Witness: 10 tasks pick LENGTH2, 10 pick LENGTH3, 0 pick baseline; task 14 baseline excluded (correct=0)."
 
 @C d_offline_memoize := "offline answer-memoization — deterministic-grader manifest, second-pass $/task → 0" :: candidate [target_tier=GREEN cost_est=$0.1]
   cmd = "wrap dispatcher with (prompt-hash → answer) KV store; rerun 2-tier length manifest twice; second pass should hit cache on every task"
@@ -150,3 +151,17 @@
 # or operate purely on existing verdicts (oracle_optimality).
 # top-2 ROI : d_oracle_optimality (BLUE, $0, derives from existing baseline.tsv) +
 # d_offline_memoize (GREEN, $0.1, deterministic bench repeats are free by construction).
+#
+# ── cycle-8 update (2026-05-24): d_oracle_optimality CONFIRMED (BLUE) ──
+# Closed-form per-task argmin certificate at verify/numerics_economics_oracle_optimal.hexa
+# (10/10 PASS), verdict at .verdicts/sandbox/oracle_optimality.txt.
+# oracle_floor = $0.0567804 (82.2214% saving) — length2 ($0.0581707, 81.7861%) within
+# $0.0013903 (0.44 pp) of instance-optimal. Pareto-floor agreement: $0.0 USD EXACT vs
+# inline recomputation, $4e-07 vs cycle-2 5bbb9ad published reference. SECOND independent
+# BLUE proof joining cycle-2 5bbb9ad numerics_economics_pareto_floor.hexa — same grid
+# {baseline, length3, length2} in 2tier.tsv, different framing (per-task argmin vs
+# distribution-level analytic Pareto). Witness: 10 L2 + 10 L3 + 0 baseline; task 14
+# baseline excluded (correct=0). Cumulative ECONOMICS round-1+2+3: 5 confirmed
+# (Pareto · 2-tier ablation · threshold_sweep boundary · pareto_lower_bound BLUE ·
+# ORACLE_OPTIMALITY BLUE) · 8 dead · 4 next-batch candidates remaining (offline_memoize ·
+# parallel_dispatch · prompt_cluster_reuse · router_cost_amortize).

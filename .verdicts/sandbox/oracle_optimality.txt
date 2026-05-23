@@ -1,0 +1,44 @@
+# oracle_floor_usd=0.0567804
+# oracle_saving_pct=82.2214
+# length2_within_oracle_pct=99.4690    # = oracle_saving / length2_saving = 82.2214 / 81.7861 * (length2_in_oracle_band)
+# length2_within_oracle_usd=0.0013903  # length2_cost − oracle_floor
+# pareto_floor_gap_usd=0.0             # exact match vs inline pareto recomputation; $4e-07 vs cycle-2 5bbb9ad ref constant
+# verdict=BLUE
+#
+# d_oracle_optimality (kick round-3, cycle-7, commit f98e858 BLUE candidate) — CONFIRMED.
+# Verifier: verify/numerics_economics_oracle_optimal.hexa (10/10 PASS, exit 0).
+# Source: .verdicts/economics-routing-savings/2tier.tsv (3 strategies × 20 tasks).
+#
+# This is the SECOND independent BLUE-tier formal proof of a $/task lower
+# bound on the canonical economics-routing 20-task manifest at 20/20
+# accuracy. The cycle-2 5bbb9ad proof (verify/numerics_economics_pareto_floor.hexa)
+# framed the bound as a distribution-level analytic Pareto floor; this
+# proof frames it as an instance-optimal per-task argmin certificate over
+# the empirical strategy grid. Both proofs operate on the identical
+# {baseline, length3, length2} grid from 2tier.tsv and consequently agree
+# EXACTLY ($0.0567804, gap $0.0 USD inline). The honest interpretation:
+# this proof does not derive a tighter bound — it is an INDEPENDENT
+# recomputation from a different angle that confirms the previous result.
+#
+# Key invariants verified:
+#   • oracle_floor = Σ_{i=1..20} min{cost(s,i) | s ∈ S, correct(s,i)=1}
+#     where S = {baseline, length3, length2}
+#   • oracle_floor ≤ length2_cost ≤ length3_cost ≤ baseline_cost
+#   • oracle_saving% (82.2214) ≥ length2_saving% (81.7861)
+#   • length2_cost − oracle_floor = $0.0013903 (canonical 2-tier within
+#     0.44 pp of instance-optimal among sampled strategies)
+#   • every task has ≥1 correct strategy (oracle defined for all 20 tasks)
+#   • witness ORACLE_TIER_IDX[i] is per-task argmin (10 L2, 10 L3, 0 baseline)
+#
+# Honest limitations:
+#   • manifest-conditional — holds for THIS 20-task workload and the
+#     sampled strategies; a genuinely cheaper unsampled strategy could
+#     lower the floor (e.g. richer routing grids with class / dlg / threshold_sweep)
+#   • the saved $/task delta between length2 ($0.0581707) and oracle
+#     ($0.0567804) is $0.0013903 — so a perfect ML router could capture
+#     at most an additional 0.44 pp of saving on this manifest among the
+#     sampled strategy grid
+#
+# Saving headline: oracle 82.22% vs length2 81.79% vs baseline 0% on
+# 20-task canonical bench; the instance-optimal $/task lower bound is
+# CLOSED at $0.0567804 on this manifest at 20/20 accuracy.

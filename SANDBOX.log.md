@@ -1236,3 +1236,75 @@ fit), and downstream Stage-4 work fills 3B/7B.
 `candidate → harness_ready` (same family as cycle-7
 `d_activation_capture_pipeline` PARTIAL and cycle-8
 `d_slo_under_load` `harness_only`). Cost $0, wall <1 s.
+
+---
+
+## 2026-05-24 · d_oracle_optimality CONFIRMED (BLUE) — instance-optimal floor vs length2/pareto_floor
+
+ECONOMICS kick round-3 candidate (commit f98e858, target_tier=BLUE,
+cost_est=$0) confirmed CLOSED. The "instance-optimal $/task oracle
+floor" candidate is now the SECOND independent BLUE-tier formal proof
+of a $/task lower bound on the canonical 20-task economics-routing
+manifest at 20/20 accuracy.
+
+Harness:   `verify/numerics_economics_oracle_optimal.hexa` (NEW, 421 lines,
+modelled on cycle-2 5bbb9ad `verify/numerics_economics_pareto_floor.hexa`).
+Verdict:   `.verdicts/sandbox/oracle_optimality.txt` (NEW, BLUE).
+Result:    10/10 closed-form checks PASS, exit 0.
+Source:    `.verdicts/economics-routing-savings/2tier.tsv` (3 strategies
+× 20 tasks; baseline opus×20, length3 haiku/sonnet/opus, length2
+sonnet/opus).
+
+Headline numbers:
+
+| quantity                         | value         |
+|----------------------------------|---------------|
+| oracle_floor (sum of argmins)    | $0.0567804    |
+| oracle saving% vs baseline       | 82.2214%      |
+| length2 cost (canonical 2-tier)  | $0.0581707    |
+| length2 saving%                  | 81.7861%      |
+| baseline cost (opus×20)          | $0.319375     |
+| length2 − oracle_floor delta     | $0.0013903    |
+| oracle − pareto_floor (inline)   | $0.0 USD EXACT|
+| oracle − pareto_floor (cycle-2)  | $4e-07        |
+| oracle_saving − length2_saving   | +0.435 pp     |
+
+Witness: ORACLE_TIER_IDX = 10 LENGTH2 picks + 10 LENGTH3 picks + 0
+baseline picks. Task 14 baseline excluded (the lone correct=0 row;
+baseline emitted "{1,2,3}" instead of "1, 2, 3" substring).
+
+Honest interpretation. Because the 2tier.tsv strategy grid sampled is
+exactly {baseline, length3, length2}, AND the cycle-2 5bbb9ad
+pareto_floor proof argmin's over the same grid, the oracle floor
+computed here equals the pareto_floor BY CONSTRUCTION. This proof
+does NOT derive a tighter bound — it is an INDEPENDENT recomputation
+from a different framing (per-task argmin certificate vs
+distribution-level analytic Pareto) that confirms the previous result
+exactly. The value is in the second BLUE-tier audit surface: two
+formal proofs from different angles agree to $0.0 USD on the same
+data, which is the strongest form of cross-validation available
+without sampling new strategies.
+
+Manifest-conditional limit. A genuinely richer strategy grid (class /
+dlg_mk0 / threshold_sweep / difficulty-router as orthogonal strategies)
+could in principle lower the oracle floor below $0.0567804, but on
+the sampled {baseline, length3, length2} grid the canonical 2-tier
+length router captures 99.5% of achievable saving (length2 within
+$0.0014 / 0.44 pp of instance-optimal).
+
+Bookkeeping. `.discoveries/economics-routing-savings.tape` row
+`d_oracle_optimality` flipped `candidate → confirmed
+[actual_tier=BLUE cost_actual=$0 verdict=… harness=… cycle=8]` with
+result body; footer updated to 5 confirmed · 8 dead · 4 next-batch
+candidates remaining. SANDBOX.md M3.ECON checkbox stays `[ ]` — M3
+requires F-CODEX-1/2 4-point scale-grid empirical fit
+(per-scale exponent), which oracle_optimality (per-task tier
+optimality) doesn't address. Cross-link logged in ECONOMICS.log.md
+as the second BLUE proof joining cycle-2 5bbb9ad.
+
+NOTE on tape file location. The task spec referenced
+`.discoveries/sandbox.tape` for the candidate row, but the actual
+`d_oracle_optimality` candidate lives in
+`.discoveries/economics-routing-savings.tape` (the ECONOMICS domain
+discovery tape, where it was registered by kick round-3). The flip
+was therefore applied to the file where the row actually exists.

@@ -24,7 +24,15 @@ build/out/
 build/artifacts/
 *.pdf
 
-# LaTeX paper build cruft (papers/*/main.{aux,bbl,blg,log,out})
+# LaTeX paper build cruft (PAPER/*/main.{aux,bbl,blg,log,out} + legacy papers/)
+PAPER/**/*.aux
+PAPER/**/*.bbl
+PAPER/**/*.blg
+PAPER/**/*.log
+PAPER/**/*.out
+PAPER/**/*.fls
+PAPER/**/*.fdb_latexmk
+PAPER/**/*.synctex.gz
 papers/**/*.aux
 papers/**/*.bbl
 papers/**/*.blg

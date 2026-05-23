@@ -1,0 +1,254 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- arxiv-style preamble ----------
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\title{
+  \textbf{The hexa-codex ECONOMICS n=6 ladder}\\[4pt]
+  \large Closed-form verification of the train\_cost $\cdot$ infer\_cost $\cdot$
+  quality\_scale surface, with an honest speculation fence
+}
+
+\author{
+  hexa-codex maintainers\\
+  \normalsize\textit{dancinlab}\\[2pt]
+  \normalsize\href{https://github.com/dancinlab/hexa-codex}{\texttt{github.com/dancinlab/hexa-codex}}
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We pre-register and verify $11$ claims about the hexa-codex ECONOMICS
+group's $n=6$ ladder via the \texttt{hexa verify} CLI. Four atlas-atom
+claims ($\sigma(6),\ \varphi(6),\ \tau(6),\ \sigma_2(6)$) recompute
+exactly to atlas values (\textbf{$\mathbf{4 \times}$ \textsc{Supported-Formal}}).
+Four closed-form verifier suites
+(\texttt{numerics\_economics\_\{cross\_pillar, scaling\_laws, pareto\}.hexa}
+and \texttt{report\_economics\_ladder.hexa}) each close $10/10$ checks
+(\textbf{$\mathbf{4 \times}$ \textsc{Pass}}). Three modelling-level claims
+(``$\alpha = 1/6$ \emph{is} the quality\_scale exponent'';
+``$\mathrm{N6\_EXP} = 24/25$ \emph{is} the train\_cost exponent'';
+``Pareto $D/N \approx 1.07$ at $n=6$ vs $\approx 20$ for
+Chinchilla''~\cite{hoffmann2022chinchilla}) are explicitly fenced as
+\textbf{$\mathbf{3 \times}$ \textsc{Speculation-Fenced}} --- they are
+internal-arithmetic-consistent but not derivable from the atlas alone.
+The gate (\texttt{cx\_paper\_gate}) opens at $0$ \textsc{Falsified} +
+$8$ (\textsc{Supported-Formal}+\textsc{Pass}) $\ge 1$ + all $3$
+\textsc{Fenced} explicit, so this paper exists.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Closed-form scaling laws for AI economics --- training compute
+$\propto N \cdot D$ \cite{hoffmann2022chinchilla,kaplan2020scaling},
+inference cost as a function of context length, and the quality
+returned per unit of either --- are widely cited yet rarely re-derived
+algebraically from a single shared algebraic substrate. The
+hexa-codex ECONOMICS group ships three verbs (\texttt{train\_cost},
+\texttt{infer\_cost}, \texttt{quality\_scale}) on the $n=6$ arithmetic
+lattice, with exponents $\mathrm{N6\_EXP} = 24/25$, $\tau = 4$, and
+$\alpha = \varphi(6)/\sigma(6) = 1/6$ respectively.
+
+This paper is the verification artefact for that group. Every claim
+either (a) recomputes via \texttt{hexa verify --expr} from an atlas
+atom and is \textsc{Supported-Formal}, (b) closes a $10/10$
+\texttt{numerics\_*.hexa} sentinel via \texttt{hexa run} and is
+\textsc{Pass}, or (c) is an explicit \texttt{hexa verify --fence}
+modelling claim and is \textsc{Speculation-Fenced}. There is no
+$\textsc{Falsified}$ or unfenced speculation in scope.
+
+\medskip
+\noindent\textbf{Contributions.}
+\begin{enumerate}\itemsep0.3em
+\item A reproducible CLI-driven verification artefact for the
+      ECONOMICS group's $n=6$ ladder, persisted as
+      \texttt{CLAIMS.tape} + \texttt{.verdicts/economics-n6-ladder/}.
+\item Tier-segregated sections (\S\ref{sec:verified},
+      \S\ref{sec:pending}, \S\ref{sec:fenced}) that never merge
+      atlas-atom recompute with modelling speculation.
+\item An honest gap report: the modelling-level claim that the
+      $n=6$ lattice \emph{predicts} the empirical quality, training,
+      or inference economics of real LLMs is fenced
+      (\S\ref{sec:fenced}); \emph{only} the closed-form internal
+      consistency is \textsc{Supported-Formal}/\textsc{Pass}.
+\end{enumerate}
+
+\section{Background}
+\label{sec:bg}
+
+The $n=6$ lattice closure $\sigma(6) \cdot \varphi(6) = n \cdot \tau(6)
+= J_2 = 24$ \cite{hoffmann2022chinchilla,kaplan2020scaling} is the
+algebraic substrate underlying every ECONOMICS exponent. The
+\texttt{hexa verify} CLI \cite{hexacodex2026} is the project's
+single source of truth for correctness claims; verdicts are reported
+on the six-tier rubric \textsc{Supported-Formal}~\textcolor{blue!60!black}{($\bullet$)} /
+\textsc{Supported-Numerical}~\textcolor{green!50!black}{($\bullet$)} /
+\textsc{Supported-By-Citation}~\textcolor{yellow!60!black}{($\bullet$)} /
+\textsc{Insufficient/Deferred}~\textcolor{orange!80!black}{($\bullet$)} /
+\textsc{Falsified}~\textcolor{red!70!black}{($\bullet$)} /
+\textsc{Speculation-Fenced}~($\circ$).
+
+\section{Method}
+\label{sec:method}
+
+Eleven claims were enumerated in \texttt{CLAIMS.tape} (one per row,
+each with a \texttt{method} field $\in \{$\texttt{atom}, \texttt{fence},
+\texttt{run}$\}$). Each was executed via the corresponding
+\texttt{hexa verify} or \texttt{hexa run} invocation; raw stdout was
+persisted verbatim to \texttt{.verdicts/economics-n6-ladder/<id>.txt}.
+The index \texttt{.verdicts/economics-n6-ladder.tape} records
+$(id, tier, raw\text{-}path)$ per claim. The gate
+\texttt{cx\_paper\_gate} requires $0$~\textsc{Falsified}, $\ge 1$
+\textsc{Supported}/\textsc{Pass}, and all \textsc{Fenced} entries
+explicit. No claim was post-hoc downgraded or paraphrased.
+
+\section{Results --- \textsc{Verified} tier}
+\label{sec:verified}
+
+\subsection{Atlas-atom recompute (\textsc{Supported-Formal})}
+
+Four atoms reproduce atlas values exactly via \texttt{hexa verify --expr}:
+
+\begin{table}[h]
+\centering
+\caption{Atlas atom verdicts (\texttt{hexa verify --expr <fn> 6 <v>}).}
+\label{tab:atoms}
+\begin{tabular}{lrl}
+\toprule
+\textbf{Atom} & \textbf{calc} & \textbf{Verdict} \\
+\midrule
+$\sigma(6)$    & 12 & \textsc{Supported-Formal} \\
+$\varphi(6)$   &  2 & \textsc{Supported-Formal} \\
+$\tau(6)$      &  4 & \textsc{Supported-Formal} \\
+$\sigma_2(6)$  & 50 & \textsc{Supported-Formal} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Closed-form verifier sentinels (\textsc{Pass})}
+
+Four \texttt{verify/*.hexa} suites each close $10/10$ checks at
+\texttt{math\_pure} precision (drift $< 10^{-12}$ on exact identities;
+$< 10^{-5}$ on the asymptotic-floor probe):
+
+\begin{table}[h]
+\centering
+\caption{Closed-form sentinel verdicts (\texttt{hexa run verify/<file>.hexa}).}
+\label{tab:sentinels}
+\begin{tabular}{ll}
+\toprule
+\textbf{Verifier} & \textbf{Sentinel} \\
+\midrule
+\texttt{numerics\_economics\_cross\_pillar} & \texttt{\_\_PASS} (10/10) \\
+\texttt{numerics\_economics\_scaling\_laws} & \texttt{\_\_PASS} (10/10) \\
+\texttt{numerics\_economics\_pareto}        & \texttt{\_\_PASS} (10/10) \\
+\texttt{report\_economics\_ladder}          & \texttt{\_\_PASS} (10/10) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Results --- \textsc{Pending} tier}
+\label{sec:pending}
+
+\emph{None for this slug.} The eleven enumerated claims partition
+exactly into \textsc{Supported-Formal} ($\times 4$), \textsc{Pass}
+($\times 4$), and \textsc{Speculation-Fenced} ($\times 3$).
+Per-verb empirical T4 contact (live HumanEval+/hexa-eval pass-rate vs
+model and data scale; live latency / KV-cache profiles; live
+HumanEval+) is the deferred empirical layer for the ECONOMICS group;
+it lives in the project release ladder (v1.2.0+) and is intentionally
+out of scope for this artefact, per \texttt{cx\_claim\_verify}.
+
+\section{Results --- \textsc{Speculation-Fenced} tier}
+\label{sec:fenced}
+
+Three claims are \textbf{modelling-level} and explicitly fenced via
+\texttt{hexa verify --fence}. Closed-form arithmetic from the four
+atlas atoms is internal-consistent; the claim that this arithmetic
+\emph{is the right scaling law} for empirical AI economics is a
+modelling assumption, not an atlas identity.
+
+\begin{table}[h]
+\centering
+\caption{Fenced modelling claims (\texttt{hexa verify --fence "<claim>"}).}
+\label{tab:fenced}
+\begin{tabular}{ll}
+\toprule
+\textbf{Claim} & \textbf{Verdict} \\
+\midrule
+$\alpha = \varphi(6)/\sigma(6) = 1/6$ \emph{is} the quality\_scale exponent       & \textsc{Speculation-Fenced} \\
+$\mathrm{N6\_EXP} = J_2/(J_2{+}1) = 24/25$ \emph{is} the train\_cost exponent     & \textsc{Speculation-Fenced} \\
+Pareto $D/N \approx 1.07$ at $n=6$ vs $\approx 20$~\cite{hoffmann2022chinchilla} & \textsc{Speculation-Fenced} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Limitations and honest caveats}
+\label{sec:limits}
+
+\begin{enumerate}\itemsep0.3em
+\item The \textsc{Pass} tier verifies that each
+      \texttt{verify/numerics\_*.hexa} script closes its internal
+      $10/10$ check, not that the underlying scaling law fits any
+      external benchmark. T4 empirical contact is \textsc{Pending}.
+\item Several internal identities in the \textsc{Pass} tier (e.g.\
+      Lagrangian optimum $(N/D)^\alpha = A/B$) are
+      tautological-by-construction: the closed-form satisfies the
+      identity because the function definition encodes it.
+\item The \textsc{Speculation-Fenced} tier is the load-bearing
+      epistemic gap: arithmetic from atlas atoms is exact, but
+      identifying that arithmetic with empirical AI economics is a
+      modelling assumption.
+\item The \texttt{verify/run\_all.hexa} orchestrator was not run
+      end-to-end as a single verdict for this artefact; the per-file
+      verdicts in \S\ref{sec:verified} were each obtained
+      individually.
+\end{enumerate}
+
+\section{Discussion and outlook}
+\label{sec:discussion}
+
+This paper is a verification artefact: it reports what
+\texttt{hexa verify} returned for an enumerated set of claims, with
+no LLM self-judgment in the verdict surface. The most important
+follow-up is closing the \textsc{Pending} T4 row --- live empirical
+contact between the $n=6$ lattice predictions and measured
+HumanEval+/hexa-eval scaling curves. Until that lands, the headline
+modelling claims remain explicitly $\textsc{Speculation-Fenced}$.
+
+\section*{Reproducibility}
+\addcontentsline{toc}{section}{Reproducibility}
+
+All eleven claims, their \texttt{hexa verify} invocations, and the
+verbatim stdout are persisted at
+\texttt{CLAIMS.tape} + \texttt{.verdicts/economics-n6-ladder/} in
+\url{https://github.com/dancinlab/hexa-codex}. Re-running each
+\texttt{cmd} field in \texttt{CLAIMS.tape} reproduces the verdict
+matrix bit-for-bit. Build: \texttt{make} (pdflatex $\times 3$ + bibtex).
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

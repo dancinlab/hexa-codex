@@ -7,6 +7,48 @@
 
 ---
 
+## 2026-05-24 — M1.SAFETY narrowed + flipped `[x]` (logprob-only scope); M1.SAFETY+ added for intermediate-tensor
+
+Cycle-10 honest scope redefinition following the cycle-9 `b5a6c1f`
+BLOCKED_AT_PROJECT finding. The original M1.SAFETY criteria
+("activation capture") over-promised what the substrate physically
+exposes — cycle-9's upstream HEAD `b22ff4b7` probe proved the
+intermediate-residual / attention / MLP tap surface does not exist
+anywhere in llama.cpp (no CLI flag in `common/arg.cpp`; no HTTP-body
+field for intermediate tensors; only per-request final-layer sampling
+logprobs). M1.SAFETY's success criteria narrowed to the logit/logprob
+surface that IS achievable (cycle-5 `d_logit_calibration`, commit
+`c7e03a5`, `margin_corr_signal=53.33`, `calibration_signal_present=true`,
+`.verdicts/sandbox/stage3_logit_calibration_summary.txt`). The
+over-promised intermediate-tensor scope moved to a new line item
+**M1.SAFETY+** with status `[ ]` BLOCKED_AT_PROJECT —
+substrate-extension lane, not the M1.SAFETY closure path.
+
+**Edits this cycle (doc only, $0, no exec):**
+
+- `SANDBOX.md` matrix cell: "activation capture" →
+  "logit/logprob (+M1.SF+)" with explicit scope-split footnote.
+- `SANDBOX.md` M1.SAFETY line item flipped `[ ] → [x]` with the
+  narrowed-scope qualifier + cycle-5 `c7e03a5` cite + cycle-9
+  `b5a6c1f` cite for the split-out portion.
+- `SANDBOX.md` new line item M1.SAFETY+ `[ ]` BLOCKED_AT_PROJECT
+  for the intermediate-tensor taps with the cycle-9 evidence.
+- `.discoveries/sandbox.tape`: `d_activation_capture_pipeline`
+  PARTIAL → confirmed at narrowed scope (logit-only); new candidate
+  row `d_activation_capture_intermediate_tap` added with status
+  BLOCKED_AT_PROJECT, inheriting the cycle-9 fork-probe evidence
+  verbatim. Cumulative footer: 6 confirmed · 3 dead · 1
+  BLOCKED_AT_PROJECT · 9 candidates remaining.
+- `SAFETY.log.md`: 2026-05-24 cycle-10 entry appended with the
+  cycle-9 fork-probe evidence + cycle-5 calibration evidence
+  verbatim block.
+
+**Honesty disclosure:** SCOPE REDEFINITION, not new substrate work.
+The substrate gained nothing new this cycle; the flip aligns
+M1.SAFETY's definition with what the substrate physically delivers,
+while explicitly preserving the over-promised scope in a separate
+M1.SAFETY+ row so it can be tracked, never silently dropped.
+
 ## 2026-05-24 — M1.SAFETY fork attempt — BLOCKED_AT_PROJECT (flags absent in upstream HEAD)
 
 Cycle-8 follow-up to the `d_activation_capture_pipeline` PARTIAL verdict

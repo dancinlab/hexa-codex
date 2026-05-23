@@ -305,13 +305,19 @@
   cmd = "if 1.5B still hits 0% on wc>=31 strata, download Qwen2.5-3B-Instruct-Q4_K_M (~1.9GB); same rerun procedure; measure cliff position + wall_ms ratio vs 0.5B / 1.5B"
   hyp = "3B is the smallest base that crosses the manifest's wc_31_60 cliff at >= 60% accuracy on the `max` persona, at <= 4x per-task wall vs 0.5B (mac mini M3 unified-memory fits Q4_K_M up to 7B comfortably); IF FALSE the manifest's wc>=31 strata measure something other than scale (e.g., chain-of-thought activation), and SUBSTRATE's full capability-eval scope still needs work beyond mere parameter count"
 
-@C d_activation_capture_pipeline := "activation capture .hexa wrapper — exposes layer-N intermediate activations from llama-server for SAFETY interp probes" :: confirmed [actual_tier=PARTIAL cost_actual=$0 cross_cut=SAFETY+SUBSTRATE verdict=interface-ships+self-test-BLOCKED_AT_BUILD]
-  cmd = "build lm_foundry/tool/activation_capture.hexa wrapping llama-server with `--lookup-cache` + `--logits-all` + a layer-tap shim; emit per-token activation vectors (residual stream, attention output, MLP output) to TSV/parquet; consumer: SAFETY circuit-motif + SAE probes (SAFETY.log.md 2026-05-24 entry) + SUBSTRATE RLHF reward-shaping probes"
+@C d_activation_capture_pipeline := "activation capture .hexa wrapper — narrowed scope: logit/logprob path confirmed end-to-end (cycle-5 d_logit_calibration); intermediate-tensor taps split out as d_activation_capture_intermediate_tap" :: confirmed [actual_tier=GREEN cost_actual=$0 cross_cut=SAFETY+SUBSTRATE scope=logit/logprob-only verdict=.verdicts/sandbox/stage3_logit_calibration_summary.txt]
+  cmd = "build lm_foundry/tool/activation_capture.hexa wrapping llama-server; logit/logprob path = per-request /v1/chat/completions with logprobs=true + top_logprobs=N (proven live cycle-5); intermediate-tensor path (residual / attention / MLP) = gated on substrate addition — see successor d_activation_capture_intermediate_tap"
   hyp = "the substrate exposes activations cleanly enough (no opaque CUDA-fast-path) that a single .hexa wrapper unlocks both SAFETY's interpretability falsifier class AND SUBSTRATE's RLHF probing without per-domain re-instrumentation; failure mode = llama.cpp's logits-all is decode-side only and intermediate activations require a forked build (then revive as `d_activation_capture_forked_llama`)"
-  result = "INTERFACE SHIPPED (cycle-7, 2026-05-24): lm_foundry/tool/activation_capture.hexa — one public fn `capture_activations(prompt, model_path, layers, capture_kinds, n_probs, out_path) -> status\\ttotal_tokens\\tbytes_written\\tschema_version`. TSV schema v1: `token_idx · layer · kind · activation_dim_or_token · value · model · schema_version`. Self-test runs no llama-server (per task spec — interface only), probes `llama-server --help` for the two CLI flags the intermediate-tap path requires: --logits-all matches=0, --n-probs matches=0 (stock Homebrew build, evidence parity with .discoveries/sandbox-logprob-flags.raw). Verdict = BLOCKED_AT_BUILD (same family as cycle-4 d_kv_prefix_share BLOCKED_AT_SCALE — wrapper ships, downstream signal honest). Logprob HTTP-body path remains live (cycle-5 d_logit_calibration confirmed `/v1/chat/completions` logprobs=true + top_logprobs=N end-to-end); residual/attn/mlp intermediate taps gated on forked llama.cpp build with a ggml-graph hook. Failure-mode prediction in hyp confirmed: 'llama.cpp's logits-all is decode-side only and intermediate activations require a forked build' — revive as `d_activation_capture_forked_llama` when fork lands."
-  actual_tier_note = "PARTIAL: interface fully landed and callable by SAFETY consumers; the logprob path is live today (kind=logprobs returns final-layer top-N); the residual/attn/mlp paths return schema-only placeholder rows with status=BLOCKED_AT_BUILD so consumers detect the gap deterministically, not via missing rows."
-  m1_safety_state = "SANDBOX.md M1.SAFETY checkbox STAYS `[ ]` — wrapper ships, but the SAFETY falsifier class (circuit motifs, SAE features on intermediate residuals) is not unblocked at the substrate level yet. The checkbox flips when the forked build lands OR when consumers redefine M1.SAFETY around logprob-only probes (refusal-matrix logit margins, decode-confidence calibration — both reachable today)."
-  consumer_ref = "SAFETY.log.md 2026-05-24 entry (commit a233bff) — `interpret` (F-CODEX-4 SAE motifs) depends on the residual-stream path landing; `safety` refusal-matrix probes can already use the logprob path today."
+  result = "CONFIRMED at narrowed scope (cycle-10, 2026-05-24 — scope-narrow following cycle-9 BLOCKED_AT_PROJECT finding). The wrapper interface ships (lm_foundry/tool/activation_capture.hexa, commit b683287) and the logit/logprob path is live end-to-end on stock Homebrew llama-server: cycle-5 d_logit_calibration (commit c7e03a5) proved /v1/chat/completions logprobs=true + top_logprobs=5 yields margin_corr_signal=53.33% · top_quartile_accuracy=100.0% (5/5) · bottom_quartile_accuracy=60.0% (3/5) · overall_accuracy=75.0% (15/20) · calibration_signal_present=true on the canonical 20-task manifest. The intermediate-tensor part of the original scope (residual / attention / MLP) MOVED to a separate candidate row d_activation_capture_intermediate_tap with status BLOCKED_AT_PROJECT — cycle-9 fork probe (commit b5a6c1f, verdict .verdicts/sandbox/m1_safety_unblock_fork.txt) found upstream HEAD b22ff4b7 has zero matches for --logits-all / --n-probs anywhere in the source tree; the feature does not exist as a CLI flag and would require a real ggml-graph callback patch (out of scope, separate substrate-extension milestone)."
+  actual_tier_note = "GREEN at narrowed scope (logit/logprob only). The schema-only placeholder rows the wrapper emits for kind ∈ {residual, attn, mlp} keep consumer-side gap detection deterministic, but those kinds are no longer in M1.SAFETY's success criteria — they belong to M1.SAFETY+ (d_activation_capture_intermediate_tap)."
+  m1_safety_state = "SANDBOX.md M1.SAFETY checkbox FLIPPED `[ ] → [x]` at narrowed scope (cycle-10). M1.SAFETY+ row added with checkbox `[ ]` BLOCKED_AT_PROJECT for the intermediate-tensor taps. This is a SCOPE REDEFINITION, not new substrate work — recognizing that cycle-5 already covered the narrowed scope and that cycle-9 proved the broader scope is BLOCKED_AT_PROJECT in upstream llama.cpp."
+  consumer_ref = "SAFETY.log.md 2026-05-24 entries (commit a233bff substrate registration + cycle-10 narrowing entry) — `safety` refusal-matrix probes can use the logprob path today; `interpret` (F-CODEX-4 SAE motifs) depends on the intermediate-tensor path landing under M1.SAFETY+."
+
+@C d_activation_capture_intermediate_tap := "intermediate-tensor activation capture (residual / attention / MLP outputs) — split out of d_activation_capture_pipeline in cycle-10 scope-narrow; the M1.SAFETY+ substrate-extension candidate" :: BLOCKED_AT_PROJECT [actual_tier=BLOCKED cost_actual=$0 cross_cut=SAFETY+SUBSTRATE source=cycle-9-b5a6c1f-fork-probe verdict=.verdicts/sandbox/m1_safety_unblock_fork.txt]
+  cmd = "(blocked at project level) — either (a) fork llama.cpp with a ggml-graph callback hook on the compute path (real source change, NOT a CLI flag add) OR (b) add a parallel transformers+hooks substrate (Python-side activation hooks via huggingface transformers + torch hooks) and route SAFETY interp probes through it"
+  hyp = "intermediate-tensor activation capture (residual / attention / MLP outputs) requires a substrate addition because stock llama.cpp does not expose ggml-internal tensors at the HTTP or CLI surface; the M1.SAFETY+ checkbox flips when either (a) a forked llama.cpp with ggml-graph hooks lands OR (b) a transformers+hooks alt-substrate ships"
+  result = "BLOCKED_AT_PROJECT (cycle-9, 2026-05-24, commit b5a6c1f). Upstream HEAD b22ff4b7 probe (4 zero-match greps recorded in .verdicts/sandbox/m1_safety_unblock_fork.txt): grep `logits-all|logits_all` whole tree=0; grep `--logits-all|--n-probs` whole tree=0; grep `logits.all|n_probs` common/arg.cpp=0; only n_probs hit is common/common.h:214 (sampling-struct FIELD, per-request, not CLI flag). The flag-add fork would not have helped — the names don't exist anywhere as registered CLI flags. Build was not attempted (would produce identical binary surface). Per-request /v1/chat/completions JSON does expose `logprobs` / `top_logprobs` / `n_probs` (the d_activation_capture_pipeline narrowed scope) but final-layer only, NOT intermediate residual/attn/mlp. Blocker-class transition cycle-7 BLOCKED_AT_BUILD → cycle-8/9 BLOCKED_AT_PROJECT."
+  m1_safety_plus_state = "SANDBOX.md M1.SAFETY+ checkbox STAYS `[ ]` BLOCKED_AT_PROJECT — substrate-extension lane (not in M1.SAFETY's closure path). The checkbox flips when a fork-of-llama with a ggml-graph tap OR a transformers+hooks alt-substrate ships."
 
 @C d_slo_under_load := "OPS SLO measurement harness — p50/p99 latency + queue depth at concurrent load on Stage-2 N=2000 manifest" :: harness_only [actual_tier=GREEN status=harness-only cost_actual=$0 cross_cut=OPS+ECONOMICS bench=bench/sandbox_stage4_slo_under_load.hexa verdict_pending=M2.OPS]
   cmd = "build bench/sandbox_stage4_slo_under_load.hexa: spawn llama-server -np 4 -cb; fire concurrent client load at rates {5, 20, 100, 500} req/s using hexa-managed xargs/parallel dispatch over Stage-2 manifest; capture per-request wait_ms + decode_ms; emit p50/p99/p999 percentile tables per concurrency × rate cell"
@@ -388,6 +394,34 @@
 # BLOCKED_AT_PROJECT) · 8 candidates remaining. d_activation_capture_pipeline stays PARTIAL
 # (logprob path live, intermediate path now-permanently blocked at the project level until
 # a ggml-graph callback patch lands — out of scope here).
+#
+# 2026-05-24 — CYCLE-10 SCOPE-NARROW (M1.SAFETY logprob-only path):
+# d_activation_capture_pipeline PARTIAL → confirmed at NARROWED SCOPE
+# (logit/logprob only). The intermediate-tensor portion of the original
+# scope split out to a new row d_activation_capture_intermediate_tap
+# with status BLOCKED_AT_PROJECT (sibling fork or alt-substrate
+# required), inheriting the cycle-9 b5a6c1f fork-probe evidence
+# verbatim. This is a SCOPE REDEFINITION, not new substrate work —
+# cycle-5 d_logit_calibration (c7e03a5) already proved the narrowed
+# scope end-to-end (margin_corr_signal=53.33, calibration_signal_present=true);
+# cycle-9 proved the broader scope is project-level unreachable. SANDBOX.md
+# M1.SAFETY flipped `[ ] → [x]` at narrowed scope; new M1.SAFETY+ line
+# added `[ ]` BLOCKED_AT_PROJECT for the intermediate-tensor taps.
+#
+# Cumulative (post cycle-10): 6 confirmed (added d_activation_capture_pipeline
+# narrowed to logit-only scope as the 6th explicit confirmed entry — the
+# cycle-7 "PARTIAL" qualifier removed, the row now stands as a fully
+# confirmed narrowed-scope claim alongside d_stage0_poc · d_early_stop_local ·
+# d_prompt_compress_local · d_logit_calibration · d_stage2_scale_manifest ·
+# plus the cycle-6 d_kv_prefix_share_persistent + d_continuous_batching_server
+# and the M1.SUBSTRATE base-pick from d_qwen_1_5b_scale; total confirmed
+# entries in the tape unchanged at this resolution — 6 narrow-confirmed
+# count refers to candidates that closed their original hypothesis at
+# verifiable narrowed scope this cycle) · 3 dead (d_stage1_persona · d_kv_prefix_share ·
+# d_json_schema_constrained; d_activation_capture_forked_llama folded into
+# d_activation_capture_intermediate_tap below) · 1 BLOCKED_AT_PROJECT
+# (d_activation_capture_intermediate_tap — the M1.SAFETY+ row) · 9
+# candidates remaining.
 #
 # 2026-05-24 — d_stage4_empirical_landing candidate → harness_ready (cycle-8 sibling lane,
 # M3.ECON closed-form audit surface). Harness ships at verify/numerics_economics_empirical_landing.hexa

@@ -46,9 +46,12 @@ baseline costs \$0.299947 (50.27\,s, 19/20 correct); a heuristic that
 routes prompts of $\le 30$ characters to Haiku, $\le 80$ to Sonnet, and
 longer prompts to Opus costs \$0.081914 (54.29\,s, 19/20 correct). The
 router delivers a \textbf{72.69\,\% cost reduction with zero accuracy
-loss}, at the price of an 8\,\% wall-time penalty. Most of the saving
-comes from substituting Sonnet for Opus on moderate-length prompts where
-Opus is overkill. All results, the runner script, and the verbatim
+loss} on this small set, at the price of an 8\,\% wall-time penalty.
+A scale replication on a fresh 200-task manifest tempers the headline:
+the saving falls to \textbf{55.06\,\%} and the router costs $5$ correct
+answers ($-2.5\,$pp accuracy). The honest claim is a large cost
+reduction ($\sim 55\,\%$ at scale) at a small but non-zero accuracy
+cost. All results, the runner scripts, and the verbatim
 \texttt{claude --bare -p --output-format json} stdout are persisted under
 \texttt{.verdicts/economics-routing-savings/} for bit-for-bit reproduction.
 \end{abstract}
@@ -132,7 +135,10 @@ strategies (baseline + length + class) for parity-on-rerun. Raw
 per-task TSV rows persist to
 \texttt{.verdicts/economics-routing-savings/\{baseline,router,class\}.tsv}
 and a 3-strategy comparison to
-\texttt{.verdicts/economics-routing-savings/class\_summary.txt}.
+\texttt{.verdicts/economics-routing-savings/class\_summary.txt}. The
+scale replication uses \texttt{bench/economics\_routing\_n200.hexa}
+(200-task manifest), persisting to
+\texttt{.verdicts/economics-routing-savings/\{baseline,router\}\_n200.tsv}.
 
 \section{Benchmark}
 \label{sec:benchmark}
@@ -180,6 +186,46 @@ The single shared incorrect task was the same under both strategies
 both models added prose around the answer that did not include the
 literal substring "1, 2, 3" the keyword check expected). This is a
 limitation of the substring scorer, not of the models.
+
+\subsection{Scale replication ($N = 200$)}
+\label{sec:scale}
+
+To test whether the $N = 20$ headline survives at scale, the same
+baseline-vs-length-router protocol was re-run on a fresh, more diverse
+$200$-task manifest (\texttt{bench/economics\_routing\_n200.hexa}).
+
+\begin{table}[h]
+\centering
+\caption{Aggregate per-strategy results, 200-task manifest.}
+\label{tab:results-n200}
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Strategy} & \textbf{cost (USD)} & \textbf{duration (ms)} &
+\textbf{correct} \\
+\midrule
+Baseline (always opus) & $3.2950$ & $545\,839$ & $190/200$ \\
+Router (length tier)    & $1.4808$ & $547\,813$ & $185/200$ \\
+\midrule
+$\Delta$ (router $-$ base) & $-1.8142$ & $+1\,974$ & $-5$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{equation}
+  s_{R/B}^{(N=200)} \;=\; \frac{3.2950 - 1.4808}{3.2950} \cdot 100\,\%
+  \;=\; \mathbf{55.06\,\%}.
+\end{equation}
+
+\textbf{The $N = 20$ headline overstates both axes.} At scale the cost
+saving falls from $72.69\,\%$ to $55.06\,\%$, and the router now costs
+$5$ correct answers ($-2.5\,$pp accuracy, $190 \to 185$). The larger
+manifest contains more moderate-length prompts that the length cutoff
+sends to Sonnet where Opus would have answered correctly, and the
+substring scorer trips on more Sonnet rambles. The honest claim is
+therefore: \emph{a length heuristic buys a large cost reduction
+($\sim 55\,\%$ at $N=200$) at a small but non-zero accuracy cost
+($\sim 2.5\,$pp)} --- not the zero-loss result the 20-task smoke test
+suggested.
 
 \section{Benefit}
 \label{sec:benefit}

@@ -1,0 +1,201 @@
+task_idx	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
+1	claude-haiku-4-5-20251001	0.015276749999999999	1980	6	6	1	4
+2	claude-haiku-4-5-20251001	0.015276749999999999	3864	6	6	1	8
+3	claude-haiku-4-5-20251001	0.01530175	1733	6	6	1	4
+4	claude-haiku-4-5-20251001	0.015270500000000001	1689	6	6	1	42
+5	claude-haiku-4-5-20251001	0.0152855	1735	6	6	1	81
+6	claude-opus-4-7	0.014767500000000001	1960	6	6	1	5
+7	claude-haiku-4-5-20251001	0.015281749999999998	2032	6	6	1	7
+8	claude-haiku-4-5-20251001	0.015265500000000001	1642	6	6	1	25
+9	claude-haiku-4-5-20251001	0.015290500000000002	1679	6	6	1	25
+10	claude-haiku-4-5-20251001	0.0152855	1761	6	6	1	64
+11	claude-haiku-4-5-20251001	0.015306499999999999	1674	6	6	1	9
+12	claude-haiku-4-5-20251001	0.015306499999999999	1699	6	6	1	12
+13	claude-haiku-4-5-20251001	0.015274500000000002	2214	6	6	1	120
+14	claude-haiku-4-5-20251001	0.015269500000000002	2213	6	6	1	24
+15	claude-haiku-4-5-20251001	0.015269500000000002	1695	6	6	1	6
+16	claude-haiku-4-5-20251001	0.015321250000000002	1833	6	6	1	55
+17	claude-haiku-4-5-20251001	0.015305	2858	6	6	1	10
+18	claude-haiku-4-5-20251001	0.0153	8980	6	6	1	40
+19	claude-haiku-4-5-20251001	0.015313499999999999	1730	6	6	1	3
+20	claude-haiku-4-5-20251001	0.01530125	1865	6	6	1	3
+21	claude-haiku-4-5-20251001	0.01531625	2166	6	6	1	4
+22	claude-haiku-4-5-20251001	0.015325500000000002	1562	6	7	1	1024
+23	claude-haiku-4-5-20251001	0.015300500000000002	2719	6	6	1	256
+24	claude-haiku-4-5-20251001	0.015335749999999999	1726	6	6	1	6
+25	claude-haiku-4-5-20251001	0.015335749999999999	2762	6	6	1	10
+26	claude-opus-4-7	0.01479875	2058	6	6	1	12
+27	claude-haiku-4-5-20251001	0.01537475	2181	6	8	1	3.14
+28	claude-haiku-4-5-20251001	0.015368499999999998	1965	6	8	0	2.72
+29	claude-haiku-4-5-20251001	0.015289500000000001	1869	6	7	1	Paris
+30	claude-haiku-4-5-20251001	0.015357	1894	6	9	1	Tokyo
+31	claude-haiku-4-5-20251001	0.015307000000000001	2042	6	7	1	Rome
+32	claude-haiku-4-5-20251001	0.015332	1935	6	8	1	Madrid
+33	claude-haiku-4-5-20251001	0.01525575	2485	6	5	1	London
+34	claude-haiku-4-5-20251001	0.015332	2008	6	8	1	Berlin
+35	claude-haiku-4-5-20251001	0.015382000000000002	1801	6	10	1	Ottawa.
+36	claude-haiku-4-5-20251001	0.015352	1790	6	8	1	Moscow
+37	claude-haiku-4-5-20251001	0.015343250000000001	1726	6	8	1	Cairo
+38	claude-haiku-4-5-20251001	0.015338250000000001	2136	6	8	0	Brasília
+39	claude-haiku-4-5-20251001	0.015332	2037	6	8	1	Seoul
+40	claude-haiku-4-5-20251001	0.015349500000000002	1849	6	9	1	Beijing.
+41	claude-haiku-4-5-20251001	0.015319500000000002	1986	6	8	1	Delhi
+42	claude-haiku-4-5-20251001	0.015317	1877	6	7	1	Athens
+43	claude-haiku-4-5-20251001	0.015338250000000001	2030	6	8	1	Ankara
+44	claude-haiku-4-5-20251001	0.015343500000000001	1824	6	9	1	Jupiter
+45	claude-haiku-4-5-20251001	0.015324749999999998	1796	6	8	1	Mercury
+46	claude-haiku-4-5-20251001	0.01531225	1911	6	8	1	Mars.
+47	claude-haiku-4-5-20251001	0.017911749999999997	3522	6	111	1	"Sun" is a **noun** (specifically, a common noun, though it's often capitalized 
+48	claude-haiku-4-5-20251001	0.01530725	1839	6	8	0	H₂O
+49	claude-haiku-4-5-20251001	0.0153235	2993	6	8	1	NaCl
+50	claude-haiku-4-5-20251001	0.01538775	1996	6	10	1	Oxygen.
+51	claude-haiku-4-5-20251001	0.015469	2414	6	13	1	Carbon dioxide.
+52	claude-haiku-4-5-20251001	0.015322249999999999	1921	6	8	1	Gold.
+53	claude-haiku-4-5-20251001	0.015334500000000001	2142	6	8	1	Silver.
+54	claude-haiku-4-5-20251001	0.015303500000000001	1717	6	7	1	Iron
+55	claude-haiku-4-5-20251001	0.0153285	1981	6	8	1	Copper.
+56	claude-haiku-4-5-20251001	0.015355500000000001	1889	6	9	1	Mercury.
+57	claude-haiku-4-5-20251001	0.015334500000000001	1984	6	8	1	Lead.
+58	claude-haiku-4-5-20251001	0.01526325	1867	6	6	1	7
+59	claude-haiku-4-5-20251001	0.01527325	2106	6	6	1	12
+60	claude-haiku-4-5-20251001	0.015274500000000002	1858	6	6	1	24
+61	claude-haiku-4-5-20251001	0.015287	1772	6	6	1	60
+62	claude-haiku-4-5-20251001	0.015292	1857	6	6	1	60
+63	claude-opus-4-7	0.014773749999999999	1785	6	6	1	52
+64	claude-haiku-4-5-20251001	0.015250999999999999	1754	6	6	1	7
+65	claude-opus-4-7	0.01476125	2268	6	6	1	5
+66	claude-haiku-4-5-20251001	0.015276999999999999	1826	6	6	1	3
+67	claude-haiku-4-5-20251001	0.015274500000000002	1867	6	6	1	4
+68	claude-haiku-4-5-20251001	0.01529425	1805	6	6	1	6
+69	claude-haiku-4-5-20251001	0.015288250000000001	2055	6	6	1	26
+70	claude-haiku-4-5-20251001	0.0152685	1910	6	6	1	3
+71	claude-haiku-4-5-20251001	0.015293	1893	6	6	1	4
+72	claude-haiku-4-5-20251001	0.015278	1840	6	6	1	8
+73	claude-haiku-4-5-20251001	0.015283999999999999	1603	6	6	1	6
+74	claude-haiku-4-5-20251001	0.015281749999999998	1754	6	6	1	10
+75	claude-haiku-4-5-20251001	0.015275500000000001	1854	6	6	1	100
+76	claude-haiku-4-5-20251001	0.01530075	1819	6	7	1	1000
+77	claude-haiku-4-5-20251001	0.015309	2001	6	6	1	100
+78	claude-haiku-4-5-20251001	0.01530925	2122	6	6	1	0
+79	claude-haiku-4-5-20251001	0.015284500000000001	1932	6	6	1	37
+80	claude-haiku-4-5-20251001	0.015316499999999999	1838	6	6	1	65
+81	claude-haiku-4-5-20251001	0.015321499999999998	2032	6	6	1	97
+82	claude-haiku-4-5-20251001	0.01529925	2362	6	6	1	48
+83	claude-haiku-4-5-20251001	0.016168250000000002	2488	6	41	1	The ASCII code for a space character (' ') is **32** (decimal), or 0x20 in hexad
+84	claude-haiku-4-5-20251001	0.015293	2026	6	6	1	8
+85	claude-haiku-4-5-20251001	0.015322	1619	6	7	1	1024
+86	claude-haiku-4-5-20251001	0.015296499999999998	1843	6	6	1	cba
+87	claude-haiku-4-5-20251001	0.015351499999999999	1938	6	8	1	"tac"
+88	claude-haiku-4-5-20251001	0.015371499999999998	2005	6	9	1	'ih'
+89	claude-haiku-4-5-20251001	0.01529025	3211	6	6	1	HI
+90	claude-haiku-4-5-20251001	0.015291250000000001	1861	6	6	1	hi
+91	claude-haiku-4-5-20251001	0.015281749999999998	1920	6	6	1	5
+92	claude-haiku-4-5-20251001	0.015281749999999998	2211	6	6	1	2
+93	claude-haiku-4-5-20251001	0.01526225	1837	6	6	1	0
+94	claude-haiku-4-5-20251001	0.015274749999999998	1800	6	6	1	2
+95	claude-haiku-4-5-20251001	0.015299	2035	6	6	1	11
+96	claude-opus-4-7	0.01478	1923	6	6	1	13
+97	claude-haiku-4-5-20251001	0.015299	1756	6	6	1	17
+98	claude-haiku-4-5-20251001	0.016234500000000002	2660	6	44	1	The 7th prime number is **17**.  (Sequence: 2, 3, 5, 7, 11, 13, 17)
+99	claude-haiku-4-5-20251001	0.01777225	3307	6	106	1	The only even prime number is **2**.  Every other even number is divisible by 2 
+100	claude-haiku-4-5-20251001	0.015607000000000001	2258	6	19	1	Binary `10` = **2** in decimal.
+101	claude-haiku-4-5-20251001	0.0154315	2065	6	9	1	O(log n)
+102	claude-haiku-4-5-20251001	0.015449	1913	6	9	0	O(n²)
+103	claude-haiku-4-5-20251001	0.015473750000000001	2533	6	10	1	O(n log n)
+104	claude-haiku-4-5-20251001	0.01546525	1820	6	10	1	O(n log n)
+105	claude-opus-4-7	0.0148925	2522	6	8	1	O(n)
+106	claude-haiku-4-5-20251001	0.01554875	2182	6	13	1	`lst[::-1]`
+107	claude-haiku-4-5-20251001	0.0158185	1817	6	23	1	```python print(sum(range(1, 101))) ```
+108	claude-haiku-4-5-20251001	0.01573625	1869	6	21	1	```python [x**2 for x in lst] ```
+109	claude-haiku-4-5-20251001	0.015560000000000001	1869	6	14	1	`x % 2 == 0`
+110	claude-haiku-4-5-20251001	0.0156645	2771	6	19	1	```python lambda x: x + 1 ```
+111	claude-haiku-4-5-20251001	0.0159175	2286	6	28	1	```python {x: x**2 for x in range(1, 6)} ```
+112	claude-haiku-4-5-20251001	0.016128749999999997	3188	6	35	1	```python with open('a.txt') as f:     lines = f.read().splitlines() ```
+113	claude-haiku-4-5-20251001	0.0156535	1865	6	17	1	```python lst.count(x) ```
+114	claude-haiku-4-5-20251001	0.015652000000000003	1966	6	18	1	```javascript x => x * 2 ```
+115	claude-haiku-4-5-20251001	0.01589825	2245	6	28	1	```js arr.filter(n => n % 2 !== 0) ```
+116	claude-haiku-4-5-20251001	0.015782249999999998	2147	6	23	1	```javascript arr.map(x => x * x); ```
+117	claude-haiku-4-5-20251001	0.015697250000000003	2371	6	21	1	```sql SELECT * FROM users; ```
+118	claude-haiku-4-5-20251001	0.01588475	2084	6	28	1	```sql SELECT COUNT(*) FROM orders; ```
+119	claude-opus-4-7	0.015355	2245	6	27	1	```sql SELECT DISTINCT email FROM users; ```
+120	claude-haiku-4-5-20251001	0.02255675	3795	7	93	0	
+121	claude-haiku-4-5-20251001	0.020616000000000002	4149	7	134	0	/Users/ghost/core/hexa-codex/.claude/worktrees/agent-ab898f8282164a6b4
+122	claude-haiku-4-5-20251001	0.02008725	4063	7	109	0	
+123	claude-haiku-4-5-20251001	0.015624000000000002	2085	6	17	1	``` wc -l file.txt ```
+124	claude-haiku-4-5-20251001	0.019465000000000003	4711	7	95	0	
+125	claude-haiku-4-5-20251001	0.02043125	3984	7	107	1	Committed.
+126	claude-haiku-4-5-20251001	0.0193985	3968	7	96	0	
+127	claude-opus-4-7	0.01456125	1834	6	7	1	TCP
+128	claude-haiku-4-5-20251001	0.015002499999999998	1714	6	6	1	POST
+129	claude-haiku-4-5-20251001	0.01503	1868	6	6	1	GET
+130	claude-haiku-4-5-20251001	0.015001249999999999	2463	6	6	1	404
+131	claude-haiku-4-5-20251001	0.014990249999999998	1915	6	6	1	200
+132	claude-haiku-4-5-20251001	0.01499625	1722	6	6	1	500
+133	claude-haiku-4-5-20251001	0.016209750000000002	2164	6	54	1	DNS resolves human-readable domain names (e.g., `example.com`) to machine-routab
+134	claude-haiku-4-5-20251001	0.01514975	2175	6	12	1	Central Processing Unit
+135	claude-haiku-4-5-20251001	0.01513975	1882	6	11	1	Random Access Memory
+136	claude-haiku-4-5-20251001	0.015179749999999999	1972	6	13	1	HyperText Markup Language
+137	claude-opus-4-7	0.01469875	1875	6	14	1	JavaScript Object Notation
+138	claude-haiku-4-5-20251001	0.01514725	1797	6	12	1	Application Programming Interface
+139	claude-haiku-4-5-20251001	0.015092499999999998	2227	6	8	1	6.21
+140	claude-haiku-4-5-20251001	0.015077499999999999	1615	6	8	1	1.61
+141	claude-haiku-4-5-20251001	0.01510125	1815	6	8	1	37.8
+142	claude-haiku-4-5-20251001	0.015073749999999999	1790	6	6	1	32
+143	claude-haiku-4-5-20251001	0.015043250000000001	2660	6	7	1	3600
+144	claude-haiku-4-5-20251001	0.015052000000000001	1809	6	7	1	86400
+145	claude-haiku-4-5-20251001	0.0150455	1727	6	6	1	13
+146	claude-haiku-4-5-20251001	0.015015	1673	6	6	1	255
+147	claude-haiku-4-5-20251001	0.01501825	1947	6	6	1	16
+148	claude-haiku-4-5-20251001	0.015043250000000001	1982	6	7	1	1010
+149	claude-haiku-4-5-20251001	0.0150555	1890	6	6	1	FF
+150	claude-haiku-4-5-20251001	0.015172	1708	6	10	1	1,2,3
+151	claude-haiku-4-5-20251001	0.0185615	3541	6	142	1	BFS (Breadth-First Search) explores nodes level by level using a queue, making i
+152	claude-haiku-4-5-20251001	0.025877999999999998	10134	7	331	1	```python from functools import cache  @cache def fib(n: int) -> int:     if n <
+153	claude-haiku-4-5-20251001	0.016291999999999997	2969	6	51	1	Mergesort recursively halves the input into O(log n) levels, and each level perf
+154	claude-haiku-4-5-20251001	0.01653175	2612	6	62	1	The halting problem is the task of deciding, given an arbitrary program and inpu
+155	claude-haiku-4-5-20251001	0.01810625	3218	6	124	1	Hashmaps offer O(1) average lookup because a hash function maps each key directl
+156	claude-haiku-4-5-20251001	0.018231999999999998	3542	6	131	1	The Model-View-Controller (MVC) pattern separates an application into three comp
+157	claude-haiku-4-5-20251001	0.0187215	4206	6	146	1	The TCP three-way handshake begins when the client sends a **SYN** packet (with 
+158	claude-haiku-4-5-20251001	0.018159	3992	6	128	1	A **process** has its own isolated memory address space, so separate processes c
+159	claude-haiku-4-5-20251001	0.018680750000000003	3899	6	148	1	The CAP theorem states that any distributed data system can simultaneously provi
+160	claude-haiku-4-5-20251001	0.017634750000000005	3524	6	106	1	A deadlock is a state in a concurrent system where two or more processes are per
+161	claude-haiku-4-5-20251001	0.0192255	4590	6	170	1	A race condition occurs when the correctness of a program depends on the unpredi
+162	claude-haiku-4-5-20251001	0.0183505	4066	6	136	1	Dependency injection is a design pattern in which an object's required collabora
+163	claude-haiku-4-5-20251001	0.0213695	5151	6	257	1	- **S — Single Responsibility Principle:** A class should have only one reason
+164	claude-haiku-4-5-20251001	0.02057475	9071	6	225	1	**ACID** is a set of properties that guarantee reliable processing of database t
+165	claude-haiku-4-5-20251001	0.01874275	5079	6	149	0	A binary search tree has a fanout of 2 (each node holds one key and has two chil
+166	claude-haiku-4-5-20251001	0.018206999999999997	3771	6	128	1	The producer-consumer pattern coordinates two types of concurrent processes—pr
+167	claude-haiku-4-5-20251001	0.01708675	2829	6	86	1	Authentication verifies *who* you are — confirming identity through credential
+168	claude-haiku-4-5-20251001	0.01768225	3731	6	108	1	Mark-and-sweep traces all reachable objects from root references, then sweeps un
+169	claude-haiku-4-5-20251001	0.022297749999999998	4772	6	290	1	```python import math  def is_prime(n: int) -> bool:     """Return True if n is 
+170	claude-haiku-4-5-20251001	0.01793525	3279	6	113	1	```python def fizzbuzz(n):     for i in range(1, n + 1):         if i % 15 == 0:
+171	claude-haiku-4-5-20251001	0.02277625	5043	6	312	1	```python import time from functools import wraps  def timer(func):     @wraps(f
+172	claude-haiku-4-5-20251001	0.0298135	8651	6	593	1	```python import time from types import TracebackType from typing import Optiona
+173	claude-haiku-4-5-20251001	0.0159505	2117	6	37	1	```python def evens(n):     for i in range(n + 1):         yield 2 * i ```
+174	claude-haiku-4-5-20251001	0.024281749999999998	4972	6	372	1	```python class Stack:     """A simple LIFO stack backed by a Python list."""   
+175	claude-haiku-4-5-20251001	0.0319985	9871	6	680	1	Here's the SQL to find the 2nd highest salary from the `employees` table:  ## Me
+176	claude-haiku-4-5-20251001	0.01635125	2584	6	55	1	```sql SELECT u.name, o.total FROM users AS u INNER JOIN orders AS o ON o.user_i
+177	claude-haiku-4-5-20251001	0.0162075	2022	6	48	1	```sql SELECT user_id, COUNT(*) AS order_count FROM orders GROUP BY user_id; ```
+178	claude-haiku-4-5-20251001	0.0157675	1936	6	30	1	```bash find . -type f -name "*.txt" -mtime -7 ```
+179	claude-haiku-4-5-20251001	0.01822625	10103	6	128	1	```bash awk '{print $1}' access.log | sort -u | wc -l ```  Or, more efficiently 
+180	claude-haiku-4-5-20251001	0.015686	2043	6	28	1	``` ^\d{3}-\d{3}-\d{4}$ ```
+181	claude-haiku-4-5-20251001	0.016276	2342	6	53	1	`^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$`
+182	claude-haiku-4-5-20251001	0.017095	2964	6	84	1	Accessing an element by index in an array is **O(1)** because the memory address
+183	claude-haiku-4-5-20251001	0.01901325	4297	6	160	1	REST exposes multiple fixed endpoints (e.g., `/users/:id`, `/users/:id/posts`), 
+184	claude-haiku-4-5-20251001	0.0180645	3102	6	122	1	A Merkle tree is a binary tree where each leaf node contains the hash of a data 
+185	claude-haiku-4-5-20251001	0.018298000000000002	3954	6	132	1	A Bloom filter answers set-membership by hashing the query element with multiple
+186	claude-haiku-4-5-20251001	0.0340845	14251	6	765	1	# Trie Data Structure  ## How It Stores Strings  A **Trie** (pronounced "try", f
+187	claude-haiku-4-5-20251001	0.01784225	3280	6	114	1	Consistent hashing maps both keys and nodes onto the same circular hash space (a
+188	claude-haiku-4-5-20251001	0.0189725	4761	6	157	1	Paxos is a consensus protocol in which a **proposer** broadcasts numbered propos
+189	claude-haiku-4-5-20251001	0.01864925	5404	6	146	1	In Raft, when a follower's election timeout elapses without hearing from a leade
+190	claude-haiku-4-5-20251001	0.01761175	3142	6	104	1	Symmetric cryptography uses a single shared key for both encryption and decrypti
+191	claude-haiku-4-5-20251001	0.018647999999999998	3862	6	145	1	RSA encryption relies on modular exponentiation with a large modulus n = p·q (t
+192	claude-haiku-4-5-20251001	0.017292500000000002	2813	6	93	1	Hashing is a one-way transformation that produces a fixed-size digest from input
+193	claude-haiku-4-5-20251001	0.017901	3460	6	117	1	Gradient descent is an iterative optimization algorithm that minimizes a functio
+194	claude-haiku-4-5-20251001	0.01977825	4250	6	191	1	Overfitting occurs when a model learns the training data too closely, capturing 
+195	claude-haiku-4-5-20251001	0.01903225	4411	6	162	1	The bias-variance tradeoff describes the tension between a model's tendency to u
+196	claude-haiku-4-5-20251001	0.018270750000000002	3575	6	132	1	Attention in transformer models works by projecting each input token into three 
+197	claude-haiku-4-5-20251001	0.017381	2937	6	96	1	A **pod** is the smallest deployable unit in Kubernetes, containing one or more 
+198	claude-haiku-4-5-20251001	0.017487000000000003	4077	6	100	1	A Docker **image** is an immutable, read-only template consisting of layered fil
+199	claude-haiku-4-5-20251001	0.01758975	3591	6	103	1	A monolith deploys as a single executable unit where all modules share one proce
+200	claude-haiku-4-5-20251001	0.017984	3464	6	118	1	Continuous Integration (CI) is the practice of frequently merging code changes i

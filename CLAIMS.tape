@@ -61,3 +61,8 @@
   method = "arithmetic"
   cmd    = "19 - 19 = 0"
   raw    = ".verdicts/economics-routing-savings/er_accuracy_delta.txt"
+
+@C er_n200_scale := "N=200 scale: baseline $3.2950 (190/200) vs router $1.4808 (185/200) — savings 55.06%, accuracy -5" :: empirical [slug=economics-routing-savings]
+  method = "claude_cli"
+  cmd    = "hexa run bench/economics_routing_n200.hexa"
+  raw    = ".verdicts/economics-routing-savings/n200_summary.txt"

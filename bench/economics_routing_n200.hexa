@@ -1,0 +1,363 @@
+#!hexa strict
+// bench/economics_routing_n200.hexa — N=200 scale replication of the
+// economics-routing-savings benchmark.
+//
+// Two strategies on a 200-task fixed manifest:
+//   baseline : every task → claude --bare -p --model opus (always-opus)
+//   router   : every task → tier picked by prompt-length heuristic
+//                 len <=  30  → haiku
+//                 len <=  80  → sonnet
+//                 else        → opus
+//
+// Cost target: ~$3.5 total (baseline ≈ $3.0, router ≈ $0.8 — extrapolated
+// linearly from the N=20 run which produced $0.30 / $0.08).
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_n200.hexa
+//
+// Output:
+//   .verdicts/economics-routing-savings/baseline_n200.tsv
+//   .verdicts/economics-routing-savings/router_n200.tsv
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+
+// 200-task fixed manifest — (prompt, expected substring for correctness).
+// Mix: ~100 trivial (≤30 chars) → router→haiku
+//      ~50  moderate (≤80 chars) → router→sonnet
+//      ~50  complex  (>80 chars) → router→opus
+let TASKS = [
+    // ─── trivial (≤30 chars) · target haiku · 100 entries ───
+    ["2+2? digit only.",                "4"],
+    ["3+5? digit only.",                "8"],
+    ["7-3? digit only.",                "4"],
+    ["6*7? number only.",               "42"],
+    ["9*9? number only.",               "81"],
+    ["10/2? number only.",              "5"],
+    ["15-8? digit only.",               "7"],
+    ["12+13? number only.",             "25"],
+    ["100/4? number only.",             "25"],
+    ["8*8? number only.",               "64"],
+    ["sqrt(81)? number only.",          "9"],
+    ["sqrt(144)? number only.",         "12"],
+    ["5! ? number only.",               "120"],
+    ["4! ? number only.",               "24"],
+    ["3! ? number only.",               "6"],
+    ["sum 1..10? number only.",         "55"],
+    ["20% of 50? number only.",         "10"],
+    ["50% of 80? number only.",         "40"],
+    ["log10(1000)? digit only.",        "3"],
+    ["log2(8)? digit only.",            "3"],
+    ["log2(16)? digit only.",           "4"],
+    ["2^10? number only.",              "1024"],
+    ["2^8? number only.",               "256"],
+    ["gcd(12,18)? number only.",        "6"],
+    ["gcd(20,30)? number only.",        "10"],
+    ["lcm(4,6)? number only.",          "12"],
+    ["pi to 2 dp? number only.",        "3.14"],
+    ["e to 2 dp? number only.",         "2.71"],
+    ["capital of France? word.",        "paris"],
+    ["capital of Japan? word.",         "tokyo"],
+    ["capital of Italy? word.",         "rome"],
+    ["capital of Spain? word.",         "madrid"],
+    ["capital of UK? word.",            "london"],
+    ["capital of Germany? word.",       "berlin"],
+    ["capital of Canada? word.",        "ottawa"],
+    ["capital of Russia? word.",        "moscow"],
+    ["capital of Egypt? word.",         "cairo"],
+    ["capital of Brazil? word.",        "brasilia"],
+    ["capital of Korea? word.",         "seoul"],
+    ["capital of China? word.",         "beijing"],
+    ["capital of India? word.",         "delhi"],
+    ["capital of Greece? word.",        "athens"],
+    ["capital of Turkey? word.",        "ankara"],
+    ["largest planet? word.",           "jupiter"],
+    ["smallest planet? word.",          "mercury"],
+    ["red planet? word.",               "mars"],
+    ["sun is a what? word.",            "star"],
+    ["water formula? short.",           "h2o"],
+    ["salt formula? short.",            "nacl"],
+    ["O2 is what? word.",               "oxygen"],
+    ["CO2 is what? word.",              "carbon"],
+    ["Au element? word.",               "gold"],
+    ["Ag element? word.",               "silver"],
+    ["Fe element? word.",               "iron"],
+    ["Cu element? word.",               "copper"],
+    ["Hg element? word.",               "mercury"],
+    ["Pb element? word.",               "lead"],
+    ["days in week? number.",           "7"],
+    ["months in year? number.",         "12"],
+    ["hours in day? number.",           "24"],
+    ["minutes in hour? number.",        "60"],
+    ["seconds in minute? number.",      "60"],
+    ["weeks in year? number.",          "52"],
+    ["continents? number.",             "7"],
+    ["oceans? number.",                 "5"],
+    ["sides on triangle? number.",      "3"],
+    ["sides on square? number.",        "4"],
+    ["sides on hexagon? number.",       "6"],
+    ["letters in alphabet? number.",    "26"],
+    ["primary colors? number.",         "3"],
+    ["wheels on a car? number.",        "4"],
+    ["legs on a spider? number.",       "8"],
+    ["legs on an insect? number.",      "6"],
+    ["years in a decade? number.",      "10"],
+    ["years in a century? number.",     "100"],
+    ["years in millennium? number.",    "1000"],
+    ["boil pt water C? number.",        "100"],
+    ["freeze pt water C? number.",      "0"],
+    ["body temp C? number.",            "37"],
+    ["ASCII 'A'? number.",              "65"],
+    ["ASCII 'a'? number.",              "97"],
+    ["ASCII '0'? number.",              "48"],
+    ["ASCII ' '? number.",              "32"],
+    ["bits in a byte? number.",         "8"],
+    ["bytes in KB? number.",            "1024"],
+    ["reverse 'abc'? word.",            "cba"],
+    ["reverse 'cat'? word.",            "tac"],
+    ["reverse 'hi'? word.",             "ih"],
+    ["upper 'hi'? word.",               "HI"],
+    ["lower 'HI'? word.",               "hi"],
+    ["len('hello')? number.",           "5"],
+    ["len('hi')? number.",              "2"],
+    ["len('')? number.",                "0"],
+    ["smallest prime? number.",         "2"],
+    ["next prime after 7? number.",     "11"],
+    ["next prime after 11? number.",    "13"],
+    ["next prime after 13? number.",    "17"],
+    ["7th prime? number.",              "17"],
+    ["even prime? number.",             "2"],
+    ["binary 10? decimal.",             "2"],
+    // ─── moderate (≤80 chars) · target sonnet · 50 entries ───
+    ["Time complexity of binary search? Reply with big-O only.",                  "log n"],
+    ["Time complexity of bubble sort? Reply with big-O only.",                    "n^2"],
+    ["Time complexity of mergesort? Reply with big-O only.",                      "log n"],
+    ["Time complexity of quicksort avg? big-O only.",                             "log n"],
+    ["Space complexity of recursion depth-n? big-O only.",                        "n"],
+    ["Python: reverse a list lst in one expr. Expr only.",                        "[::-1]"],
+    ["Python: sum 1..100 one-liner. Code only.",                                  "sum(range"],
+    ["Python: square each item in lst, list comp. Code only.",                    "for"],
+    ["Python: check x is even, one expr. Expr only.",                             "%"],
+    ["Python: lambda for x+1. Code only.",                                        "lambda"],
+    ["Python: dict comp squaring 1..5. Code only.",                               "for"],
+    ["Python: read file 'a.txt' all lines, idiom. Code only.",                    "open"],
+    ["Python: count occurrences of x in lst. Expr only.",                         "count"],
+    ["JS: arrow fn doubling x. Code only.",                                       "=>"],
+    ["JS: filter odd numbers from arr. Code only.",                               "filter"],
+    ["JS: map each x to x*x in arr. Code only.",                                  "map"],
+    ["SQL: select all from users. Statement only.",                               "select"],
+    ["SQL: count rows in orders. Statement only.",                                "count"],
+    ["SQL: distinct emails from users. Statement only.",                          "distinct"],
+    ["Bash: list current dir contents. Command only.",                            "ls"],
+    ["Bash: print working dir. Command only.",                                    "pwd"],
+    ["Bash: grep 'foo' in file.txt. Command only.",                               "grep"],
+    ["Bash: count lines in file.txt. Command only.",                              "wc"],
+    ["Git: stage all changes. Command only.",                                     "add"],
+    ["Git: commit with message 'hi'. Command only.",                              "commit"],
+    ["Git: switch to branch main. Command only.",                                 "checkout"],
+    ["TCP vs UDP — which is connection-oriented? One word.",                      "tcp"],
+    ["HTTP method to create resource? Word only.",                                "post"],
+    ["HTTP method to fetch resource? Word only.",                                 "get"],
+    ["HTTP status for not found? Number only.",                                   "404"],
+    ["HTTP status for OK? Number only.",                                          "200"],
+    ["HTTP status for server error? Number only.",                                "500"],
+    ["DNS resolves what to what? One sentence.",                                  "ip"],
+    ["What does CPU stand for? Expansion only.",                                  "central"],
+    ["What does RAM stand for? Expansion only.",                                  "random"],
+    ["What does HTML stand for? Expansion only.",                                 "hypertext"],
+    ["What does JSON stand for? Expansion only.",                                 "javascript"],
+    ["What does API stand for? Expansion only.",                                  "application"],
+    ["Convert 10 km to miles, approx. Number only.",                              "6"],
+    ["Convert 1 mile to km, approx. Number only.",                                "1.6"],
+    ["Convert 100 F to C, approx. Number only.",                                  "37"],
+    ["Convert 0 Celsius to Fahrenheit. Number only.",                             "32"],
+    ["Convert 1 hour to seconds. Number only.",                                   "3600"],
+    ["Convert 1 day to seconds. Number only.",                                    "86400"],
+    ["Convert binary 1101 to decimal. Number only.",                              "13"],
+    ["Convert hex FF to decimal. Number only.",                                   "255"],
+    ["Convert hex 10 to decimal. Number only.",                                   "16"],
+    ["Convert decimal 10 to binary. Number only.",                                "1010"],
+    ["Convert decimal 255 to hex. Hex only.",                                     "ff"],
+    ["Sort {3,1,2} ascending. Just digits comma-separated.",                      "1,2,3"],
+    // ─── complex (>80 chars) · target opus · 50 entries ───
+    ["Explain BFS vs DFS in 2 sentences, contrasting traversal order and typical use cases.",                                                    "breadth"],
+    ["Write a Python Fibonacci using functools.cache. Include def line and at least one recursive call.",                                         "fib"],
+    ["Why is mergesort O(n log n)? Give a one-sentence justification mentioning levels and merge cost.",                                          "merge"],
+    ["What is the halting problem? Give a one-sentence Turing-style definition that mentions deciding.",                                          "halt"],
+    ["Explain in 2 sentences why hashmaps offer O(1) average lookup and when that degrades.",                                                     "hash"],
+    ["Describe MVC pattern in 2 sentences, naming each of the three components and their role.",                                                  "controller"],
+    ["Explain the TCP three-way handshake in 2 sentences mentioning SYN, SYN-ACK, and final ACK.",                                                "syn"],
+    ["Describe the difference between process and thread in 2 sentences focusing on memory sharing.",                                             "thread"],
+    ["Explain the CAP theorem in 2 sentences naming the three properties and the impossibility result.",                                          "consistency"],
+    ["What is a deadlock? Give a 2-sentence definition mentioning resources and circular wait.",                                                  "deadlock"],
+    ["Explain what a race condition is in 2 sentences and give a one-line mitigation strategy.",                                                  "race"],
+    ["What is dependency injection? 2-sentence definition focusing on inversion of control.",                                                     "inject"],
+    ["Explain SOLID principles by listing each letter's expansion in one sentence each.",                                                         "single"],
+    ["What does ACID stand for in databases? Expand each of the four letters in one sentence.",                                                   "atomic"],
+    ["Explain B-tree vs binary search tree in 2 sentences, focusing on fanout and disk locality.",                                                "btree"],
+    ["Describe the producer-consumer pattern in 2 sentences mentioning a shared buffer and synchronization.",                                     "buffer"],
+    ["What is the difference between authentication and authorization? Give a 2-sentence contrast.",                                              "authentic"],
+    ["Explain garbage collection in 2 sentences contrasting mark-and-sweep with reference counting.",                                             "mark"],
+    ["Write a Python function is_prime(n) that handles n<2, returns bool, uses trial division up to sqrt(n).",                                    "def is_prime"],
+    ["Write a Python function fizzbuzz(n) printing 1..n with Fizz, Buzz, FizzBuzz rules. Include a loop.",                                        "fizz"],
+    ["Write a Python decorator @timer that prints elapsed wall time around the wrapped function. Include def.",                                   "def"],
+    ["Write a Python context manager class Timer using __enter__ and __exit__ that records elapsed seconds.",                                     "__enter__"],
+    ["Write a Python generator function evens(n) yielding even numbers 0,2,...,2n. Use yield keyword.",                                           "yield"],
+    ["Write a Python class Stack with push, pop, peek methods backed by a list. Show full class body.",                                           "class stack"],
+    ["Write SQL to find the 2nd highest salary from a table 'employees' with column salary. Show the query.",                                     "select"],
+    ["Write a SQL INNER JOIN selecting user.name and order.total for users with orders.",                                                         "join"],
+    ["Write a SQL GROUP BY query counting orders per user_id from an 'orders' table; show full query.",                                           "group by"],
+    ["Write Bash to find all .txt files under current dir modified in last 7 days. Single pipeline ok.",                                          "find"],
+    ["Write Bash to count unique IPs in access.log (assume IP is first whitespace field). Pipeline ok.",                                          "uniq"],
+    ["Write a regex that matches a US-style phone number like 555-123-4567. Show only the pattern.",                                              "\\d"],
+    ["Write a regex matching email-like strings local@domain.tld. Show only the pattern.",                                                        "@"],
+    ["Explain Big-O of accessing an element by index in an array versus a linked list in 2 sentences.",                                           "o(1)"],
+    ["Compare REST vs GraphQL in 2 sentences, focusing on endpoint shape and over-fetching.",                                                     "rest"],
+    ["Explain what a Merkle tree is and one use case in 2 sentences mentioning hashes and a root.",                                               "hash"],
+    ["Describe how a Bloom filter answers set-membership in 2 sentences mentioning false positives.",                                             "bloom"],
+    ["Explain how a Trie data structure stores strings and one operation that is O(key length).",                                                 "trie"],
+    ["What is consistent hashing? 2-sentence explanation focusing on minimal remapping on node changes.",                                         "consistent"],
+    ["Explain the Paxos algorithm in 2 sentences naming proposer, acceptor and the safety guarantee.",                                            "paxos"],
+    ["Explain Raft leader election in 2 sentences mentioning terms, candidates, and majority votes.",                                             "leader"],
+    ["What is the difference between symmetric and asymmetric cryptography? 2 sentences contrasting key counts.",                                 "symmetric"],
+    ["Describe how RSA encryption uses modular arithmetic in 2 sentences mentioning public and private keys.",                                    "rsa"],
+    ["Explain the difference between hashing and encryption in 2 sentences focusing on reversibility.",                                           "hash"],
+    ["What is gradient descent? Explain in 2 sentences mentioning loss surface and learning rate.",                                               "gradient"],
+    ["Explain overfitting in machine learning in 2 sentences and name one concrete mitigation strategy.",                                         "overfit"],
+    ["Describe the bias-variance tradeoff in 2 sentences with one concrete model example.",                                                       "bias"],
+    ["Explain attention in transformer models in 2 sentences mentioning query, key, and value vectors.",                                          "attention"],
+    ["What is a Kubernetes pod versus a node? 2-sentence contrast naming what each contains.",                                                    "pod"],
+    ["Explain Docker image vs container in 2 sentences focusing on the read-only versus running distinction.",                                    "container"],
+    ["Compare monolith vs microservice architecture in 2 sentences focusing on deployment unit and coupling.",                                    "service"],
+    ["Explain CI vs CD in 2 sentences naming Continuous Integration and Continuous Delivery/Deployment.",                                         "continuous"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn pick_tier_router(prompt: str) -> str {
+    let n = prompt.len()
+    if n <= 30 { return "haiku" }
+    if n <= 80 { return "sonnet" }
+    return "opus"
+}
+
+fn pick_tier_baseline(prompt: str) -> str {
+    return "opus"
+}
+
+// Run one task. Returns 7 tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t output_tokens \t result_snippet \t model \t correct(1|0)
+//
+// Correctness = case-insensitive substring match (expected_kw) computed in jq.
+fn run_one(prompt: str, model: str, expected_kw: str) -> str {
+    let cmd = "claude --bare -p --output-format json --model " + model + " " + shq(prompt) +
+              " 2>/dev/null | jq -r --arg kw " + shq(expected_kw) +
+              " '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, .usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0]), " +
+              "((.result // \"\") | ascii_downcase | contains($kw | ascii_downcase) | " +
+              "if . then \"1\" else \"0\" end)" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+// Run a strategy across all tasks. Append per-task rows to a verdict file.
+// Returns "total_cost\ttotal_ms\tn_correct\tn_total".
+fn run_strategy(name: str, baseline_mode: bool) -> str {
+    let path = OUT_DIR + "/" + name + ".tsv"
+    exec("rm -f " + shq(path))
+    exec("mkdir -p " + shq(OUT_DIR))
+    exec("echo 'task_idx\tmodel\tcost_usd\tduration_ms\tinput_tokens\toutput_tokens\tcorrect\tresult_snippet' >> " + shq(path))
+
+    let mut total_cost = 0.0
+    let mut total_ms   = 0
+    let mut n_correct  = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let prompt = task[0]
+        let expected = task[1]
+        let model = if baseline_mode { pick_tier_baseline(prompt) } else { pick_tier_router(prompt) }
+        println("  [" + name + " " + str(i+1) + "/" + str(len(TASKS)) + "] model=" + model + " prompt=" + prompt.substr(0, 50))
+        let line = run_one(prompt, model, expected)
+        let parts = line.split("\t")
+        if parts.len() < 7 {
+            println("    ! parse error, raw=" + line)
+            i = i + 1
+            continue
+        }
+        let cost = to_float(parts[0])
+        let ms   = int(parts[1])
+        let in_t = parts[2]
+        let out_t = parts[3]
+        let result_snippet = parts[4].replace("\t", " ").replace("\n", " ")
+        let model_used = parts[5]
+        let correct = parts[6]
+        total_cost = total_cost + cost
+        total_ms = total_ms + ms
+        if correct == "1" { n_correct = n_correct + 1 }
+        let row = str(i+1) + "\t" + model_used + "\t" + parts[0] + "\t" + parts[1] + "\t" +
+                  in_t + "\t" + out_t + "\t" + correct + "\t" + result_snippet.substr(0, 80)
+        exec("echo " + shq(row) + " >> " + shq(path))
+        i = i + 1
+    }
+    return to_string(total_cost) + "\t" + str(total_ms) + "\t" + str(n_correct) + "\t" + str(len(TASKS))
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_n200 — N=200 scale-replication run")
+    println("  manifest: 200 tasks · 2 strategies (baseline=opus · router=length-heuristic)")
+    println("  output:   " + OUT_DIR + "/{baseline_n200,router_n200}.tsv")
+    println("========================================================================")
+
+    println("")
+    println("─── baseline strategy (always opus) ───")
+    let b = run_strategy("baseline_n200", true)
+    let bp = b.split("\t")
+    let b_cost = to_float(bp[0])
+    let b_ms   = int(bp[1])
+    let b_acc  = int(bp[2])
+
+    println("")
+    println("─── router strategy (length-heuristic) ───")
+    let r = run_strategy("router_n200", false)
+    let rp = r.split("\t")
+    let r_cost = to_float(rp[0])
+    let r_ms   = int(rp[1])
+    let r_acc  = int(rp[2])
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY (N=200)")
+    println("========================================================================")
+    println("  baseline (opus×200)  : cost=$" + to_string(b_cost) + "  ms=" + str(b_ms) + "  correct=" + str(b_acc) + "/200")
+    println("  router   (mix)        : cost=$" + to_string(r_cost) + "  ms=" + str(r_ms) + "  correct=" + str(r_acc) + "/200")
+    let saving = b_cost - r_cost
+    let saving_pct = if b_cost > 0.0 { (saving / b_cost) * 100.0 } else { 0.0 }
+    let acc_delta = r_acc - b_acc
+    println("  savings              : $" + to_string(saving) + " (" + to_string(saving_pct) + "% of baseline)")
+    println("  accuracy delta       : " + str(acc_delta) + " (router - baseline)")
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_N200__ PASS")
+    exit(0)
+}

@@ -1,0 +1,15 @@
+SUPPORTED-NUMERICAL — N=200 scale replication of the routing benchmark.
+
+baseline (always-opus) : cost=$3.2950  ms=545839  correct=190/200
+router   (length tier)  : cost=$1.4808  ms=547813  correct=185/200
+
+savings_pct   = (baseline - router) / baseline * 100 = 55.06%
+accuracy_delta = router_correct - baseline_correct = -5
+
+Scale finding: vs N=20 (72.69% saving, 0 accuracy delta), the N=200
+manifest shows LOWER saving (55.06%) AND a -5 accuracy delta. The
+N=20 headline overstated both axes — the larger, more diverse manifest
+routes more moderate prompts to sonnet where opus would have answered
+correctly, and the substring scorer trips on more sonnet rambles.
+
+Reproducible via: hexa run bench/economics_routing_n200.hexa

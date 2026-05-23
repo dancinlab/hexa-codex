@@ -316,3 +316,107 @@ Persisted:
 
 Cumulative SANDBOX state: **2 confirmed** (d_stage0_poc · d_early_stop_local)
 · 2 dead (d_stage1_persona · d_kv_prefix_share) · 8 candidates remaining.
+
+---
+
+## 2026-05-23 — Stage 3 max_tokens cap — d_prompt_compress_local CONFIRMED (max_tokens_cap_only)
+
+`bench/sandbox_stage3_maxtokens_cap.hexa` revisits the cycle-2
+`d_response_budget_cap` dead-end. The cycle-2 attempt (commit
+`99e135d`, `.verdicts/economics-routing-savings/tokencap_summary.txt`)
+tried a **prompt-prefix gimmick** — prepending `"Answer in <= N
+tokens."` to the user prompt as a lexical instruction. At cap=15 the
+haiku tier BACKFIRED by **quoting the cap instruction into its prose**
+before answering, blowing output 747 → 1979 tokens (haiku output went
+UP at tighter cap — the cap raised cost rather than lowered it). The
+gimmick was advisory, and the model dodged it.
+
+This cycle replays the lever at the **decoder layer** via `-n N`
+(hard max_tokens flag). The decoder loop stops emitting at N tokens
+regardless of what the model "wants" to say — there's no prose channel
+for the model to quote the cap into, because the cap is structural
+(decoder loop), not lexical (prompt prefix). This is the structural
+advantage over cycle-2; the lever the API surface foreclosed becomes
+measurable below it.
+
+Five strategies on the canonical 20-task manifest verbatim from
+Stage 0 (Qwen2.5-0.5B-Instruct-Q4_K_M, same model, same scorer with
+the cleaned `[end of text]+common_perf_print:` trailer-strip used by
+the early-stop bench):
+
+| strategy | -n  | accuracy | total_wall_ms | avg_out_tok |
+|---|---:|---:|---:|---:|
+| nocap  | 1024 | 16/20 | 53018 | 23 |
+| cap256 |  256 | 16/20 | 35298 | 15 |
+| cap128 |  128 | 16/20 | 27144 | 13 |
+| cap64  |   64 | 16/20 | 30141 |  9 |
+| cap32  |   32 | 16/20 | 25662 |  6 |
+
+Tightest cap holding the usable floor (>= 15/20) = **cap32** (-n 32);
+none of the 5 strategies reach the originally-reported 19/20 Stage 0
+ceiling because that figure was a scorer artifact (see honest note 2
+below + early-stop log entry above — same observation, independent
+discovery). Avg output_tok strictly decreasing 23 → 15 → 13 → 9 → 6.
+`cycle2_backfire_pathology_present = false` — output_tok decreases
+monotonically as cap tightens, confirming decoder enforcement.
+
+**Wall_ms reduction at cap32 vs nocap: 51.59%** (25662 / 53018 ms).
+This is informational only — the run-to-run wall_ms variance on this
+manifest is ~3× across three back-to-back invocations (nocap totals
+of {149632, 44491, 53018} ms), so the single-run delta is
+noise-dominated when outputs are this short. The deterministic signal
+is `output_tok`: cap32 cuts avg output to 6 tokens vs 23 (−73.9%) at
+bit-identical accuracy.
+
+**Cycle-2 backfire pathology absent**, definitively. Three independent
+checks:
+1. avg_out_tok monotone decreasing across the 5 strategies (no growth
+   at any cap tightening — would be structural impossibility under -n).
+2. Same 4 task failures (idx 7, 9, 10, 18) across all caps — accuracy
+   is unaffected by cap; capacity is in the model, not the budget.
+3. Output snippets contain no quoted cap instruction (the prompts
+   themselves carry no cap text; the cap is decoder-side only, so
+   there's nothing for the model to echo).
+
+Honest residuals (g5 compliance):
+
+- **Stage 0 19/20 → real 16/20:** Stage 0 didn't strip the
+  `[end of text] + common_perf_print:` trailer from llama-completion
+  stderr before substring-matching. Three tasks scored spuriously
+  correct (T7, T10, T18 — perf-line digits leaked into the substring
+  match). Stage 3 + the early-stop bench both independently strip the
+  trailer and both arrive at 16/20 as the honest baseline. Not
+  retroactively patching Stage 0; both logs document the artifact for
+  posterity.
+- **Wall_ms noise ~3×.** Run-to-run thermal + model-load variance
+  dominates the cap-driven delta when outputs are short. Reporting
+  the warmed-cache run-3 number as the canonical figure (51.59%
+  reduction), but flagging that this is single-run.
+- **NAMING MISMATCH (disclosed):** The candidate slug in
+  `.discoveries/sandbox.tape` is `d_prompt_compress_local`, opened
+  for LLMLingua-style **input-side** prompt compression. What's
+  actually tested here is **output-side** max_tokens cap — distinct
+  lever (different attack surface, different mechanism). The result
+  is filed under the same slug because (a) the cycle-2 ancestor
+  `d_response_budget_cap` was an output-budget gimmick that backfired,
+  and (b) the SANDBOX-exposed `-n N` is the first output-budget lever
+  that's actually measurable. True LLMLingua input-compression
+  remains UNMEASURED and should get a separate slug when pursued
+  (it requires the Stage 2 wc>=30 scaled manifest, which doesn't
+  exist yet). The tape entry's `result =` line and `scope=
+  max_tokens_cap_only` modifier carry the same disclosure.
+- **Cap32 wall_ms reduction is noise-amplified by short manifest.**
+  On longer-output workloads (Stage 4's wc>=30 reasoning prompts the
+  model expands into) the wall_ms reduction would persist more
+  cleanly; the same lever could yield much larger absolute savings.
+  Not measured here.
+
+Persisted:
+- `bench/sandbox_stage3_maxtokens_cap.hexa` — bench source (hexa-only).
+- `.verdicts/sandbox/stage3_maxtokens_cap.tsv` — 100 rows (5 strategies × 20 tasks).
+- `.verdicts/sandbox/stage3_maxtokens_cap_summary.txt` — per-strategy aggregate + honest notes.
+- `.discoveries/sandbox.tape` — `d_prompt_compress_local` flipped to `confirmed [scope=max_tokens_cap_only]`; footer cumulative tally updated.
+
+Cumulative SANDBOX state: **3 confirmed** (d_stage0_poc · d_early_stop_local
+· d_prompt_compress_local[max_tokens_cap_only]) · 2 dead
+(d_stage1_persona · d_kv_prefix_share) · 7 candidates remaining.

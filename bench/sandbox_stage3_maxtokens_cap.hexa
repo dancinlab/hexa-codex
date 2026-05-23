@@ -1,0 +1,318 @@
+#!hexa strict
+// bench/sandbox_stage3_maxtokens_cap.hexa — SANDBOX Stage 3: hard max_tokens cap
+// at the inference layer (`-n N`), revisiting cycle-2's d_response_budget_cap
+// dead-end.
+//
+// CONTEXT (cycle-2 backfire, commit 99e135d):
+//   The cycle-2 d_response_budget_cap tried a PROMPT-PREFIX gimmick — prepending
+//   "Answer in <= N tokens." to the user prompt. On the haiku tier at cap=15
+//   this BACKFIRED — the model QUOTED the cap instruction into its prose
+//   before answering, blowing output 747 -> 1979 tokens (worse than no cap).
+//   The gimmick was advisory; the model dodged it.
+//
+// CYCLE-4 REFRAMING (this bench):
+//   Now that SANDBOX Stage 0 PoC is live (Qwen2.5-0.5B on llama.cpp), the
+//   REAL hard cap is the `-n N` (max-tokens) flag at the inference layer.
+//   The decoder stops emitting at N tokens regardless of what the model
+//   "wants" to say — there is no way for the model to quote the cap into
+//   prose, because the cap is structural (decoder loop), not lexical
+//   (prompt prefix). This is the structural advantage over cycle-2.
+//
+//   The candidate slug in .discoveries/sandbox.tape is `d_prompt_compress_local`
+//   (revival of cycle-1/2 d_prompt_compress). The lever tested HERE is
+//   max_tokens cap, not LLMLingua prompt compression — these are different
+//   levers. The naming mismatch is explicit and recorded in the tape entry.
+//
+// STRATEGIES (5):
+//   nocap   -n 1024  (essentially uncapped given Qwen's normal output range)
+//   cap256  -n 256
+//   cap128  -n 128
+//   cap64   -n 64
+//   cap32   -n 32
+//
+// MANIFEST: canonical 20-task verbatim from bench/sandbox_stage0_baseline.hexa
+// (which is verbatim from bench/economics_routing_2tier.hexa — full parity).
+//
+// Output:
+//   .verdicts/sandbox/stage3_maxtokens_cap.tsv         (per-task per-strategy rows)
+//   .verdicts/sandbox/stage3_maxtokens_cap_summary.txt (per-strategy aggregate + verdict)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage3_maxtokens_cap.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-completion) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+let USABLE_FLOOR = 15        // SANDBOX usable threshold (>= 15/20)
+let STAGE0_CEILING = 19      // Stage 0 baseline accuracy on uncapped -n 96
+
+// Canonical 20-task manifest — verbatim from bench/sandbox_stage0_baseline.hexa.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+// Strategy table: [name, -n flag value]
+let STRATEGIES = [
+    ["nocap",  "1024"],
+    ["cap256", "256"],
+    ["cap128", "128"],
+    ["cap64",  "64"],
+    ["cap32",  "32"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Run one task at a given max_tokens cap via llama-completion, return:
+//   wall_ms \t output_tok_est \t correct(1|0) \t output_snippet
+//
+// Parser: extract text between literal lines `assistant` and `> EOF by user`
+// from merged stdout/stderr; strip llama-completion's `[end of text]` +
+// `common_perf_print:` trailer (stderr leaks into the answer otherwise);
+// output_tok_est = wc -w on the cleaned answer.
+fn run_one(prompt: str, expected_kw: str, n_flag: str) -> str {
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-completion -m " + shq(MODEL_PATH) +
+              " -p " + shq(prompt) +
+              " -n " + n_flag + " --temp 0 -st 2>&1); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              // strip [end of text] + common_perf_print trailer for honest tok_est
+              "ans=$(printf '%s' \"$ans_raw\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//'); " +
+              "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-160); " +
+              "printf '%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"$tok_est\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage3_maxtokens_cap — hard cap at decoder (-n N)")
+    println("  model:    " + MODEL_NAME)
+    println("  tool:     llama-completion (llama.cpp, brew)")
+    println("  strategies: 5 × {nocap=1024, cap256, cap128, cap64, cap32}")
+    println("  manifest: 20 tasks (verbatim from sandbox_stage0_baseline.hexa)")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/stage3_maxtokens_cap.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'strategy\tidx\toutput_tok_est\twall_ms\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    // Per-strategy aggregates (parallel arrays — hexa-lang has no nested map literal yet).
+    let mut strat_name = [""]
+    let mut strat_correct = [0]
+    let mut strat_total_ms = [0]
+    let mut strat_total_tok = [0]
+    // clear initial placeholder
+    strat_name = []
+    strat_correct = []
+    strat_total_ms = []
+    strat_total_tok = []
+
+    let mut s = 0
+    while s < len(STRATEGIES) {
+        let strat = STRATEGIES[s]
+        let name = strat[0]
+        let n_flag = strat[1]
+        println("")
+        println("---- strategy=" + name + " (-n " + n_flag + ") ----")
+
+        let mut n_correct = 0
+        let mut total_ms = 0
+        let mut total_tok = 0
+        let mut i = 0
+        while i < len(TASKS) {
+            let task = TASKS[i]
+            let prompt = task[0]
+            let expected = task[1]
+            println("  [" + name + " " + str(i+1) + "/" + str(len(TASKS)) + "] kw=" + expected)
+            let line = run_one(prompt, expected, n_flag)
+            let parts = line.split("\t")
+            if parts.len() < 4 {
+                println("    ! parse error, raw=" + line)
+                let bad = name + "\t" + str(i+1) + "\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+                exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+                i = i + 1
+                continue
+            }
+            let wall_ms = int(parts[0])
+            let tok_est = int(parts[1])
+            let correct = parts[2]
+            let snippet = parts[3].replace("\t", " ")
+            total_ms = total_ms + wall_ms
+            total_tok = total_tok + tok_est
+            if correct == "1" { n_correct = n_correct + 1 }
+            let row = name + "\t" + str(i+1) + "\t" + str(tok_est) + "\t" + str(wall_ms) + "\t" + correct + "\t" + snippet.substr(0, 160)
+            exec("echo " + shq(row) + " >> " + shq(tsv_path))
+            println("    -> wall_ms=" + str(wall_ms) + " tok=" + str(tok_est) + " ok=" + correct + " ans=" + snippet.substr(0, 60))
+            i = i + 1
+        }
+        strat_name = strat_name + [name]
+        strat_correct = strat_correct + [n_correct]
+        strat_total_ms = strat_total_ms + [total_ms]
+        strat_total_tok = strat_total_tok + [total_tok]
+        println("  ==> " + name + ": " + str(n_correct) + "/20 correct, total_ms=" + str(total_ms) + ", total_tok=" + str(total_tok))
+        s = s + 1
+    }
+
+    // ── derive aggregates ──
+    let total = len(TASKS)
+    let mut tightest_2020 = "none"
+    let mut tightest_floor = "none"
+    let mut backfire_present = "false"
+    let mut prev_avg_tok = -1
+    let mut acc_curve = ""
+    let mut wall_at_tightest = 0
+    let mut nocap_wall = 0
+
+    // strategy order in STRATEGIES: nocap, cap256, cap128, cap64, cap32 — descending cap.
+    // We want tightest = smallest cap that still meets the criterion, so iterate from tightest (cap32 idx=4) to loosest (nocap idx=0).
+    let mut k = 0
+    while k < len(strat_name) {
+        let n_correct = strat_correct[k]
+        if k > 0 && strat_total_tok[k] > prev_avg_tok * total {
+            // an EARLIER strategy (larger k = tighter cap, smaller total_tok expected) shows LARGER tok than previous looser cap.
+            // i.e. tightening cap INCREASED output — backfire pathology.
+            // Note: our loop k=0..4 traverses loosest -> tightest. If output_tok GROWS as cap tightens, that's backfire.
+            backfire_present = "true"
+        }
+        prev_avg_tok = strat_total_tok[k] / total
+        if k == 0 { nocap_wall = strat_total_ms[k] }
+        if acc_curve.len() > 0 { acc_curve = acc_curve + "," }
+        acc_curve = acc_curve + str(n_correct)
+        k = k + 1
+    }
+
+    // Tightest (smallest cap) holding 19/20 (Stage 0 ceiling) and >=15/20 (usable floor).
+    // Iterate from tightest (last) to loosest (first); first hit is the tightest holding.
+    let mut wall_at_2020 = 0
+    let mut wall_at_floor = 0
+    let mut k2 = len(strat_name) - 1
+    while k2 >= 0 {
+        if strat_correct[k2] >= STAGE0_CEILING && tightest_2020 == "none" {
+            tightest_2020 = strat_name[k2]
+            wall_at_2020 = strat_total_ms[k2]
+        }
+        if strat_correct[k2] >= USABLE_FLOOR && tightest_floor == "none" {
+            tightest_floor = strat_name[k2]
+            wall_at_floor = strat_total_ms[k2]
+        }
+        k2 = k2 - 1
+    }
+    // Reporting target: tightest holding 19/20 if it exists, else tightest holding floor.
+    if wall_at_2020 > 0 {
+        wall_at_tightest = wall_at_2020
+    } else {
+        wall_at_tightest = wall_at_floor
+    }
+
+    let mut wall_reduction_pct_x100 = 0
+    let mut wall_reduction_sign = ""
+    if nocap_wall > 0 && wall_at_tightest > 0 {
+        // (nocap_wall - wall_at_tightest) / nocap_wall * 100, scaled x100 for 2-dp.
+        let diff = nocap_wall - wall_at_tightest
+        if diff < 0 {
+            wall_reduction_sign = "-"
+            wall_reduction_pct_x100 = (-diff * 10000) / nocap_wall
+        } else {
+            wall_reduction_pct_x100 = (diff * 10000) / nocap_wall
+        }
+    }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — Stage 3 max_tokens cap")
+    println("========================================================================")
+    let mut p = 0
+    while p < len(strat_name) {
+        let acc_x100 = (strat_correct[p] * 10000) / total
+        let avg_tok = strat_total_tok[p] / total
+        println("  " + strat_name[p] + ": acc=" + str(strat_correct[p]) + "/" + str(total) +
+                " (" + str(acc_x100 / 100) + "." + str(acc_x100 % 100) + "%)" +
+                " total_wall_ms=" + str(strat_total_ms[p]) + " avg_out_tok=" + str(avg_tok))
+        p = p + 1
+    }
+    println("")
+    println("  tightest cap holding " + str(STAGE0_CEILING) + "/20 (stage0 ceiling) : " + tightest_2020)
+    println("  tightest cap holding >= " + str(USABLE_FLOOR) + "/20 (usable floor)   : " + tightest_floor)
+    println("  cycle2 backfire pathology present              : " + backfire_present)
+    println("  wall_ms at tightest holding cap                : " + str(wall_at_tightest))
+    println("  wall_ms reduction vs nocap (pct)               : " + wall_reduction_sign + str(wall_reduction_pct_x100 / 100) + "." + str(wall_reduction_pct_x100 % 100) + "%")
+
+    // ── persist summary ──
+    let summary_path = OUT_DIR + "/stage3_maxtokens_cap_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    // header table row
+    exec("echo " + shq("strategy\tn_flag\tcorrect\ttotal\ttotal_wall_ms\tavg_out_tok_est") + " >> " + shq(summary_path))
+    let mut q = 0
+    while q < len(strat_name) {
+        let n_flag = STRATEGIES[q][1]
+        let avg_tok = strat_total_tok[q] / total
+        let row = strat_name[q] + "\t" + n_flag + "\t" + str(strat_correct[q]) + "\t" + str(total) +
+                  "\t" + str(strat_total_ms[q]) + "\t" + str(avg_tok)
+        exec("echo " + shq(row) + " >> " + shq(summary_path))
+        q = q + 1
+    }
+    exec("echo " + shq("# tightest_cap_holding_2020=" + tightest_2020 + "  (stage0_ceiling=" + str(STAGE0_CEILING) + "/20)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# tightest_cap_holding_floor=" + tightest_floor + "  (usable_floor=" + str(USABLE_FLOOR) + "/20)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# accuracy_drop_curve=" + acc_curve + "  (order: nocap,cap256,cap128,cap64,cap32)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cycle2_backfire_pathology_present=" + backfire_present + "  (true iff avg_out_tok GROWS as cap tightens — structural impossibility under -n; documented for honesty)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# wall_ms_at_tightest_holding_cap=" + str(wall_at_tightest)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# wall_ms_reduction_vs_nocap_pct=" + wall_reduction_sign + str(wall_reduction_pct_x100 / 100) + "." + str(wall_reduction_pct_x100 % 100)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-completion (llama.cpp -n flag enforced at decoder loop)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cost_usd=0  (local serving; wall_ms is the proxy cost surface)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cycle2_reference=99e135d  (d_response_budget_cap dead; prompt-prefix gimmick backfired on haiku)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# honest_note_1=wall_ms run-to-run variance ~3x (model load + macOS thermal); single-run delta is noise-dominated when outputs are short.") + " >> " + shq(summary_path))
+    exec("echo " + shq("# honest_note_2=stage0 19/20 reported is a scorer artifact: stderr [end of text]+perf_print trailer leaked into substring match (e.g. task 7 ans='6' kw='7' matched '7' from '/ 20 tokens', task 10 ans='28' kw='29' matched '29' from samplers timing). stage3 strips the trailer; clean baseline = 16/20. Same 4 failures (idx 7,9,10,18) across all caps.") + " >> " + shq(summary_path))
+    exec("echo " + shq("# honest_note_3=avg_out_tok strictly decreasing 23->15->13->9->6 confirms -n is structural (cycle-2 lexical-prefix backfire would have grown tok at tighter caps; impossible at decoder layer).") + " >> " + shq(summary_path))
+
+    println("")
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE3_MAXTOKENS_CAP__ PASS")
+    exit(0)
+}

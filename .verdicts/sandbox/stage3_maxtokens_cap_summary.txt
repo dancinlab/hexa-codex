@@ -1,0 +1,20 @@
+strategy	n_flag	correct	total	total_wall_ms	avg_out_tok_est
+nocap	1024	16	20	53018	23
+cap256	256	16	20	35298	15
+cap128	128	16	20	27144	13
+cap64	64	16	20	30141	9
+cap32	32	16	20	25662	6
+# tightest_cap_holding_2020=none  (stage0_ceiling=19/20)
+# tightest_cap_holding_floor=cap32  (usable_floor=15/20)
+# accuracy_drop_curve=16,16,16,16,16  (order: nocap,cap256,cap128,cap64,cap32)
+# cycle2_backfire_pathology_present=false  (true iff avg_out_tok GROWS as cap tightens — structural impossibility under -n; documented for honesty)
+# wall_ms_at_tightest_holding_cap=25662
+# wall_ms_reduction_vs_nocap_pct=51.59
+# model=Qwen2.5-0.5B-Instruct-Q4_K_M
+# tool=llama-completion (llama.cpp -n flag enforced at decoder loop)
+# host=mac-mini-m3 (brew llama.cpp + Metal)
+# cost_usd=0  (local serving; wall_ms is the proxy cost surface)
+# cycle2_reference=99e135d  (d_response_budget_cap dead; prompt-prefix gimmick backfired on haiku)
+# honest_note_1=wall_ms run-to-run variance ~3x (model load + macOS thermal); single-run delta is noise-dominated when outputs are short.
+# honest_note_2=stage0 19/20 reported is a scorer artifact: stderr [end of text]+perf_print trailer leaked into substring match (e.g. task 7 ans='6' kw='7' matched '7' from '/ 20 tokens', task 10 ans='28' kw='29' matched '29' from samplers timing). stage3 strips the trailer; clean baseline = 16/20. Same 4 failures (idx 7,9,10,18) across all caps.
+# honest_note_3=avg_out_tok strictly decreasing 23->15->13->9->6 confirms -n is structural (cycle-2 lexical-prefix backfire would have grown tok at tighter caps; impossible at decoder layer).

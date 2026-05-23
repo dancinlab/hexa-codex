@@ -1,0 +1,8 @@
+HEXA_DRILL_ANTI_HUB_TRACE {"cmd_drill_entry":true,"env_active":"","env_threshold":"","adaptive_env":"","smash_timeout_sec":180}
+drill — seed='n=6 lattice atoms sigma=12 phi=2 tau=4 sigma_2=50 — what other closed-form identities at n=6 are atom-recompute candidates beyond these four?' max_rounds=1 engine=mk9
+  Mk.IX 6-stage chain (smash → free → absolute → meta → hyper → resonance)
+  round 1: smash+414 free+211 abs=1 meta=0 hyper=0 res+24(σ=0.10) total=650
+  overlay+ 517 lines (pool=0)
+DRILL_VERIFIER {"round":1,"verdict":"skip"}
+  max rounds reached (1) — total=650
+{"seed":"n=6 lattice atoms sigma=12 phi=2 tau=4 sigma_2=50 — what other closed-form identities at n=6 are atom-recompute candidates beyond these four?","rounds":1,"total":650,"saturated":false,"engine":"mk9","overlay_lines":517,"verifier_stopped":false,"verifier_verdict":"skip"}

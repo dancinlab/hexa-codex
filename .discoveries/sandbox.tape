@@ -301,9 +301,11 @@
   base_pick_result = "M1.SUBSTRATE complete (2026-05-24). huggingface-cli NOT installed on host; fell back to direct `curl -L` from bartowski/Qwen2.5-1.5B-Instruct-GGUF (HF resolve URL). Downloaded 986048768 bytes (~940 MB) in 134 s (≈7.0 MB/s). sha256=1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370. Smoke-test PASS: `llama-completion -m … -p 'What is 2+2? Reply with the digit only.' -n 32 --temp 0 -st` emitted `4 [end of text]` (substring match on kw '4' ✓), total wall 5440 ms (load 1516 ms · prompt-eval 130 ms · decode 16 ms / 1 tok · eval throughput 62.15 tok/s on M3 Metal). Verdict at .verdicts/sandbox/m1_substrate_base_pick.txt. SANDBOX.md M1.SUBSTRATE matrix-cell + checkbox flipped `[ ] → [x]`."
   bench_rerun_state = "PENDING — successor cycle = M2.SUBSTRATE (rerun bench/sandbox_stage2_persona_scaled.hexa with model_path=Qwen2.5-1.5B-Instruct-Q4_K_M.gguf; measure per-stratum accuracy vs cycle-6's 0.5B run; locate cliff position). NOT executed in this cycle — task scope was strictly M1 (base-on-disk + load-verified), not M2 (bench rerun)."
 
-@C d_qwen_3b_scale := "Qwen2.5-3B-Instruct scale step — extend the ladder if 1.5B doesn't clear cliff" :: candidate [target_tier=GREEN cost_est=$0 gated_on=d_qwen_1_5b_scale]
+@C d_qwen_3b_scale := "Qwen2.5-3B-Instruct scale step — extend the ladder one rung past 1.5B (M3.SUBSTRATE prereq)" :: confirmed_base_pick [target_tier=GREEN cost_actual=$0 source=cycle-11-1_5b-direct-successor verdict=.verdicts/sandbox/m3_substrate_3b_pick.txt scope=base-on-disk+smoke-test-only bench_rerun_pending=true]
   cmd = "if 1.5B still hits 0% on wc>=31 strata, download Qwen2.5-3B-Instruct-Q4_K_M (~1.9GB); same rerun procedure; measure cliff position + wall_ms ratio vs 0.5B / 1.5B"
   hyp = "3B is the smallest base that crosses the manifest's wc_31_60 cliff at >= 60% accuracy on the `max` persona, at <= 4x per-task wall vs 0.5B (mac mini M3 unified-memory fits Q4_K_M up to 7B comfortably); IF FALSE the manifest's wc>=31 strata measure something other than scale (e.g., chain-of-thought activation), and SUBSTRATE's full capability-eval scope still needs work beyond mere parameter count"
+  base_pick_result = "M3.SUBSTRATE prereq complete (2026-05-24, cycle-11, mirror of cycle-8 d_qwen_1_5b_scale pattern). huggingface-cli still not installed; fell back to direct `curl -L` from bartowski/Qwen2.5-3B-Instruct-GGUF (HF resolve URL). Downloaded 1929903264 bytes (~1.84 GB) in 417 s (≈4.4 MB/s, ~2.3x the 1.5B wall as the file is ~2x larger). sha256=9c9f56a391a3abbd5b89d0245bf6106081bcc3173119d4229235dd9d23253f94. Smoke-test PASS: `llama-completion -m … -p 'What is 2+2? Reply with the digit only.' -n 32 --temp 0 -st` emitted `4 [end of text]` (substring match on kw '4' ✓), total wall 5910 ms (load 2801 ms · prompt-eval 121 ms · single-tok decode 48 ms · prompt_eval_tps 173.00, eval_tps 20.81 reported on 1-tok sample — load-dominated, not steady-state) on M3 Metal. Verdict at .verdicts/sandbox/m3_substrate_3b_pick.txt. SANDBOX.md M3.SUBSTRATE checkbox STAYS `[ ]` honestly — M3.SUBSTRATE saturation requires running the FULL ladder (0.5/1.5/3/7B) through Stage 2 + locating per-stratum cliff position; this commit only adds 3B to disk, the saturation closure is a separate later cycle."
+  bench_rerun_state = "PENDING — successor cycle = M3.SUBSTRATE saturation (run 3B through bench/sandbox_stage2_persona_scaled.hexa, then download/score 7B for the 4th ladder rung, then locate cliff position across all 4 scales). NOT executed in this cycle — task scope was strictly the 3B base-on-disk + load-verified rung, mirroring the cycle-8 M1.SUBSTRATE pattern."
 
 @C d_activation_capture_pipeline := "activation capture .hexa wrapper — narrowed scope: logit/logprob path confirmed end-to-end (cycle-5 d_logit_calibration); intermediate-tensor taps split out as d_activation_capture_intermediate_tap" :: confirmed [actual_tier=GREEN cost_actual=$0 cross_cut=SAFETY+SUBSTRATE scope=logit/logprob-only verdict=.verdicts/sandbox/stage3_logit_calibration_summary.txt]
   cmd = "build lm_foundry/tool/activation_capture.hexa wrapping llama-server; logit/logprob path = per-request /v1/chat/completions with logprobs=true + top_logprobs=N (proven live cycle-5); intermediate-tensor path (residual / attention / MLP) = gated on substrate addition — see successor d_activation_capture_intermediate_tap"
@@ -430,3 +432,30 @@
 # 🟠 INSUFFICIENT (exit 0). SANDBOX.md M3.ECON checkbox stays [ ] until 4-of-4 scale rungs
 # measured AND both F-CODEX-1/2 residuals ≤ ε=0.10. Same harness_only family as cycle-8
 # d_slo_under_load. Placeholder verdict at .verdicts/sandbox/m3_econ_empirical_landing.txt.
+#
+# 2026-05-24 — d_qwen_3b_scale candidate → confirmed_base_pick (PARTIAL,
+# scope=base-on-disk+smoke-test-only, cycle-11 mirror of cycle-8 M1.SUBSTRATE):
+# Qwen2.5-3B-Instruct-Q4_K_M GGUF downloaded to ~/Models/gguf/ (1,929,903,264
+# bytes / ~1.84 GB, sha256 9c9f56a391a3abbd…) via `curl -L` (huggingface-cli
+# still not installed; task-spec fallback). Download wall 417 s (~4.4 MB/s,
+# ~2.3x the 1.5B time as the file is ~2x larger). Smoke-test PASS via
+# `llama-completion` on M3 Metal: prompt "What is 2+2? Reply with the digit
+# only." → output `4 [end of text]` (kw '4' ✓), wall 5910 ms (load 2801 ms,
+# ~1.85x the 1.5B's 1516 ms load — expected for the larger weight matrix;
+# prompt_eval_tps 173.00 tok/s on 21 prompt tokens; eval_tps 20.81 is a thin
+# 1-token sample, NOT a steady-state decode number — to be remeasured under
+# the Stage-2 rerun). Verdict at .verdicts/sandbox/m3_substrate_3b_pick.txt.
+# Adds the 3rd rung (after 0.5B and 1.5B) to the M3.SUBSTRATE scale ladder.
+# SANDBOX.md M3.SUBSTRATE checkbox STAYS [ ] honestly — M3 is "saturation" =
+# full ladder (0.5/1.5/3/7B) Stage-2 rerun + cliff position; this commit
+# only adds the 3B base-on-disk, the saturation closure is a separate later
+# cycle (Stage-2 rerun on 1.5B is itself pending M2.SUBSTRATE per cycle-8
+# bench_rerun_state).
+#
+# Cumulative (post cycle-11): scale-ladder bases on disk = {0.5B (PoC),
+# 1.5B (cycle-8 d_qwen_1_5b_scale), 3B (this cycle d_qwen_3b_scale)} =
+# 3 of 4 rungs; 7B GGUF still candidate (gated_on=d_qwen_3b_scale, now
+# unblocked structurally — d_qwen_7b_scale should appear as the next
+# scale-ladder candidate row once authored). M3.SUBSTRATE saturation closes
+# when all 4 rungs are on disk AND each has been run through Stage-2 +
+# per-stratum cliff position is located.

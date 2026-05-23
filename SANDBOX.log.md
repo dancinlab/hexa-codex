@@ -7,6 +7,32 @@
 
 ---
 
+## 2026-05-24 — M3.SUBSTRATE prep — Qwen2.5-3B-Instruct-Q4_K_M on disk (3rd ladder rung)
+
+Cross-ref to `SUBSTRATE.log.md` 2026-05-24 entry "Stage-4 ladder
+extended to 3B". Scale-ladder gains its 3rd rung (after 0.5B PoC and
+1.5B M1.SUBSTRATE cycle-8). Direct execution of the cycle-7
+`d_qwen_3b_scale` candidate in `.discoveries/sandbox.tape`, modelled
+on the cycle-8 `008482e` M1.SUBSTRATE pattern.
+
+| field | value |
+|:---|:---|
+| model | Qwen2.5-3B-Instruct-Q4_K_M (bartowski GGUF) |
+| size | 1 929 903 264 bytes (≈ 1.84 GB) |
+| sha256 (16) | `9c9f56a391a3abbd` |
+| smoke verdict | **PASS** (output `4 [end of text]`, wall 5 910 ms · load 2 801 ms · prompt_eval 173.00 tok/s) |
+| cost | $0 (curl -L + local llama-completion on M3 Metal) |
+| verdict file | `.verdicts/sandbox/m3_substrate_3b_pick.txt` |
+
+`SANDBOX.md` M3.SUBSTRATE checkbox **stays `[ ]`** honestly — M3 is
+saturation = full ladder (0.5/1.5/3/7B) Stage-2 rerun + per-stratum
+cliff position; this commit only adds 3B to disk. Successor cycles:
+(1) download 7B GGUF as the 4th rung (`d_qwen_7b_scale` candidate to
+be authored), (2) run all 4 rungs through
+`bench/sandbox_stage2_persona_scaled.hexa` to locate the cliff. The
+`d_qwen_3b_scale` candidate flips `candidate` →
+`confirmed_base_pick` (scope = base-on-disk + smoke-test-only).
+
 ## 2026-05-24 — M1.SAFETY narrowed + flipped `[x]` (logprob-only scope); M1.SAFETY+ added for intermediate-tensor
 
 Cycle-10 honest scope redefinition following the cycle-9 `b5a6c1f`

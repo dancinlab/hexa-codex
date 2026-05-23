@@ -6,6 +6,52 @@
 
 ---
 
+## 2026-05-24 — Stage-4 ladder extended to 3B — Qwen2.5-3B-Instruct-Q4_K_M on disk, smoke-test PASS (M3.SUBSTRATE prereq)
+
+The SANDBOX scale ladder gains its 3rd rung (after 0.5B PoC and 1.5B
+M1.SUBSTRATE). Direct execution of the cycle-7 `d_qwen_3b_scale`
+candidate (`.discoveries/sandbox.tape`), modelled on the cycle-8
+M1.SUBSTRATE pattern (commit `008482e`) which closed 1.5B. This is the
+explicit prerequisite for M3.SUBSTRATE *saturation* (full ladder
+0.5/1.5/3/7B Stage-2 rerun + per-stratum cliff position) — but
+**M3.SUBSTRATE itself stays `[ ]`** because saturation requires running
+the FULL ladder through Stage 2, not merely adding rungs to disk.
+
+| field | value |
+|:---|:---|
+| base_model | Qwen2.5-3B-Instruct-Q4_K_M (bartowski GGUF) |
+| model_path | `~/Models/gguf/Qwen2.5-3B-Instruct-Q4_K_M.gguf` |
+| model_size | 1 929 903 264 bytes (≈ 1.84 GB) |
+| sha256 | `9c9f56a391a3abbd5b89d0245bf6106081bcc3173119d4229235dd9d23253f94` |
+| download via | `curl -L` (huggingface-cli still not installed; task-spec fallback) |
+| download wall | 417 s (≈ 4.4 MB/s, 1.84 GB total — ≈ 2.3× the 1.5B wall as file is ≈ 2× larger) |
+| smoke prompt | "What is 2+2? Reply with the digit only." |
+| smoke output | `4 [end of text]` (substring match on kw "4" ✓) |
+| smoke verdict | **PASS** |
+| smoke wall | 5 910 ms total · load 2 801 ms · prompt-eval 121 ms · single-tok decode 48 ms |
+| prompt_eval throughput | 173.00 tok/s on 21 prompt tokens (M3 Metal) |
+| eval throughput | 20.81 tok/s reported — *thin 1-token sample*, load-dominated, not steady-state; vs cycle-8 1.5B 62.15 tok/s on a similar 1-token run. To be remeasured under the Stage-2 rerun. |
+| host / tool | mac mini M3 · `llama-completion` (brew llama.cpp + Metal) |
+| cost | $0 (local download + local inference) |
+
+Persisted: `.verdicts/sandbox/m3_substrate_3b_pick.txt` carries the
+full provenance header (sha256, size, smoke verdict, source URL,
+download method, next-milestone link). Schema mirrors
+`m1_substrate_base_pick.txt`.
+
+The `d_qwen_3b_scale` candidate in `.discoveries/sandbox.tape` flips
+from `candidate` → `confirmed_base_pick` (mirror of the cycle-8
+`d_qwen_1_5b_scale` flip pattern; honest scope =
+`base-on-disk+smoke-test-only`, `bench_rerun_pending=true`).
+`SANDBOX.md` M3.SUBSTRATE checkbox is **NOT** flipped — saturation gate
+is full-ladder Stage-2 + cliff position, separate later cycle.
+
+Next on the substrate lane: download the 4th rung (Qwen2.5-7B
+Q4_K_M, ~4.7 GB, fits on M3 unified memory) under a sibling
+`d_qwen_7b_scale` candidate; then run all 4 rungs through
+`bench/sandbox_stage2_persona_scaled.hexa` for per-stratum cliff
+position; that pair of cycles closes M3.SUBSTRATE.
+
 ## 2026-05-24 — M1.SUBSTRATE done — Qwen2.5-1.5B-Instruct-Q4_K_M on disk, smoke-test PASS
 
 The SANDBOX M1.SUBSTRATE milestone (scale-ladder base model picked +

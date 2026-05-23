@@ -1,0 +1,23 @@
+# base_model=Qwen2.5-3B-Instruct-Q4_K_M
+# model_path=/Users/ghost/Models/gguf/Qwen2.5-3B-Instruct-Q4_K_M.gguf
+# model_size_bytes=1929903264
+# sha256=9c9f56a391a3abbd5b89d0245bf6106081bcc3173119d4229235dd9d23253f94
+# smoke_test_prompt=What is 2+2? Reply with the digit only.
+# smoke_test_expected_kw=4
+# smoke_test_passed=true
+# smoke_test_wall_ms=5910
+# smoke_test_raw_output=4 [end of text]
+# smoke_test_load_ms=2801.31
+# smoke_test_prompt_eval_ms=121.39
+# smoke_test_prompt_eval_tps=173.00
+# smoke_test_eval_tps=20.81
+# smoke_test_eval_tok_count=1
+# smoke_test_host=mac-mini-M3 / llama-completion (brew llama.cpp + Metal)
+# downloaded_at=2026-05-24
+# downloaded_via=curl (huggingface-cli not installed; fallback per task spec)
+# source_url=https://huggingface.co/bartowski/Qwen2.5-3B-Instruct-GGUF/resolve/main/Qwen2.5-3B-Instruct-Q4_K_M.gguf
+# download_wall_seconds=417
+# download_throughput_MBps=4.4
+# next_milestone=M3.SUBSTRATE saturation (Stage 2 rerun on 3B + locate cliff position vs 0.5B/1.5B)
+# discovery_tape_slug=d_qwen_3b_scale (.discoveries/sandbox.tape, was candidate gated_on=d_qwen_1_5b_scale)
+# note=Smoke test PASS — model loaded on M3 Metal, answered "4" cleanly with [end of text] marker. Eval throughput sample is thin (only 1 generated token before EOS) — 20.81 tok/s vs cycle-8 1.5B's 62.15 tok/s reflects load+single-token, not steady-state decode; prompt_eval throughput 173.00 tok/s on 21 prompt tokens is the more reliable per-token number for this prompt. Model size 1929903264 bytes (~1.84 GB), roughly 2x the 1.5B GGUF (986 MB) as expected for Q4_K_M scaling. Mac mini M3 unified-memory headroom comfortably accommodates the model (MTL0 total 18186 MiB · self 3287 MiB · free 14897 MiB post-load).

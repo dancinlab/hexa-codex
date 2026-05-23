@@ -1,0 +1,8 @@
+HEXA_DRILL_ANTI_HUB_TRACE {"cmd_drill_entry":true,"env_active":"","env_threshold":"","adaptive_env":"","smash_timeout_sec":180}
+drill — seed='SANDBOX cycle-4 narrowed: (1) manifest saturated at 20 tasks blocks Stage1 persona until Stage2 N>=2000 lands; (2) revivals work — stop_dot -30.64% wall, max_tokens cap -51.59%; (3) one-shot CLI dispatch has ~3-4s Metal-init+mmap floor that swamps fine-grained KV/cache (kv_prefix BLOCKED_AT_SCALE); (4) scorer artifacts inflate accuracy. What axes does long-lived llama-server unlock — continuous batching across N=2000, persistent KV across multi-turn, --json-schema constrained decoding, parallel dispatch on local Metal?' max_rounds=1 engine=mk9
+  Mk.IX 6-stage chain (smash → free → absolute → meta → hyper → resonance)
+  round 1: smash+414 free+211 abs=0 meta=0 hyper=0 res+17(σ=0.10) total=642
+  overlay+ 517 lines (pool=0)
+DRILL_VERIFIER {"round":1,"verdict":"skip"}
+  max rounds reached (1) — total=642
+{"seed":"SANDBOX cycle-4 narrowed: (1) manifest saturated at 20 tasks blocks Stage1 persona until Stage2 N>=2000 lands; (2) revivals work — stop_dot -30.64% wall, max_tokens cap -51.59%; (3) one-shot CLI dispatch has ~3-4s Metal-init+mmap floor that swamps fine-grained KV/cache (kv_prefix BLOCKED_AT_SCALE); (4) scorer artifacts inflate accuracy. What axes does long-lived llama-server unlock — continuous batching across N=2000, persistent KV across multi-turn, --json-schema constrained decoding, parallel dispatch on local Metal?","rounds":1,"total":642,"saturated":false,"engine":"mk9","overlay_lines":517,"verifier_stopped":false,"verifier_verdict":"skip"}

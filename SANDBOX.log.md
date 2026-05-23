@@ -420,3 +420,50 @@ Persisted:
 Cumulative SANDBOX state: **3 confirmed** (d_stage0_poc · d_early_stop_local
 · d_prompt_compress_local[max_tokens_cap_only]) · 2 dead
 (d_stage1_persona · d_kv_prefix_share) · 7 candidates remaining.
+
+---
+
+## 2026-05-23 — kick round 2 — 4 new candidates, post-cycle-4 narrowing
+
+`hexa kick --seed "<post-cycle-4 substrate-server axes>" --rounds 1` (mk9,
+smash+414 free+211 res+17, 642 total) → 4 new `@C` entries appended to
+`.discoveries/sandbox.tape`. Raw: `.discoveries/sandbox-kick2.raw` (engine
+output is symbolic atlas-atom expansion; the 4 axes below are curator
+distillation of the seed's enumerated hypothesis space, matching round-1
+methodology — disclosed honestly).
+
+Cycle-4 revealed 4 search-space narrowings: (a) manifest saturation at 20
+tasks blocks Stage 1 until Stage 2 N>=2000 lands; (b) revivals work
+(stop_dot -30.64% wall, max_tokens cap -51.59%); (c) one-shot CLI dispatch
+has a fixed ~3-4s Metal-init+mmap floor that swamps fine-grained KV/cache
+savings (kv_prefix BLOCKED_AT_SCALE); (d) scorer artifacts inflate
+baselines (Stage 0 19/20 → real 16/20). (c) opens an entirely new axis
+class — **long-lived server-mode dispatch** (`llama-server`) — that
+one-shot CLI cannot reach.
+
+Four new candidates inventoried:
+
+| slug | tier | cost | source |
+|:---|:---|:---|:---|
+| `d_kv_prefix_share_persistent` | GREEN | $0 | cycle-4 successor (NOT kick-surfaced — direct response to `d_kv_prefix_share` BLOCKED_AT_SCALE verdict; honest disclosure) |
+| `d_continuous_batching_server` | GREEN | $0 | kick-2 substrate-server axis; revives cycle-1 `d_batch_amortized` (BLOCKED at single-shot CLI) via `-np N` parallel slots |
+| `d_json_schema_constrained` | GREEN | $0 | kick-2 axis; lever the `claude --bare -p` surface does not expose at all |
+| `d_parallel_dispatch_local` | GREEN | $0 | kick-2 axis; control comparison for server-mode batching — N processes vs 1 process N slots |
+
+**Top-2 ROI:** `d_kv_prefix_share_persistent` (GREEN, $0, directly rescues
+the cycle-4 BLOCKED_AT_SCALE finding — the only candidate with prior
+empirical narrowing of the blocker class, from surface→scale to scale→none
+if hypothesis holds) + `d_continuous_batching_server` (GREEN, $0, subsumes
+cycle-1 `d_batch_amortized` 50%-discount claim with a measurable
+substrate-level mechanism; benefits from but does not require Stage 2 to
+exercise — works on the canonical 20-task manifest at B=2/4 too).
+
+Deferred from the seed: prompt-distillation (Honesty rules — Anthropic
+ToS), retrieval-augmented dispatch (redundant with `d_stage2_scale_manifest`),
+streaming-tok early-cancel (tightly coupled to `d_logit_calibration`,
+folded there). `d_logit_calibration`, `d_speculative_decode_model`,
+`d_quantization_tier` from round-1 remain candidate-state (still relevant,
+orthogonal to server-mode).
+
+Cumulative SANDBOX state: **3 confirmed** · **2 dead** · **11 candidates
+remaining** (7 round-1 + 4 round-2).

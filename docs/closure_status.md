@@ -99,6 +99,12 @@ the full T1+T2+T3 ladder.
 | `verify/numerics_economics_scaling_laws.hexa` | ECONOMICS scaling-law sweep (q/train/infer halving·doubling·4×, cost/quality ratio) |
 | `verify/numerics_lattice_arithmetic.hexa` | math_pure stability floor (10/10 invariants)                       |
 
+### Group ladder reports (R)
+
+| File                                      | Role                                                                |
+|:------------------------------------------|:---------------------------------------------------------------------|
+| `verify/report_economics_ladder.hexa`     | ECONOMICS group recipe §3 ladder table — per-verb T1+T2+T3 + X-ECON + T4-stub rows |
+
 ### Meta (M)
 
 | File                              | Role                                                                 |
@@ -141,11 +147,12 @@ directly — it prints each pillar's T1/T2/T3 status individually.
 |:----------------------------------|:-----:|
 | Pillar layer scripts (5 × 4)      | 20    |
 | Cross-cutter scripts              |  6    |
+| Group ladder reports              |  1    |
 | Meta scripts                      |  3    |
-| **Subtotal — recipe §3 ladder**   | **29** |
+| **Subtotal — recipe §3 ladder**   | **30** |
 | T4 PENDING stubs (`numerics_*_t4_parity`) | 11 |
-| **Total `run_all` subject scripts** | **40** |
-| Companion regression wrappers     | 31 (incl. `tests/test_all.hexa`) |
+| **Total `run_all` subject scripts** | **41** |
+| Companion regression wrappers     | 32 (incl. `tests/test_all.hexa`) |
 
 ---
 

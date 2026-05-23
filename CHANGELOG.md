@@ -4,6 +4,26 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ECONOMICS group ladder report (2026-05-23)
+
+ECONOMICS-focused sister of `falsifier_check.hexa` — surfaces the
+recipe §3 ladder across all three ECONOMICS verbs including the
+non-falsifier `quality_scale`.
+
+- `verify/report_economics_ladder.hexa` (new, 10 checks all PASS) —
+  per-verb closure_pct gate (3 checks), X-ECON cross-cutter row 2/2,
+  T4-stub row 3/3, all-verbs-100% simultaneously, inventory ≥ 17,
+  group SSOT + verb spec dirs, plus a rendered ladder table.
+- `tests/test_report_economics_ladder.hexa` (new companion).
+- Meta wiring: `verify/run_all.hexa` (40 → 41 subjects) +
+  `tests/test_all.hexa` (31 → 32 cases). NOT wired into
+  `lint_numerics.hexa` (this is a meta report, not a numerics_*
+  script).
+- Surface lockstep: `docs/closure_status.md` (new "Group ladder
+  reports" row, §3 ladder 29 → 30, run_all 40 → 41, companion 31
+  → 32) + `README.md` (verify badge 40 → 41, new ladder-reports
+  inventory row + table) + `ECONOMICS.md` / `ECONOMICS.log.md`.
+
 ## [Unreleased] — ECONOMICS scaling-laws sweep (2026-05-23)
 
 Companion of `numerics_economics_cross_pillar.hexa`, restricted to

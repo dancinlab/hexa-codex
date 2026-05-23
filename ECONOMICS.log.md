@@ -6,6 +6,28 @@
 
 ---
 
+## 2026-05-23 — ECONOMICS group ladder report added
+
+A sister of `verify/falsifier_check.hexa` (which only covers the four
+F-CODEX falsifiers), now ECONOMICS-focused — surfaces the recipe §3
+ladder across all three ECONOMICS verbs including non-falsifier
+`quality_scale`. `verify/report_economics_ladder.hexa` (10 checks,
+all PASS) verifies and emits the per-verb closure table:
+
+| verb            | T1  | T2  | T2-solver | T3  | T4-stub | closure |
+|:----------------|:---:|:---:|:---------:|:---:|:-------:|:-------:|
+| train_cost      | ✓   | ✓   | ✓         | ✓   | ✓       | 100%    |
+| infer_cost      | ✓   | ✓   | ✓         | ✓   | ✓       | 100%    |
+| quality_scale   | ✓   | ✓   | ✓         | ✓   | ✓       | 100%    |
+
+The 10 checks gate on: per-verb T1+T2+T3 closure (3 checks), X-ECON
+cross-cutter row 2/2, T4-stub row 3/3, all-verbs-100% simultaneously,
+inventory ≥ 17 files, group SSOT (ECONOMICS.md + log) present, verb
+spec dirs present, and the rendered ladder table (always-pass render
+check). Wired into `verify/run_all.hexa` (40 → 41 subjects) and
+`tests/test_all.hexa` (31 → 32 cases). Not wired into lint_numerics
+(it is a meta report, not a `numerics_*` script).
+
 ## 2026-05-23 — ECONOMICS scaling-laws sweep added
 
 A companion of the 3-pillar cross-cutter, restricted to closed-form

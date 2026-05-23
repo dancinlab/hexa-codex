@@ -73,6 +73,11 @@ Verification surface (recipe §3 ladder — see `docs/closure_status.md`):
   and 4×, and the cost-vs-quality competition ratio
   `N6_EXP / α = 144/25 = 5.76` (per log doubling, training cost rises
   ~5.76× as fast as the quality reducible-loss term shrinks).
+- ECONOMICS recipe §3 ladder report
+  `verify/report_economics_ladder.hexa` (10 checks) emits the
+  per-verb closure table and gates on all 3 verbs reaching
+  `closure_pct = 100%` (T1+T2+T3) simultaneously, plus the X-ECON
+  cross-cutter row 2/2 and the T4-stub row 3/3.
 
 ## Roadmap — v1.2.0 (2026-10, PLANNED · group focus = economics)
 

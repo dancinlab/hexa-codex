@@ -1,0 +1,273 @@
+#!hexa strict
+// hexa-codex/verify/report_economics_ladder.hexa — ECONOMICS group ladder report.
+//
+// ECONOMICS-focused sister of `verify/falsifier_check.hexa` (which
+// covers only the 4 F-CODEX falsifiers). This report surfaces the
+// recipe §3 ladder across ALL THREE ECONOMICS verbs — including
+// `quality_scale`, which has no falsifier preregister but does carry
+// the full T1+T2+T3 ladder as of 2026-05-23.
+//
+//     verb            T1                       T2 (×2)                            T3
+//     train_cost      calc_train_cost          numerics_train_cost +              numerics_train_cost_parity
+//                                              numerics_train_cost_solver
+//     infer_cost      calc_infer_cost          numerics_infer_cost +              numerics_infer_cost_parity
+//                                              numerics_infer_cost_solver
+//     quality_scale   calc_quality_scale       numerics_quality_scale +           numerics_quality_scale_parity
+//                                              numerics_quality_scale_solver
+//
+// Plus the ECONOMICS-specific cross-cutter row:
+//
+//     X-ECON   numerics_economics_cross_pillar.hexa
+//              numerics_economics_scaling_laws.hexa
+//
+// Plus the per-verb T4 PENDING-sentinel row (D-023):
+//
+//     T4-stub  numerics_<verb>_t4_parity.hexa   (PENDING until forge data lands)
+//
+// PASS criterion: every ECONOMICS verb reaches closure_pct = 100%
+// (T1+T2+T3 all present), AND the X-ECON row 2/2, AND the T4-stub
+// row 3/3.
+//
+// Run:
+//   hexa run verify/report_economics_ladder.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local report; file-existence + tally only.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let VERIFY_DIR = ROOT + "/verify"
+
+// 3 ECONOMICS verbs
+let VERBS = ["train_cost", "infer_cost", "quality_scale"]
+
+let FALSIFIERS = [
+    "ECONOMICS recipe §3 ladder report (per-verb T1+T2+T3 + X-ECON + T4-stub)",
+]
+
+// ── helpers ──────────────────────────────────────────────────────────────
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _exists(path: str) -> bool {
+    let r = exec_with_status("test -f '" + path + "' && echo OK")
+    let out = to_string(r[0])
+    return out.find("OK") >= 0
+}
+
+fn _layer_path(verb: str, layer: str) -> str {
+    if layer == "calc"            { return VERIFY_DIR + "/calc_" + verb + ".hexa" }
+    if layer == "numerics"        { return VERIFY_DIR + "/numerics_" + verb + ".hexa" }
+    if layer == "numerics_solver" { return VERIFY_DIR + "/numerics_" + verb + "_solver.hexa" }
+    if layer == "numerics_parity" { return VERIFY_DIR + "/numerics_" + verb + "_parity.hexa" }
+    if layer == "t4_parity"       { return VERIFY_DIR + "/numerics_" + verb + "_t4_parity.hexa" }
+    return ""
+}
+
+fn _tier_count(verb: str) -> int {
+    let t1 = _exists(_layer_path(verb, "calc"))
+    let t2 = _exists(_layer_path(verb, "numerics")) &&
+             _exists(_layer_path(verb, "numerics_solver"))
+    let t3 = _exists(_layer_path(verb, "numerics_parity"))
+    return (if t1 { 1 } else { 0 }) +
+           (if t2 { 1 } else { 0 }) +
+           (if t3 { 1 } else { 0 })
+}
+
+fn _pct_of(n: int) -> int {
+    if n == 3 { return 100 }
+    if n == 2 { return 67 }
+    if n == 1 { return 33 }
+    return 0
+}
+
+// ── checks ───────────────────────────────────────────────────────────────
+
+// Check 1..3: per-verb recipe §3 ladder closure (T1 + T2 + T3).
+fn check_verb_closure(idx: int) {
+    let verb = VERBS[idx]
+    let t1 = _exists(_layer_path(verb, "calc"))
+    let t2_num = _exists(_layer_path(verb, "numerics"))
+    let t2_sol = _exists(_layer_path(verb, "numerics_solver"))
+    let t3 = _exists(_layer_path(verb, "numerics_parity"))
+    let t2 = t2_num && t2_sol
+    let n = (if t1 { 1 } else { 0 }) + (if t2 { 1 } else { 0 }) + (if t3 { 1 } else { 0 })
+    let pct = _pct_of(n)
+    _check(n == 3,
+           "ECONOMICS verb '" + verb + "': T1+T2+T3 ✓ — closure_pct=100%",
+           "T1=" + str(t1) + " T2=(num=" + str(t2_num) + " solver=" + str(t2_sol) + ")" +
+           " T3=" + str(t3) + " → " + str(pct) + "%")
+}
+
+// Check 4: ECONOMICS-specific cross-cutter row (X-ECON, 2/2).
+fn check_x_econ_row() {
+    let xc1 = _exists(VERIFY_DIR + "/numerics_economics_cross_pillar.hexa")
+    let xc2 = _exists(VERIFY_DIR + "/numerics_economics_scaling_laws.hexa")
+    let cnt = (if xc1 { 1 } else { 0 }) + (if xc2 { 1 } else { 0 })
+    _check(cnt == 2,
+           "X-ECON cross-cutter row: cross_pillar + scaling_laws (2/2)",
+           "cross_pillar=" + str(xc1) + " scaling_laws=" + str(xc2) +
+           " → closed=" + str(cnt) + "/2")
+}
+
+// Check 5: T4 PENDING-stub row — all 3 ECONOMICS verbs carry an honest stub.
+fn check_t4_stub_row() {
+    let mut cnt = 0
+    let mut i = 0
+    while i < len(VERBS) {
+        if _exists(_layer_path(VERBS[i], "t4_parity")) { cnt = cnt + 1 }
+        i = i + 1
+    }
+    _check(cnt == 3,
+           "T4-stub row: all 3 ECONOMICS verbs ship a PENDING stub (3/3)",
+           "present=" + str(cnt) + "/3 (D-023 forge-data landing)")
+}
+
+// Check 6: every ECONOMICS verb hits closure_pct = 100% simultaneously.
+fn check_all_100_pct() {
+    let mut all_100 = true
+    let mut min_pct = 100
+    let mut i = 0
+    while i < len(VERBS) {
+        let n = _tier_count(VERBS[i])
+        let p = _pct_of(n)
+        if p < 100 { all_100 = false }
+        if p < min_pct { min_pct = p }
+        i = i + 1
+    }
+    _check(all_100,
+           "every ECONOMICS verb closure_pct = 100% (T1+T2+T3 ✓ for all 3)",
+           "min_pct=" + str(min_pct) + "%")
+}
+
+// Check 7: ECONOMICS verifier inventory count.
+//   3 verbs × 4 layers (calc + numerics + solver + parity) + 2 X-ECON + 3 T4-stubs = 17.
+fn check_verifier_inventory_count() {
+    let mut total = 0
+    let layers = ["calc", "numerics", "numerics_solver", "numerics_parity", "t4_parity"]
+    let mut v = 0
+    while v < len(VERBS) {
+        let mut l = 0
+        while l < len(layers) {
+            if _exists(_layer_path(VERBS[v], layers[l])) { total = total + 1 }
+            l = l + 1
+        }
+        v = v + 1
+    }
+    let xc = [
+        VERIFY_DIR + "/numerics_economics_cross_pillar.hexa",
+        VERIFY_DIR + "/numerics_economics_scaling_laws.hexa",
+    ]
+    let mut k = 0
+    while k < len(xc) {
+        if _exists(xc[k]) { total = total + 1 }
+        k = k + 1
+    }
+    _check(total >= 17,
+           "ECONOMICS verifier inventory ≥ 17 (3 verbs × 5 layers + 2 X-ECON)",
+           "counted=" + str(total))
+}
+
+// Check 8: group SSOT presence — ECONOMICS.md + ECONOMICS.log.md.
+fn check_group_ssot() {
+    let m1 = _exists(ROOT + "/ECONOMICS.md")
+    let m2 = _exists(ROOT + "/ECONOMICS.log.md")
+    let cnt = (if m1 { 1 } else { 0 }) + (if m2 { 1 } else { 0 })
+    _check(cnt == 2,
+           "group SSOT: ECONOMICS.md + ECONOMICS.log.md (2/2)",
+           "ECONOMICS.md=" + str(m1) + " ECONOMICS.log.md=" + str(m2))
+}
+
+// Check 9: ECONOMICS spec directories present — train_cost/ + infer_cost/ + quality_scale/.
+fn check_verb_spec_dirs() {
+    let r = exec("test -d " + ROOT + "/train_cost && test -d " + ROOT + "/infer_cost && test -d " + ROOT + "/quality_scale && echo OK").trim()
+    _check(r.find("OK") >= 0,
+           "verb spec dirs: train_cost/ + infer_cost/ + quality_scale/ all present",
+           "probe=" + r)
+}
+
+// Check 10: print the ladder report table (always passes; pure render).
+fn check_emit_ladder_table() {
+    println("")
+    println("  ── ECONOMICS recipe §3 ladder ──────────────────────────────────────────")
+    println("  | verb            | T1  | T2  | T2-solver | T3  | T4-stub | closure |")
+    println("  |-----------------|:---:|:---:|:---------:|:---:|:-------:|:-------:|")
+    let mut i = 0
+    while i < len(VERBS) {
+        let v = VERBS[i]
+        let t1 = _exists(_layer_path(v, "calc"))
+        let t2 = _exists(_layer_path(v, "numerics"))
+        let ts = _exists(_layer_path(v, "numerics_solver"))
+        let t3 = _exists(_layer_path(v, "numerics_parity"))
+        let t4 = _exists(_layer_path(v, "t4_parity"))
+        let nn = (if t1 { 1 } else { 0 }) + (if (t2 && ts) { 1 } else { 0 }) + (if t3 { 1 } else { 0 })
+        let pp = _pct_of(nn)
+        let pad = if v.len() < 15 { "               ".substr(0, 15 - v.len()) } else { "" }
+        let mark = fn (b: bool) -> str { return if b { " ✓ " } else { "   " } }
+        println("  | " + v + pad + " |" + mark(t1) + "|" + mark(t2) + "|" + mark(ts) + "    |" + mark(t3) + "|" + mark(t4) + " |  " + str(pp) + "%  |")
+        i = i + 1
+    }
+    println("  ────────────────────────────────────────────────────────────────────────")
+    _check(true,
+           "ECONOMICS ladder table emitted (3 verbs × 5 layers + closure_pct)",
+           "see table above")
+}
+
+// ── main ─────────────────────────────────────────────────────────────────
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex ECONOMICS recipe §3 ladder report")
+    println("  3 verbs (train_cost · infer_cost · quality_scale) — T1+T2+T3 ladder")
+    println("========================================================================")
+    println("  root: " + ROOT)
+    println("")
+
+    check_verb_closure(0)
+    check_verb_closure(1)
+    check_verb_closure(2)
+    check_x_econ_row()
+    check_t4_stub_row()
+    check_all_100_pct()
+    check_verifier_inventory_count()
+    check_group_ssot()
+    check_verb_spec_dirs()
+    check_emit_ladder_table()
+
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " checks passed")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for f in FAILURES { println("    ✗ " + f) }
+        println("__HEXA_CODEX_REPORT_ECONOMICS_LADDER__ FAIL")
+        exit(1)
+    }
+    println("  ECONOMICS recipe §3 ladder: closed (every verb T1+T2+T3 ✓ + X-ECON 2/2 + T4-stub 3/3).")
+    println("__HEXA_CODEX_REPORT_ECONOMICS_LADDER__ PASS")
+    exit(0)
+}

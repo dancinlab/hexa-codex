@@ -6,7 +6,7 @@
 // hexa-rtsc / hexa-fusion / hexa-ufo / hexa-chip / hexa-antimatter's
 // run_all pattern — same shape, AI-knowledge-substrate falsifier surface.
 //
-// Inventory (40 green-core verify/*.hexa scripts):
+// Inventory (41 green-core verify/*.hexa scripts):
 //
 //   T1 algebraic   : calc_{train_cost,infer_cost,alignment,interpret,
 //                          quality_scale}                                 (5)
@@ -20,6 +20,8 @@
 //                  + numerics_economics_scaling_laws
 //                  + numerics_lattice_arithmetic                         (4 = 19)
 //
+//   reports        : report_economics_ladder                              (1)
+//
 //   T4 stubs       : numerics_*_t4_parity (11 PENDING-sentinel stubs for
 //                    forge data landing per D-023: train_cost, infer_cost,
 //                    alignment, interpret, safety, adversarial,
@@ -29,7 +31,7 @@
 //
 //   meta closure   : falsifier_check + lint_numerics + saturation_check  (3)
 //
-// Total: 40 verify/*.hexa subject scripts (run_all.hexa itself excluded).
+// Total: 41 verify/*.hexa subject scripts (run_all.hexa itself excluded).
 //
 // NO EXCLUSIONS (no honest-red ledger):
 //   Unlike hexa-chip where 4 falsifier scripts are deliberately tripped
@@ -126,6 +128,9 @@ let SCRIPTS: [str] = [
 
     // ─── inventory + cross-doc (1) ────────────────────────────────
     "verify/cross_doc_audit.hexa",
+
+    // ─── per-group ladder reports (1) ─────────────────────────────
+    "verify/report_economics_ladder.hexa",
 
     // ─── meta closure gates (3) ───────────────────────────────────
     "verify/falsifier_check.hexa",

@@ -41,3 +41,27 @@ Next: Stage 0 PoC — pick Qwen2.5-0.5B (M2), wire
 20-task pass on mac mini llama.cpp to measure accuracy floor +
 serving cost. No commit lands until accuracy floor and dispatch
 parity vs `claude --bare -p` are both measured.
+
+---
+
+## 2026-05-23 — kick round 1 — 12 candidates inventoried
+
+`hexa kick --seed "<SANDBOX substrate axes>" --rounds 1` (mk9,
+smash+414 free+211 res+20, 645 total) → `.discoveries/sandbox.tape`
+opened with 12 candidates: 5 SANDBOX.md ladder stages
+(d_stage0_poc → d_stage4_empirical_landing), 3 cycle-2 BLOCKED
+revivals (d_cache_aware_local, d_early_stop_local,
+d_prompt_compress_local — `_local` suffix to differentiate from
+the API-surface dead entries that remain `BLOCKED` in
+`economics-routing-savings.tape`), and 4 kick-1 orthogonal axes
+the substrate unlocks beyond the SANDBOX.md ladder
+(d_logit_calibration, d_kv_prefix_share, d_speculative_decode_model,
+d_quantization_tier). Raw: `.discoveries/sandbox-kick1.raw`. Top-2
+ROI: `d_stage0_poc` (gates everything) + `d_kv_prefix_share`
+(finest-grained replacement for cycle-1 `d_batch_amortized`,
+combines additively with the confirmed length-router 2-tier
+policy). Six other seed axes (prompt-distillation,
+retrieval-augmented dispatch, continuous-batching) deferred —
+distillation pinned by §"Honesty rules" (Anthropic ToS),
+retrieval/continuous-batching redundant with d_stage2_scale_manifest
++ d_kv_prefix_share.

@@ -7,6 +7,36 @@
 
 ---
 
+## 2026-05-24 — scope redefined — all-domain shared experiment substrate
+
+SANDBOX.md rescoped from an ECONOMICS-only measurement ground to the
+**shared empirical-contact substrate for all four verb-group domains**
+(ECONOMICS · SAFETY · OPS · SUBSTRATE). The redefinition follows the
+"build a tiny experiment model, run experiments on it" framing the
+user confirmed: we self-host a small open-weights pick (no training),
+and *every* domain runs its T4 (empirical) claims on it.
+
+Rationale — the self-hosted surface is not an ECONOMICS convenience;
+for several domains it is the **only** measurement path:
+
+| sibling | falsifier class | why API surface can't measure it |
+|:---|:---|:---|
+| ECONOMICS | cost-curve fits | no cache/stop/max-tok/batch knobs (proven cycles 1-6) |
+| SAFETY | interpretability (circuits · SAE) | API returns no activations/attention at all |
+| OPS | SLO checks | API hides the serving process + scheduling |
+| SUBSTRATE | capability evals (multimodal · RLHF) | metered + non-deterministic + no seed control |
+
+This makes SANDBOX the physical realization of the `cx_empirical_contact`
+gate — one substrate, every domain's T4 claims. ECONOMICS is the
+proven consumer (routing-savings cycles 1-6); SAFETY/OPS/SUBSTRATE are
+candidates whose empirical landings now have a home. Sibling domains
+recorded in SANDBOX.md §"Sibling domains" + Cross-refs; lm_foundry
+(LEARNING_PROGRAMMING · LEARNING_BIO) noted as the host platform whose
+trained artefacts are future candidate base models, distinct from
+today's OSS pick.
+
+No bench/verdict change — this is a scope + documentation commit.
+
 ## 2026-05-23 — domain opened
 
 `SANDBOX.md` / `SANDBOX.log.md` created. Triggered by the ECONOMICS

@@ -3,20 +3,47 @@
 > Domain doc · dancinlab `domain-meta-domain` principle. Current-state
 > spec only; dated history → [`SANDBOX.log.md`](SANDBOX.log.md).
 >
-> **Purpose:** self-hosted LLM + dispatch wrapper as the measurement
-> ground for ECONOMICS routing-savings and the F-CODEX-1/2 empirical
-> landings — bypassing `claude --bare -p` surface limits
-> (cache_control · batch · stop_seq · max_tokens all BLOCKED there).
+> **Purpose:** "build a tiny experiment model, run experiments on it."
+> A self-hosted OSS LLM + dispatch wrapper that is the **shared
+> empirical-contact substrate for ALL hexa-codex domains** — every
+> verb group (ECONOMICS · SAFETY · OPS · SUBSTRATE) runs its
+> measurable claims here, bypassing `claude --bare -p` surface limits
+> (cache_control · batch · stop_seq · max_tokens · logits/activations
+> all BLOCKED there). We do NOT train a model — we self-host a small
+> open-weights pick (Qwen2.5-0.5B today) and *measure on it*.
 
 ## North-star
 
-The SANDBOX is the **measurement substrate** that lets us run the
-ECONOMICS cycle (and ECONOMICS v1.2.0/1.3.0 empirical landings)
-without external CLI surface constraints. `claude --bare -p` exposes
-only `--model` + `--system-prompt` + `--max-budget-usd`; a
-self-hosted serving surface (vLLM / llama.cpp) gives us logits, KV
-cache, stop sequences, deterministic seeds, batch dispatch, and
-unmetered manifest scale.
+The SANDBOX is the **single self-hosted measurement substrate** the
+whole codex runs its experiments on. The external `claude --bare -p`
+surface exposes only `--model` + `--system-prompt` + `--max-budget-usd`;
+a self-hosted serving surface (llama.cpp / vLLM) gives us logits,
+activations, KV cache, stop sequences, deterministic seeds, batch
+dispatch, and unmetered manifest scale. That difference is not an
+ECONOMICS convenience — it is the **only way** several domains can be
+measured at all: SAFETY interpretability needs activations the API
+never returns; OPS SLO checks need a serving process we control; the
+F-CODEX empirical landings need scale and determinism the metered API
+forecloses. SANDBOX is therefore the codex's `cx_empirical_contact`
+gate made physical — one substrate, every domain's T4 claims.
+
+## Sibling domains — what each runs on SANDBOX
+
+Every verb group is a **consumer** of this one substrate; SANDBOX is
+the place their otherwise-unmeasurable (T4 empirical) claims execute.
+
+| sibling domain | falsifier class | what it runs on SANDBOX | why the API surface can't | status |
+|:---------------|:----------------|:------------------------|:--------------------------|:-------|
+| [`ECONOMICS.md`](ECONOMICS.md) | cost-curve fits | routing $/latency/token, KV-prefix, batching, F-CODEX-1/2 scaling fits | no cache/stop/max-tok/batch knobs | **proven** (cycles 1-6: early-stop −86%, max-tok cap −51%, KV-prefix −89.71%, logit signal) |
+| [`SAFETY.md`](SAFETY.md) | interpretability probes — circuits, SAE | activation capture, attention/logit inspection, circuit-motif + sparse-autoencoder probes | API returns no activations/attention at all | candidate — SANDBOX is the *only* viable surface |
+| [`OPS.md`](OPS.md) | SLO checks — deployment-tier recipes, tool-use | throughput/latency/batch SLO, serving-tier recipes, tool-use loops on a process we own | API hides the serving process + per-request scheduling | candidate |
+| [`SUBSTRATE.md`](SUBSTRATE.md) | capability evals — multimodal fusion, RLHF | capability eval harness, RLHF reward probing, deterministic re-runs | metered + non-deterministic + no seed control | candidate |
+
+lm_foundry stack ([`LEARNING_PROGRAMMING.md`](LEARNING_PROGRAMMING.md) ·
+[`LEARNING_BIO.md`](LEARNING_BIO.md)) is the host platform the SANDBOX
+serves models from; its trained artefacts (e.g. the Mk.I 94.29% code
+model) are *candidate base models* for future stages, distinct from
+today's OSS pick.
 
 ## Stages (cumulative, simplest-sufficient first)
 
@@ -47,10 +74,12 @@ serving-cost telemetry.
 
 | consumer | unblocked by | gate |
 |:---------|:-------------|:-----|
-| `cycle-3+` routing-savings | Stage 1-3 | external-API surface exhausted (cycle-2) |
-| ECONOMICS v1.2.0 (F-CODEX-1 empirical) | Stage 4 | spec roadmap §A.4 |
-| ECONOMICS v1.3.0 (F-CODEX-2 empirical) | Stage 4 | spec roadmap §A.4 |
-| `cx_empirical_contact` (T4 claims) | Stage 1+ | project.tape required |
+| ECONOMICS `cycle-3+` routing-savings | Stage 1-3 | external-API surface exhausted (cycle-2) |
+| ECONOMICS v1.2.0 / v1.3.0 (F-CODEX-1/2 empirical) | Stage 4 | spec roadmap §A.4 |
+| SAFETY interpretability probes (circuits · SAE) | Stage 1+ (activation capture) | the *only* surface that exposes activations |
+| OPS SLO checks (throughput · latency · batch) | Stage 3 (server-mode) | needs a serving process we control |
+| SUBSTRATE capability evals (multimodal · RLHF) | Stage 4 (scale ladder) | needs determinism + scale |
+| `cx_empirical_contact` (every domain's T4 claims) | Stage 1+ | project.tape required |
 
 ## Honesty rules (g5 corollary)
 
@@ -72,8 +101,12 @@ serving-cost telemetry.
 
 ## Cross-refs
 
-- [`ECONOMICS.md`](ECONOMICS.md) — primary consumer (F-CODEX-1/2 empirical)
-- [`LEARNING_PROGRAMMING.md`](LEARNING_PROGRAMMING.md) — lm_foundry stack the SANDBOX hosts on
-- `.discoveries/economics-routing-savings.tape` — round-3 candidates revived by Stage 3
-- `verify/numerics_economics_pareto_floor.hexa` (commit `5bbb9ad`) — analytic floor that SANDBOX empirical results validate against
-- Sister groups: [`SAFETY.md`](SAFETY.md) · [`OPS.md`](OPS.md) · [`SUBSTRATE.md`](SUBSTRATE.md)
+- **Sibling verb-group domains (all consumers of this substrate):**
+  [`ECONOMICS.md`](ECONOMICS.md) (proven) · [`SAFETY.md`](SAFETY.md) ·
+  [`OPS.md`](OPS.md) · [`SUBSTRATE.md`](SUBSTRATE.md)
+- **Host platform:** [`LEARNING_PROGRAMMING.md`](LEARNING_PROGRAMMING.md) ·
+  [`LEARNING_BIO.md`](LEARNING_BIO.md) — lm_foundry stack the SANDBOX serves models from
+- `.discoveries/sandbox.tape` — SANDBOX candidate ladder (Stage 0-4 + revivals)
+- `.discoveries/economics-routing-savings.tape` — the ECONOMICS candidates SANDBOX revived
+- `verify/numerics_economics_pareto_floor.hexa` (commit `5bbb9ad`) — analytic floor SANDBOX empirical results validate against
+- `lm_foundry/tool/route_dispatch.hexa` — unified claude/llama_cpp dispatch wrapper (the substrate's entry point)

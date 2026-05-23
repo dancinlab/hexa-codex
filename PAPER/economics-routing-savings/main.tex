@@ -225,6 +225,41 @@ On this rerun all three routers reach $20/20$; the one baseline miss
 only'') is a substring-scorer artefact (the model wrapped the answer
 in prose that omitted the literal ``1, 2, 3''), not a model error.
 
+\subsection{Accuracy--cost Pareto front}
+\label{sec:pareto}
+
+Plotting the four strategies on the (cost, correct) plane using only
+the two authoritative quantities --- total \texttt{cost\_usd} and the
+substring-correct count --- gives a single dominance verdict. A
+strategy $X$ dominates $Y$ iff $\text{cost}_X \le \text{cost}_Y$ and
+$\text{correct}_X \ge \text{correct}_Y$, strict in at least one:
+
+\begin{table}[h]
+\centering
+\caption{Pareto dominance, 20-task manifest.}
+\label{tab:pareto}
+\begin{tabular}{lrrl}
+\toprule
+\textbf{Strategy} & \textbf{cost (USD)} & \textbf{correct} & \textbf{verdict} \\
+\midrule
+Baseline (always opus) & $0.31747$ & $19/20$ & dominated by router \\
+Router (length tier)    & $0.08395$ & $20/20$ & \textbf{Pareto-optimal} \\
+Class router (regex)    & $0.09118$ & $20/20$ & dominated by router \\
+DLG-mk0 router          & $0.11290$ & $20/20$ & dominated by router \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{The length cutoff is the sole non-dominated point.} It is
+strictly cheaper than the always-Opus baseline \emph{and} more correct
+($20$ vs $19$); and it is strictly cheaper than both ``smarter''
+routers at identical accuracy. There is no accuracy--cost trade-off to
+negotiate on this manifest: the content-blind length heuristic
+dominates the always-Opus baseline, the hand-tuned regex class router,
+and the learned-style DLG-mk0 classifier simultaneously. Engineering a
+more sophisticated router bought strictly negative value here --- both
+smarter routers sit inside the frontier the length cutoff defines.
+
 \subsection{Scale replication ($N = 200$)}
 \label{sec:scale}
 

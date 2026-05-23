@@ -66,3 +66,13 @@
   method = "claude_cli"
   cmd    = "hexa run bench/economics_routing_n200.hexa"
   raw    = ".verdicts/economics-routing-savings/n200_summary.txt"
+
+@C er_dlg_4way := "4-way N=20: length 73.56% > class 71.28% > dlg 64.44% saving, all 20/20" :: empirical [slug=economics-routing-savings]
+  method = "claude_cli"
+  cmd    = "hexa run bench/economics_routing_dlg.hexa"
+  raw    = ".verdicts/economics-routing-savings/dlg_summary.txt"
+
+@C er_pareto := "length router is the SOLE Pareto-optimal point — baseline+class+dlg all dominated" :: derived [slug=economics-routing-savings]
+  method = "arithmetic"
+  cmd    = "dominance on (cost_usd, correct) across 4 strategies"
+  raw    = ".verdicts/economics-routing-savings/pareto.txt"

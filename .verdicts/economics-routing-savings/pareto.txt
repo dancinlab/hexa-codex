@@ -1,0 +1,22 @@
+SUPPORTED-NUMERICAL — accuracy-cost Pareto analysis (N=20, authoritative cost_usd + correct).
+
+Per-strategy (total cost, total correct):
+  baseline  $0.31747  19/20
+  router    $0.08395  20/20   ← length cutoff
+  class     $0.09118  20/20   ← regex prompt-class
+  dlg       $0.11290  20/20   ← DLG-mk0 learned-style
+
+Dominance (X dominates Y iff cost_X <= cost_Y AND correct_X >= correct_Y, strict in one):
+  baseline  → DOMINATED by router (router cheaper AND more correct)
+  router    → PARETO-OPTIMAL (sole non-dominated point)
+  class     → DOMINATED by router (router cheaper, same accuracy)
+  dlg       → DOMINATED by router (router cheaper, same accuracy)
+
+Finding: there is NO accuracy-cost trade-off on this manifest. The simplest
+content-blind length cutoff strictly Pareto-dominates the always-opus
+baseline AND both "smarter" routers. Spending more (class regex engineering,
+DLG learned classifier) buys nothing here — they sit strictly inside the
+frontier. Only cost_usd + correct are used (per-task token/model columns are
+unreliable under claude --bare -p, see paper limitations).
+
+Reproducible from .verdicts/economics-routing-savings/{baseline,router,class,dlg}.tsv

@@ -39,6 +39,10 @@
   do   = "every paper section claim links to its .verdicts/<slug>/<id>.txt formal-blue verdict"
   dont = "ship paper with any unresolved residual section · treat verdict matrix as optional"
 
+@D cx_paper_violation := "violating paper immediately revoked" :: workflow [required active]
+  do   = "violating paper (cx_paper_gate / significance fail) revoked immediately — PAPER/<slug>/ removed"
+  dont = "keep violating paper as draft · mark WIP · defer revocation · allow gate-failure residual"
+
 @D cx_discovery := "each verify cycle pairs with a discovery round" :: workflow [required active]
   do   = "verify cycle paired with `/kick` or `/gap` round — new candidates feed next CLAIMS.tape"
   dont = "stop the cycle after verification · skip discovery · treat audit-only as the whole loop"

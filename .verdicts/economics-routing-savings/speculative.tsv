@@ -58,3 +58,4 @@ spec_v_opus	16	claude-haiku-4-5-20251001	0.003542	2028	197	claude-haiku-4-5-2025
 spec_v_opus	17	claude-haiku-4-5-20251001	0.014948	10177	848	claude-haiku-4-5-20251001	0.034229	8	281	true	0.049177	1	Done! I've created `fibonacci.py` with a memoized Fibonacci function using `func
 spec_v_opus	18	claude-haiku-4-5-20251001	0.003476	2030	183	claude-haiku-4-5-20251001	0.0167737	6	10	true	0.0202497	1	Binary 1101 to decimal: **8 + 4 + 1 = 13**
 spec_v_opus	19	claude-haiku-4-5-20251001	0.003646	2042	215	claude-haiku-4-5-20251001	0.0169663	6	10	true	0.0206123	1	Mergesort divides the array into halves recursively (log n levels), and each lev
+spec_v_opus	20	claude-haiku-4-5-20251001	0.003424	2036	174	claude-haiku-4-5-20251001	0.016813	6	10	true	0.020237	1	The Halting Problem is the question of whether a given computer program will eve

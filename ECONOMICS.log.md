@@ -6,37 +6,37 @@
 
 ---
 
-## 2026-05-23 — speculative-draft hybrid — dominated (PARTIAL, robust by monotonicity)
+## 2026-05-23 — speculative-draft hybrid — dominated across all strategies
 
 Resolved the `d_speculative_draft` candidate (cycle-2). Architecture:
 two-pass dispatch where haiku writes a draft and a verifier tier
 (sonnet or opus) emits either `VERIFIED` or a rewrite.
 `bench/economics_routing_speculative.hexa` ran 3 strategies on the
-canonical 20-task manifest. The agent timed out at strategy 2 task
-17 (the "Write Python Fibonacci" verify pass — long output blew the
-wall-clock budget); strategy 3 (`spec_v_opus`) never started.
+canonical 20-task manifest (full 20 × 3 sweep now complete):
 
-| strategy                | cost (USD) | correct       | saving      |
-|:------------------------|-----------:|:--------------|------------:|
-| baseline (opus)         | 0.28078    | 18/20         |  0.00%      |
-| 2-tier (length2 ref)    | 0.05817    | 20/20         |  **81.79%** |
-| `draft_only` (haiku)    | 0.06393    | 20/20         |  77.23%     |
-| `spec_v_sonnet` (17/20) | 0.13902    | 19/20 partial |  50.49%     |
-| `spec_v_opus`           | —          | —             |  —          |
+| strategy             | cost (USD) | correct | saving      |
+|:---------------------|-----------:|:-------:|------------:|
+| baseline (opus)      | 0.28404    | 19/20   |  0.00%      |
+| 2-tier (length2 ref) | 0.05817    | 20/20   |  **79.52%** |
+| `draft_only` (haiku) | 0.06393    | 20/20   |  77.49%     |
+| `spec_v_sonnet`      | 0.13902    | 19/20   |  51.06%     |
+| `spec_v_opus`        | 0.41889    | 20/20   | **−47.47%** |
 
-**Verdict: dead.** Even on the partial evidence the architecture is
-dominated. `draft_only` (haiku alone) already costs **more** than the
-2-tier canonical because haiku is verbose on this manifest (cycle-1
-`d_two_tier_ablation` established this — `fib` task 779 out_tok @
-haiku vs sonnet's concise output). `spec_v_sonnet` pays a second call
-on top of the draft, so at 17/20 tasks it is already $0.139 — 2.4×
-`draft_only` — at 19/20 accuracy (the verify pass also failed to
-correct one draft miss). `spec_v_opus` would be strictly more
-expensive than `spec_v_sonnet` at parity workload (opus $/token >
-sonnet), so by monotonicity the partial evidence is decisive — no
-opus completion is needed to rule the architecture out. Discovery
-tape: `d_speculative_draft` candidate → dead [partial=true]; summary
-footer now reads `4 confirmed · 8 dead · 5 next-batch candidates`.
+**Verdict: dead — dominated on every strategy.** `draft_only` (haiku
+alone) already costs **more** than the 2-tier canonical because
+haiku is verbose on this manifest (cycle-1 `d_two_tier_ablation`
+established this — `fib` task 779 out_tok @ haiku vs sonnet's
+concise output). `spec_v_sonnet` adds a second call on top of the
+draft → 2.4× `draft_only` at 19/20 (the verify pass also failed to
+catch one draft miss). `spec_v_opus` achieves 20/20 but at $0.41889
+— **more expensive than the always-opus baseline** (saving =
+−47.47%): running opus on every prompt as a verifier is strictly
+worse than running opus once directly. `verified_rate` was 100% for
+both verify variants — haiku draft was always accepted, so the
+verify pass is pure overhead with no rewrite-driven accuracy
+recovery. No axis where speculative architecture wins. Discovery
+tape: `d_speculative_draft` candidate → dead; summary footer reads
+`4 confirmed · 8 dead · 5 next-batch candidates`.
 
 ## 2026-05-23 — Pareto $/task lower bound — closed-form floor at 82.22%, canonical 2-tier within 0.44pp
 

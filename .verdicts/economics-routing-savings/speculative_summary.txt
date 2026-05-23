@@ -1,18 +1,17 @@
-strategy	cost_usd	correct	total	saving_pct
-baseline	0.28078	18	20	0.0
-2tier_ref	0.058171	20	20	81.79
-draft_only	0.063930	20	20	77.23
-spec_v_sonnet	0.139021	19	17	50.49
-spec_v_opus	-	-	0	-
-# baseline_cost_usd=0.28078
-# 2tier_canonical_saving_pct_ref=81.79
-# draft_only_saving_pct=77.23
-# spec_v_sonnet_saving_pct=50.49
-# spec_v_sonnet_full_2020=false  (partial: 19/20 on 17/20 tasks completed)
-# spec_v_opus_run=false  (agent terminated before strategy 3 began)
-# best_strategy=draft_only  (only complete 20/20 strategy in this run)
-# best_saving_pct=77.23
-# beats_2tier_canonical=false  (77.23% < 81.79%, Δ=-4.56pp)
-# completion_status=PARTIAL
-# partial_reason=agent timeout during strategy 2 (spec_v_sonnet) at task 17 — the "Write Python Fibonacci" task triggered a long verify pass; strategy 3 (spec_v_opus) never ran
-# verdict_robust=true  (spec_v_opus would be strictly MORE expensive than spec_v_sonnet given opus pricing > sonnet pricing on identical workload, so the partial evidence already falsifies the hypothesis that any speculative-draft strategy beats 2-tier)
+strategy	draft_model	verify_model	cost_usd	correct	total	verified_count	saving_pct
+baseline	-	-	0.284042	19	20	-	0.0
+length2_ref	-	sonnet/opus	0.0581707	20	20	-	79.5204
+draft_only	haiku	none	0.06393	20	20	0	77.4928
+spec_v_sonnet	haiku	sonnet	0.139021	19	20	20	51.0562
+spec_v_opus	haiku	opus	0.418888	20	20	20	-47.4737
+# baseline_cost_usd=0.284042
+# length2_ref_saving_pct=79.5204
+# best_strategy=draft_only
+# best_saving_pct=77.4928
+# best_correct=20/20
+# best_cost_usd=0.06393
+# verified_rate_spec_v_sonnet_pct=100.0
+# verified_rate_spec_v_opus_pct=100.0
+# verified_rate_haiku_draft=100.0
+# best_full_2020=true
+# beats_2tier_canonical=false

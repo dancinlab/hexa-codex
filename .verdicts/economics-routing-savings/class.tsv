@@ -1,0 +1,21 @@
+task_idx	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
+1	claude-haiku-4-5-20251001	0.002807	2281	1963	68	1	4
+2	claude-haiku-4-5-20251001	0.002705	1203	1957	48	1	Paris
+3	claude-haiku-4-5-20251001	0.0028710000000000003	1540	1965	79	1	olleh
+4	claude-haiku-4-5-20251001	0.002773	1343	1961	60	1	49
+5	claude-haiku-4-5-20251001	0.002919	1602	1964	85	1	11
+6	claude-haiku-4-5-20251001	0.002306	1925	1961	69	1	2
+7	claude-haiku-4-5-20251001	0.0032579999999999996	2224	1961	159	1	7
+8	claude-haiku-4-5-20251001	0.002899	1661	1969	80	1	100
+9	claude-haiku-4-5-20251001	0.0022800000000000003	1175	1965	63	1	65
+10	claude-haiku-4-5-20251001	0.003237	1904	1963	150	1	29
+11	claude-haiku-4-5-20251001	0.00381205	1495	3	19	1	```python print(sum(range(1, 101))) ```
+12	claude-haiku-4-5-20251001	0.00259365	1424	3	8	1	O(log n)
+13	claude-haiku-4-5-20251001	0.0026429	1488	3	10	1	`lst[::-1]`
+14	claude-sonnet-4-6	0.0021159	1450	3	10	0	{1,2,3}
+15	claude-haiku-4-5-20251001	0.0033936500000000002	2634	3	61	1	**TCP** (Transmission Control Protocol) is connection-oriented, establishing a r
+16	claude-haiku-4-5-20251001	0.004523650000000001	3637	3	136	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+17	claude-haiku-4-5-20251001	0.025947150000000002	20306	7	1045	1	Working perfectly. Here's a walkthrough of [`fibonacci.py`](/Users/ghost/core/he
+18	claude-haiku-4-5-20251001	0.01617975	2703	6	37	1	1101₂ = 1×8 + 1×4 + 0×2 + 1×1 = 13
+19	claude-haiku-4-5-20251001	0.0038224	2912	3	88	1	Mergesort splits the array in half at each of **log n** levels of recursion, and
+20	claude-haiku-4-5-20251001	0.0035489	2641	3	72	1	The halting problem is the proven-undecidable question of whether a given progra

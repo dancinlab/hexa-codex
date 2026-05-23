@@ -1,21 +1,21 @@
 task_idx	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
-1	claude-haiku-4-5-20251001	0.0018185000000000002	1725	6	6	1	4
-2	claude-opus-4-7	0.014342500000000001	1735	6	7	1	Paris
-3	claude-haiku-4-5-20251001	0.014940999999999998	1728	6	7	1	olleh
-4	claude-haiku-4-5-20251001	0.014860749999999999	1703	6	6	1	49
-5	claude-haiku-4-5-20251001	0.014903749999999999	1791	6	6	1	11
-6	claude-haiku-4-5-20251001	0.014868250000000001	2645	6	6	1	2
-7	claude-haiku-4-5-20251001	0.014849499999999998	1713	6	6	1	7
-8	claude-haiku-4-5-20251001	0.014947499999999999	1726	6	6	1	100
-9	claude-haiku-4-5-20251001	0.01491975	2176	6	6	1	65
-10	claude-haiku-4-5-20251001	0.01489025	2340	6	6	1	29
-11	claude-haiku-4-5-20251001	0.01539975	3927	6	23	1	```python print(sum(range(1, 101))) ```
-12	claude-haiku-4-5-20251001	0.014974000000000001	1813	6	9	1	O(log n)
-13	claude-haiku-4-5-20251001	0.015113249999999998	1886	6	13	1	`lst[::-1]`
-14	claude-haiku-4-5-20251001	0.01504075	1815	6	11	0	{1,2,3}
-15	claude-haiku-4-5-20251001	0.016519	2876	6	70	1	TCP is the connection-oriented protocol, establishing a reliable session via han
-16	claude-haiku-4-5-20251001	0.017084000000000002	3065	6	93	1	BFS (Breadth-First Search) explores a graph level by level, visiting all neighbo
-17	claude-haiku-4-5-20251001	0.02237975	5373	6	304	1	```python from functools import cache  @cache def fib(n: int) -> int:     if n <
-18	claude-haiku-4-5-20251001	0.015523499999999999	5059	6	30	1	1·8 + 1·4 + 0·2 + 1·1 = 13
-19	claude-haiku-4-5-20251001	0.01617275	2462	6	56	1	Mergesort recursively halves the input into O(log n) levels of recursion, and me
-20	claude-haiku-4-5-20251001	0.016398000000000003	2712	6	67	1	The halting problem is the task of deciding, for an arbitrary program and input,
+1	claude-opus-4-7	0.0150925	2017	6	6	1	4
+2	claude-haiku-4-5-20251001	0.01557175	2064	6	7	1	Paris
+3	claude-haiku-4-5-20251001	0.015672250000000002	1793	6	7	1	olleh
+4	claude-haiku-4-5-20251001	0.015591999999999998	3349	6	6	1	49
+5	claude-haiku-4-5-20251001	0.015635	1805	6	6	1	11
+6	claude-haiku-4-5-20251001	0.0155995	1761	6	6	1	2
+7	claude-haiku-4-5-20251001	0.01558075	1755	6	6	1	7
+8	claude-haiku-4-5-20251001	0.015078749999999998	1722	6	6	1	100
+9	claude-haiku-4-5-20251001	0.015056	1645	6	6	1	65
+10	claude-haiku-4-5-20251001	0.015016499999999999	2677	6	6	1	29
+11	claude-haiku-4-5-20251001	0.015505999999999999	1812	6	23	1	```python print(sum(range(1, 101))) ```
+12	claude-haiku-4-5-20251001	0.01510525	1797	6	9	1	O(log n)
+13	claude-haiku-4-5-20251001	0.0152445	1824	6	13	1	`lst[::-1]`
+14	claude-haiku-4-5-20251001	0.015172	1661	6	11	0	{1,2,3}
+15	claude-haiku-4-5-20251001	0.01685525	2835	6	78	1	TCP is the connection-oriented protocol — it establishes a reliable, ordered s
+16	claude-haiku-4-5-20251001	0.017160250000000002	3003	6	91	1	BFS (Breadth-First Search) explores a graph level by level, visiting all neighbo
+17	claude-haiku-4-5-20251001	0.020661	4642	6	230	1	```python from functools import cache  @cache def fib(n: int) -> int:     if n <
+18	claude-haiku-4-5-20251001	0.01565475	1945	6	30	1	1×8 + 1×4 + 0×2 + 1×1 = 13
+19	claude-haiku-4-5-20251001	0.016584	2566	6	67	1	Mergesort is O(n log n) because it recursively splits the array in half (creatin
+20	claude-haiku-4-5-20251001	0.016529250000000002	3024	6	67	1	The halting problem is the task of deciding, given an arbitrary program and inpu

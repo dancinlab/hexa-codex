@@ -1,0 +1,7 @@
+strategy	cost_usd	duration_ms	correct	total
+baseline	0.318367	45697	19	20
+router	0.0824675	56265	20	20
+class	0.096635	57548	19	20
+# router_savings_pct=74.0967
+# class_savings_pct=69.6467
+# class_minus_router_pp=-4.45005

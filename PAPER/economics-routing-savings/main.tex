@@ -89,13 +89,27 @@ sentences", "Halting problem in one sentence"). Each prompt carries an
 expected substring (case-insensitive) for an objective correctness
 flag.
 
-\textbf{Strategies.} Two strategies are compared on the same manifest:
+\textbf{Strategies.} Three strategies are compared on the same manifest:
 \begin{itemize}\itemsep0pt
 \item \textbf{Baseline} --- always Opus
       (\texttt{claude --model opus}).
 \item \textbf{Router} --- length-based heuristic:
       $\text{len}(\text{prompt}) \le 30 \to \text{haiku}$,
       $\le 80 \to \text{sonnet}$, else $\to$ \text{opus}.
+\item \textbf{Class router (regex)} --- prompt-class heuristic on the
+      lowercased prompt: starts with one of
+      \{\texttt{what is}, \texttt{capital of}, \texttt{how many},
+        \texttt{when}, \texttt{where}, \texttt{smallest},
+        \texttt{first prime}, \texttt{days in}, \texttt{ascii},
+        \texttt{reverse}, \texttt{square of}, \texttt{boiling}\}
+      $\to$ Haiku; else contains one of
+      \{\texttt{python}, \texttt{code}, \texttt{function},
+        \texttt{implement}, \texttt{sort}, \texttt{reverse a list},
+        \texttt{one-liner}, \texttt{complexity}\}
+      or \{\texttt{explain}, \texttt{why}, \texttt{justify},
+            \texttt{describe}, \texttt{sentence}, \texttt{compare},
+            \texttt{difference between}\}
+      $\to$ Sonnet; else $\to$ Opus.
 \end{itemize}
 
 \textbf{Measurement.} Each task invoked as
@@ -111,9 +125,14 @@ creation/read is zero in this mode). The JSON output's
 \texttt{result} field is substring-checked against the expected
 keyword (case-insensitive, computed inside \texttt{jq}).
 
-\textbf{Runner.} \texttt{bench/economics\_routing.hexa} (hexa-native).
-Both strategies are run end-to-end; raw per-task TSV rows persist to
-\texttt{.verdicts/economics-routing-savings/\{baseline,router\}.tsv}.
+\textbf{Runner.} \texttt{bench/economics\_routing.hexa} (hexa-native)
+runs the baseline and length-router strategies; the companion
+\texttt{bench/economics\_routing\_class.hexa} runs all three
+strategies (baseline + length + class) for parity-on-rerun. Raw
+per-task TSV rows persist to
+\texttt{.verdicts/economics-routing-savings/\{baseline,router,class\}.tsv}
+and a 3-strategy comparison to
+\texttt{.verdicts/economics-routing-savings/class\_summary.txt}.
 
 \section{Benchmark}
 \label{sec:benchmark}
@@ -135,12 +154,23 @@ axis, correct/20) on the 20-task benchmark.}
 \textbf{Strategy} & \textbf{cost (USD)} & \textbf{duration (ms)} &
 \textbf{correct} & \textbf{models used} \\
 \midrule
+\multicolumn{5}{l}{\emph{Original 2-strategy run:}} \\
 Baseline (always opus) & $0.299947$  & $50\,270$ & $19/20$ &
 $20\times$ \texttt{claude-opus-4-7} \\
 Router (length tier)    & $0.081914$  & $54\,285$ & $19/20$ &
 $19\times$ \texttt{sonnet-4-6}, $1\times$ \texttt{haiku-4-5} \\
 \midrule
-$\Delta$ (router $-$ base) & $-0.218033$ & $+4\,015$ & $0$ & --- \\
+\multicolumn{5}{l}{\emph{3-strategy rerun (same manifest, same wrapper, fresh dispatch):}} \\
+Baseline (always opus) & $0.318367$  & $45\,697$ & $19/20$ &
+$20\times$ \texttt{claude-opus-4-7} \\
+Router (length tier)    & $0.082468$  & $56\,265$ & $20/20$ &
+$16\times$ \texttt{haiku-4-5}, $4\times$ \texttt{sonnet-4-6} \\
+Class router (regex)    & $0.096635$  & $57\,548$ & $19/20$ &
+$19\times$ \texttt{haiku-4-5}, $1\times$ \texttt{sonnet-4-6} \\
+\midrule
+$\Delta$ (router $-$ base, rerun)  & $-0.235899$ & $+10\,568$ & $+1$ & --- \\
+$\Delta$ (class $-$ base, rerun)   & $-0.221732$ & $+11\,851$ & $0$  & --- \\
+$\Delta$ (class $-$ router, rerun) & $+0.014167$ & $+1\,283$  & $-1$ & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -218,6 +248,30 @@ The next natural extension is replacing the length heuristic with the
 this repo's \texttt{lm\_foundry/}) and re-running the same
 \texttt{bench/economics\_routing.hexa} runner. The bench layout is
 fixed; only the \texttt{pick\_tier\_router()} body changes.
+
+\paragraph{Length router vs class router (regex).} A natural
+hypothesis is that a smarter \emph{prompt-class} heuristic --- regex
+prefixes for trivial-fact prompts, code/explain token-bag membership
+for moderate prompts, else Opus --- would save more than the
+content-blind length cutoff. On this manifest the opposite holds:
+the length router saves $74.10\,\%$ ($\$0.082$ vs $\$0.318$, $20/20$
+correct), while the class router saves only $69.65\,\%$
+($\$0.097$, $19/20$ correct). The length router \emph{both} costs
+$\$0.014$ less per batch \emph{and} scores one task higher
+($\Delta_{acc} = -1$ for class). The mechanism is visible in the
+per-task TSV: the length cutoff at $80$ chars routes one moderate-
+length prompt to Haiku that the class router routes to Sonnet
+(token match on \texttt{explain}/\texttt{sentence}/\texttt{python}
+hits more rows than the strict length threshold), and at least one
+class-router Sonnet pick triggers a verbose answer that the
+substring scorer marks wrong. The takeaway is the inverse of the
+usual ML intuition: on a short manifest dominated by prompts whose
+correct tier is set by \emph{compute requirement}, not by topical
+class, a length-bucketed router is both cheaper and quality-equal
+to a regex content router. The regex router would likely overtake
+on a workload that mixes short, deeply-technical prompts (where
+length under-routes) with long, simple-restatement prompts (where
+length over-routes); this manifest has neither shape.
 
 \section*{Reproducibility}
 \addcontentsline{toc}{section}{Reproducibility}

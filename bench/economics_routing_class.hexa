@@ -1,0 +1,272 @@
+#!hexa strict
+// bench/economics_routing_class.hexa — Claude Code CLI prompt-class routing benchmark.
+//
+// Three strategies on a 20-task fixed manifest:
+//   baseline : every task → claude --bare -p --model opus (always-opus)
+//   router   : every task → tier picked by prompt-length heuristic
+//                 len <=  30  → haiku
+//                 len <=  80  → sonnet
+//                 else        → opus
+//   class    : every task → tier picked by regex-based prompt-class heuristic
+//                 starts with /^(what is|capital of|how many|when|where|
+//                              smallest|first prime|days in|ascii|reverse|
+//                              square of|boiling)/i           → haiku
+//                 contains  /(python|code|function|implement|sort|
+//                              reverse a list|one-liner|complexity)/i → sonnet
+//                 contains  /(explain|why|justify|describe|sentence|
+//                              compare|difference between)/i → sonnet
+//                 else                                       → opus
+//
+// Each call captured via `--output-format json` — fields used:
+//   total_cost_usd · duration_ms · result · usage.{input,output,cache}_tokens
+//
+// Per task, correctness = expected_kw substring present (case-insensitive)
+// in result string.
+//
+// Output JSON tail per task to .verdicts/economics-routing-savings/<id>.tsv
+// and class_summary.txt with the 3-strategy comparison.
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_class.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+
+// 20-task fixed manifest — identical to bench/economics_routing.hexa for parity.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn pick_tier_router(prompt: str) -> str {
+    let n = prompt.len()
+    if n <= 30 { return "haiku" }
+    if n <= 80 { return "sonnet" }
+    return "opus"
+}
+
+fn pick_tier_baseline(prompt: str) -> str {
+    return "opus"
+}
+
+// Regex-based prompt-class router.
+//   Lowercase the prompt, then test:
+//     1) starts_with any of the trivial-fact prefixes → haiku
+//     2) contains any of the code-task tokens         → sonnet
+//     3) contains any of the explain-task tokens      → sonnet
+//     4) else                                          → opus
+fn pick_tier_class(prompt: str) -> str {
+    let p = prompt.to_lower()
+
+    // (1) trivial-fact prefixes — /^(what is|capital of|how many|when|where|
+    //                              smallest|first prime|days in|ascii|reverse|
+    //                              square of|boiling)/i
+    let trivial_prefixes = [
+        "what is", "capital of", "how many", "when", "where",
+        "smallest", "first prime", "days in", "ascii", "reverse",
+        "square of", "boiling",
+    ]
+    let mut i = 0
+    while i < len(trivial_prefixes) {
+        if p.starts_with(trivial_prefixes[i]) { return "haiku" }
+        i = i + 1
+    }
+
+    // (2) code-task tokens — /(python|code|function|implement|sort|
+    //                          reverse a list|one-liner|complexity)/i
+    let code_tokens = [
+        "python", "code", "function", "implement", "sort",
+        "reverse a list", "one-liner", "complexity",
+    ]
+    i = 0
+    while i < len(code_tokens) {
+        if p.contains(code_tokens[i]) { return "sonnet" }
+        i = i + 1
+    }
+
+    // (3) explain-task tokens — /(explain|why|justify|describe|sentence|
+    //                              compare|difference between)/i
+    let explain_tokens = [
+        "explain", "why", "justify", "describe", "sentence",
+        "compare", "difference between",
+    ]
+    i = 0
+    while i < len(explain_tokens) {
+        if p.contains(explain_tokens[i]) { return "sonnet" }
+        i = i + 1
+    }
+
+    return "opus"
+}
+
+// Run one task. Returns 7 tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t output_tokens \t result_snippet \t model \t correct(1|0)
+fn run_one(prompt: str, model: str, expected_kw: str) -> str {
+    let cmd = "claude --bare -p --output-format json --model " + model + " " + shq(prompt) +
+              " 2>/dev/null | jq -r --arg kw " + shq(expected_kw) +
+              " '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, .usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0]), " +
+              "((.result // \"\") | ascii_downcase | contains($kw | ascii_downcase) | " +
+              "if . then \"1\" else \"0\" end)" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+// Run a strategy across all tasks. Append per-task rows to a verdict file.
+// strategy_mode: "baseline" | "router" | "class"
+// Returns "total_cost\ttotal_ms\tn_correct\tn_total".
+fn run_strategy(name: str, strategy_mode: str) -> str {
+    let path = OUT_DIR + "/" + name + ".tsv"
+    exec("rm -f " + shq(path))
+    exec("mkdir -p " + shq(OUT_DIR))
+    exec("echo 'task_idx\tmodel\tcost_usd\tduration_ms\tinput_tokens\toutput_tokens\tcorrect\tresult_snippet' >> " + shq(path))
+
+    let mut total_cost = 0.0
+    let mut total_ms   = 0
+    let mut n_correct  = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let prompt = task[0]
+        let expected = task[1]
+        let mut model = "opus"
+        if strategy_mode == "baseline" { model = pick_tier_baseline(prompt) }
+        if strategy_mode == "router"   { model = pick_tier_router(prompt) }
+        if strategy_mode == "class"    { model = pick_tier_class(prompt) }
+        println("  [" + name + " " + str(i+1) + "/" + str(len(TASKS)) + "] model=" + model + " prompt=" + prompt.substr(0, 50))
+        let line = run_one(prompt, model, expected)
+        let parts = line.split("\t")
+        if parts.len() < 7 {
+            println("    ! parse error, raw=" + line)
+            i = i + 1
+            continue
+        }
+        let cost = to_float(parts[0])
+        let ms   = int(parts[1])
+        let in_t = parts[2]
+        let out_t = parts[3]
+        let result_snippet = parts[4].replace("\t", " ").replace("\n", " ")
+        let model_used = parts[5]
+        let correct = parts[6]
+        total_cost = total_cost + cost
+        total_ms = total_ms + ms
+        if correct == "1" { n_correct = n_correct + 1 }
+        let row = str(i+1) + "\t" + model_used + "\t" + parts[0] + "\t" + parts[1] + "\t" +
+                  in_t + "\t" + out_t + "\t" + correct + "\t" + result_snippet.substr(0, 80)
+        exec("echo " + shq(row) + " >> " + shq(path))
+        i = i + 1
+    }
+    return to_string(total_cost) + "\t" + str(total_ms) + "\t" + str(n_correct) + "\t" + str(len(TASKS))
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_class — Claude Code CLI prompt-class routing")
+    println("  manifest: 20 tasks · 3 strategies (baseline · length-router · class-router)")
+    println("  output:   " + OUT_DIR + "/{baseline,router,class}.tsv")
+    println("========================================================================")
+
+    println("")
+    println("─── baseline strategy (always opus) ───")
+    let b = run_strategy("baseline", "baseline")
+    let bp = b.split("\t")
+    let b_cost = to_float(bp[0])
+    let b_ms   = int(bp[1])
+    let b_acc  = int(bp[2])
+
+    println("")
+    println("─── router strategy (length-heuristic) ───")
+    let r = run_strategy("router", "router")
+    let rp = r.split("\t")
+    let r_cost = to_float(rp[0])
+    let r_ms   = int(rp[1])
+    let r_acc  = int(rp[2])
+
+    println("")
+    println("─── class strategy (regex prompt-class) ───")
+    let c = run_strategy("class", "class")
+    let cp = c.split("\t")
+    let c_cost = to_float(cp[0])
+    let c_ms   = int(cp[1])
+    let c_acc  = int(cp[2])
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY (3 strategies)")
+    println("========================================================================")
+    println("  baseline (opus×20)     : cost=$" + to_string(b_cost) + "  ms=" + str(b_ms) + "  correct=" + str(b_acc) + "/20")
+    println("  router   (length tier) : cost=$" + to_string(r_cost) + "  ms=" + str(r_ms) + "  correct=" + str(r_acc) + "/20")
+    println("  class    (regex class) : cost=$" + to_string(c_cost) + "  ms=" + str(c_ms) + "  correct=" + str(c_acc) + "/20")
+
+    let r_saving = b_cost - r_cost
+    let r_saving_pct = if b_cost > 0.0 { (r_saving / b_cost) * 100.0 } else { 0.0 }
+    let c_saving = b_cost - c_cost
+    let c_saving_pct = if b_cost > 0.0 { (c_saving / b_cost) * 100.0 } else { 0.0 }
+
+    println("")
+    println("  router   savings : $" + to_string(r_saving) + " (" + to_string(r_saving_pct) + "% of baseline) · acc Δ=" + str(r_acc - b_acc))
+    println("  class    savings : $" + to_string(c_saving) + " (" + to_string(c_saving_pct) + "% of baseline) · acc Δ=" + str(c_acc - b_acc))
+
+    let delta_cost = r_cost - c_cost
+    let delta_pct  = r_saving_pct - c_saving_pct  // (note: positive = class saves more vs baseline by less; want sign of c_saving_pct - r_saving_pct for "class beats router")
+    let class_minus_router_savings_pct = c_saving_pct - r_saving_pct
+    println("  class − router savings Δ : " + to_string(class_minus_router_savings_pct) + " pp (positive = class saves more)")
+
+    // Persist class summary
+    let summary_path = OUT_DIR + "/class_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    let header = "strategy\tcost_usd\tduration_ms\tcorrect\ttotal"
+    exec("echo " + shq(header) + " >> " + shq(summary_path))
+    exec("echo " + shq("baseline\t" + to_string(b_cost) + "\t" + str(b_ms) + "\t" + str(b_acc) + "\t20") + " >> " + shq(summary_path))
+    exec("echo " + shq("router\t"   + to_string(r_cost) + "\t" + str(r_ms) + "\t" + str(r_acc) + "\t20") + " >> " + shq(summary_path))
+    exec("echo " + shq("class\t"    + to_string(c_cost) + "\t" + str(c_ms) + "\t" + str(c_acc) + "\t20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# router_savings_pct=" + to_string(r_saving_pct)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# class_savings_pct="  + to_string(c_saving_pct)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# class_minus_router_pp=" + to_string(class_minus_router_savings_pct)) + " >> " + shq(summary_path))
+
+    println("")
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_CLASS__ PASS")
+    exit(0)
+}

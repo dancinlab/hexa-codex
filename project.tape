@@ -19,10 +19,14 @@
   do   = "each CLAIMS.tape entry → `hexa verify` → `.verdicts/<slug>.tape` w/ raw stdout verbatim"
   dont = "LLM self-judge correctness · paraphrase verdicts · hide red / unfenced speculation"
 
-@D cx_paper_gate := "/paper scaffolding gated on verdict closure" :: workflow [required active]
-  do   = "`/paper new <slug>` only after verdict closed — see cx_paper_sections for tier split"
-  dont = "scaffold before verdict closure · ship paper with unverified headline claims"
+@D cx_empirical_contact := "T4 claims execute real train/infer/serve benchmark" :: workflow [required active]
+  do   = "T4 claims run lm_foundry train · hexa-eval infer · serving bench — metrics in .verdicts"
+  dont = "fence empirical claim · accept simulator-only output · skip T4 bench when claim is empirical"
 
-@D cx_paper_sections := "paper sections mirror verdict tiers" :: workflow [required active]
-  do   = "paper sections split by tier — §verified (atom/numeric) · §pending · §fenced"
-  dont = "merge tiers into one section · paraphrase verify CLI verdicts in paper prose"
+@D cx_paper_gate := "/paper scaffolding gated on 100% formal-blue" :: workflow [required active]
+  do   = "`/paper new <slug>` only when verdict 100% formal-blue — no other tier residual permitted"
+  dont = "scaffold w/ any non-blue verdict · numerical/citation/fenced/deferred/falsified all blocked"
+
+@D cx_paper_sections := "paper sections are all-verified" :: workflow [required active]
+  do   = "every paper section claim links to its .verdicts/<slug>/<id>.txt formal-blue verdict"
+  dont = "ship paper with any unresolved residual section · treat verdict matrix as optional"

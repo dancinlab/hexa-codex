@@ -1,0 +1,81 @@
+strategy	task_idx	routed_tier	suffix	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
+3tier_baseline	1	sonnet	none	claude-haiku-4-5-20251001	0.00369005	5281	3	5	1	4
+3tier_baseline	2	haiku	none	claude-haiku-4-5-20251001	0.002808	1615	2000	61	1	Paris
+3tier_baseline	3	sonnet	none	claude-haiku-4-5-20251001	0.00256615	1415	3	5	1	olleh
+3tier_baseline	4	sonnet	none	claude-haiku-4-5-20251001	0.00255215	5002	3	5	1	49
+3tier_baseline	5	sonnet	none	claude-haiku-4-5-20251001	0.0025841	1390	3	5	1	11
+3tier_baseline	6	sonnet	none	claude-haiku-4-5-20251001	0.00254985	2321	3	5	1	2
+3tier_baseline	7	sonnet	none	claude-haiku-4-5-20251001	0.00254985	1216	3	5	1	7
+3tier_baseline	8	sonnet	none	claude-sonnet-4-6	0.00315855	1045	3	5	1	100
+3tier_baseline	9	sonnet	none	claude-sonnet-4-6	0.00204645	1228	3	5	1	65
+3tier_baseline	10	sonnet	none	claude-haiku-4-5-20251001	0.00257295	1351	3	5	1	29
+3tier_baseline	11	sonnet	none	claude-haiku-4-5-20251001	0.0028262	1752	3	19	1	```python print(sum(range(1, 101))) ```
+3tier_baseline	12	sonnet	none	claude-haiku-4-5-20251001	0.0025979500000000003	1278	3	8	1	O(log n)
+3tier_baseline	13	sonnet	none	claude-haiku-4-5-20251001	0.0026522	1977	3	10	1	`lst[::-1]`
+3tier_baseline	14	sonnet	none	claude-haiku-4-5-20251001	0.0026572	1945	3	11	1	1, 2, 3
+3tier_baseline	15	sonnet	none	claude-haiku-4-5-20251001	0.00339295	2259	3	61	1	**TCP** (Transmission Control Protocol) is connection-oriented, establishing a r
+3tier_baseline	16	sonnet	none	claude-haiku-4-5-20251001	0.00451295	3317	3	135	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+3tier_baseline	17	sonnet	none	claude-haiku-4-5-20251001	0.018847799999999998	16292	6	747	1	Everything works. Here's a walkthrough of `fibonacci.py`:  ```python from functo
+3tier_baseline	18	sonnet	none	claude-haiku-4-5-20251001	0.010482600000000002	7304	4	418	1	## Binary `1101` → Decimal `13`  | Bit | Position | Value | |-----|----------|
+3tier_baseline	19	sonnet	none	claude-haiku-4-5-20251001	0.0037920999999999996	2085	3	85	1	Mergesort splits the array in half at each level of recursion (producing **log n
+3tier_baseline	20	sonnet	none	claude-haiku-4-5-20251001	0.0035186	2146	3	69	1	The halting problem is the proven-undecidable question of whether a general algo
+3tier_haiku_cap15	1	sonnet	none	claude-sonnet-4-6	0.0020443500000000003	1438	3	5	1	4
+3tier_haiku_cap15	2	haiku	Answer in <=15 tokens.	claude-haiku-4-5-20251001	0.0029000000000000002	1399	2014	75	1	Paris
+3tier_haiku_cap15	3	sonnet	none	claude-haiku-4-5-20251001	0.00256285	1337	3	5	1	olleh
+3tier_haiku_cap15	4	sonnet	none	claude-sonnet-4-6	0.00203685	1067	3	5	1	49
+3tier_haiku_cap15	5	sonnet	none	claude-sonnet-4-6	0.0020480999999999997	1075	3	5	1	11
+3tier_haiku_cap15	6	sonnet	none	claude-sonnet-4-6	0.00203685	1090	3	5	1	2
+3tier_haiku_cap15	7	sonnet	none	claude-haiku-4-5-20251001	0.0011278	1890	3	5	1	7
+3tier_haiku_cap15	8	sonnet	none	claude-sonnet-4-6	0.0006282	1240	3	5	1	100
+3tier_haiku_cap15	9	sonnet	none	claude-haiku-4-5-20251001	0.001153	1182	3	5	1	65
+3tier_haiku_cap15	10	sonnet	none	claude-haiku-4-5-20251001	0.0011504	1243	3	5	1	29
+3tier_haiku_cap15	11	sonnet	none	claude-sonnet-4-6	0.0008384999999999999	1306	3	19	1	```python print(sum(range(1, 101))) ```
+3tier_haiku_cap15	12	sonnet	none	claude-haiku-4-5-20251001	0.0011803999999999999	3203	3	8	1	O(log n)
+3tier_haiku_cap15	13	sonnet	none	claude-sonnet-4-6	0.0033797999999999996	1159	3	13	1	```python lst[::-1] ```
+3tier_haiku_cap15	14	sonnet	none	claude-sonnet-4-6	0.0021492	1289	3	11	1	1, 2, 3
+3tier_haiku_cap15	15	sonnet	none	claude-haiku-4-5-20251001	0.00339195	2289	3	60	1	**TCP** (Transmission Control Protocol) is connection-oriented, establishing a r
+3tier_haiku_cap15	16	sonnet	none	claude-haiku-4-5-20251001	0.00449695	3449	3	133	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+3tier_haiku_cap15	17	sonnet	none	claude-haiku-4-5-20251001	0.04455855	35143	8	1979	1	All correct. Here's a breakdown of the implementation:  ---  ### How it works  `
+3tier_haiku_cap15	18	sonnet	none	claude-haiku-4-5-20251001	0.0119715	8303	4	454	1	### Binary `1101` → Decimal `13`  ``` 1×2³  +  1×2²  +  0×2¹  +  1×2⁰
+3tier_haiku_cap15	19	sonnet	none	claude-haiku-4-5-20251001	0.0038068	3782	3	87	1	Mergesort splits the array in half **log n** times (the recursion depth), and at
+3tier_haiku_cap15	20	sonnet	none	claude-haiku-4-5-20251001	0.0035033	2616	3	69	1	The halting problem is the proven-undecidable question of whether a general algo
+3tier_haiku_cap30	1	sonnet	none	claude-haiku-4-5-20251001	0.00253805	2452	3	5	1	4
+3tier_haiku_cap30	2	haiku	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0028339999999999997	1688	1963	71	1	Paris
+3tier_haiku_cap30	3	sonnet	none	claude-haiku-4-5-20251001	0.00254755	1732	3	5	1	olleh
+3tier_haiku_cap30	4	sonnet	none	claude-haiku-4-5-20251001	0.0025335500000000003	2268	3	5	1	49
+3tier_haiku_cap30	5	sonnet	none	claude-haiku-4-5-20251001	0.0025628	1492	3	5	1	11
+3tier_haiku_cap30	6	sonnet	none	claude-haiku-4-5-20251001	0.0025335500000000003	1899	3	5	1	2
+3tier_haiku_cap30	7	sonnet	none	claude-haiku-4-5-20251001	0.0025285500000000005	1421	3	5	1	7
+3tier_haiku_cap30	8	sonnet	none	claude-sonnet-4-6	0.00205155	1509	3	5	1	100
+3tier_haiku_cap30	9	sonnet	none	claude-sonnet-4-6	0.00203655	1659	3	5	1	65
+3tier_haiku_cap30	10	sonnet	none	claude-haiku-4-5-20251001	0.0025530500000000003	1917	3	5	1	29
+3tier_haiku_cap30	11	sonnet	none	claude-haiku-4-5-20251001	0.0028263	1552	3	19	1	```python print(sum(range(1, 101))) ```
+3tier_haiku_cap30	12	sonnet	none	claude-haiku-4-5-20251001	0.0011700999999999999	1476	3	8	1	O(log n)
+3tier_haiku_cap30	13	sonnet	none	claude-haiku-4-5-20251001	0.0012140000000000002	1560	3	10	1	`lst[::-1]`
+3tier_haiku_cap30	14	sonnet	none	claude-haiku-4-5-20251001	0.001219	3433	3	11	1	1, 2, 3
+3tier_haiku_cap30	15	sonnet	none	claude-haiku-4-5-20251001	0.0019601	2758	3	60	1	**TCP** (Transmission Control Protocol) is connection-oriented, requiring a thre
+3tier_haiku_cap30	16	sonnet	none	claude-haiku-4-5-20251001	0.0030900999999999997	3516	3	135	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+3tier_haiku_cap30	17	sonnet	none	claude-haiku-4-5-20251001	0.02501785	21679	7	1026	1	Everything works. Here's a full walkthrough of `fibonacci.py`:  ---  ### `fibona
+3tier_haiku_cap30	18	sonnet	none	claude-haiku-4-5-20251001	0.00823215	7495	4	363	1	**1101₂ = 13₁₀**  ``` 1×2³ + 1×2² + 0×2¹ + 1×2⁰  =  8 + 4 + 0 + 1
+3tier_haiku_cap30	19	sonnet	none	claude-haiku-4-5-20251001	0.0024015999999999994	3170	3	89	1	Mergesort splits the array in half at each of **log n** levels of recursion, and
+3tier_haiku_cap30	20	sonnet	none	claude-haiku-4-5-20251001	0.0022088	3103	3	77	1	The **halting problem** is the proven-undecidable question of whether a general 
+3tier_global_cap30	1	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0025710499999999996	4486	3	5	1	4
+3tier_global_cap30	2	haiku	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.002779	1291	1963	60	1	Paris
+3tier_global_cap30	3	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.00258555	1541	3	5	1	olleh
+3tier_global_cap30	4	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.00257155	1984	3	5	1	49
+3tier_global_cap30	5	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0026008000000000003	1733	3	5	1	11
+3tier_global_cap30	6	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.00256655	1382	3	5	1	2
+3tier_global_cap30	7	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.00257655	1466	3	5	1	7
+3tier_global_cap30	8	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0026095499999999995	11506	3	5	1	100
+3tier_global_cap30	9	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.00260055	1328	3	5	1	65
+3tier_global_cap30	10	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0025910499999999997	1543	3	5	1	29
+3tier_global_cap30	11	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0028593000000000004	1625	3	19	1	```python print(sum(range(1, 101))) ```
+3tier_global_cap30	12	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0026210499999999998	1702	3	8	1	O(log n)
+3tier_global_cap30	13	sonnet	Answer in <=30 tokens.	claude-sonnet-4-6	0.0021453	1657	3	10	1	`lst[::-1]`
+3tier_global_cap30	14	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0027003	1856	3	12	1	{1, 2, 3}
+3tier_global_cap30	15	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.00289605	2210	3	26	1	TCP is connection-oriented (uses a handshake to establish a reliable connection)
+3tier_global_cap30	16	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.00367605	4172	3	77	0	BFS explores level by level using a queue; DFS dives deep along branches using a
+3tier_global_cap30	17	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.012216799999999998	10096	5	323	1	`fibonacci.py` already exists and is complete. Here's the core:  ```python from 
+3tier_global_cap30	18	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.00409055	2604	3	104	1	**1101₂ → 8 + 4 + 0 + 1 = 13₁₀**
+3tier_global_cap30	19	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0037098	3322	3	78	1	It splits the array into log n levels of halves, and each level requires O(n) to
+3tier_global_cap30	20	sonnet	Answer in <=30 tokens.	claude-haiku-4-5-20251001	0.0034963	2331	3	66	1	The halting problem is the undecidable question of whether a given program will 

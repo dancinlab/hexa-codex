@@ -1,0 +1,14 @@
+strategy	cost_usd	correct	total	output_tokens	haiku_dispatch	saving_pct
+baseline	0.284042	19	20	-	-	0.0
+2tier_canonical	0.0581707	20	20	-	0	81.7861
+3tier_baseline	0.0823587	20	20	1669	1	71.0048
+3tier_haiku_cap15	0.0969654	20	20	2953	1	65.8623
+3tier_haiku_cap30	0.0740592	20	20	1914	1	73.9267
+3tier_global_cap30	0.0664637	19	20	828	1	76.6008
+# baseline_cost_usd=0.284042
+# twotier_reference_saving_pct=81.7861
+# best_cap_strategy=3tier_haiku_cap30
+# best_saving_pct=73.9267
+# best_correct=20/20
+# best_full_2020=true
+# beats_2tier_canonical=false

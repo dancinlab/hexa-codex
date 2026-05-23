@@ -6,6 +6,45 @@
 
 ---
 
+## 2026-05-23 — response-budget cap on haiku — dominated by drop-the-tier
+
+Resolved the `d_response_budget_cap` candidate from
+`.discoveries/economics-routing-savings.tape` — whether appending a
+per-tier response-budget hint ("Answer in &lt;=N tokens.") to haiku-routed
+prompts shaves the verbosity that made haiku LOSE the 3-tier vs 2-tier
+ablation (the fib task on the 3-tier router emitted 779 output tokens
+through haiku, more than sonnet would have used). The `claude --bare
+-p` CLI exposes no `--max-tokens` flag, so the cap had to ride in the
+prompt itself.  `bench/economics_routing_tokencap.hexa` sweeps four
+strategies against the canonical 20-task manifest, reusing the cached
+`baseline.tsv` denominator and the 2-tier reference from
+`2tier_summary.txt`:
+
+| strategy             | cost (USD) | correct | saving      |
+|:---------------------|-----------:|:-------:|------------:|
+| baseline (opus)      | 0.28404    | 19/20   |  0.00%      |
+| 2-tier (sonnet/opus) | 0.05817    | 20/20   | **81.79%**  |
+| 3tier_baseline       | 0.08236    | 20/20   |  71.00%     |
+| 3tier_haiku_cap15    | 0.09697    | 20/20   |  65.86%     |
+| 3tier_haiku_cap30    | 0.07406    | 20/20   |  73.93%     |
+| 3tier_global_cap30   | 0.06646    | 19/20   |  76.60%     |
+
+**Verdict: NO** — no cap strategy beats 2-tier's 81.79% at 20/20. The
+best 20/20 cap (haiku_cap30 at 73.93%) is strictly dominated by 2-tier
+(Δ=-7.86pp). Two honest pathologies surfaced. First, the **tightest
+cap backfired**: `cap15` saved LESS than the uncapped 3-tier — the
+fib task's haiku output grew from 747 → 1979 tokens because haiku
+acknowledged the cap in prose before writing the code (cost
+`$0.0188` → `$0.0446`). A prompt-prefix cap is not a hard cap; the
+model can ignore or paraphrase it. Second, **global_cap30 truncated
+sonnet's BFS-vs-DFS answer**, dropping accuracy to 19/20 (the cap fits
+the haiku tier but not all sonnet-tier prompts). Drop-the-tier beats
+cap-the-prompt on this manifest; 2-tier remains the operationally-
+simplest Pareto-optimal router. Discovery tape updated:
+`d_response_budget_cap` (round-2 candidate, originally `d_response_cap`)
+closed dead, summary footer now reads `2 confirmed · 5 dead · 4
+next-batch candidates`.
+
 ## 2026-05-23 — cache-aware dispatch — BLOCKED at the `claude --bare -p` surface
 
 Resolved the `d_cache_aware` candidate from

@@ -1,0 +1,320 @@
+#!hexa strict
+// bench/economics_routing_tokencap.hexa — prompt-prefix response-budget cap.
+//
+// HYPOTHESIS (from 2tier_summary.txt): dropping haiku from the 3-tier length
+// router ADDED +6.59pp saving (75.20% → 81.79%, both 20/20). The reason was
+// NOT haiku's per-token price — it was haiku's *output volume* (e.g. the fib
+// task: 779 out_tok @ $0.0166). If we CAP haiku's verbosity by appending a
+// response-budget hint to the prompt (the `claude --bare -p` CLI does not
+// expose --max-tokens), can a 3-tier router with a capped haiku BEAT the
+// 2-tier router's 81.79% @ 20/20?
+//
+// Strategies on the same canonical 20-task manifest (parity with the
+// 2/3-tier and confgate benches):
+//   3tier_baseline       : 3-tier length router, NO suffix (reference)
+//   3tier_haiku_cap15    : 3-tier router, append " Answer in ≤15 tokens." to
+//                          every prompt that routes to haiku
+//   3tier_haiku_cap30    : same, ≤30 tokens cap
+//   3tier_global_cap30   : append cap to ALL prompts regardless of tier
+//                          (probes whether the cap is a free win across tiers)
+//
+// The cap suffix only modifies the prompt SENT to claude; the expected_kw
+// stays the same — correctness is unaffected if the cap is large enough to
+// fit the expected substring.
+//
+// Each call via `claude --bare -p --output-format json --model <tier>`.
+// Captured: total_cost_usd · duration_ms · usage.{input,output}_tokens · result.
+// Correctness = expected_kw substring present (case-insensitive) in result.
+//
+// Output:
+//   .verdicts/economics-routing-savings/tokencap.tsv          (per-task rows,
+//                                                              all strategies)
+//   .verdicts/economics-routing-savings/tokencap_summary.txt  (per-strategy
+//                                                              cost/saving/acc
+//                                                              + headline)
+//
+// COST NOTE: baseline (always-opus) is REUSED from
+// .verdicts/.../baseline.tsv — only the new strategies spend API budget.
+// 2-tier reference (81.79% @ 20/20) is reused from 2tier_summary.txt.
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_tokencap.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+
+// 20-task fixed manifest — identical to economics_routing_2tier.hexa for parity.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+// canonical 2-tier reference from 2tier_summary.txt (sonnet/opus, no haiku).
+let TWOTIER_COST   = 0.0581707
+let TWOTIER_ACC    = 20
+let TWOTIER_SAVING = 81.7861
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// 3-tier length router: <=30 haiku / <=80 sonnet / else opus.
+fn pick_tier_length3(prompt: str) -> str {
+    let n = prompt.len()
+    if n <= 30 { return "haiku" }
+    if n <= 80 { return "sonnet" }
+    return "opus"
+}
+
+// Build the prompt sent to the model — appends a response-budget suffix
+// based on the strategy + chosen tier.
+fn build_prompt(prompt: str, model: str, strategy: str) -> str {
+    if strategy == "3tier_baseline"     { return prompt }
+    if strategy == "3tier_haiku_cap15"  {
+        if model == "haiku" { return prompt + " Answer in <=15 tokens." }
+        return prompt
+    }
+    if strategy == "3tier_haiku_cap30"  {
+        if model == "haiku" { return prompt + " Answer in <=30 tokens." }
+        return prompt
+    }
+    if strategy == "3tier_global_cap30" { return prompt + " Answer in <=30 tokens." }
+    return prompt
+}
+
+// Run one task. Returns 7 tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t output_tokens \t result_snippet \t model \t correct(1|0)
+fn run_one(prompt: str, model: str, expected_kw: str) -> str {
+    let cmd = "claude --bare -p --output-format json --model " + model + " " + shq(prompt) +
+              " 2>/dev/null | jq -r --arg kw " + shq(expected_kw) +
+              " '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, .usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0]), " +
+              "((.result // \"\") | ascii_downcase | contains($kw | ascii_downcase) | " +
+              "if . then \"1\" else \"0\" end)" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+fn saving_pct(b_cost: float, x_cost: float) -> float {
+    if b_cost > 0.0 { return ((b_cost - x_cost) / b_cost) * 100.0 }
+    return 0.0
+}
+
+// Read cached baseline cost + correct count from baseline.tsv.
+// baseline.tsv columns: task_idx · model · cost_usd · duration_ms · input_tokens · output_tokens · correct · result_snippet
+// → cost = col 3, correct = col 7.
+fn read_baseline() -> str {
+    let path = OUT_DIR + "/baseline.tsv"
+    let exists = exec("test -f " + shq(path) + " && echo yes || echo no").trim()
+    if exists != "yes" { return "MISSING" }
+    let cost = exec("tail -n +2 " + shq(path) + " | awk -F'\\t' '{s+=$3} END{printf \"%.8f\", s}'").trim()
+    let cor  = exec("tail -n +2 " + shq(path) + " | awk -F'\\t' '$7==1{c++} END{printf \"%d\", c}'").trim()
+    return cost + "\t" + cor
+}
+
+// Run a strategy over all 20 tasks. Append rows to the shared tokencap.tsv.
+// Returns "total_cost\tn_correct\ttotal_out_tokens\tn_haiku_dispatch".
+fn run_strategy(strategy: str, path: str) -> str {
+    let mut total_cost = 0.0
+    let mut n_correct = 0
+    let mut total_out = 0
+    let mut n_haiku = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let prompt_raw = TASKS[i][0]
+        let expected = TASKS[i][1]
+        let tier = pick_tier_length3(prompt_raw)
+        if tier == "haiku" { n_haiku = n_haiku + 1 }
+        let sent_prompt = build_prompt(prompt_raw, tier, strategy)
+        let suffix_used = "none"
+        if sent_prompt.len() > prompt_raw.len() {
+            suffix_used = sent_prompt.substr(prompt_raw.len(), sent_prompt.len() - prompt_raw.len()).trim()
+        }
+        println("  [" + strategy + " " + str(i+1) + "/20] tier=" + tier + " suffix=" + suffix_used)
+        let line = run_one(sent_prompt, tier, expected)
+        let parts = line.split("\t")
+        if parts.len() < 7 {
+            println("    ! parse error, raw=" + line)
+            i = i + 1
+            continue
+        }
+        let cost   = to_float(parts[0])
+        let in_t   = parts[2]
+        let out_t  = parts[3]
+        let result = parts[4].replace("\t", " ").replace("\n", " ")
+        let model_used = parts[5]
+        let correct = parts[6]
+        total_cost = total_cost + cost
+        total_out  = total_out + int(out_t)
+        if correct == "1" { n_correct = n_correct + 1 }
+        let row = strategy + "\t" + str(i+1) + "\t" + tier + "\t" + suffix_used + "\t" +
+                  model_used + "\t" + parts[0] + "\t" + parts[1] + "\t" +
+                  in_t + "\t" + out_t + "\t" + correct + "\t" + result.substr(0, 80)
+        exec("echo " + shq(row) + " >> " + shq(path))
+        i = i + 1
+    }
+    return to_string(total_cost) + "\t" + str(n_correct) + "\t" + str(total_out) + "\t" + str(n_haiku)
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_tokencap — response-budget cap lever")
+    println("  manifest: 20 tasks · 4 strategies (3tier baseline + 2 haiku-caps + 1 global)")
+    println("  baseline (opus×20) REUSED from baseline.tsv")
+    println("  2-tier reference (81.79% @ 20/20) reused from 2tier_summary.txt")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+
+    // --- cached baseline ---
+    let b_raw = read_baseline()
+    if b_raw == "MISSING" {
+        println("  ! baseline.tsv cache MISSING — cannot compute savings baseline.")
+        exit(1)
+    }
+    let bp = b_raw.split("\t")
+    let b_cost = to_float(bp[0])
+    let b_acc  = int(bp[1])
+    println("")
+    println("  cached baseline : cost=$" + to_string(b_cost) + "  correct=" + str(b_acc) + "/20")
+    println("  2tier reference : cost=$" + to_string(TWOTIER_COST) + "  correct=" + str(TWOTIER_ACC) + "/20  saving=" + to_string(TWOTIER_SAVING) + "%")
+
+    // --- fresh per-task TSV ---
+    let path = OUT_DIR + "/tokencap.tsv"
+    exec("rm -f " + shq(path))
+    exec("echo 'strategy\ttask_idx\trouted_tier\tsuffix\tmodel\tcost_usd\tduration_ms\tinput_tokens\toutput_tokens\tcorrect\tresult_snippet' >> " + shq(path))
+
+    let STRATEGIES = ["3tier_baseline", "3tier_haiku_cap15", "3tier_haiku_cap30", "3tier_global_cap30"]
+
+    let mut s_cost = []
+    let mut s_acc  = []
+    let mut s_out  = []
+    let mut s_hai  = []
+    let mut k = 0
+    while k < len(STRATEGIES) {
+        println("")
+        println("─── " + STRATEGIES[k] + " ───")
+        let r = run_strategy(STRATEGIES[k], path)
+        let rp = r.split("\t")
+        let cost = to_float(rp[0])
+        let acc  = int(rp[1])
+        let out  = int(rp[2])
+        let hai  = int(rp[3])
+        s_cost = s_cost + [cost]
+        s_acc  = s_acc  + [acc]
+        s_out  = s_out  + [out]
+        s_hai  = s_hai  + [hai]
+        println("  " + STRATEGIES[k] + " : cost=$" + to_string(cost) + "  correct=" + str(acc) + "/20  out_tok=" + str(out) + "  haiku_dispatch=" + str(hai) + "  saving=" + to_string(saving_pct(b_cost, cost)) + "%")
+        k = k + 1
+    }
+
+    // --- summary + headline ---
+    let summary_path = OUT_DIR + "/tokencap_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("strategy\tcost_usd\tcorrect\ttotal\toutput_tokens\thaiku_dispatch\tsaving_pct") + " >> " + shq(summary_path))
+    exec("echo " + shq("baseline\t" + to_string(b_cost) + "\t" + str(b_acc) + "\t20\t-\t-\t0.0") + " >> " + shq(summary_path))
+    exec("echo " + shq("2tier_canonical\t" + to_string(TWOTIER_COST) + "\t" + str(TWOTIER_ACC) + "\t20\t-\t0\t" + to_string(TWOTIER_SAVING)) + " >> " + shq(summary_path))
+
+    let mut best_sav = -1.0e18
+    let mut best_idx = -1
+    k = 0
+    while k < len(STRATEGIES) {
+        let sav = saving_pct(b_cost, s_cost[k])
+        exec("echo " + shq(STRATEGIES[k] + "\t" + to_string(s_cost[k]) + "\t" + str(s_acc[k]) + "\t20\t" + str(s_out[k]) + "\t" + str(s_hai[k]) + "\t" + to_string(sav)) + " >> " + shq(summary_path))
+        // best = highest saving among strategies that hold 20/20.
+        if s_acc[k] >= 20 {
+            if sav > best_sav {
+                best_sav = sav
+                best_idx = k
+            }
+        }
+        k = k + 1
+    }
+
+    let mut any_full = true
+    if best_idx < 0 {
+        any_full = false
+        k = 0
+        while k < len(STRATEGIES) {
+            let sav = saving_pct(b_cost, s_cost[k])
+            if sav > best_sav {
+                best_sav = sav
+                best_idx = k
+            }
+            k = k + 1
+        }
+    }
+
+    let best_name = "(none)"
+    let mut best_acc = 0
+    let mut best_cost = 0.0
+    if best_idx >= 0 {
+        best_name = STRATEGIES[best_idx]
+        best_acc  = s_acc[best_idx]
+        best_cost = s_cost[best_idx]
+    }
+    let beats_2tier = best_sav > TWOTIER_SAVING && any_full
+
+    exec("echo " + shq("# baseline_cost_usd=" + to_string(b_cost)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# twotier_reference_saving_pct=" + to_string(TWOTIER_SAVING)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_cap_strategy=" + best_name) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_saving_pct=" + to_string(best_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_correct=" + str(best_acc) + "/20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_full_2020=" + str(any_full)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# beats_2tier_canonical=" + str(beats_2tier)) + " >> " + shq(summary_path))
+
+    println("")
+    println("========================================================================")
+    println("  HEADLINE")
+    println("========================================================================")
+    println("  2-tier reference (canonical) : " + to_string(TWOTIER_SAVING) + "%  @ 20/20")
+    println("  best cap strategy            : " + best_name + " — " + to_string(best_sav) + "%  @ " + str(best_acc) + "/20  (full 20/20=" + str(any_full) + ")")
+    println("  cap_best − 2tier             : " + to_string(best_sav - TWOTIER_SAVING) + " pp")
+    if beats_2tier {
+        println("  VERDICT: YES — response-budget-capped 3-tier BEATS 2-tier at full accuracy.")
+    } else {
+        println("  VERDICT: NO — response-budget cap does NOT beat 2-tier's saving at >=20/20.")
+    }
+    println("")
+    println("  per-task TSV : " + path)
+    println("  summary      : " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_TOKENCAP__ PASS")
+    exit(0)
+}

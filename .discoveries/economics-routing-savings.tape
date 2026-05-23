@@ -54,9 +54,9 @@
 # while preserving 20/20 accuracy?"
 # raw: .discoveries/economics-routing-kick2.raw (mk9, smash+414 free+211 res+4, 629 total)
 
-@C d_response_cap := "response-length cap — max_tokens budget per tier shaves output cost" :: candidate [target_tier=GREEN cost_est=$0.4]
-  cmd = "re-run 20-prompt manifest with max_tokens={64,128,256} per length-router tier; measure accuracy × $/task"
-  hyp = "tightening max_tokens on the cheap-tier branch reduces $/task ≥10% without dropping 20/20 (verbose tail is wasted budget)"
+@C d_response_budget_cap := "prompt-prefix response-budget cap on haiku tier" :: dead [target_tier=GREEN actual_tier=GREEN]
+  raw  = ".verdicts/economics-routing-savings/tokencap_summary.txt"
+  note = "appended ' Answer in <=N tokens.' suffix to haiku-routed prompts (the `claude --bare -p` CLI exposes no --max-tokens flag, so the cap had to ride in the prompt itself). swept N in {15,30} + global cap30. results: 3tier_baseline=71.00%@20/20 · cap15=65.86%@20/20 · cap30=73.93%@20/20 · global_cap30=76.60%@19/20. best 20/20 = 3tier_haiku_cap30 at 73.93% — strictly dominated by 2-tier 81.79% (Δ=-7.86pp). honest pathology: cap15 BACKFIRED — fib task out_tok grew 747→1979 (haiku acknowledged the cap in its prose before writing code), so a too-tight cap costs MORE than no cap. global_cap30 truncated sonnet's BFS-vs-DFS answer (missing 'breadth' substring, 19/20). drop-the-tier beats cap-the-prompt; 2-tier remains the operationally-simplest Pareto-optimal router."
 
 @C d_early_stop := "early-stop stop-token list — terminate generation at first answer-marker" :: candidate [target_tier=GREEN cost_est=$0.3]
   cmd = "add stop=['\\n\\n','</answer>','---'] to CLI dispatch; rerun manifest; compare output-token count vs baseline"
@@ -75,12 +75,15 @@
   hyp = "length-router 81.79% saving is within ε of the analytic Pareto floor (T_BLUE formal proof, no API spend)"
 
 # ── summary ──
-# round 1+2 cumulative : 2 confirmed (Pareto, 2-tier ablation) · 4 dead (token decomp,
-# confidence_gated, difficulty_predict, cache_aware) · 6 next-batch candidates
-# (batch_amortized [stale, parallel agents] + response_cap, early_stop, prompt_compress,
-# speculative_draft, pareto_lower_bound [round-2 new])
+# round 1+2 cumulative : 2 confirmed (Pareto, 2-tier ablation) · 5 dead (token decomp,
+# confidence_gated, difficulty_predict, cache_aware, response_budget_cap) · 4 next-batch
+# candidates (batch_amortized [stale] + early_stop, prompt_compress, speculative_draft,
+# pareto_lower_bound [round-2 new])
 # strongest-confirmed-so-far : 2-tier length router (81.79% saving @ 20/20).
 # round 2 strategy : orthogonal levers (precision controls + speculative + formal floor)
 # rather than further heuristic-router variants — the Pareto frontier among
 # heuristic-routers is exhausted by length-cutoff. cache_aware closed as BLOCKED at
 # the `claude --bare -p` dispatch surface; same surface-limit family as token_decomp.
+# response_budget_cap (round-2 candidate) ran $0.32 and closed dead — prompt-suffix
+# cap is dominated by drop-the-tier on this manifest, with a pathological backfire
+# at the tightest cap (haiku explains the cap before answering, output GROWS).

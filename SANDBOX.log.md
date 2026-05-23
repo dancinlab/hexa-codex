@@ -7,6 +7,59 @@
 
 ---
 
+## 2026-05-24 — M1.SAFETY fork attempt — BLOCKED_AT_PROJECT (flags absent in upstream HEAD)
+
+Cycle-8 follow-up to the `d_activation_capture_pipeline` PARTIAL verdict
+(`activation_capture.hexa` self-test exited `BLOCKED_AT_BUILD` on stock
+Homebrew llama-server 9150). This task investigated whether building
+upstream llama.cpp from source would expose the required CLI flags
+(`--logits-all`, `--n-probs`) that the M1.SAFETY interface depends on for
+intermediate-activation capture.
+
+**Result — fork would not have helped. Build not attempted.**
+
+Probed upstream HEAD `b22ff4b7b43b6d0d91636f85692ff216cb7cb607` (shallow
+clone at `/tmp/llama-cpp-probe`) BEFORE building, per the task spec's
+honesty rule "If upstream HEAD doesn't have these flags either, the
+BLOCKED moves UP-the-stack to 'feature doesn't exist in llama.cpp at
+all' — report that honestly and stop. Do NOT fork/PR upstream from this
+task."
+
+Evidence (all 4 zero-match searches recorded in the verdict file):
+
+```
+grep -rE "logits-all|logits_all" /tmp/llama-cpp-probe       → 0 matches
+grep -nE "logits.all|n_probs"  common/arg.cpp               → 0 matches
+grep -nE -- "--logits-all|--n-probs" /tmp/llama-cpp-probe   → 0 matches
+only "n_probs" hit: common/common.h:214 — a SAMPLING-STRUCT FIELD,
+                    not a CLI flag (read per-request from the JSON body
+                    of /v1/chat/completions, lines 72/125/303/334-335 of
+                    tools/server/server-task.cpp)
+```
+
+The `--save-all-logits` flag does exist in `common/arg.cpp:2126`, but
+that belongs to the `--kl-divergence-base` perplexity tool, not server
+or any activation-capture path.
+
+**Blocker class transition recorded:** cycle-7 `BLOCKED_AT_BUILD` (stock
+Homebrew lacks the flags) → cycle-8 `BLOCKED_AT_PROJECT` (upstream HEAD
+also lacks them; the feature does not exist anywhere in llama.cpp).
+
+**M1.SAFETY checkbox stays `[ ]` (NOT flipped)** — per task spec
+"Do NOT flip M1.SAFETY on any failure path — leave `[ ]` honestly."
+The path forward is either (a) redefine M1.SAFETY around the
+already-confirmed logprob HTTP-body path (cycle-5 `d_logit_calibration`
+proved `/v1/chat/completions` `logprobs=true` + `top_logprobs=N` works
+end-to-end on stock Homebrew), or (b) write an actual ggml-graph
+callback patch to llama.cpp's compute path (not a CLI flag add — a real
+source change). (b) is out of scope here.
+
+Verdict file: `.verdicts/sandbox/m1_safety_unblock_fork.txt` — full
+provenance (upstream sha · all 4 grep evidence · blocker-class
+transition · path forward). Cost $0. Wall ~5 min (clone + grep, no
+build). Tape candidate `d_activation_capture_forked_llama` added with
+state `dead [BLOCKED_AT_PROJECT]` to seal the lane.
+
 ## 2026-05-24 — M1.SUBSTRATE done — scale-ladder base on disk
 
 Qwen2.5-1.5B-Instruct-Q4_K_M GGUF downloaded (940 MB, sha256

@@ -1,0 +1,64 @@
+# M1.SAFETY unblock attempt via forked llama.cpp build — UPSTREAM-ABSENT
+# task                       = d_activation_capture_forked_llama (cycle-8 successor)
+# date                       = 2026-05-24
+# upstream_repo              = https://github.com/ggerganov/llama.cpp
+# upstream_sha               = b22ff4b7b43b6d0d91636f85692ff216cb7cb607
+# upstream_clone_path        = /tmp/llama-cpp-probe (shallow --depth 1)
+# stock_homebrew_version     = 9150 (stable available 9290)
+# build_attempted            = false
+# build_wall_s               = 0
+# binary_sha256              = none
+# fork_install_path          = none
+# logits_all_exposed         = false
+# n_probs_exposed            = false
+# self_test_verdict          = BLOCKED_AT_PROJECT
+# m1_safety_checkbox_state   = unchanged ([ ], NOT flipped)
+#
+# evidence:
+#   1. grep -rE "logits-all|logits_all" /tmp/llama-cpp-probe → 0 matches (whole tree)
+#   2. grep -nE -- "--logits-all|--n-probs|--logits_all|--n_probs" /tmp/llama-cpp-probe → 0 matches
+#   3. grep -nE "logits.all|n_probs" /tmp/llama-cpp-probe/common/arg.cpp → 0 matches (the CLI flag registry)
+#   4. only match for n_probs: common/common.h:214 — a sampling-struct FIELD (per-request, not CLI flag)
+#   5. only match for "save-all-logits": common/arg.cpp:2126 — belongs to --kl-divergence-base perplexity tool,
+#      not server/cli, and is a flag NAME for an unrelated feature
+#   6. tools/server/server-task.cpp DOES read "n_probs" / "logprobs" / "top_logprobs" — but ONLY from the
+#      per-request JSON body of /v1/chat/completions or /v1/completions (lines 72, 125, 303, 334-335),
+#      NOT as server-startup CLI flags
+#
+# conclusion:
+#   The M1.SAFETY interface (lm_foundry/tool/activation_capture.hexa, commit b683287) was specified
+#   against CLI flag names `--logits-all` and `--n-probs` that do not exist as server-startup flags
+#   anywhere in upstream llama.cpp HEAD. Homebrew is not stale on this — upstream is also missing them.
+#   Building from source would produce an identical binary surface (per `--help`), so the build was
+#   not attempted (it cannot expose flags the source tree does not contain).
+#
+# what DOES exist for logprob exposure (substrate is not broken — only the flag-names are wrong):
+#   - per-request JSON field `logprobs: true` + `top_logprobs: N` on /v1/chat/completions
+#   - per-request JSON field `n_probs: N` on /completion
+#   - both already proven end-to-end in cycle-5 d_logit_calibration (verdict
+#     .verdicts/sandbox/stage3_logit_calibration_summary.txt) using stock Homebrew llama-server
+#
+# what does NOT exist anywhere in the source tree (so no fork can rescue):
+#   - server-startup CLI flag `--logits-all` (the name itself is not in arg.cpp or any registered table)
+#   - server-startup CLI flag `--n-probs` (the name itself is not in arg.cpp; only per-request JSON)
+#   - intermediate-layer activation capture (residual stream / attention / MLP outputs) — neither the
+#     CLI surface nor the HTTP surface exposes ggml-internal tensors; would require a ggml-graph hook
+#     (forked patch + recompile), which is OUT OF SCOPE for this task per the task spec
+#     ("Do NOT fork/PR upstream from this task")
+#
+# blocker class transition:
+#   cycle-7 BLOCKED_AT_BUILD (stock Homebrew lacks the flags)
+#     → cycle-8 BLOCKED_AT_PROJECT (upstream HEAD also lacks them — feature does not exist anywhere)
+#
+# path forward (NOT executed in this cycle, per task scope):
+#   (a) redefine M1.SAFETY around the logprob HTTP-body path (refusal-matrix logit margins,
+#       decode-confidence calibration) — reachable today, no fork needed. The activation_capture.hexa
+#       interface already routes `kind=logprobs` through this path; only `kind=residual|attn|mlp`
+#       are gated on the (now-confirmed-impossible-as-flag-add) build patch.
+#   (b) actual intermediate-activation capture would require a ggml-graph callback patch to llama.cpp's
+#       compute path (not a CLI flag add — a real source change). That's a separate effort with its
+#       own surface design (e.g., NVIDIA's TensorRT-LLM has hook APIs; ggml does not yet expose one
+#       cleanly to server). Out of scope here.
+#
+# verdict_tier = honest empirical narrowing of blocker class (BUILD → PROJECT). No formal-blue claim
+#                is opened here; this is a discovery-phase artifact, not a verify-rubric entry.

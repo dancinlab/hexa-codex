@@ -365,3 +365,24 @@
 # candidates remaining. Top-2 ROI next: d_activation_capture_forked_llama (fork
 # the build to unlock M1.SAFETY fully) + d_stage1_persona_at_scale rerun on
 # the 1.5B base (M2.SUBSTRATE cliff-position measurement).
+
+# ── cycle-8 update (2026-05-24): d_activation_capture_forked_llama → dead ──
+# The top-ROI-next candidate from the cycle-7 cumulative line above was
+# investigated this cycle. It does NOT unblock M1.SAFETY — and the build
+# was not even attempted, because the underlying premise (CLI flags exist
+# in upstream that Homebrew is missing) turned out to be false. See entry
+# below and .verdicts/sandbox/m1_safety_unblock_fork.txt.
+
+@C d_activation_capture_forked_llama := "build llama.cpp from upstream source to expose --logits-all / --n-probs flags missing on stock Homebrew" :: dead [actual_tier=BLOCKED_AT_PROJECT cost_actual=$0 evidence=.verdicts/sandbox/m1_safety_unblock_fork.txt cycle=8]
+  cmd_attempted = "shallow-clone upstream llama.cpp HEAD into /tmp/llama-cpp-probe (sha=b22ff4b7b43b6d0d91636f85692ff216cb7cb607); BEFORE any cmake/build, probe the source tree for the flag names the M1.SAFETY interface depends on; build IFF flags present"
+  hyp = "Homebrew llama.cpp 9150 is stale; upstream HEAD exposes --logits-all / --n-probs as server-startup CLI flags, and a from-source build to ~/.local/sandbox/llama-cpp-fork/bin/ unblocks the activation_capture.hexa self-test via LLAMA_SERVER_OVERRIDE env var"
+  result = "FALSE — premise wrong. Upstream HEAD has ZERO matches for --logits-all (whole tree) and ZERO matches for `--n-probs` as a CLI flag. Only 'n_probs' hit is common/common.h:214 (a sampling-struct FIELD read per-request from JSON body of /v1/chat/completions, lines 72/125/303/334-335 of tools/server/server-task.cpp), NOT a server-startup flag. Only --save-all-logits hit (common/arg.cpp:2126) belongs to --kl-divergence-base perplexity tool, unrelated. Build NOT attempted (would have produced identical binary surface). Cost $0, wall ~5 min (clone + 4 greps)."
+  blocker_class_transition = "cycle-7 BLOCKED_AT_BUILD (stock Homebrew lacks flags) → cycle-8 BLOCKED_AT_PROJECT (upstream HEAD also lacks them — feature does not exist in llama.cpp at all)"
+  honest_residual = "Logprob HTTP-body path (cycle-5 d_logit_calibration verdict) is unaffected — /v1/chat/completions logprobs=true + top_logprobs=N already proven end-to-end on stock Homebrew. The blocked surface is specifically the INTERMEDIATE-LAYER tensor tap (residual stream / attention output / MLP output) which neither CLI flag nor HTTP body exposes on any release of llama.cpp; would require a ggml-graph callback patch (real source change), out of scope here."
+  m1_safety_state = "SANDBOX.md M1.SAFETY checkbox stays [ ] — NOT flipped, per task spec failure-path rule. The cycle-7 PARTIAL verdict on d_activation_capture_pipeline (interface ships, intermediate taps BLOCKED_AT_BUILD) is now upgraded in its blocker class to BLOCKED_AT_PROJECT — the fork lane is sealed."
+  path_forward = "(a) redefine M1.SAFETY around logprob-only probes (refusal-matrix logit margins, decode-confidence calibration) — reachable today on stock Homebrew, the activation_capture.hexa interface already routes kind=logprobs through this path; or (b) ggml-graph callback patch to llama.cpp compute path (real source change, separate effort with own surface design, NOT a CLI flag add)"
+
+# Cumulative (post cycle-8): 9 confirmed · 4 dead (added d_activation_capture_forked_llama
+# BLOCKED_AT_PROJECT) · 8 candidates remaining. d_activation_capture_pipeline stays PARTIAL
+# (logprob path live, intermediate path now-permanently blocked at the project level until
+# a ggml-graph callback patch lands — out of scope here).

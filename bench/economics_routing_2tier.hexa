@@ -1,0 +1,227 @@
+#!hexa strict
+// bench/economics_routing_2tier.hexa — haiku-drop ablation for the length router.
+//
+// QUESTION: the 3-tier length router (<=30 -> haiku, <=80 -> sonnet, else opus)
+// is Pareto-optimal on the 20-task manifest at ~73.56% saving, 20/20. But on
+// THIS manifest it dispatches ~19 sonnet + 1 haiku — almost everything routes to
+// sonnet. So: does dropping the cheapest tier (haiku) cost anything? A 2-tier
+// router (<=80 -> sonnet, else opus; NO haiku) is simpler for ops. Measure the
+// saving + accuracy delta vs the 3-tier reference.
+//
+// Three strategies on the SAME 20-task fixed manifest (parity with
+// economics_routing_dlg.hexa):
+//   baseline    : every task -> opus (always-opus)
+//   length3     : 3-tier length router (reference)  <=30 haiku / <=80 sonnet / else opus
+//   length2     : 2-tier length router (ablation)   <=80 sonnet / else opus   (no haiku)
+//
+// Each call via `claude --bare -p --output-format json --model <tier>`.
+// JSON fields: total_cost_usd · duration_ms · usage.{input,output}_tokens · result.
+// Correctness = expected_kw substring present (case-insensitive) in result.
+//
+// Output:
+//   .verdicts/economics-routing-savings/2tier.tsv           (per-task rows, all 3 strategies)
+//   .verdicts/economics-routing-savings/2tier_summary.txt   (per-strategy cost/saving/acc)
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_2tier.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+
+// 20-task fixed manifest — identical to economics_routing_dlg.hexa for parity.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn pick_tier_baseline(prompt: str) -> str {
+    return "opus"
+}
+
+// 3-tier length router (reference): <=30 haiku / <=80 sonnet / else opus.
+fn pick_tier_length3(prompt: str) -> str {
+    let n = prompt.len()
+    if n <= 30 { return "haiku" }
+    if n <= 80 { return "sonnet" }
+    return "opus"
+}
+
+// 2-tier length router (ablation): <=80 sonnet / else opus.  NO haiku tier.
+fn pick_tier_length2(prompt: str) -> str {
+    let n = prompt.len()
+    if n <= 80 { return "sonnet" }
+    return "opus"
+}
+
+// Run one task. Returns 7 tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t output_tokens \t result_snippet \t model \t correct(1|0)
+fn run_one(prompt: str, model: str, expected_kw: str) -> str {
+    let cmd = "claude --bare -p --output-format json --model " + model + " " + shq(prompt) +
+              " 2>/dev/null | jq -r --arg kw " + shq(expected_kw) +
+              " '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, .usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0]), " +
+              "((.result // \"\") | ascii_downcase | contains($kw | ascii_downcase) | " +
+              "if . then \"1\" else \"0\" end)" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+// Run a strategy across all tasks. Append per-task rows to the shared 2tier.tsv,
+// tagged by strategy in column 1. Returns "total_cost\ttotal_ms\tn_correct\tn_total".
+fn run_strategy(name: str, strategy_mode: str, path: str) -> str {
+    let mut total_cost = 0.0
+    let mut total_ms   = 0
+    let mut n_correct  = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let prompt = task[0]
+        let expected = task[1]
+        let mut model = "opus"
+        if strategy_mode == "baseline" { model = pick_tier_baseline(prompt) }
+        if strategy_mode == "length3"  { model = pick_tier_length3(prompt) }
+        if strategy_mode == "length2"  { model = pick_tier_length2(prompt) }
+        println("  [" + name + " " + str(i+1) + "/" + str(len(TASKS)) + "] model=" + model + " prompt=" + prompt.substr(0, 50))
+        let line = run_one(prompt, model, expected)
+        let parts = line.split("\t")
+        if parts.len() < 7 {
+            println("    ! parse error, raw=" + line)
+            i = i + 1
+            continue
+        }
+        let cost = to_float(parts[0])
+        let ms   = int(parts[1])
+        let in_t = parts[2]
+        let out_t = parts[3]
+        let result_snippet = parts[4].replace("\t", " ").replace("\n", " ")
+        let model_used = parts[5]
+        let correct = parts[6]
+        total_cost = total_cost + cost
+        total_ms = total_ms + ms
+        if correct == "1" { n_correct = n_correct + 1 }
+        let row = name + "\t" + str(i+1) + "\t" + model_used + "\t" + parts[0] + "\t" + parts[1] + "\t" +
+                  in_t + "\t" + out_t + "\t" + correct + "\t" + result_snippet.substr(0, 80)
+        exec("echo " + shq(row) + " >> " + shq(path))
+        i = i + 1
+    }
+    return to_string(total_cost) + "\t" + str(total_ms) + "\t" + str(n_correct) + "\t" + str(len(TASKS))
+}
+
+fn saving_pct(b_cost: float, x_cost: float) -> float {
+    if b_cost > 0.0 { return ((b_cost - x_cost) / b_cost) * 100.0 }
+    return 0.0
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_2tier — haiku-drop ablation")
+    println("  manifest: 20 tasks · 3 strategies (baseline · length3 · length2)")
+    println("  question: does dropping the cheapest tier (haiku) cost anything?")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/2tier.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'strategy\ttask_idx\tmodel\tcost_usd\tduration_ms\tinput_tokens\toutput_tokens\tcorrect\tresult_snippet' >> " + shq(tsv_path))
+
+    println("")
+    println("─── baseline strategy (always opus) ───")
+    let b = run_strategy("baseline", "baseline", tsv_path)
+    let bp = b.split("\t")
+    let b_cost = to_float(bp[0])
+    let b_ms   = int(bp[1])
+    let b_acc  = int(bp[2])
+
+    println("")
+    println("─── length3 strategy (3-tier: haiku/sonnet/opus) ───")
+    let r3 = run_strategy("length3", "length3", tsv_path)
+    let r3p = r3.split("\t")
+    let r3_cost = to_float(r3p[0])
+    let r3_ms   = int(r3p[1])
+    let r3_acc  = int(r3p[2])
+
+    println("")
+    println("─── length2 strategy (2-tier: sonnet/opus, NO haiku) ───")
+    let r2 = run_strategy("length2", "length2", tsv_path)
+    let r2p = r2.split("\t")
+    let r2_cost = to_float(r2p[0])
+    let r2_ms   = int(r2p[1])
+    let r2_acc  = int(r2p[2])
+
+    let r3_sav = saving_pct(b_cost, r3_cost)
+    let r2_sav = saving_pct(b_cost, r2_cost)
+    let sav_delta = r3_sav - r2_sav   // positive = 3-tier saves more (haiku helps)
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — haiku-drop ablation")
+    println("========================================================================")
+    println("  baseline (opus×20)        : cost=$" + to_string(b_cost) + "  ms=" + str(b_ms) + "  correct=" + str(b_acc) + "/20")
+    println("  length3  (haiku/son/opus) : cost=$" + to_string(r3_cost) + "  ms=" + str(r3_ms) + "  correct=" + str(r3_acc) + "/20  saving=" + to_string(r3_sav) + "%")
+    println("  length2  (sonnet/opus)    : cost=$" + to_string(r2_cost) + "  ms=" + str(r2_ms) + "  correct=" + str(r2_acc) + "/20  saving=" + to_string(r2_sav) + "%")
+    println("")
+    println("  3-tier − 2-tier saving Δ : " + to_string(sav_delta) + " pp (positive = haiku adds saving)")
+    println("  3-tier − 2-tier acc Δ    : " + str(r3_acc - r2_acc) + " (positive = haiku helps accuracy)")
+    println("  verdict: does dropping haiku matter?  Δsaving=" + to_string(sav_delta) + "pp  Δacc=" + str(r3_acc - r2_acc))
+
+    // Persist summary
+    let summary_path = OUT_DIR + "/2tier_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    let header = "strategy\tcost_usd\tduration_ms\tcorrect\ttotal\tsaving_pct"
+    exec("echo " + shq(header) + " >> " + shq(summary_path))
+    exec("echo " + shq("baseline\t" + to_string(b_cost)  + "\t" + str(b_ms)  + "\t" + str(b_acc)  + "\t20\t0.0") + " >> " + shq(summary_path))
+    exec("echo " + shq("length3\t"  + to_string(r3_cost) + "\t" + str(r3_ms) + "\t" + str(r3_acc) + "\t20\t" + to_string(r3_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("length2\t"  + to_string(r2_cost) + "\t" + str(r2_ms) + "\t" + str(r2_acc) + "\t20\t" + to_string(r2_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# length3_savings_pct=" + to_string(r3_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# length2_savings_pct=" + to_string(r2_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# saving_delta_3minus2_pp=" + to_string(sav_delta)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# acc_delta_3minus2=" + str(r3_acc - r2_acc)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# headline: dropping haiku from the length router costs " + to_string(sav_delta) + "pp saving and " + str(r3_acc - r2_acc) + " accuracy on the 20-task manifest") + " >> " + shq(summary_path))
+
+    println("")
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_2TIER__ PASS")
+    exit(0)
+}

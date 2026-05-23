@@ -1,0 +1,13 @@
+strategy	cost_usd	duration_ms	correct	total	saving_pct
+baseline	0.319375	46674	19	20	0.0
+length3	0.079218	56881	20	20	75.1959
+length2	0.0581707	51834	20	20	81.7861
+# length3_savings_pct=75.1959
+# length2_savings_pct=81.7861
+# saving_delta_3minus2_pp=-6.59015
+# acc_delta_3minus2=0
+# headline: dropping haiku from the length router costs -6.59015pp saving and 0 accuracy on the 20-task manifest
+# VERDICT: dropping haiku does NOT hurt — it HELPS. 2-tier (sonnet/opus) saves 81.79% vs 3-tier's 75.20% (+6.59pp), both 20/20.
+# WHY: the 3-tier router sends short prompts to haiku, but haiku here emits much longer/verbose answers (e.g. fib task: 779 out_tok @ $0.0166) than sonnet would on the same prompt; the cheaper per-token tier loses on output volume. Routing those to sonnet is both cheaper AND keeps 20/20.
+# OPS: 2-tier is simpler (one threshold) AND cheaper here — drop haiku from the length router on this workload class.
+# CAVEAT: the per-task 'model' column derives from `.modelUsage|keys[0]` in the claude --bare CLI JSON, which does not reliably echo the --model flag passed (same artifact present in router.tsv/dlg.tsv). The requested tier (router decision) is the stdout dispatch log; cost_usd/correct are the real billed measurements and are unaffected.

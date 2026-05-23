@@ -1,0 +1,61 @@
+strategy	task_idx	model	cost_usd	duration_ms	input_tokens	output_tokens	correct	result_snippet
+baseline	1	claude-haiku-4-5-20251001	0.01528275	2031	6	6	1	4
+baseline	2	claude-haiku-4-5-20251001	0.015263	1681	6	7	1	Paris
+baseline	3	claude-haiku-4-5-20251001	0.015353499999999999	2566	6	7	1	olleh
+baseline	4	claude-opus-4-7	0.01476125	2694	6	6	1	49
+baseline	5	claude-haiku-4-5-20251001	0.01531625	1859	6	6	1	11
+baseline	6	claude-haiku-4-5-20251001	0.01528075	1775	6	6	1	2
+baseline	7	claude-haiku-4-5-20251001	0.015257	2082	6	6	1	7
+baseline	8	claude-haiku-4-5-20251001	0.01536	2392	6	6	1	100
+baseline	9	claude-haiku-4-5-20251001	0.015332250000000002	1692	6	6	1	65
+baseline	10	claude-haiku-4-5-20251001	0.015454	2169	6	6	1	29
+baseline	11	claude-haiku-4-5-20251001	0.0159485	2224	6	22	1	```python print(sum(range(1,101))) ```
+baseline	12	claude-opus-4-7	0.01502375	1726	6	9	1	O(log n)
+baseline	13	claude-haiku-4-5-20251001	0.015681999999999998	2092	6	13	1	`lst[::-1]`
+baseline	14	claude-haiku-4-5-20251001	0.0156095	2689	6	11	0	{1,2,3}
+baseline	15	claude-haiku-4-5-20251001	0.01707275	3069	6	69	1	TCP is the connection-oriented protocol (establishing a reliable, ordered sessio
+baseline	16	claude-haiku-4-5-20251001	0.018947750000000003	3614	6	145	1	BFS (Breadth-First Search) explores a graph level by level using a queue, visiti
+baseline	17	claude-haiku-4-5-20251001	0.0179485	2827	6	104	1	```python from functools import cache  @cache def fib(n: int) -> int:     if n <
+baseline	18	claude-haiku-4-5-20251001	0.016786	2303	6	53	1	1101₂ = 1·8 + 1·4 + 0·2 + 1·1 = 8 + 4 + 0 + 1 = 13
+baseline	19	claude-haiku-4-5-20251001	0.016785249999999998	2121	6	53	1	Mergesort is O(n log n) because it recursively splits the array in half (giving 
+baseline	20	claude-haiku-4-5-20251001	0.0169105	3068	6	60	1	The halting problem is the task of deciding, given an arbitrary program and inpu
+length3	1	claude-haiku-4-5-20251001	0.0073117500000000005	1330	3	5	1	4
+length3	2	claude-haiku-4-5-20251001	0.0022310000000000003	1047	1991	48	1	Paris
+length3	3	claude-sonnet-4-6	0.00204735	1263	3	5	1	olleh
+length3	4	claude-haiku-4-5-20251001	0.00254435	1638	3	5	1	49
+length3	5	claude-haiku-4-5-20251001	0.0025736	7582	3	5	1	11
+length3	6	claude-haiku-4-5-20251001	0.00254435	1403	3	5	1	2
+length3	7	claude-haiku-4-5-20251001	0.0025343500000000003	1481	3	5	1	7
+length3	8	claude-haiku-4-5-20251001	0.0026023500000000002	1374	3	5	1	100
+length3	9	claude-haiku-4-5-20251001	0.0025683499999999996	1479	3	5	1	65
+length3	10	claude-haiku-4-5-20251001	0.00380255	2028	3	5	1	29
+length3	11	claude-sonnet-4-6	0.0022866	1460	3	19	1	```python print(sum(range(1, 101))) ```
+length3	12	claude-haiku-4-5-20251001	0.00261435	1534	3	8	1	O(log n)
+length3	13	claude-haiku-4-5-20251001	0.0026636	1584	3	10	1	`lst[::-1]`
+length3	14	claude-haiku-4-5-20251001	0.0026686	1926	3	11	1	1, 2, 3
+length3	15	claude-haiku-4-5-20251001	0.00339435	2616	3	60	1	**TCP** (Transmission Control Protocol) is connection-oriented, establishing a r
+length3	16	claude-haiku-4-5-20251001	0.00452935	3783	3	135	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+length3	17	claude-haiku-4-5-20251001	0.0166296	13525	4	779	1	Here's the implementation:  ```python from functools import cache  @cache def fi
+length3	18	claude-haiku-4-5-20251001	0.0063688500000000006	4592	3	257	1	**1101₂ → Decimal**  | Bit | 1 | 1 | 0 | 1 | |-----|---|---|---|---| | Posit
+length3	19	claude-haiku-4-5-20251001	0.0037530999999999997	2513	3	82	1	Merge sort splits the array in half recursively, creating **log n** levels of di
+length3	20	claude-haiku-4-5-20251001	0.0035496	2723	3	71	1	The halting problem is the proven-undecidable question of whether a given progra
+length2	1	claude-haiku-4-5-20251001	0.0011364	1454	3	5	1	4
+length2	2	claude-haiku-4-5-20251001	0.00252585	2078	3	4	1	Paris
+length2	3	claude-haiku-4-5-20251001	0.001144	1717	3	5	1	olleh
+length2	4	claude-haiku-4-5-20251001	0.0011438	1529	3	5	1	49
+length2	5	claude-haiku-4-5-20251001	0.0011627	1598	3	5	1	11
+length2	6	claude-haiku-4-5-20251001	0.0011388000000000001	1373	3	5	1	2
+length2	7	claude-haiku-4-5-20251001	0.0011338	1439	3	5	1	7
+length2	8	claude-haiku-4-5-20251001	0.0011641999999999998	1885	3	5	1	100
+length2	9	claude-haiku-4-5-20251001	0.0011589999999999999	1386	3	5	1	65
+length2	10	claude-haiku-4-5-20251001	0.0011614	1556	3	5	1	29
+length2	11	claude-haiku-4-5-20251001	0.0013955	1518	3	19	1	```python print(sum(range(1, 101))) ```
+length2	12	claude-sonnet-4-6	0.0006774	1606	3	8	1	O(log n)
+length2	13	claude-sonnet-4-6	0.0034285500000000003	1378	3	10	1	`lst[::-1]`
+length2	14	claude-haiku-4-5-20251001	0.0026737	1650	3	11	1	1, 2, 3
+length2	15	claude-haiku-4-5-20251001	0.00339945	2615	3	60	1	**TCP** (Transmission Control Protocol) is connection-oriented, establishing a r
+length2	16	claude-haiku-4-5-20251001	0.00454945	3666	3	136	1	**BFS (Breadth-First Search)** explores a graph level by level, visiting all nei
+length2	17	claude-haiku-4-5-20251001	0.0165348	13020	4	774	1	Here's the implementation and a breakdown of how it works:  ```python from funct
+length2	18	claude-haiku-4-5-20251001	0.0050389499999999995	4713	3	168	1	**1×2³ + 1×2² + 0×2¹ + 1×2⁰ = 8 + 4 + 0 + 1 = 13**
+length2	19	claude-haiku-4-5-20251001	0.0038481999999999995	2718	3	88	1	Mergesort splits the array in half at each of **log n** levels of recursion, and
+length2	20	claude-haiku-4-5-20251001	0.0037546999999999997	2935	3	84	1	The halting problem is the undecidable problem of determining, from a program an

@@ -1,0 +1,291 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_pareto.hexa — ECONOMICS Pareto envelope.
+//
+// Companion of `verify/numerics_economics_{cross_pillar,scaling_laws}.hexa`.
+// Verifies the closed-form Pareto-frontier geometry of the ECONOMICS
+// surface — the implicit (N, D) ↔ (loss, train_cost) trade-off when
+// the n=6 lattice exponents are wired in.
+//
+// Closed-form ingredients (all from `quality_scale` + `train_cost`):
+//
+//   loss(N, D)          = E + A·N^-α + B·D^-α                  α = β = 1/6
+//   train_cost(N, D)    = ((N·D) / ND_REF)^N6_EXP              N6_EXP = 24/25
+//
+// Lagrangian optimum under fixed N·D = C (n=6 symmetric α=β):
+//
+//   ∂L/∂N = -α·A·N^-(α+1)                ∂L/∂D = -α·B·D^-(α+1)
+//   Lagrangian gives  (N/D)^α = A/B  ⇒  N/D = (A/B)^(1/α) = (A/B)^6
+//   At the optimum:   A·N^-α = B·D^-α  (the two reducible terms equal)
+//
+// Pareto invariants verified:
+//
+//   1. iso-loss contour monotone — at fixed L*, D drops as N rises
+//   2. Lagrangian optimum ratio — (N/D)^α = A/B
+//   3. equal-reducible identity at optimum — A·N^-α = B·D^-α
+//   4. asymptotic E floor — lim_{N,D→∞} loss = E
+//   5. pole at N→0 (D fixed) — loss → very large
+//   6. pole at D→0 (N fixed) — loss → very large
+//   7. ∂L/∂N < 0 (numerical 2-point) — loss strictly decreases in N
+//   8. ∂L/∂D < 0 — loss strictly decreases in D
+//   9. iso-cost hyperbola — fixed train_cost ratio ⇒ fixed N·D
+//  10. n6-vs-Chinchilla allocation gap — n6 optimal D/N (~1.07) vs
+//      Chinchilla published optimal (~20) — gap > 15
+//
+// PASS criterion: 10 checks pass at math_pure precision.
+//
+// Run:
+//   hexa run verify/numerics_economics_pareto.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; integer + float arithmetic only.")
+
+use "self/runtime/math_pure"
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+
+// ── n=6 lattice ──────────────────────────────────────────────────────────
+let SIGMA = 12.0
+let PHI   = 2.0
+let N6_ALPHA = PHI / SIGMA                  // 1/6
+let N6_EXP   = 24.0 / 25.0                  // 0.96
+
+// ── Chinchilla loss-fit constants ─────────────────────────────────────────
+let E_LOSS = 1.69
+let A_COEF = 406.4
+let B_COEF = 410.7
+
+// ── anchors ──────────────────────────────────────────────────────────────
+let ND_REF = 1.0e10 * 1.0e12                // 1e22
+let N_PROBE = 70.0e9                         // Chinchilla 70B
+let D_PROBE = 1.4e12                         // 1.4T tokens
+
+// Chinchilla published optimal allocation ratio (D/N ~ 20 from Hoffmann 2022).
+let CHIN_OPT_DN_RATIO = 20.0
+
+let FALSIFIERS = [
+    "ECONOMICS Pareto envelope: iso-loss · iso-cost · Lagrangian optimum · n6-vs-Chinchilla allocation",
+]
+
+// ── helpers ──────────────────────────────────────────────────────────────
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _abs(x: float) -> float { return abs_pure(x) }
+
+fn red_term(coef: float, x: float, expo: float) -> float {
+    return coef * pow_pure(x, 0.0 - expo)
+}
+
+fn loss(n: float, d: float) -> float {
+    return E_LOSS + red_term(A_COEF, n, N6_ALPHA) + red_term(B_COEF, d, N6_ALPHA)
+}
+
+fn train_cost_ratio(n: float, d: float) -> float {
+    return pow_pure((n * d) / ND_REF, N6_EXP)
+}
+
+// Solve D(N, L*) such that loss(N, D) = L* — closed form:
+//   B·D^-α = L* - E - A·N^-α   ⇒   D = (B / (L* - E - A·N^-α))^(1/α).
+fn d_at_iso_loss(n: float, l_star: float) -> float {
+    let rhs = l_star - E_LOSS - red_term(A_COEF, n, N6_ALPHA)
+    if rhs <= 0.0 { return -1.0 }
+    return pow_pure(B_COEF / rhs, 1.0 / N6_ALPHA)
+}
+
+// ── checks ───────────────────────────────────────────────────────────────
+
+// Check 1: iso-loss contour monotone — at fixed L*, D drops as N rises.
+//   At α = 1/6 the reducible-loss term A·N^-α stays large (~10 nats/token)
+//   at typical model scales, so L* must be set high enough that the
+//   contour is non-empty at both probe N values. L* = 20.0 with
+//   N ∈ {1e9, 2e9} keeps `B·D^-α = L* − E − A·N^-α > 0` at both points.
+fn check_iso_loss_monotone() {
+    let l_star = 20.0
+    let n1 = 1.0e9
+    let n2 = 2.0e9
+    let d1 = d_at_iso_loss(n1, l_star)
+    let d2 = d_at_iso_loss(n2, l_star)
+    let ok = (d1 > 0.0) && (d2 > 0.0) && (d2 < d1)
+    _check(ok,
+           "iso-loss contour: at L* = 20.0, D strictly decreases as N rises",
+           "n1=" + to_string(n1) + " d1=" + to_string(d1) +
+           " n2=" + to_string(n2) + " d2=" + to_string(d2))
+}
+
+// Check 2: Lagrangian optimum ratio — (N/D)^α = A/B.
+//   For n=6 (α=1/6), this collapses to N/D = (A/B)^6 ≈ 0.939 — almost
+//   symmetric (very different from Chinchilla published D/N ~ 20).
+fn check_lagrangian_optimum_ratio() {
+    let n_d_optimum = pow_pure(A_COEF / B_COEF, 1.0 / N6_ALPHA)   // (A/B)^6
+    let lhs = pow_pure(n_d_optimum, N6_ALPHA)                     // (N/D)^α
+    let rhs = A_COEF / B_COEF
+    let drift = _abs(lhs - rhs)
+    _check(drift < 1.0e-12,
+           "Lagrangian optimum: (N/D)^α = A/B  (for n=6: N/D = (A/B)^6 ≈ 0.94)",
+           "(N/D)^α=" + to_string(lhs) + " A/B=" + to_string(rhs) +
+           " N/D=" + to_string(n_d_optimum) + " drift=" + to_string(drift))
+}
+
+// Check 3: equal-reducible identity at Lagrangian optimum — A·N^-α = B·D^-α.
+fn check_equal_reducible_at_optimum() {
+    let n_d_optimum = pow_pure(A_COEF / B_COEF, 1.0 / N6_ALPHA)
+    let n_star = N_PROBE
+    let d_star = n_star / n_d_optimum
+    let lhs = red_term(A_COEF, n_star, N6_ALPHA)
+    let rhs = red_term(B_COEF, d_star, N6_ALPHA)
+    let drift = _abs(lhs - rhs)
+    _check(drift / lhs < 1.0e-12,
+           "equal-reducible: A·N^-α = B·D^-α at Lagrangian (N,D) optimum",
+           "A·N^-α=" + to_string(lhs) + " B·D^-α=" + to_string(rhs) +
+           " rel_drift=" + to_string(drift / lhs))
+}
+
+// Check 4: asymptotic E floor — lim_{N,D→∞} loss = E.
+//   At α = 1/6 the convergence is slow: A·N^-α at N = 1e30 is still
+//   ~4·10^-3. We push N = D = 1e50 (α · log_10 = 50/6 ≈ 8.3 decades of
+//   decay) and require relative drift < 1e-5 — orders of magnitude
+//   tighter than at any realistic scale while staying inside float64
+//   exponent range for pow_pure.
+fn check_asymptotic_E_floor() {
+    let big = 1.0e50
+    let l = loss(big, big)
+    let drift = _abs(l - E_LOSS)
+    _check(drift / E_LOSS < 1.0e-5,
+           "asymptotic floor: loss(N → 1e50, D → 1e50) → E_LOSS within 1e-5",
+           "loss=" + to_string(l) + " E=" + to_string(E_LOSS) +
+           " rel_drift=" + to_string(drift / E_LOSS))
+}
+
+// Check 5: pole at N → 0 (D fixed) — loss strictly above some large threshold.
+fn check_pole_at_N_zero() {
+    let tiny = 1.0e-6
+    let l = loss(tiny, D_PROBE)
+    _check(l > 1.0e3,
+           "pole at N→0+ (D fixed): loss grows without bound (> 1e3)",
+           "loss(1e-6, " + to_string(D_PROBE) + ")=" + to_string(l))
+}
+
+// Check 6: pole at D → 0 (N fixed) — loss strictly above some large threshold.
+fn check_pole_at_D_zero() {
+    let tiny = 1.0e-6
+    let l = loss(N_PROBE, tiny)
+    _check(l > 1.0e3,
+           "pole at D→0+ (N fixed): loss grows without bound (> 1e3)",
+           "loss(" + to_string(N_PROBE) + ", 1e-6)=" + to_string(l))
+}
+
+// Check 7: ∂L/∂N < 0 — loss strictly decreases in N (2-point numerical).
+fn check_dL_dN_negative() {
+    let n1 = N_PROBE
+    let n2 = N_PROBE * 1.01
+    let l1 = loss(n1, D_PROBE)
+    let l2 = loss(n2, D_PROBE)
+    _check(l2 < l1,
+           "∂L/∂N < 0: loss strictly decreases as N rises (1% step)",
+           "loss(N)=" + to_string(l1) + " loss(1.01N)=" + to_string(l2) +
+           " Δ=" + to_string(l2 - l1))
+}
+
+// Check 8: ∂L/∂D < 0 — loss strictly decreases in D.
+fn check_dL_dD_negative() {
+    let d1 = D_PROBE
+    let d2 = D_PROBE * 1.01
+    let l1 = loss(N_PROBE, d1)
+    let l2 = loss(N_PROBE, d2)
+    _check(l2 < l1,
+           "∂L/∂D < 0: loss strictly decreases as D rises (1% step)",
+           "loss(D)=" + to_string(l1) + " loss(1.01D)=" + to_string(l2) +
+           " Δ=" + to_string(l2 - l1))
+}
+
+// Check 9: iso-cost hyperbola — fixed train_cost ratio ⇒ fixed N·D.
+//   Two (N, D) points with the SAME product should give the SAME train_cost.
+fn check_iso_cost_hyperbola() {
+    let nd = N_PROBE * D_PROBE
+    // Point A: (N_PROBE, D_PROBE).
+    let cost_A = train_cost_ratio(N_PROBE, D_PROBE)
+    // Point B: (2·N_PROBE, D_PROBE/2) — same product.
+    let cost_B = train_cost_ratio(2.0 * N_PROBE, D_PROBE / 2.0)
+    let drift = _abs(cost_A - cost_B)
+    _check(drift / cost_A < 1.0e-12,
+           "iso-cost hyperbola: fixed N·D ⇒ train_cost equal at any (N, D) on the curve",
+           "cost_A=" + to_string(cost_A) + " cost_B=" + to_string(cost_B) +
+           " N·D=" + to_string(nd) + " rel_drift=" + to_string(drift / cost_A))
+}
+
+// Check 10: n6-vs-Chinchilla allocation gap.
+//   n6 optimal D/N = 1 / (A/B)^6 ≈ 1.065;  Chinchilla published optimal ≈ 20.
+//   Gap > 15 — confirms the n=6 lattice predicts a very different optimum.
+fn check_n6_vs_chin_allocation_gap() {
+    let n6_optimal_dn = 1.0 / pow_pure(A_COEF / B_COEF, 1.0 / N6_ALPHA)
+    let gap = _abs(CHIN_OPT_DN_RATIO - n6_optimal_dn)
+    _check(gap > 15.0,
+           "n6-vs-Chinchilla allocation gap: |20 − n6 D/N opt| > 15 (distinct optima)",
+           "n6_D/N_opt=" + to_string(n6_optimal_dn) +
+           " Chinchilla_D/N_opt=" + to_string(CHIN_OPT_DN_RATIO) +
+           " gap=" + to_string(gap))
+}
+
+// ── main ─────────────────────────────────────────────────────────────────
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex ECONOMICS Pareto envelope (math_pure)")
+    println("  iso-loss · iso-cost · Lagrangian optimum · n6-vs-Chinchilla allocation")
+    println("========================================================================")
+    println("  α=β=" + to_string(N6_ALPHA) + "  N6_EXP=" + to_string(N6_EXP) +
+            "  A=" + to_string(A_COEF) + "  B=" + to_string(B_COEF) +
+            "  E=" + to_string(E_LOSS))
+    println("")
+
+    check_iso_loss_monotone()
+    check_lagrangian_optimum_ratio()
+    check_equal_reducible_at_optimum()
+    check_asymptotic_E_floor()
+    println("")
+    check_pole_at_N_zero()
+    check_pole_at_D_zero()
+    check_dL_dN_negative()
+    check_dL_dD_negative()
+    println("")
+    check_iso_cost_hyperbola()
+    check_n6_vs_chin_allocation_gap()
+
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " checks passed")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for f in FAILURES { println("    ✗ " + f) }
+        println("__HEXA_CODEX_NUMERICS_ECONOMICS_PARETO__ FAIL")
+        exit(1)
+    }
+    println("  ECONOMICS Pareto envelope: closed.")
+    println("__HEXA_CODEX_NUMERICS_ECONOMICS_PARETO__ PASS")
+    exit(0)
+}

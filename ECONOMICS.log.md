@@ -6,6 +6,35 @@
 
 ---
 
+## 2026-05-23 — ECONOMICS Pareto envelope added
+
+Third ECONOMICS-specific cross-cutter — closed-form (N, D) ↔
+(loss, train_cost) trade-off geometry. `verify/numerics_economics_pareto.hexa`
+(10 checks, all PASS):
+
+| # | Check                                                                  |
+|--:|:-----------------------------------------------------------------------|
+| 1 | iso-loss contour monotone — D drops as N rises at fixed L*             |
+| 2 | Lagrangian optimum — `(N/D)^α = A/B`, for n=6 collapses to N/D ≈ 0.94 |
+| 3 | equal-reducible identity at optimum — `A·N^-α = B·D^-α`               |
+| 4 | asymptotic E floor — `loss(N → 1e50, D → 1e50) → E_LOSS` (rel < 1e-5) |
+| 5 | pole at `N → 0` — loss diverges (> 1e3 at N = 1e-6)                   |
+| 6 | pole at `D → 0` — loss diverges (> 1e3 at D = 1e-6)                   |
+| 7 | `∂L/∂N < 0` — loss strictly decreases in N                             |
+| 8 | `∂L/∂D < 0` — loss strictly decreases in D                             |
+| 9 | iso-cost hyperbola — fixed `train_cost` ratio ⇒ fixed `N·D`           |
+|10 | n6-vs-Chinchilla allocation gap — `|D/N_n6 − D/N_chin| ≈ 18.9 > 15`   |
+
+Check 10 is the headline n=6 prediction: with α = β = 1/6 the
+optimal allocation is nearly symmetric (D/N ≈ 1.07), in contrast
+to Chinchilla's published optimum D/N ≈ 20. The two scaling-law
+fits live in different corners of the (N, D) plane.
+
+Wired into `verify/run_all.hexa` (41 → 42 subjects),
+`verify/lint_numerics.hexa` (green core 19 → 20),
+`tests/test_all.hexa` (32 → 33 cases), and the X-ECON row of
+`verify/report_economics_ladder.hexa` (2/2 → 3/3).
+
 ## 2026-05-23 — ECONOMICS group ladder report added
 
 A sister of `verify/falsifier_check.hexa` (which only covers the four

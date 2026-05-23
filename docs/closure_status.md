@@ -97,6 +97,7 @@ the full T1+T2+T3 ladder.
 | `verify/numerics_cross_pillar.hexa`   | Cross-pillar identities (F1×F2, F3×F4, coupled F1+F4 ODE)             |
 | `verify/numerics_economics_cross_pillar.hexa` | ECONOMICS-only cross-pillar (3-verb consistency on one n=6 lattice) |
 | `verify/numerics_economics_scaling_laws.hexa` | ECONOMICS scaling-law sweep (q/train/infer halving·doubling·4×, cost/quality ratio) |
+| `verify/numerics_economics_pareto.hexa` | ECONOMICS Pareto envelope (iso-loss · iso-cost · Lagrangian optimum · n6-vs-Chinchilla allocation) |
 | `verify/numerics_lattice_arithmetic.hexa` | math_pure stability floor (10/10 invariants)                       |
 
 ### Group ladder reports (R)
@@ -110,7 +111,7 @@ the full T1+T2+T3 ladder.
 | File                              | Role                                                                 |
 |:----------------------------------|:----------------------------------------------------------------------|
 | `verify/falsifier_check.hexa`     | Closure tracker — emits per-pillar `closure_pct = 100%` (3/3 tiers)   |
-| `verify/lint_numerics.hexa`       | Recipe §4 invariants 1-5 over every `numerics_*.hexa` (19 files)      |
+| `verify/lint_numerics.hexa`       | Recipe §4 invariants 1-5 over every `numerics_*.hexa` (20 files)      |
 | `verify/saturation_check.hexa`    | Aggregate self-stop — emits `__HEXA_CODEX_RSC_SATURATED__ STOP`       |
 
 ---
@@ -146,13 +147,13 @@ directly — it prints each pillar's T1/T2/T3 status individually.
 | Category                          | Count |
 |:----------------------------------|:-----:|
 | Pillar layer scripts (5 × 4)      | 20    |
-| Cross-cutter scripts              |  6    |
+| Cross-cutter scripts              |  7    |
 | Group ladder reports              |  1    |
 | Meta scripts                      |  3    |
-| **Subtotal — recipe §3 ladder**   | **30** |
+| **Subtotal — recipe §3 ladder**   | **31** |
 | T4 PENDING stubs (`numerics_*_t4_parity`) | 11 |
-| **Total `run_all` subject scripts** | **41** |
-| Companion regression wrappers     | 32 (incl. `tests/test_all.hexa`) |
+| **Total `run_all` subject scripts** | **42** |
+| Companion regression wrappers     | 33 (incl. `tests/test_all.hexa`) |
 
 ---
 

@@ -6,7 +6,7 @@
 // hexa-rtsc / hexa-fusion / hexa-ufo / hexa-chip / hexa-antimatter's
 // run_all pattern — same shape, AI-knowledge-substrate falsifier surface.
 //
-// Inventory (41 green-core verify/*.hexa scripts):
+// Inventory (42 green-core verify/*.hexa scripts):
 //
 //   T1 algebraic   : calc_{train_cost,infer_cost,alignment,interpret,
 //                          quality_scale}                                 (5)
@@ -18,7 +18,8 @@
 //                  + numerics_cross_pillar
 //                  + numerics_economics_cross_pillar
 //                  + numerics_economics_scaling_laws
-//                  + numerics_lattice_arithmetic                         (4 = 19)
+//                  + numerics_economics_pareto
+//                  + numerics_lattice_arithmetic                         (5 = 20)
 //
 //   reports        : report_economics_ladder                              (1)
 //
@@ -31,7 +32,7 @@
 //
 //   meta closure   : falsifier_check + lint_numerics + saturation_check  (3)
 //
-// Total: 41 verify/*.hexa subject scripts (run_all.hexa itself excluded).
+// Total: 42 verify/*.hexa subject scripts (run_all.hexa itself excluded).
 //
 // NO EXCLUSIONS (no honest-red ledger):
 //   Unlike hexa-chip where 4 falsifier scripts are deliberately tripped
@@ -92,7 +93,7 @@ let SCRIPTS: [str] = [
     "verify/calc_interpret.hexa",
     "verify/calc_quality_scale.hexa",
 
-    // ─── T2 numerical green core (19) ─────────────────────────────
+    // ─── T2 numerical green core (20) ─────────────────────────────
     "verify/numerics_train_cost.hexa",
     "verify/numerics_train_cost_parity.hexa",
     "verify/numerics_train_cost_solver.hexa",
@@ -111,6 +112,7 @@ let SCRIPTS: [str] = [
     "verify/numerics_cross_pillar.hexa",
     "verify/numerics_economics_cross_pillar.hexa",
     "verify/numerics_economics_scaling_laws.hexa",
+    "verify/numerics_economics_pareto.hexa",
     "verify/numerics_lattice_arithmetic.hexa",
 
     // ─── T4 PENDING-sentinel stubs (11; emit PENDING per D-023) ───

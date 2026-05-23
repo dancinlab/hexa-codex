@@ -4,6 +4,29 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ECONOMICS Pareto envelope (2026-05-23)
+
+Third ECONOMICS-specific cross-cutter — closed-form Pareto-frontier
+geometry of the `(N, D) ↔ (loss, train_cost)` trade-off.
+
+- `verify/numerics_economics_pareto.hexa` (new, 10 checks all PASS)
+  — iso-loss contour monotone, Lagrangian optimum `(N/D)^α = A/B`,
+  equal-reducible identity at optimum, asymptotic E floor at
+  `N = D = 1e50`, poles at `N → 0` and `D → 0`, monotone partials
+  `∂L/∂N < 0` and `∂L/∂D < 0`, iso-cost hyperbola `N·D = const`,
+  and the headline n6-vs-Chinchilla allocation gap (n6 optimum
+  D/N ≈ 1.07 vs Chinchilla published ≈ 20).
+- `tests/test_numerics_economics_pareto.hexa` (new companion).
+- `verify/report_economics_ladder.hexa` updated — X-ECON row
+  2/2 → 3/3 (now includes pareto), inventory ≥ 17 → ≥ 18.
+- Meta wiring: `verify/run_all.hexa` (41 → 42 subjects),
+  `verify/lint_numerics.hexa` (green core 19 → 20),
+  `tests/test_all.hexa` (32 → 33 cases).
+- Surface lockstep: `docs/closure_status.md` (cross-cutter 6 → 7,
+  §3 ladder 30 → 31, run_all 41 → 42, companion 32 → 33) +
+  `README.md` (verify badge 41 → 42, T2 numerical 19 → 20,
+  cross-cutter 6 → 7 files) + `ECONOMICS.md` / `ECONOMICS.log.md`.
+
 ## [Unreleased] — ECONOMICS group ladder report (2026-05-23)
 
 ECONOMICS-focused sister of `falsifier_check.hexa` — surfaces the

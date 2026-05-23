@@ -44,10 +44,10 @@ let VERIFY_DIR = ROOT + "/verify"
 // Curated inventory — must match `verify/numerics_*.hexa` glob.
 //
 // Two strata kept together so the on-disk count check holds:
-//   - green core (19) : T2 numerics/parity/solver per F-CODEX-1..4 +
+//   - green core (20) : T2 numerics/parity/solver per F-CODEX-1..4 +
 //                       quality_scale + cross-pillar (general +
 //                       ECONOMICS) + ECONOMICS scaling-laws sweep +
-//                       lattice-arithmetic.
+//                       ECONOMICS Pareto envelope + lattice-arithmetic.
 //                       These all call the _check() harness with strict bands.
 //   - T4 stubs (11)   : `numerics_*_t4_parity.hexa` — Stage 0 stubs
 //                       that emit a PENDING sentinel until external
@@ -57,9 +57,9 @@ let VERIFY_DIR = ROOT + "/verify"
 //                       counted here so the inventory floor is honest
 //                       about everything on disk; the recipe §4 strict
 //                       invariants (1-5 + harness-call check 9) only
-//                       apply to the green-core 19 (see SKIP_LINT below).
+//                       apply to the green-core 20 (see SKIP_LINT below).
 let NUMERICS_SCRIPTS = [
-    // ── green core (19) ─────────────────────────────────────────────
+    // ── green core (20) ─────────────────────────────────────────────
     "numerics_train_cost.hexa",
     "numerics_infer_cost.hexa",
     "numerics_alignment.hexa",
@@ -78,6 +78,7 @@ let NUMERICS_SCRIPTS = [
     "numerics_cross_pillar.hexa",
     "numerics_economics_cross_pillar.hexa",
     "numerics_economics_scaling_laws.hexa",
+    "numerics_economics_pareto.hexa",
     "numerics_lattice_arithmetic.hexa",
     // ── T4 stubs (11) — PENDING until forge data lands (D-023) ──────
     "numerics_train_cost_t4_parity.hexa",

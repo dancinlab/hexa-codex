@@ -77,7 +77,16 @@ Verification surface (recipe §3 ladder — see `docs/closure_status.md`):
   `verify/report_economics_ladder.hexa` (10 checks) emits the
   per-verb closure table and gates on all 3 verbs reaching
   `closure_pct = 100%` (T1+T2+T3) simultaneously, plus the X-ECON
-  cross-cutter row 2/2 and the T4-stub row 3/3.
+  cross-cutter row 3/3 and the T4-stub row 3/3.
+- ECONOMICS Pareto envelope
+  `verify/numerics_economics_pareto.hexa` (10 checks) verifies the
+  closed-form (N, D) ↔ (loss, train_cost) trade-off: iso-loss
+  contour monotone, Lagrangian optimum `(N/D)^α = A/B` (for n=6:
+  N/D ≈ 0.94 — almost symmetric), equal-reducible identity at the
+  optimum, asymptotic E floor, poles at N → 0 / D → 0, monotone
+  partials, iso-cost hyperbola `N·D = const`, and the
+  n6-vs-Chinchilla allocation gap |D/N_n6 − D/N_chinchilla| > 15
+  (n=6 predicts ≈ 1.07, Chinchilla published ≈ 20).
 
 ## Roadmap — v1.2.0 (2026-10, PLANNED · group focus = economics)
 

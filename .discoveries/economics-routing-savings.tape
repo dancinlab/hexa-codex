@@ -70,9 +70,9 @@
   raw  = ".discoveries/economics-routing-cli-surface.raw"
   note = "canonical manifest has prompt word_count ∈ [5,14] (max=14) — already at floor; LLMLingua-style ratio=0.7 has no slack to shave. The dominant input cost is the boilerplate suffix 'Reply with X only.' (~5 tokens/prompt) which is functionally load-bearing for correctness (cycle-1 d_response_budget_cap showed even small prompt-prefix manipulations destabilize the model — haiku quoted the cap text into prose, blowing output). Stripping it would risk regressing 20/20 accuracy with at most a ~5-token/prompt input save. No CLI compression flag exists either (--system-prompt is additive, not compressive). Compression has nonzero room only on a wc≥30 manifest (same future-work as d_threshold_sweep). No bench run, $0 spent."
 
-@C d_speculative_draft := "speculative draft — cheap-tier draft + opus single-shot verify" :: candidate [target_tier=GREEN cost_est=$0.6]
-  cmd = "two-pass: haiku draft → opus verify-or-rewrite when draft confidence < tau; vs length-router baseline"
-  hyp = "draft+verify $/task < length-router 2-tier $/task at 20/20 (opus only pays when draft is wrong)"
+@C d_speculative_draft := "speculative draft — cheap-tier draft + verify-or-rewrite" :: dead [target_tier=GREEN actual_tier=GREEN partial=true]
+  raw  = ".verdicts/economics-routing-savings/speculative_summary.txt"
+  note = "PARTIAL run (agent timed out at strategy 2 task 17 — the 'Write Python Fibonacci' verify pass; strategy 3 spec_v_opus never ran). Trend already decisive though: draft_only (haiku alone, $0.06393 @ 20/20 = 77.23%) is already costlier than canonical 2-tier ($0.05817 @ 20/20 = 81.79%) because haiku is verbose on this manifest (cycle-1 d_two_tier_ablation already showed this); spec_v_sonnet adds a second sonnet/opus call ON TOP of the haiku draft → 17-task partial cost $0.13902 already 2.4× draft_only and rising. spec_v_opus would be strictly worse (opus pricing > sonnet on identical workload). VERDICT: speculative-draft architecture pays for two calls to save on neither — dominated by 2-tier. Partial-evidence verdict is robust by monotonicity (adding opus verify only adds cost)."
 
 @C d_pareto_lower_bound := "formal Pareto lower-bound — analytic floor on $/task at 20/20 accuracy" :: confirmed [target_tier=BLUE actual_tier=BLUE]
   raw  = ".verdicts/economics-routing-savings/pareto_floor_summary.txt"
@@ -112,9 +112,10 @@
 # ── summary ──
 # round 1+2+3 cumulative : 4 confirmed (Pareto, 2-tier ablation, threshold_sweep boundary,
 # pareto_lower_bound [round-2 T_BLUE]) ·
-# 7 dead (token decomp, confidence_gated, difficulty_predict, cache_aware,
-# response_budget_cap, early_stop [round-2 BLOCKED], prompt_compress [round-2 DEGENERATE])
-# · 6 next-batch candidates (batch_amortized [stale], speculative_draft +
+# 8 dead (token decomp, confidence_gated, difficulty_predict, cache_aware,
+# response_budget_cap, early_stop [round-2 BLOCKED], prompt_compress [round-2 DEGENERATE],
+# speculative_draft [round-2 dead PARTIAL — verdict robust by monotonicity])
+# · 5 next-batch candidates (batch_amortized [stale] +
 # round-3: oracle_optimality, offline_memoize, parallel_dispatch, prompt_cluster_reuse,
 # router_cost_amortize)
 # strongest-confirmed-so-far : 2-tier length router (81.79% saving @ 20/20).

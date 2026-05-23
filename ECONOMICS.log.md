@@ -6,6 +6,38 @@
 
 ---
 
+## 2026-05-23 — speculative-draft hybrid — dominated (PARTIAL, robust by monotonicity)
+
+Resolved the `d_speculative_draft` candidate (cycle-2). Architecture:
+two-pass dispatch where haiku writes a draft and a verifier tier
+(sonnet or opus) emits either `VERIFIED` or a rewrite.
+`bench/economics_routing_speculative.hexa` ran 3 strategies on the
+canonical 20-task manifest. The agent timed out at strategy 2 task
+17 (the "Write Python Fibonacci" verify pass — long output blew the
+wall-clock budget); strategy 3 (`spec_v_opus`) never started.
+
+| strategy                | cost (USD) | correct       | saving      |
+|:------------------------|-----------:|:--------------|------------:|
+| baseline (opus)         | 0.28078    | 18/20         |  0.00%      |
+| 2-tier (length2 ref)    | 0.05817    | 20/20         |  **81.79%** |
+| `draft_only` (haiku)    | 0.06393    | 20/20         |  77.23%     |
+| `spec_v_sonnet` (17/20) | 0.13902    | 19/20 partial |  50.49%     |
+| `spec_v_opus`           | —          | —             |  —          |
+
+**Verdict: dead.** Even on the partial evidence the architecture is
+dominated. `draft_only` (haiku alone) already costs **more** than the
+2-tier canonical because haiku is verbose on this manifest (cycle-1
+`d_two_tier_ablation` established this — `fib` task 779 out_tok @
+haiku vs sonnet's concise output). `spec_v_sonnet` pays a second call
+on top of the draft, so at 17/20 tasks it is already $0.139 — 2.4×
+`draft_only` — at 19/20 accuracy (the verify pass also failed to
+correct one draft miss). `spec_v_opus` would be strictly more
+expensive than `spec_v_sonnet` at parity workload (opus $/token >
+sonnet), so by monotonicity the partial evidence is decisive — no
+opus completion is needed to rule the architecture out. Discovery
+tape: `d_speculative_draft` candidate → dead [partial=true]; summary
+footer now reads `4 confirmed · 8 dead · 5 next-batch candidates`.
+
 ## 2026-05-23 — Pareto $/task lower bound — closed-form floor at 82.22%, canonical 2-tier within 0.44pp
 
 Resolved the `d_pareto_lower_bound` candidate from

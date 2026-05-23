@@ -1,0 +1,60 @@
+strategy	task_idx	draft_model	draft_cost	draft_in_tok	draft_out_tok	verify_model	verify_cost	verify_in_tok	verify_out_tok	verified_flag	total_cost	correct	final_snippet
+draft_only	1	claude-haiku-4-5-20251001	0.00225	1990	52	-	0.0	0	0	false	0.00225	1	4
+draft_only	2	claude-haiku-4-5-20251001	0.0027619999999999997	1984	56	-	0.0	0	0	false	0.002762	1	Paris
+draft_only	3	claude-haiku-4-5-20251001	0.002828	1992	65	-	0.0	0	0	false	0.002828	1	olleh
+draft_only	4	claude-haiku-4-5-20251001	0.002213	1988	45	-	0.0	0	0	false	0.002213	1	49
+draft_only	5	claude-haiku-4-5-20251001	0.003046	1991	105	-	0.0	0	0	false	0.003046	1	11
+draft_only	6	claude-haiku-4-5-20251001	0.0028750000000000004	1988	76	-	0.0	0	0	false	0.002875	1	2
+draft_only	7	claude-haiku-4-5-20251001	0.00326	1988	154	-	0.0	0	0	false	0.00326	1	7
+draft_only	8	claude-haiku-4-5-20251001	0.002901	1996	75	-	0.0	0	0	false	0.002901	1	100
+draft_only	9	claude-haiku-4-5-20251001	0.002828	1992	63	-	0.0	0	0	false	0.002828	1	65
+draft_only	10	claude-haiku-4-5-20251001	0.003479	1990	192	-	0.0	0	0	false	0.003479	1	29
+draft_only	11	claude-haiku-4-5-20251001	0.0031530000000000004	1997	121	-	0.0	0	0	false	0.003153	1	```python print(sum(range(1, 101))) ```
+draft_only	12	claude-haiku-4-5-20251001	0.0024749999999999998	1990	97	-	0.0	0	0	false	0.002475	1	O(log n)
+draft_only	13	claude-haiku-4-5-20251001	0.0032400000000000003	1993	144	-	0.0	0	0	false	0.00324	1	```python lst[::-1] ```
+draft_only	14	claude-haiku-4-5-20251001	0.003065	1993	111	-	0.0	0	0	false	0.003065	1	{1, 2, 3}
+draft_only	15	claude-haiku-4-5-20251001	0.0031590000000000003	1990	131	-	0.0	0	0	false	0.003159	1	**TCP is connection-oriented** — it establishes a connection before transmitti
+draft_only	16	claude-haiku-4-5-20251001	0.003434	1990	183	-	0.0	0	0	false	0.003434	1	**BFS (Breadth-First Search)** explores nodes level by level using a queue, visi
+draft_only	17	claude-haiku-4-5-20251001	0.005783	1992	652	-	0.0	0	0	false	0.005783	1	Here's a Python Fibonacci implementation with memoization using `functools.cache
+draft_only	18	claude-haiku-4-5-20251001	0.004258	1992	351	-	0.0	0	0	false	0.004258	1	**Binary 1101 to Decimal:**  1×2³ + 1×2² + 0×2¹ + 1×2⁰ = 8 + 4 + 0 + 1 
+draft_only	19	claude-haiku-4-5-20251001	0.0035789999999999997	1995	212	-	0.0	0	0	false	0.003579	1	Mergesort recursively divides the array into halves (log n levels) and performs 
+draft_only	20	claude-haiku-4-5-20251001	0.0033420000000000004	1989	167	-	0.0	0	0	false	0.003342	1	The Halting Problem asks whether a program can determine if any other program wi
+spec_v_sonnet	1	claude-haiku-4-5-20251001	0.002784	1990	57	claude-haiku-4-5-20251001	0.00745225	3	5	true	0.0102363	1	4
+spec_v_sonnet	2	claude-haiku-4-5-20251001	0.002717	1984	47	claude-haiku-4-5-20251001	0.002685	3	5	true	0.005402	1	Paris.
+spec_v_sonnet	3	claude-haiku-4-5-20251001	0.002848	1992	69	claude-haiku-4-5-20251001	0.002723	3	5	true	0.005571	1	olleh
+spec_v_sonnet	4	claude-haiku-4-5-20251001	0.0021980000000000003	1988	42	claude-haiku-4-5-20251001	0.002714	3	5	true	0.004912	1	49
+spec_v_sonnet	5	claude-haiku-4-5-20251001	0.0030210000000000002	1991	100	claude-haiku-4-5-20251001	0.00273325	3	5	true	0.00575425	1	11
+spec_v_sonnet	6	claude-haiku-4-5-20251001	0.0028850000000000004	1988	78	claude-haiku-4-5-20251001	0.002699	3	5	true	0.005584	1	2
+spec_v_sonnet	7	claude-haiku-4-5-20251001	0.003295	1988	161	claude-haiku-4-5-20251001	0.002699	3	5	true	0.005994	1	7
+spec_v_sonnet	8	claude-haiku-4-5-20251001	0.002956	1996	87	claude-sonnet-4-6	0.002184	3	5	true	0.00514	1	100
+spec_v_sonnet	9	claude-haiku-4-5-20251001	0.0028979999999999995	1992	77	claude-haiku-4-5-20251001	0.002728	3	5	true	0.005626	1	65
+spec_v_sonnet	10	claude-haiku-4-5-20251001	0.003364	1990	169	claude-haiku-4-5-20251001	0.0027285	3	5	true	0.0060925	1	29
+spec_v_sonnet	11	claude-haiku-4-5-20251001	0.003333	1997	162	claude-haiku-4-5-20251001	0.00280425	3	5	true	0.00613725	1	```python sum(range(1, 101)) ```
+spec_v_sonnet	12	claude-haiku-4-5-20251001	0.002934	1990	85	claude-haiku-4-5-20251001	0.00272775	3	5	true	0.00566175	1	O(log n)
+spec_v_sonnet	13	claude-haiku-4-5-20251001	0.003165	1993	129	claude-haiku-4-5-20251001	0.00275625	3	5	true	0.00592125	1	```python lst[::-1] ```
+spec_v_sonnet	14	claude-haiku-4-5-20251001	0.002945	1993	87	claude-haiku-4-5-20251001	0.0027465	3	5	true	0.0056915	0	{1,2,3}
+spec_v_sonnet	15	claude-haiku-4-5-20251001	0.003129	1990	124	claude-haiku-4-5-20251001	0.0028615	3	5	true	0.0059905	1	TCP is connection-oriented (establishes a connection before transmitting data), 
+spec_v_sonnet	16	claude-haiku-4-5-20251001	0.003554	1990	208	claude-haiku-4-5-20251001	0.0031035	3	5	true	0.0066575	1	**BFS (Breadth-First Search)** explores nodes level by level from the starting p
+spec_v_sonnet	17	claude-haiku-4-5-20251001	0.014282999999999999	7572	1236	claude-haiku-4-5-20251001	0.00956835	4	133	true	0.0238514	1	Perfect! I've created a Python Fibonacci implementation with memoization using `
+spec_v_sonnet	18	claude-haiku-4-5-20251001	0.003569	1998	208	claude-haiku-4-5-20251001	0.00286305	3	5	true	0.00643205	1	**Binary 1101 to Decimal:**  8 + 4 + 0 + 1 = **13**
+spec_v_sonnet	19	claude-haiku-4-5-20251001	0.00368	2001	230	claude-sonnet-4-6	0.00239205	3	5	true	0.00607205	1	Mergesort is O(n log n) because the algorithm performs O(n) work at each of the 
+spec_v_sonnet	20	claude-haiku-4-5-20251001	0.003398	1995	177	claude-haiku-4-5-20251001	0.0028958	3	5	true	0.0062938	1	The halting problem asks whether we can write a program that determines, for any
+spec_v_opus	1	claude-haiku-4-5-20251001	0.002251	1996	51	claude-haiku-4-5-20251001	0.016177	6	10	true	0.018428	1	4
+spec_v_opus	2	claude-haiku-4-5-20251001	0.002753	1990	52	claude-haiku-4-5-20251001	0.0161448	6	10	true	0.0188978	1	Paris.
+spec_v_opus	3	claude-haiku-4-5-20251001	0.002854	1998	69	claude-opus-4-7	0.01568	6	10	true	0.018534	1	olleh
+spec_v_opus	4	claude-haiku-4-5-20251001	0.002219	1994	45	claude-haiku-4-5-20251001	0.0161775	6	10	true	0.0183965	1	49
+spec_v_opus	5	claude-haiku-4-5-20251001	0.0029570000000000004	1997	86	claude-haiku-4-5-20251001	0.0162105	6	10	true	0.0191675	1	11
+spec_v_opus	6	claude-haiku-4-5-20251001	0.0029860000000000004	1994	97	claude-haiku-4-5-20251001	0.016175	6	10	true	0.019161	1	2
+spec_v_opus	7	claude-haiku-4-5-20251001	0.003115	2013	118	claude-haiku-4-5-20251001	0.016325	6	10	true	0.01944	1	7
+spec_v_opus	8	claude-haiku-4-5-20251001	0.0029709999999999997	2021	84	claude-haiku-4-5-20251001	0.016423	6	10	true	0.019394	1	100
+spec_v_opus	9	claude-haiku-4-5-20251001	0.0028780000000000003	2017	68	claude-opus-4-7	0.0158362	6	10	true	0.0187143	1	65
+spec_v_opus	10	claude-haiku-4-5-20251001	0.003544	2015	200	claude-haiku-4-5-20251001	0.0163608	6	10	true	0.0199048	1	29
+spec_v_opus	11	claude-haiku-4-5-20251001	0.003346	2035	152	claude-opus-4-7	0.0160863	6	10	true	0.0194323	1	```python print(sum(range(1, 101))) ```
+spec_v_opus	12	claude-haiku-4-5-20251001	0.003142	2028	119	claude-haiku-4-5-20251001	0.0165163	6	10	true	0.0196583	1	O(log n)
+spec_v_opus	13	claude-haiku-4-5-20251001	0.003148	2031	118	claude-haiku-4-5-20251001	0.0166072	6	10	true	0.0197553	1	```python lst[::-1] ```
+spec_v_opus	14	claude-haiku-4-5-20251001	0.002371	2031	68	claude-haiku-4-5-20251001	0.016562	6	10	true	0.018933	1	{1, 2, 3}
+spec_v_opus	15	claude-haiku-4-5-20251001	0.0031420000000000003	2028	120	claude-haiku-4-5-20251001	0.016813	6	10	true	0.019955	1	TCP is connection-oriented (establishes a connection before sending data), while
+spec_v_opus	16	claude-haiku-4-5-20251001	0.003542	2028	197	claude-haiku-4-5-20251001	0.0172982	6	10	true	0.0208403	1	**BFS (Breadth-First Search)** explores nodes level by level, visiting all immed
+spec_v_opus	17	claude-haiku-4-5-20251001	0.014948	10177	848	claude-haiku-4-5-20251001	0.034229	8	281	true	0.049177	1	Done! I've created `fibonacci.py` with a memoized Fibonacci function using `func
+spec_v_opus	18	claude-haiku-4-5-20251001	0.003476	2030	183	claude-haiku-4-5-20251001	0.0167737	6	10	true	0.0202497	1	Binary 1101 to decimal: **8 + 4 + 1 = 13**
+spec_v_opus	19	claude-haiku-4-5-20251001	0.003646	2042	215	claude-haiku-4-5-20251001	0.0169663	6	10	true	0.0206123	1	Mergesort divides the array into halves recursively (log n levels), and each lev

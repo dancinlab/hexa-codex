@@ -1,0 +1,380 @@
+#!hexa strict
+// bench/economics_routing_speculative.hexa — speculative-draft router (haiku draft + verify-or-rewrite).
+//
+// HYPOTHESIS (d_speculative_draft, round 2 candidate): a two-pass router where
+// a cheap haiku draft is followed by a small "verify" call that either ratifies
+// the draft (VERIFIED) or rewrites it can beat the canonical 2-tier 81.79%
+// length router @ 20/20. The bet is that on a manifest dominated by tasks
+// haiku already answers correctly, the verify pass is cheap (token-light) and
+// the rewrite-cost-amortized-over-misses still totals less than length2.
+//
+// Three strategies on the canonical 20-task manifest (parity with
+// economics_routing_2tier.hexa):
+//   draft_only     : haiku alone (no verify pass)  — speculative architecture's draft tier baseline
+//   spec_v_sonnet  : haiku draft → sonnet verify-or-rewrite
+//   spec_v_opus    : haiku draft → opus   verify-or-rewrite
+//
+// Verify-or-rewrite prompt template (sent to the verify tier):
+//     Original task: <prompt>
+//     Draft answer:  <haiku_output>
+//     If the draft is correct and sufficient, reply EXACTLY: VERIFIED
+//     Otherwise, write the corrected answer.
+//
+// Scoring rule: if verify-output starts with "VERIFIED", score the draft;
+// else score the verify-output. Final cost per task = draft + verify.
+//
+// Saving denominator: cached `.verdicts/economics-routing-savings/baseline.tsv`
+// (sum of col 3, cycle-1 reused — convention shared with confgate /
+// threshold_sweep / response_budget_cap benches).
+//
+// Output:
+//   .verdicts/economics-routing-savings/speculative.tsv          (per-task per-strategy rows)
+//   .verdicts/economics-routing-savings/speculative_summary.txt  (per-strategy + headline)
+//
+// Run:
+//   ANTHROPIC_API_KEY=$(secret get anthropic.api_key) \
+//     HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/economics_routing_speculative.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess + JSON parse — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/economics-routing-savings"
+
+// 20-task fixed manifest — verbatim from economics_routing_2tier.hexa.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Call one tier of `claude --bare -p` and return JSON-parsed tab-separated fields:
+//   cost \t duration_ms \t input_tokens \t output_tokens \t result \t model
+// The result field is RAW (newlines collapsed to spaces) so it can serve as draft
+// input to the verify pass; correctness is computed downstream by run_one_scored.
+fn run_call(prompt: str, model: str) -> str {
+    let cmd = "claude --bare -p --output-format json --model " + model + " " + shq(prompt) +
+              " 2>/dev/null | jq -r '[" +
+              ".total_cost_usd, .duration_ms, .usage.input_tokens, .usage.output_tokens, " +
+              "(.result // \"\" | gsub(\"[\\n\\t]\"; \" \")), " +
+              "(.modelUsage | keys[0])" +
+              "] | @tsv'"
+    return exec(cmd).trim()
+}
+
+// Substring-correct check on a raw answer string. Returns "1" or "0".
+// Lowercase both sides; check substring presence via grep -F (literal).
+fn is_correct(answer: str, expected_kw: str) -> str {
+    let cmd = "printf '%s' " + shq(answer) + " | tr 'A-Z' 'a-z' | grep -F -q -- " +
+              shq(expected_kw.to_lower()) + " && echo 1 || echo 0"
+    let out = exec(cmd).trim()
+    if out == "1" { return "1" }
+    return "0"
+}
+
+// Does the verify-tier output start with VERIFIED (case-insensitive, leading whitespace tolerated)?
+fn starts_verified(verify_out: str) -> bool {
+    let trimmed = verify_out.trim()
+    if trimmed.len() < 8 { return false }
+    let head = trimmed.substr(0, 8).to_lower()
+    return head == "verified"
+}
+
+// Build the verify-or-rewrite prompt template.
+fn make_verify_prompt(orig: str, draft: str) -> str {
+    return "Original task: " + orig +
+           "\nDraft answer: " + draft +
+           "\n\nIf the draft is correct and sufficient, reply EXACTLY: VERIFIED" +
+           "\nOtherwise, write the corrected answer."
+}
+
+fn saving_pct(b_cost: float, x_cost: float) -> float {
+    if b_cost > 0.0 { return ((b_cost - x_cost) / b_cost) * 100.0 }
+    return 0.0
+}
+
+// Reused-cached baseline reader — sums col 3, counts col 7==1. Convention shared
+// with bench/economics_routing_confgate.hexa et al.
+fn read_baseline_cost() -> str {
+    let path = OUT_DIR + "/baseline.tsv"
+    let exists = exec("test -f " + shq(path) + " && echo yes || echo no").trim()
+    if exists != "yes" { return "MISSING" }
+    let cost = exec("tail -n +2 " + shq(path) + " | awk -F'\\t' '{s+=$3} END{printf \"%.8f\", s}'").trim()
+    let cor  = exec("tail -n +2 " + shq(path) + " | awk -F'\\t' '$7==1{c++} END{printf \"%d\", c}'").trim()
+    return cost + "\t" + cor
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/economics_routing_speculative — haiku draft + verify-or-rewrite")
+    println("  manifest: 20 tasks · 3 strategies (draft_only · spec_v_sonnet · spec_v_opus)")
+    println("  question: does any speculative-draft strategy BEAT 2-tier 81.79% @ 20/20?")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+
+    // --- cached baseline (saving denominator) ---
+    let b_raw = read_baseline_cost()
+    if b_raw == "MISSING" {
+        println("  ! baseline.tsv cache MISSING — cannot compute savings.")
+        exit(1)
+    }
+    let bp = b_raw.split("\t")
+    let b_cost = to_float(bp[0])
+    let b_acc = int(bp[1])
+    println("")
+    println("  cached baseline : cost=$" + to_string(b_cost) + "  correct=" + str(b_acc) + "/20  (saving denominator)")
+
+    // Canonical 2-tier reference. The cycle-1 length2 number is $0.0581707 at
+    // 20/20, captured in 2tier_summary.txt. We compute saving against THIS
+    // bench's baseline.tsv denominator (apples-to-apples).
+    let LENGTH2_COST = 0.0581707
+    let length2_sav = saving_pct(b_cost, LENGTH2_COST)
+    println("  canonical 2-tier reference (length2): cost=$" + to_string(LENGTH2_COST) + "  saving vs this baseline=" + to_string(length2_sav) + "%  @20/20")
+
+    // --- fresh per-task TSV ---
+    let path = OUT_DIR + "/speculative.tsv"
+    exec("rm -f " + shq(path))
+    exec("echo 'strategy\ttask_idx\tdraft_model\tdraft_cost\tdraft_in_tok\tdraft_out_tok\tverify_model\tverify_cost\tverify_in_tok\tverify_out_tok\tverified_flag\ttotal_cost\tcorrect\tfinal_snippet' >> " + shq(path))
+
+    let DRAFT_MODEL = "haiku"
+    let strategies = [
+        ["draft_only",    "none"],
+        ["spec_v_sonnet", "sonnet"],
+        ["spec_v_opus",   "opus"],
+    ]
+
+    // Accumulators
+    let mut s_cost = []
+    let mut s_acc  = []
+    let mut s_verified = []
+    let mut k = 0
+    while k < len(strategies) {
+        s_cost = s_cost + [0.0]
+        s_acc  = s_acc + [0]
+        s_verified = s_verified + [0]
+        k = k + 1
+    }
+
+    // Run each strategy.
+    k = 0
+    while k < len(strategies) {
+        let sname = strategies[k][0]
+        let verify_tier = strategies[k][1]
+        println("")
+        println("─── " + sname + " (draft=" + DRAFT_MODEL + " · verify=" + verify_tier + ") ───")
+        let mut total_cost = 0.0
+        let mut n_correct = 0
+        let mut n_verified = 0
+        let mut i = 0
+        while i < len(TASKS) {
+            let prompt = TASKS[i][0]
+            let expected = TASKS[i][1]
+            println("  [" + sname + " " + str(i+1) + "/20] " + prompt.substr(0, 50))
+
+            // --- Pass 1: draft (haiku) ---
+            let draft_line = run_call(prompt, DRAFT_MODEL)
+            let dp = draft_line.split("\t")
+            if dp.len() < 6 {
+                println("    ! draft parse error, raw=" + draft_line)
+                i = i + 1
+                continue
+            }
+            let draft_cost = to_float(dp[0])
+            let draft_in_t = dp[2]
+            let draft_out_t = dp[3]
+            let draft_ans = dp[4]
+            let draft_model_used = dp[5]
+
+            // --- Pass 2: verify-or-rewrite (sonnet/opus) — skipped for draft_only ---
+            let mut verify_cost = 0.0
+            let mut verify_in_t = "0"
+            let mut verify_out_t = "0"
+            let mut verify_ans = ""
+            let mut verify_model_used = "-"
+            let mut verified_flag = "false"
+            let mut final_ans = draft_ans
+
+            if verify_tier != "none" {
+                let vprompt = make_verify_prompt(prompt, draft_ans)
+                let vline = run_call(vprompt, verify_tier)
+                let vp = vline.split("\t")
+                if vp.len() < 6 {
+                    println("    ! verify parse error, raw=" + vline)
+                    // fall through: keep draft as final answer, no verify cost
+                } else {
+                    verify_cost = to_float(vp[0])
+                    verify_in_t = vp[2]
+                    verify_out_t = vp[3]
+                    verify_ans = vp[4]
+                    verify_model_used = vp[5]
+                    if starts_verified(verify_ans) {
+                        verified_flag = "true"
+                        n_verified = n_verified + 1
+                        final_ans = draft_ans
+                    } else {
+                        verified_flag = "false"
+                        final_ans = verify_ans
+                    }
+                }
+            }
+
+            let correct = is_correct(final_ans, expected)
+            let task_total = draft_cost + verify_cost
+            total_cost = total_cost + task_total
+            if correct == "1" { n_correct = n_correct + 1 }
+
+            let snippet = final_ans.replace("\t", " ").replace("\n", " ").substr(0, 80)
+            let row = sname + "\t" + str(i+1) + "\t" + draft_model_used + "\t" + dp[0] + "\t" +
+                      draft_in_t + "\t" + draft_out_t + "\t" + verify_model_used + "\t" +
+                      to_string(verify_cost) + "\t" + verify_in_t + "\t" + verify_out_t + "\t" +
+                      verified_flag + "\t" + to_string(task_total) + "\t" + correct + "\t" + snippet
+            exec("echo " + shq(row) + " >> " + shq(path))
+
+            println("    draft=$" + dp[0] + " verify=$" + to_string(verify_cost) +
+                    " verified=" + verified_flag + " correct=" + correct +
+                    " total=$" + to_string(task_total))
+            i = i + 1
+        }
+        s_cost[k] = total_cost
+        s_acc[k]  = n_correct
+        s_verified[k] = n_verified
+        let sav = saving_pct(b_cost, total_cost)
+        let vrate = 0.0
+        if verify_tier != "none" { vrate = 100.0 * to_float(str(n_verified)) / 20.0 }
+        println("  " + sname + " : cost=$" + to_string(total_cost) +
+                "  correct=" + str(n_correct) + "/20  saving=" + to_string(sav) + "%" +
+                "  verified_rate=" + to_string(vrate) + "%")
+        k = k + 1
+    }
+
+    // --- summary + headline ---
+    let summary_path = OUT_DIR + "/speculative_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("strategy\tdraft_model\tverify_model\tcost_usd\tcorrect\ttotal\tverified_count\tsaving_pct") + " >> " + shq(summary_path))
+    exec("echo " + shq("baseline\t-\t-\t" + to_string(b_cost) + "\t" + str(b_acc) + "\t20\t-\t0.0") + " >> " + shq(summary_path))
+    exec("echo " + shq("length2_ref\t-\tsonnet/opus\t" + to_string(LENGTH2_COST) + "\t20\t20\t-\t" + to_string(length2_sav)) + " >> " + shq(summary_path))
+
+    let mut best_sav = -1.0e18
+    let mut best_name = "none"
+    let mut best_acc = 0
+    let mut best_cost = 0.0
+    let mut best_verified = 0
+    let mut draft_only_verified = -1   // distinct sentinel: draft_only never runs verify
+
+    k = 0
+    while k < len(strategies) {
+        let sname = strategies[k][0]
+        let vmodel = strategies[k][1]
+        let sav = saving_pct(b_cost, s_cost[k])
+        exec("echo " + shq(sname + "\thaiku\t" + vmodel + "\t" + to_string(s_cost[k]) + "\t" +
+                          str(s_acc[k]) + "\t20\t" + str(s_verified[k]) + "\t" + to_string(sav)) +
+             " >> " + shq(summary_path))
+        // "Best" = highest saving among 20/20 holders.
+        if s_acc[k] >= 20 {
+            if sav > best_sav {
+                best_sav = sav
+                best_name = sname
+                best_acc = s_acc[k]
+                best_cost = s_cost[k]
+                best_verified = s_verified[k]
+            }
+        }
+        if sname == "draft_only" { draft_only_verified = -1 }
+        k = k + 1
+    }
+
+    // Fallback if none hit 20/20: report the highest-saving regardless.
+    let mut any_full = true
+    if best_sav < -1.0e17 {
+        any_full = false
+        k = 0
+        while k < len(strategies) {
+            let sav = saving_pct(b_cost, s_cost[k])
+            if sav > best_sav {
+                best_sav = sav
+                best_name = strategies[k][0]
+                best_acc = s_acc[k]
+                best_cost = s_cost[k]
+                best_verified = s_verified[k]
+            }
+            k = k + 1
+        }
+    }
+
+    // Compute verified_rate on the haiku draft as seen by the FIRST verify-equipped strategy
+    // that ran — spec_v_sonnet (k=1 by ordering). It measures: of 20 haiku drafts, how
+    // many did sonnet ratify as VERIFIED. (spec_v_opus has its own rate, written in the
+    // per-strategy rows above.)
+    let v_rate_sonnet = 100.0 * to_float(str(s_verified[1])) / 20.0
+    let v_rate_opus   = 100.0 * to_float(str(s_verified[2])) / 20.0
+    let beats_2tier = (best_sav > length2_sav) && any_full
+
+    exec("echo " + shq("# baseline_cost_usd=" + to_string(b_cost)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# length2_ref_saving_pct=" + to_string(length2_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_strategy=" + best_name) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_saving_pct=" + to_string(best_sav)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_correct=" + str(best_acc) + "/20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_cost_usd=" + to_string(best_cost)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# verified_rate_spec_v_sonnet_pct=" + to_string(v_rate_sonnet)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# verified_rate_spec_v_opus_pct=" + to_string(v_rate_opus)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# verified_rate_haiku_draft=" + to_string((v_rate_sonnet + v_rate_opus) / 2.0)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_full_2020=" + str(any_full)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# beats_2tier_canonical=" + str(beats_2tier)) + " >> " + shq(summary_path))
+
+    println("")
+    println("========================================================================")
+    println("  HEADLINE — speculative-draft router")
+    println("========================================================================")
+    println("  cached baseline               : $" + to_string(b_cost) + "  @ " + str(b_acc) + "/20  (saving 0%)")
+    println("  canonical 2-tier ref (length2): $" + to_string(LENGTH2_COST) + "  saving=" + to_string(length2_sav) + "%  @ 20/20")
+    println("  best speculative              : " + best_name + "  cost=$" + to_string(best_cost) +
+            "  saving=" + to_string(best_sav) + "%  @ " + str(best_acc) + "/20  (full20=" + str(any_full) + ")")
+    println("  verified-rate (sonnet judge)  : " + to_string(v_rate_sonnet) + "%   (haiku drafts ratified by sonnet)")
+    println("  verified-rate (opus judge)    : " + to_string(v_rate_opus) + "%   (haiku drafts ratified by opus)")
+    println("  best − length2                : " + to_string(best_sav - length2_sav) + " pp")
+    if beats_2tier {
+        println("  VERDICT: YES — speculative-draft BEATS canonical 2-tier at >=20/20.")
+    } else {
+        println("  VERDICT: NO — no speculative-draft strategy beats 2-tier 81.79% @ 20/20.")
+    }
+    println("")
+    println("  per-task TSV : " + path)
+    println("  summary      : " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_ECONOMICS_ROUTING_SPECULATIVE__ PASS")
+    exit(0)
+}

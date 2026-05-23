@@ -31,9 +31,11 @@
   hyp = "tier-ratio under self-hosting reproduces the cycle-1/2 length-router 81.79% saving rank-order within Spearman ρ >= 0.9 — substrate is a valid stand-in for the API surface"
   verdict = ".verdicts/sandbox/stage1_persona_summary.txt — nano 20/20, mid 20/20, max 20/20; tier_separation_observed=false; routing_simulation_viable=false; spread_tasks=0. Convention WORKS mechanically (dispatch + scorer parity), but is a NO-OP on this canonical 20-task manifest (saturated quality ceiling, even nano max_tok=32 + 'Answer in <=15 tokens.' produces correct short answers including the Stage 0 misses task 9/18). HONEST SIGNAL: Stage 2 (scaled stratified manifest, wc ∈ [5,200], N>=2000) is the BLOCKING dependency before any tier-routing simulation has signal. The persona convention is not falsified — it is unobservable on this manifest."
 
-@C d_stage2_scale_manifest := "scale manifest — `.hexa` task generator emitting N >= 2000 stratified prompts, wc ∈ [5, 200]" :: candidate [target_tier=GREEN cost_est=$0]
+@C d_stage2_scale_manifest := "scale manifest — `.hexa` task generator emitting N >= 2000 stratified prompts, wc ∈ [5, 200]" :: confirmed [verified_tier=GREEN cost_actual=$0 verdict=.verdicts/sandbox/stage2_manifest_summary.txt]
   cmd = "write task_generator.hexa producing N=2000 prompts stratified across {arithmetic, code, recall, reasoning, summarization} × wc-bin {5-14, 15-30, 31-60, 61-120, 121-200}; serve via Stage-1 persona; capture per-task tier-routing + accuracy"
   hyp = "wc ∈ [15, 200] regime EXITS the cycle-2 d_threshold_sweep degeneracy (wc-saturated at 14) — at least one τ ∈ {30, 50, 80, 120} actually splits the manifest, exposing the τ-axis frontier"
+  result = "CONFIRMED via bench/sandbox_stage2_manifest_gen.hexa (cycle-5, 2026-05-24). Pure-deterministic local generator (no RNG, no model) emits N=2000 prompts across 5 wc strata: wc_5_15 (n=400 wc_min=5 wc_max=11 mean=6.6), wc_16_30 (n=400 wc_min=18 wc_max=19 mean=18.5), wc_31_60 (n=400 wc_min=31 wc_max=57 mean=43.7), wc_61_100 (n=400 wc_min=63 wc_max=99 mean=78.8), wc_101_200 (n=400 wc_min=102 wc_max=194 mean=146.2). All 2000 prompts unique by parameter-grid construction. Viability gates: per_stratum_min_100=true, wc_ranges_non_overlap=true, stratification_viable=true. Template families: arithmetic (sum/product), 3-operand chain (a+b)*c, 4-operand chain (a+b)*c-d, with FILL clauses (12-entry pool) and SCAFFOLD preambles (6-entry pool) for length padding; overshoot-safe padder caps at stratum_max. Every prompt has a known-correct expected_kw substring; byte_exact_subset scorer-fragility on short kw (e.g. '12' substr-matches '120') is inherent to the existing scorer convention and documented in the cycle-5 log entry. Cost $0, wall <30s, deterministic re-runs. Stage 2 manifest-on-personas rerun (Stage 1 redo at scale) is a SEPARATE successor cycle; the generator is the prerequisite, not the measurement."
+  successor = "d_stage1_persona_at_scale — re-run the 3-persona convention against the Stage 2 N=2000 manifest; if tier_separation_observed flips to true, length-router 2-tier reproduction recovers under SANDBOX (the cycle-1/2 81.79% saving claim becomes empirically replicable on the substrate)"
 
 @C d_stage3_revive_blocked := "revive BLOCKED — cache_read · batch · stop_seq · max_tokens empirical under self-hosted surface" :: candidate [target_tier=GREEN cost_est=$0]
   cmd = "for each of {cache_read, batch, stop_seq, max_tokens}, run a controlled A/B on the Stage-2 scaled manifest with the lever ON vs OFF; reuse cycle-1/2 measurement harness (cost_usd column reconciles)"
@@ -118,8 +120,23 @@
   hyp = "process-level parallelism saturates at P=2-4 on mac mini M3 (each process pays full ~3-4s init+mmap independently — total memory >= P × 379MB GGUF + Metal context) — useful as a control comparison for `d_continuous_batching_server`; if server-mode hits >=2.5x at B=8 but processes only hit 1.5x at P=4, the saving is attributable to context-sharing rather than mere concurrency; failure mode = thermal throttling or VRAM contention caps speedup at <1.3x (UMA-bound)"
 
 # ── summary ──
-# round 1+2+3 cumulative: 4 confirmed (d_stage0_poc · d_early_stop_local · d_prompt_compress_local[max_tokens_cap_only] · d_logit_calibration) · 2 dead (d_stage1_persona dead-on-manifest · d_kv_prefix_share BLOCKED_AT_SCALE) · 10 candidates remaining
-# round 3 (cycle-5, 2026-05-24): d_logit_calibration CONFIRMED via llama-server
+# round 1+2+3 cumulative: 5 confirmed (d_stage0_poc · d_early_stop_local · d_prompt_compress_local[max_tokens_cap_only] · d_logit_calibration · d_stage2_scale_manifest) · 2 dead (d_stage1_persona dead-on-manifest · d_kv_prefix_share BLOCKED_AT_SCALE) · 9 candidates remaining
+# round 3 (cycle-5, 2026-05-24): d_stage2_scale_manifest CONFIRMED via
+# bench/sandbox_stage2_manifest_gen.hexa — pure-deterministic local generator
+# (no RNG, no model) emits N=2000 prompts across 5 wc strata in [5, 200] at
+# $0 cost; per_stratum_min_100=true, wc_ranges_non_overlap=true,
+# stratification_viable=true; 2000 unique prompts (no dedup needed —
+# parameter-grid construction). Verdict:
+# .verdicts/sandbox/stage2_manifest_summary.txt. Manifest:
+# .verdicts/sandbox/stage2_manifest.tsv. Unblocks the Stage 1
+# dead-on-manifest finding's BLOCKING dependency: every downstream
+# tier-routing simulation (d_stage1_persona_at_scale successor,
+# d_cache_aware_local, d_logit_calibration $/task gate,
+# d_kv_prefix_share_persistent, d_quantization_tier) can now exercise
+# wc-bin separation that the canonical 20-task manifest saturates.
+# Honest residual: byte_exact_subset scorer fragility on short kw
+# inherent to existing scorer convention, NOT new to Stage 2.
+# Also (cycle-5, 2026-05-24): d_logit_calibration CONFIRMED via llama-server
 # /v1/chat/completions logprobs=true + top_logprobs=5 (CLI surface does NOT
 # expose; HTTP server endpoint does). First-token margin (top1−top2) on
 # canonical 20-task manifest: top_quartile_accuracy=100.0% (5/5), bottom_quartile_accuracy=60.0% (3/5),

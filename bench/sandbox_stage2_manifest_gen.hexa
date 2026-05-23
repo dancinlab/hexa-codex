@@ -1,0 +1,564 @@
+#!hexa strict
+// bench/sandbox_stage2_manifest_gen.hexa — SANDBOX Stage 2 manifest factory.
+//
+// PURPOSE: produce a deterministic stratified manifest with N >= 2000 tasks,
+// stratified by prompt word-count into 5 buckets in wc in [5, 200], that
+// EXITS the cycle-2 / Stage 1 dead-on-manifest saturation finding
+// (.verdicts/sandbox/stage1_persona_summary.txt — nano = mid = max = 20/20 on
+// the canonical 20-task manifest, tier_separation_observed=false). The Stage 1
+// finding pins Stage 2 as the BLOCKING dependency for every downstream
+// tier-routing simulation.
+//
+// This is NOT a measurement bench (no llama-completion dispatch, no model
+// touched). It is a MANIFEST FACTORY — pure-deterministic local generation
+// from a small set of templates + parameter grids; no RNG, no LLM, $0 cost.
+// Same Hexa runner invocation produces a bit-identical TSV every time.
+//
+// Scorer compatibility: every prompt has a known expected_kw substring that
+// a CORRECT byte-exact_subset answer must contain (case-insensitive). All
+// templates ask for integer / single-token answers so substring-match holds.
+//
+// Stratification (per SANDBOX.md §Stages — "scale manifest"):
+//   stratum    | wc range  | n      | difficulty | content
+//   wc_5_15    | [5,15]    | ~400   | 1          | arithmetic (sum, product), one-word answers
+//   wc_16_30   | [16,30]   | ~400   | 1-2        | arithmetic w/ explicit reply constraint
+//   wc_31_60   | [31,60]   | ~400   | 2          | 3-operand chained arithmetic + filler clauses
+//   wc_61_100  | [61,100]  | ~400   | 2-3        | 3-operand chained + longer scaffolding context
+//   wc_101_200 | [101,200] | ~400   | 3          | 4-operand chained + multi-clause context
+//   total      |           | ~2000
+//
+// Output (gitignored=NO — manifest is canonical Stage 2+ artifact, deterministic):
+//   .verdicts/sandbox/stage2_manifest.tsv          (idx, wc, stratum, prompt, expected_kw, difficulty)
+//   .verdicts/sandbox/stage2_manifest_summary.txt  (per-stratum counts, wc min/max/mean, viability)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage2_manifest_gen.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure-local deterministic file generation, no atlas atoms touched, no model dispatch.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MANIFEST_PATH = OUT_DIR + "/stage2_manifest.tsv"
+let SUMMARY_PATH  = OUT_DIR + "/stage2_manifest_summary.txt"
+let GENERATOR_SEED = "deterministic-v1-2026-05-23"   // documentation tag; no RNG used
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Count whitespace-separated words in a prompt. Used both for binning and
+// post-hoc verification that prompts land in their declared stratum range.
+fn wc_of(s: str) -> int {
+    let parts = s.split(" ")
+    let mut n = 0
+    let mut i = 0
+    while i < parts.len() {
+        if parts[i].len() > 0 { n = n + 1 }
+        i = i + 1
+    }
+    return n
+}
+
+// Filler-clause pool — each entry is a self-contained instruction that does
+// NOT change the answer requirement. The pool is indexed deterministically by
+// (i mod len(POOL)), so the same row always picks the same fillers.
+//
+// Tracked by word-count for prompt-length planning. Each clause appends N
+// words to the prompt; combining clauses lets us hit any target wc.
+let FILL = [
+    "Reply with only the integer answer.",                     // 6 words
+    "No prose and no working steps.",                          // 6 words
+    "Return one number only.",                                 // 4 words
+    "Do not include any extra text or punctuation.",           // 8 words
+    "The answer must be a single integer with no commas.",     // 10 words
+    "Please omit explanations and write only the final number.", // 9 words
+    "Output format: a single integer on one line.",            // 8 words
+    "No leading or trailing whitespace please.",               // 6 words
+    "Treat this as a closed numeric question.",                // 7 words
+    "Provide the answer as a bare integer literal.",           // 8 words
+    "Avoid any decorative formatting in your response.",       // 7 words
+    "Write only the numeric value of the result.",             // 8 words
+]
+
+// Long-context scaffolding pool — used for wc_101_200 to add narrative
+// preamble before the question. Each scaffold is benign and does not change
+// the math. Indexed by (i mod len(SCAFFOLD)).
+let SCAFFOLD = [
+    "Consider the following arithmetic task as part of a calibration exercise for a deterministic substring scorer that compares responses to expected integer answers.",     // 24 words
+    "In a benchmark designed to measure model accuracy on closed-form numeric questions where the scorer is byte-exact substring match the following question is posed.",         // 24 words
+    "Below is a routine integer-arithmetic question intended for a self-hosted measurement substrate that records wall clock time and validates results via case-insensitive substring containment.",  // 24 words
+    "For the purpose of this stratified manifest evaluation please process the following integer-arithmetic question with the same care you would apply to a longer reasoning prompt.",           // 25 words
+    "Within the context of a routing-cost benchmark that interleaves short and long prompts you are presented with the following deterministic integer arithmetic question for evaluation.",        // 25 words
+    "Imagine a benchmark suite calibrating quality cost trade-offs across vendor tiers and consider the following integer arithmetic question as a representative element of that calibration set.",   // 25 words
+]
+
+// Deterministic country -> capital table for short-stratum factual tasks.
+// Choice constrained to ensure single unambiguous one-word capital + global
+// recognizability for any base model.
+let CAPS = [
+    ["france",    "paris"],
+    ["germany",   "berlin"],
+    ["japan",     "tokyo"],
+    ["china",     "beijing"],
+    ["italy",     "rome"],
+    ["spain",     "madrid"],
+    ["russia",    "moscow"],
+    ["egypt",     "cairo"],
+    ["mexico",    "mexico"],
+    ["canada",    "ottawa"],
+    ["greece",    "athens"],
+    ["thailand",  "bangkok"],
+    ["austria",   "vienna"],
+    ["portugal",  "lisbon"],
+    ["sweden",    "stockholm"],
+    ["norway",    "oslo"],
+    ["denmark",   "copenhagen"],
+    ["finland",   "helsinki"],
+    ["poland",    "warsaw"],
+    ["ireland",   "dublin"],
+]
+
+// Deterministic short word -> reversed-string table for short-stratum tasks.
+let REV = [
+    ["hello", "olleh"],
+    ["world", "dlrow"],
+    ["apple", "elppa"],
+    ["table", "elbat"],
+    ["chair", "riahc"],
+    ["lemon", "nomel"],
+    ["river", "revir"],
+    ["stone", "enots"],
+    ["light", "thgil"],
+    ["plant", "tnalp"],
+]
+
+// Build a prompt by appending FILL clauses until the running wc lands in
+// the target band [target_min, target_max]. Overshoot-safe: before adding
+// each filler we check that the resulting wc would not exceed
+// stratum_max; if it would, we cycle through FILL searching for a smaller
+// clause that fits. Selection is deterministic from idx_seed.
+fn pad_to_wc(base: str, target_min: int, target_max: int, stratum_max: int, idx_seed: int) -> str {
+    let mut out = base
+    let mut cur = wc_of(out)
+    if cur >= target_min {
+        if cur <= target_max { return out }
+        if cur <= stratum_max { return out }   // already over target_max but within stratum, accept
+    }
+    let mut step = 0
+    while cur < target_min {
+        // Try each FILL entry starting from idx_seed+step, pick the first
+        // that does not overshoot stratum_max.
+        let mut picked = ""
+        let mut try_i = 0
+        while try_i < len(FILL) {
+            let cand = FILL[(idx_seed + step + try_i) % len(FILL)]
+            let cand_wc = wc_of(cand)
+            if cur + cand_wc <= stratum_max {
+                picked = cand
+                try_i = len(FILL) + 1   // break
+            } else {
+                try_i = try_i + 1
+            }
+        }
+        if picked.len() == 0 { return out }   // no filler fits, give up
+        out = out + " " + picked
+        cur = wc_of(out)
+        step = step + 1
+        if step > 96 { return out }   // safety
+    }
+    return out
+}
+
+// Build a long-context prompt for wc_101_200. Stacks one SCAFFOLD entry
+// (~24-25 words), then the arithmetic question, then FILL clauses until
+// target. Same overshoot-safe behavior as pad_to_wc.
+fn pad_long(question: str, target_min: int, target_max: int, stratum_max: int, idx_seed: int) -> str {
+    let scaf = SCAFFOLD[idx_seed % len(SCAFFOLD)]
+    let mut out = scaf + " " + question
+    let mut cur = wc_of(out)
+    let mut step = 0
+    while cur < target_min {
+        let mut picked = ""
+        let mut try_i = 0
+        while try_i < len(FILL) {
+            let cand = FILL[(idx_seed + step + try_i) % len(FILL)]
+            let cand_wc = wc_of(cand)
+            if cur + cand_wc <= stratum_max {
+                picked = cand
+                try_i = len(FILL) + 1
+            } else {
+                try_i = try_i + 1
+            }
+        }
+        if picked.len() == 0 { return out }
+        out = out + " " + picked
+        cur = wc_of(out)
+        step = step + 1
+        if step > 128 { return out }
+    }
+    return out
+}
+
+// Replace deterministic placeholders {a} {b} {c} {d} {ans} in a template.
+// String interpolation isn't a thing in this Hexa surface, so explicit
+// scalar-by-scalar replace keeps the templates readable inline.
+fn fill_abcd(tmpl: str, a: int, b: int, c: int, d: int) -> str {
+    let mut out = tmpl
+    out = out.replace("{a}", str(a))
+    out = out.replace("{b}", str(b))
+    out = out.replace("{c}", str(c))
+    out = out.replace("{d}", str(d))
+    return out
+}
+
+// Write one TSV row. Tabs are explicit; we do not allow embedded tabs in any
+// prompt or kw (the generator templates are tab-free by construction).
+fn write_row(path: str, idx: int, wc: int, stratum: str, prompt: str, kw: str, diff: int) {
+    let row = str(idx) + "\t" + str(wc) + "\t" + stratum + "\t" + prompt + "\t" + kw + "\t" + str(diff)
+    exec("printf '%s\\n' " + shq(row) + " >> " + shq(path))
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage2_manifest_gen — Stage 2 stratified manifest factory")
+    println("  seed:        " + GENERATOR_SEED)
+    println("  strata:      wc_5_15 | wc_16_30 | wc_31_60 | wc_61_100 | wc_101_200")
+    println("  target N:    >= 2000 across 5 strata (~400 each)")
+    println("  scorer:      byte_exact_subset on expected_kw (case-insensitive)")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    exec("rm -f " + shq(MANIFEST_PATH))
+    exec("printf '%s\\n' " + shq("idx\tword_count\tstratum\tprompt\texpected_kw\texpected_difficulty") + " >> " + shq(MANIFEST_PATH))
+
+    let mut idx = 0
+    let mut s1_n = 0
+    let mut s1_wc_min = 10000
+    let mut s1_wc_max = 0
+    let mut s1_wc_sum = 0
+    let mut s2_n = 0
+    let mut s2_wc_min = 10000
+    let mut s2_wc_max = 0
+    let mut s2_wc_sum = 0
+    let mut s3_n = 0
+    let mut s3_wc_min = 10000
+    let mut s3_wc_max = 0
+    let mut s3_wc_sum = 0
+    let mut s4_n = 0
+    let mut s4_wc_min = 10000
+    let mut s4_wc_max = 0
+    let mut s4_wc_sum = 0
+    let mut s5_n = 0
+    let mut s5_wc_min = 10000
+    let mut s5_wc_max = 0
+    let mut s5_wc_sum = 0
+
+    // ============================================================
+    // STRATUM 1 — wc in [5, 15]  (target ~400, difficulty 1)
+    // ============================================================
+    // Composition:
+    //   - "What is A plus B?"           (wc=5)  : 200 (a,b) pairs
+    //   - "What is A times B? One number." (wc=7) : 100 (a,b) pairs
+    //   - "Capital of <country>? One word."     (wc=5) : 20 countries
+    //   - "Reverse <word>. One token only please." (wc=6) : 10 words
+    //   - "A plus B equals which integer? Reply with the integer only." (wc=10): ~70 (a,b)
+    //   Total: 400
+    println("")
+    println("  -- stratum wc_5_15 --")
+    let mut a = 1
+    let mut b = 1
+    // 200 sum prompts (wc=5)
+    let mut k = 0
+    while k < 200 {
+        let aa = (k / 20) + 1                  // 1..10
+        let bb = (k % 20) + 1                  // 1..20
+        let prompt = "What is " + str(aa) + " plus " + str(bb) + "?"
+        let kw = str(aa + bb)
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_5_15", prompt, kw, 1)
+        idx = idx + 1
+        s1_n = s1_n + 1
+        s1_wc_sum = s1_wc_sum + w
+        if w < s1_wc_min { s1_wc_min = w }
+        if w > s1_wc_max { s1_wc_max = w }
+        k = k + 1
+    }
+    // 100 product prompts (wc=7)
+    k = 0
+    while k < 100 {
+        let aa = (k / 10) + 2                  // 2..11
+        let bb = (k % 10) + 2                  // 2..11
+        let prompt = "What is " + str(aa) + " times " + str(bb) + "? One number."
+        let kw = str(aa * bb)
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_5_15", prompt, kw, 1)
+        idx = idx + 1
+        s1_n = s1_n + 1
+        s1_wc_sum = s1_wc_sum + w
+        if w < s1_wc_min { s1_wc_min = w }
+        if w > s1_wc_max { s1_wc_max = w }
+        k = k + 1
+    }
+    // 20 capital-of prompts (wc=5)
+    k = 0
+    while k < len(CAPS) {
+        let pair = CAPS[k]
+        let country = pair[0]
+        let capital = pair[1]
+        let prompt = "Capital of " + country + "? One word."
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_5_15", prompt, capital, 1)
+        idx = idx + 1
+        s1_n = s1_n + 1
+        s1_wc_sum = s1_wc_sum + w
+        if w < s1_wc_min { s1_wc_min = w }
+        if w > s1_wc_max { s1_wc_max = w }
+        k = k + 1
+    }
+    // 10 reverse-word prompts (wc=6)
+    k = 0
+    while k < len(REV) {
+        let pair = REV[k]
+        let word = pair[0]
+        let rev = pair[1]
+        let prompt = "Reverse '" + word + "'. One token only please."
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_5_15", prompt, rev, 1)
+        idx = idx + 1
+        s1_n = s1_n + 1
+        s1_wc_sum = s1_wc_sum + w
+        if w < s1_wc_min { s1_wc_min = w }
+        if w > s1_wc_max { s1_wc_max = w }
+        k = k + 1
+    }
+    // 70 "A plus B equals which integer? Reply with the integer only." (wc=11)
+    k = 0
+    while k < 70 {
+        let aa = (k / 10) + 11                 // 11..17
+        let bb = (k % 10) + 11                 // 11..20
+        let prompt = str(aa) + " plus " + str(bb) + " equals which integer? Reply with the integer only."
+        let kw = str(aa + bb)
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_5_15", prompt, kw, 1)
+        idx = idx + 1
+        s1_n = s1_n + 1
+        s1_wc_sum = s1_wc_sum + w
+        if w < s1_wc_min { s1_wc_min = w }
+        if w > s1_wc_max { s1_wc_max = w }
+        k = k + 1
+    }
+    println("    stratum wc_5_15 generated rows: " + str(s1_n))
+
+    // ============================================================
+    // STRATUM 2 — wc in [16, 30]  (target ~400, difficulty 1-2)
+    // ============================================================
+    // Composition:
+    //   - "Compute the sum of integer A and integer B and reply with the result as a single integer only." (wc=18) x 200
+    //   - "Multiply integer A by integer B and reply with the resulting integer value as a single number only." (wc=18) x 200
+    println("")
+    println("  -- stratum wc_16_30 --")
+    k = 0
+    while k < 200 {
+        let aa = (k / 20) + 11                 // 11..20
+        let bb = (k % 20) + 11                 // 11..30
+        let prompt = "Compute the sum of integer " + str(aa) + " and integer " + str(bb) + " and reply with the result as a single integer only."
+        let kw = str(aa + bb)
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_16_30", prompt, kw, 1)
+        idx = idx + 1
+        s2_n = s2_n + 1
+        s2_wc_sum = s2_wc_sum + w
+        if w < s2_wc_min { s2_wc_min = w }
+        if w > s2_wc_max { s2_wc_max = w }
+        k = k + 1
+    }
+    k = 0
+    while k < 200 {
+        let aa = (k / 20) + 2                  // 2..11
+        let bb = (k % 20) + 2                  // 2..21
+        let prompt = "Multiply integer " + str(aa) + " by integer " + str(bb) + " and reply with the resulting integer value as a single number only."
+        let kw = str(aa * bb)
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_16_30", prompt, kw, 2)
+        idx = idx + 1
+        s2_n = s2_n + 1
+        s2_wc_sum = s2_wc_sum + w
+        if w < s2_wc_min { s2_wc_min = w }
+        if w > s2_wc_max { s2_wc_max = w }
+        k = k + 1
+    }
+    println("    stratum wc_16_30 generated rows: " + str(s2_n))
+
+    // ============================================================
+    // STRATUM 3 — wc in [31, 60]  (target ~400, difficulty 2)
+    // ============================================================
+    // 3-operand chained arithmetic + filler clauses for length.
+    // Base: "Take integer {a}, add integer {b}, then multiply the running total by integer {c}, and reply with the final integer answer." (~22 words)
+    // Pad with FILL clauses until wc in [31, 60].
+    println("")
+    println("  -- stratum wc_31_60 --")
+    k = 0
+    while k < 400 {
+        let aa = (k % 19) + 2                  // 2..20
+        let bb = ((k / 19) % 13) + 2           // 2..14
+        let cc = ((k / (19 * 13)) % 7) + 2     // 2..8
+        let base = "Take integer " + str(aa) + ", add integer " + str(bb) + ", then multiply the running total by integer " + str(cc) + ", and reply with the final integer answer."
+        // Pick target wc deterministically in [31, 50] so even +10-word filler
+        // tops out at <=60 (stratum_max). pad_to_wc clamps anyway via overshoot-check.
+        let target = 31 + (k % 20)             // 31..50
+        let prompt = pad_to_wc(base, target, target + 5, 60, k)
+        let kw = str((aa + bb) * cc)
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_31_60", prompt, kw, 2)
+        idx = idx + 1
+        s3_n = s3_n + 1
+        s3_wc_sum = s3_wc_sum + w
+        if w < s3_wc_min { s3_wc_min = w }
+        if w > s3_wc_max { s3_wc_max = w }
+        k = k + 1
+    }
+    println("    stratum wc_31_60 generated rows: " + str(s3_n))
+
+    // ============================================================
+    // STRATUM 4 — wc in [61, 100]  (target ~400, difficulty 2-3)
+    // ============================================================
+    // Same chained arithmetic but padded further with FILL until wc in [61, 100].
+    println("")
+    println("  -- stratum wc_61_100 --")
+    k = 0
+    while k < 400 {
+        let aa = (k % 17) + 3                  // 3..19
+        let bb = ((k / 17) % 11) + 3           // 3..13
+        let cc = ((k / (17 * 11)) % 5) + 2     // 2..6
+        let base = "Take integer " + str(aa) + ", add integer " + str(bb) + ", then multiply the running total by integer " + str(cc) + ", and reply with the final integer answer."
+        let target = 61 + (k % 30)             // 61..90
+        let prompt = pad_to_wc(base, target, target + 5, 100, k + 7)
+        let kw = str((aa + bb) * cc)
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_61_100", prompt, kw, 2)
+        idx = idx + 1
+        s4_n = s4_n + 1
+        s4_wc_sum = s4_wc_sum + w
+        if w < s4_wc_min { s4_wc_min = w }
+        if w > s4_wc_max { s4_wc_max = w }
+        k = k + 1
+    }
+    println("    stratum wc_61_100 generated rows: " + str(s4_n))
+
+    // ============================================================
+    // STRATUM 5 — wc in [101, 200]  (target ~400, difficulty 3)
+    // ============================================================
+    // 4-operand chained arithmetic + SCAFFOLD preamble + FILL padding.
+    println("")
+    println("  -- stratum wc_101_200 --")
+    k = 0
+    while k < 400 {
+        let aa = (k % 13) + 4                  // 4..16
+        let bb = ((k / 13) % 11) + 3           // 3..13
+        let cc = ((k / (13 * 11)) % 7) + 2     // 2..8
+        let dd = ((k / (13 * 11 * 7)) % 5) + 2 // 2..6
+        let base = "Compute the following four-step integer arithmetic: take integer " + str(aa) + ", add integer " + str(bb) + ", multiply the running total by integer " + str(cc) + ", then subtract integer " + str(dd) + ", and reply with only the final integer answer."
+        let target = 101 + (k % 90)            // 101..190
+        let prompt = pad_long(base, target, target + 5, 200, k + 11)
+        let kw = str((aa + bb) * cc - dd)
+        let w = wc_of(prompt)
+        write_row(MANIFEST_PATH, idx + 1, w, "wc_101_200", prompt, kw, 3)
+        idx = idx + 1
+        s5_n = s5_n + 1
+        s5_wc_sum = s5_wc_sum + w
+        if w < s5_wc_min { s5_wc_min = w }
+        if w > s5_wc_max { s5_wc_max = w }
+        k = k + 1
+    }
+    println("    stratum wc_101_200 generated rows: " + str(s5_n))
+
+    // ============================================================
+    // SUMMARY + viability gate
+    // ============================================================
+    let total_n = s1_n + s2_n + s3_n + s4_n + s5_n
+    // Stratification viable iff every stratum has >=100 rows AND wc ranges
+    // are non-overlapping (s1.max <= 15, s2.min >= 16 and s2.max <= 30, etc.).
+    let mut all_min_100 = "true"
+    if s1_n < 100 { all_min_100 = "false" }
+    if s2_n < 100 { all_min_100 = "false" }
+    if s3_n < 100 { all_min_100 = "false" }
+    if s4_n < 100 { all_min_100 = "false" }
+    if s5_n < 100 { all_min_100 = "false" }
+    let mut non_overlap = "true"
+    if s1_wc_min < 5 { non_overlap = "false" }
+    if s1_wc_max > 15 { non_overlap = "false" }
+    if s2_wc_min < 16 { non_overlap = "false" }
+    if s2_wc_max > 30 { non_overlap = "false" }
+    if s3_wc_min < 31 { non_overlap = "false" }
+    if s3_wc_max > 60 { non_overlap = "false" }
+    if s4_wc_min < 61 { non_overlap = "false" }
+    if s4_wc_max > 100 { non_overlap = "false" }
+    if s5_wc_min < 101 { non_overlap = "false" }
+    if s5_wc_max > 200 { non_overlap = "false" }
+    let mut viable = "false"
+    if all_min_100 == "true" {
+        if non_overlap == "true" { viable = "true" }
+    }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — Stage 2 stratified manifest factory")
+    println("========================================================================")
+    println("  total_n                : " + str(total_n))
+    println("  wc_5_15    n=" + str(s1_n) + "  wc_min=" + str(s1_wc_min) + "  wc_max=" + str(s1_wc_max))
+    println("  wc_16_30   n=" + str(s2_n) + "  wc_min=" + str(s2_wc_min) + "  wc_max=" + str(s2_wc_max))
+    println("  wc_31_60   n=" + str(s3_n) + "  wc_min=" + str(s3_wc_min) + "  wc_max=" + str(s3_wc_max))
+    println("  wc_61_100  n=" + str(s4_n) + "  wc_min=" + str(s4_wc_min) + "  wc_max=" + str(s4_wc_max))
+    println("  wc_101_200 n=" + str(s5_n) + "  wc_min=" + str(s5_wc_min) + "  wc_max=" + str(s5_wc_max))
+    println("  per_stratum_min_100    : " + all_min_100)
+    println("  wc_ranges_non_overlap  : " + non_overlap)
+    println("  stratification_viable  : " + viable)
+    println("")
+
+    let s1_mean = 0
+    let mut s1m = 0
+    if s1_n > 0 { s1m = s1_wc_sum / s1_n }
+    let mut s2m = 0
+    if s2_n > 0 { s2m = s2_wc_sum / s2_n }
+    let mut s3m = 0
+    if s3_n > 0 { s3m = s3_wc_sum / s3_n }
+    let mut s4m = 0
+    if s4_n > 0 { s4m = s4_wc_sum / s4_n }
+    let mut s5m = 0
+    if s5_n > 0 { s5m = s5_wc_sum / s5_n }
+
+    exec("rm -f " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# generator=bench/sandbox_stage2_manifest_gen.hexa") + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# generator_seed=" + GENERATOR_SEED) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# manifest_path=" + MANIFEST_PATH) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# total_n=" + str(total_n)) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# stratum_wc_5_15_n=" + str(s1_n) + " wc_min=" + str(s1_wc_min) + " wc_max=" + str(s1_wc_max) + " wc_mean=" + str(s1m)) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# stratum_wc_16_30_n=" + str(s2_n) + " wc_min=" + str(s2_wc_min) + " wc_max=" + str(s2_wc_max) + " wc_mean=" + str(s2m)) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# stratum_wc_31_60_n=" + str(s3_n) + " wc_min=" + str(s3_wc_min) + " wc_max=" + str(s3_wc_max) + " wc_mean=" + str(s3m)) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# stratum_wc_61_100_n=" + str(s4_n) + " wc_min=" + str(s4_wc_min) + " wc_max=" + str(s4_wc_max) + " wc_mean=" + str(s4m)) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# stratum_wc_101_200_n=" + str(s5_n) + " wc_min=" + str(s5_wc_min) + " wc_max=" + str(s5_wc_max) + " wc_mean=" + str(s5m)) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# per_stratum_min_100=" + all_min_100) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# wc_ranges_non_overlap=" + non_overlap) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# stratification_viable=" + viable) + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# scorer=byte_exact_subset (case-insensitive)") + " >> " + shq(SUMMARY_PATH))
+    exec("printf '%s\\n' " + shq("# cost_usd=0  (deterministic local generation, no model dispatch)") + " >> " + shq(SUMMARY_PATH))
+
+    println("  manifest persisted: " + MANIFEST_PATH)
+    println("  summary  persisted: " + SUMMARY_PATH)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE2_MANIFEST_GEN__ PASS")
+    exit(0)
+}

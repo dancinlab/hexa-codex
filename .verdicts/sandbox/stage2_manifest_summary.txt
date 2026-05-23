@@ -1,0 +1,14 @@
+# generator=bench/sandbox_stage2_manifest_gen.hexa
+# generator_seed=deterministic-v1-2026-05-23
+# manifest_path=/Users/ghost/core/hexa-codex/.verdicts/sandbox/stage2_manifest.tsv
+# total_n=2000
+# stratum_wc_5_15_n=400 wc_min=5 wc_max=11 wc_mean=6
+# stratum_wc_16_30_n=400 wc_min=18 wc_max=19 wc_mean=18
+# stratum_wc_31_60_n=400 wc_min=31 wc_max=57 wc_mean=43
+# stratum_wc_61_100_n=400 wc_min=63 wc_max=99 wc_mean=78
+# stratum_wc_101_200_n=400 wc_min=102 wc_max=194 wc_mean=146
+# per_stratum_min_100=true
+# wc_ranges_non_overlap=true
+# stratification_viable=true
+# scorer=byte_exact_subset (case-insensitive)
+# cost_usd=0  (deterministic local generation, no model dispatch)

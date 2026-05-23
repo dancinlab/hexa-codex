@@ -574,3 +574,110 @@ Stage 1 multi-base or Stage 4 multi-scale grid landing first.
 
 Cumulative SANDBOX state: **4 confirmed** · **2 dead** · **10
 candidates remaining**.
+
+---
+
+## 2026-05-24 — Stage 2 manifest factory — N=2000 stratified across 5 wc buckets
+
+`bench/sandbox_stage2_manifest_gen.hexa` lands the SANDBOX.md
+§Stages-row-2 deliverable: a pure-deterministic local generator that
+emits `N=2000` prompts stratified across five word-count buckets in
+`wc ∈ [5, 200]`. Triggered by the Stage 1 finding (commit `ef759cf`,
+2026-05-23) — nano/mid/max all scored 20/20 on the canonical
+20-task manifest, `tier_separation_observed=false`,
+`routing_simulation_viable=false`. The canonical manifest is too
+saturated to exercise any tier signal; Stage 2 is the BLOCKING
+dependency for every downstream tier-routing simulation
+(`d_cache_aware_local`, `d_logit_calibration` saving-% gate,
+`d_kv_prefix_share_persistent`, `d_quantization_tier`).
+
+This is a **manifest factory, NOT a measurement bench** — no
+llama-completion / llama-server dispatched, no model touched, $0
+cost, deterministic re-runs produce a bit-identical TSV. The
+generator runs in <30s wall and writes 2001 lines (1 header + 2000
+rows) to `.verdicts/sandbox/stage2_manifest.tsv`.
+
+| stratum    | wc range  | n   | wc_min | wc_max | wc_mean | difficulty | template family |
+|:-----------|:---------:|:---:|:------:|:------:|:-------:|:----------:|:----------------|
+| wc_5_15    |  [5, 15]  | 400 |   5    |   11   |   6.6   |     1      | A+B sum, A*B product, Capital-of, Reverse-word, "A plus B equals which integer" |
+| wc_16_30   | [16, 30]  | 400 |  18    |   19   |  18.5   |    1-2     | "Compute the sum of integer A and integer B …" / "Multiply integer A by integer B …" |
+| wc_31_60   | [31, 60]  | 400 |  31    |   57   |  43.7   |     2      | 3-operand chain `(a+b)*c` + FILL clauses |
+| wc_61_100  | [61, 100] | 400 |  63    |   99   |  78.8   |    2-3     | 3-operand chain + extra FILL padding |
+| wc_101_200 |[101, 200] | 400 | 102    |  194   | 146.2   |     3      | 4-operand chain `(a+b)*c-d` + SCAFFOLD preamble + FILL padding |
+| **total**  |           |**2000**|      |        |         |            | |
+
+Verifier:
+
+```
+# total_n=2000
+# per_stratum_min_100=true
+# wc_ranges_non_overlap=true
+# stratification_viable=true
+```
+
+Padding mechanic: each non-trivial stratum starts from a fixed base
+prompt (e.g. wc_31_60 base `"Take integer {a}, add integer {b},
+then multiply the running total by integer {c}, and reply with the
+final integer answer."`, base_wc=22) and appends deterministic FILL
+clauses from a 12-entry pool until the running wc enters a band
+`[target_min, target_min+5]` inside the stratum. The padder is
+**overshoot-safe** — before adding each clause it scans the FILL
+pool for the first entry whose wc would NOT push the total past
+`stratum_max`; the first pass produced wc_31_60 max=66 (overshoot),
+the second-pass clamp lands max=57 cleanly.
+
+Every prompt carries a known-correct `expected_kw` substring (e.g.
+arithmetic answer, capital name, reversed string). Determinism is
+parameter-grid based — no RNG — same Hexa runner invocation
+reproduces the manifest bit-identically (verified by re-running:
+identical row count, identical per-stratum wc histograms).
+
+Honest residuals (g5 / cycle-5 conventions):
+
+- **Substring-scorer fragility for short kw.** Many arithmetic
+  answers are 1-3 digit integers; `byte_exact_subset` of "12" will
+  false-positive against any answer text containing "12" anywhere
+  (including "120", "1234"). This is the same scorer artifact as
+  the cycle-4 trailer-leak (`stage3_maxtokens_cap` 19/20→16/20) and
+  the cycle-5 logit_calibration false-positive note — INHERENT to
+  the byte-exact_subset scorer, not new to Stage 2. Downstream
+  measurement benches inherit this; any future scorer-tightening
+  cycle (e.g. exact-line, regex anchor) applies uniformly.
+- **wc_16_30 wc range is narrow (18-19).** Both templates in this
+  stratum produce wc ≈ 18, so the empirical wc range is only 2
+  values wide; still strictly within the [16, 30] band, but
+  diversity is template-bound. Acceptable for Stage 2's purpose
+  (escape wc≤14 saturation) but documented honestly.
+- **Strata 3-5 share the same arithmetic chain.** The 3-operand
+  `(a+b)*c` core repeats across wc_31_60 and wc_61_100 with
+  different padding lengths; wc_101_200 extends to 4 operands. The
+  manifest exercises wc-bin separation cleanly but does NOT
+  exercise diverse reasoning domains (no NL summarization, no code
+  generation, no adversarial). That diversity expansion is a
+  future-cycle deliverable; Stage 2 here closes the wc-saturation
+  axis specifically (the BLOCKING dependency Stage 1 surfaced),
+  per the cycle-5 task scope.
+- **Deduplication is structural.** All 2000 prompts are unique
+  (verified `sort -u | wc -l = 2000`) because the parameter grids
+  in each template don't overlap and the FILL/SCAFFOLD picks vary
+  by stratum index.
+- **No model dispatch in this cycle.** Stage 2 manifest-on-personas
+  rerun (Stage 1 redo at scale) is a SEPARATE successor cycle, NOT
+  this one. The factory is a prerequisite, not a measurement.
+
+Persisted:
+
+- `bench/sandbox_stage2_manifest_gen.hexa` — generator source (hexa-only).
+- `.verdicts/sandbox/stage2_manifest.tsv` — 2001 lines (header +
+  2000 stratified rows; idx · word_count · stratum · prompt ·
+  expected_kw · expected_difficulty).
+- `.verdicts/sandbox/stage2_manifest_summary.txt` — per-stratum
+  count + wc min/max/mean + viability gates.
+- `.discoveries/sandbox.tape` — `d_stage2_scale_manifest` flipped
+  candidate → **confirmed [verified_tier=GREEN cost_actual=$0]`;
+  footer cumulative tally updated.
+
+Cumulative SANDBOX state: **5 confirmed** (d_stage0_poc ·
+d_early_stop_local · d_prompt_compress_local[max_tokens_cap_only] ·
+d_logit_calibration · d_stage2_scale_manifest) · 2 dead
+(d_stage1_persona · d_kv_prefix_share) · 9 candidates remaining.

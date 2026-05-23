@@ -1,0 +1,52 @@
+# sandbox-llama-server-jsonschema.raw — probe 2026-05-24
+# Cycle-6 d_json_schema_constrained: does llama-server /v1/chat/completions
+# accept `response_format` field, and at which strictness levels?
+#
+# Build: b9150-81b0d882a (llama-server from homebrew, llama.cpp HEAD ~9150)
+# Model: Qwen2.5-0.5B-Instruct-Q4_K_M.gguf
+# Endpoint: http://127.0.0.1:8083/v1/chat/completions
+
+PROBE 1 — response_format: {"type": "json_object"} (loose mode)
+================================================================
+Request prompt: "What is 2+2? Reply with the digit only."
+Response: {"choices":[{"finish_reason":"stop","index":0,
+  "message":{"role":"assistant","content":"4"}}], ...
+  "usage":{"completion_tokens":2,"prompt_tokens":42,"total_tokens":44, ...}}
+NOTE: content is bare "4", NOT JSON. json_object mode without a strict
+schema is treated as a HINT — the model emits whatever it wants if the
+prompt doesn't tell it to use JSON. completion_tokens=2.
+
+PROBE 2 — response_format: {"type": "json_object"} + JSON-instruction prompt
+================================================================
+Request prompt: "What is 2+2? Put the digit in the answer field."
+Response: content="2+2 equals 4." (still NOT JSON, just prose)
+completion_tokens=8.
+
+PROBE 3 — response_format: {"type": "json_schema", "json_schema": {"schema": {...}}}
+================================================================
+Schema: {"type":"object","properties":{"answer":{"type":"string"}},"required":["answer"]}
+Request prompt: "What is 2+2? Put the digit in the answer field."
+Response: content='{\n  "answer": "4"\n}\n'
+completion_tokens=15.
+NOTE: STRICT schema mode CONFIRMED — content is valid JSON with required
+`answer` field. cached_tokens=31 (prompt cache reuse from probe 2). The 15
+completion tokens include JSON formatting overhead — strict mode is MORE
+verbose than bare prose for trivial single-token answers.
+
+VERDICT — llama_server_json_schema_exposed = TRUE (BOTH json_object AND json_schema)
+====================================================================================
+- json_object: accepted, behaves as a HINT (no grammar enforcement) unless
+  the prompt explicitly requests JSON shape. Useless for forcing structure.
+- json_schema: accepted, ENFORCES the grammar (output is bit-for-bit valid
+  JSON conforming to schema). Required for the structured-output lever.
+
+HYPOTHESIS REVISION (was: "force JSON to cut wall_ms via less prose padding"):
+- For SHORT answers (1-5 tokens), JSON wrapper ADDS overhead — observed 15
+  completion_tokens for `{"answer":"4"}` vs 2 for bare "4" (7.5x MORE tokens).
+- Reduction hypothesis only holds for VERBOSE baselines where the model rambles.
+- New honest framing: measure whether JSON constraint REDUCES tokens on the
+  manifest's verbose baseline cases AND preserves accuracy on the short ones.
+- Substring-match on `.answer` field SHOULD work since strict schema guarantees
+  the field is present and is a string.
+
+Tear-down: pkill -f "llama-server.*8083" + lsof verification — port freed.

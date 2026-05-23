@@ -1,0 +1,61 @@
+strategy	idx	wall_ms	completion_tokens	correct	fallback	output_snippet
+unconstrained	1	118	2	1	0	4
+unconstrained	2	233	3	1	0	Paris.
+unconstrained	3	241	13	1	0	The reversed string of 'hello' is 'olleh'.
+unconstrained	4	87	3	1	0	49
+unconstrained	5	83	3	1	0	11
+unconstrained	6	217	2	0	0	1
+unconstrained	7	95	2	0	0	6
+unconstrained	8	384	7	0	0	95. 5 Celsius
+unconstrained	9	190	3	1	0	65
+unconstrained	10	104	3	0	0	28
+unconstrained	11	475	15	1	0	```python sum(range(1, 101)) ```
+unconstrained	12	1559	67	1	0	The time complexity of a binary search algorithm is O(log n), where n is the number of elements in the array. This is be
+unconstrained	13	137	5	1	0	lst[::-1]
+unconstrained	14	617	22	1	0	The sorted list of {3,1,2} is {1, 2, 3}.
+unconstrained	15	550	22	1	0	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless.
+unconstrained	16	2302	96	1	0	Breadth-First Search (BFS) and Depth-First Search (DFS) are two fundamental algorithms used for traversing and searching
+unconstrained	17	2335	96	1	0	Certainly! Memoization is a technique that allows you to store the results of expensive function calls and reuse them wh
+unconstrained	18	2981	96	0	0	To convert the binary number 1101 to its decimal equivalent, we can follow these steps:  1. **Understand the binary numb
+unconstrained	19	1975	96	1	0	Mergesort is an efficient sorting algorithm that operates by recursively dividing the input array into smaller subarrays
+unconstrained	20	2502	69	1	0	The Halting Problem is a fundamental challenge in computer science, specifically in the field of theoretical computer sc
+json_object	1	163	6	1	0	4
+json_object	2	172	10	1	0	Paris
+json_object	3	302	11	1	0	olleh
+json_object	4	356	7	1	0	49
+json_object	5	139	7	1	0	11
+json_object	6	126	6	1	0	2
+json_object	7	157	6	0	0	6
+json_object	8	147	6	0	0	0
+json_object	9	184	7	1	0	65
+json_object	10	253	7	0	0	28
+json_object	11	444	27	0	1	```json {   "answer": "for i in range(1, 101): print(i)" } ```
+json_object	12	302	12	1	0	O(log n)
+json_object	13	487	12	0	1	```json {"answer":"lst.reverse()"} ```
+json_object	14	763	20	1	1	```json {   "answer": "1, 2, 3" } ```
+json_object	15	2563	85	1	0	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless.
+json_object	16	1484	96	1	1	To understand the difference between BFS (Breadth-First Search) and DFS (Depth-First Search), it's important to understa
+json_object	17	2255	96	1	1	To implement the Fibonacci sequence using memoization in Python, we can use the `functools.cache` decorator. This decora
+json_object	18	312	18	0	1	```json {   "answer": "Decimal: 19" } ```
+json_object	19	1370	56	1	0	Mergesort has a time complexity of O(n log n) because it divides the array into smaller sub-arrays, sorts these sub-arra
+json_object	20	2356	96	1	1	{   "answer": "Halting problem refers to a fundamental challenge in computational complexity theory, specifically in the
+json_strict	1	379	6	1	0	4
+json_strict	2	195	10	1	0	Paris
+json_strict	3	202	11	1	0	olleh
+json_strict	4	158	7	1	0	49
+json_strict	5	316	7	1	0	11
+json_strict	6	114	6	1	0	2
+json_strict	7	144	6	0	0	6
+json_strict	8	194	6	0	0	0
+json_strict	9	223	7	1	0	65
+json_strict	10	118	7	0	0	28
+json_strict	11	474	27	0	0	for i in range(1, 101): print(i)
+json_strict	12	502	12	1	0	O(log n)
+json_strict	13	268	12	0	0	lst.reverse()
+json_strict	14	717	20	1	0	1, 2, 3
+json_strict	15	929	29	1	0	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless.
+json_strict	16	3171	96	1	1	{"answer":"BFS (Breadth-First Search) is a search algorithm that explores all the nodes in an ordered tree or graph leve
+json_strict	17	1391	73	1	0	def fibonacci_with_cache(n, memo={}):     if n in memo:         return memo[n]     if n <= 1:         return n     memo[
+json_strict	18	687	18	0	0	Decimal: 19
+json_strict	19	1039	56	1	0	Mergesort has a time complexity of O(n log n) because it divides the array into smaller sub-arrays, sorts these sub-arra
+json_strict	20	2632	96	1	1	{   "answer": "Halting problem refers to a fundamental challenge in computational complexity theory, specifically in the

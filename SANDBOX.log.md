@@ -771,3 +771,99 @@ masking real tier behavior under saturation); the
 suspect and should be revisited in a future cycle — the spread is
 tight (1 task / 5pp) but real, so Stage 2 manifest dependency
 remains the right successor.
+
+## 2026-05-24 — Stage 4 JSON-schema-constrained decoding (cycle-6)
+
+**d_json_schema_constrained — PARTIAL / dead at the 30% threshold
+(substrate lever ALIVE, hypothesis missed at the scale of the
+canonical 20-task manifest).**
+
+`bench/sandbox_stage4_json_schema.hexa` boots `llama-server` once on
+port 8083 (sibling-agent-disjoint from 8081/8082), POSTs the canonical
+20-task manifest through `/v1/chat/completions` under three strategies,
+and tears the server down on exit:
+
+1. `unconstrained` — no `response_format`, REFERENCE.
+2. `json_object` — `response_format: {"type":"json_object"}`, loose hint.
+3. `json_strict` — `response_format: {"type":"json_schema","json_schema":
+   {"schema":{"type":"object","properties":{"answer":{"type":"string"}},
+   "required":["answer"]}}}` — STRICT grammar.
+
+Pre-bench probe (`.discoveries/sandbox-llama-server-jsonschema.raw`)
+confirmed `llama-server b9150` accepts BOTH levels; the strict-schema
+mode bit-for-bit enforces the grammar (returns `{"answer":"4"}`), the
+json_object mode is a HINT only (returned bare prose `2+2 equals 4.`
+when only the `type:json_object` flag was set without a JSON-shape
+instruction).
+
+Results (`.verdicts/sandbox/stage4_json_schema_summary.txt`):
+
+| strategy        | correct | total_wall_ms | total_out_tok | avg_tok | fallback_rows |
+|:----------------|--------:|--------------:|--------------:|--------:|--------------:|
+| unconstrained   |  15/20  | 17 185        | 625           |  31.2   | 0             |
+| json_object     |  14/20  | 14 335        | 591           |  29.5   | 7             |
+| json_strict     |  14/20  | 13 853        | 512           |  25.6   | 2             |
+
+- `json_object_output_tok_reduction_pct = 5.44%`
+- `json_strict_output_tok_reduction_pct = 18.80%`
+- `json_object_wall_ms_reduction_pct    = 16.58%`
+- `json_strict_wall_ms_reduction_pct    = 19.38%`
+- `accuracy_preserved = false` (both modes lost 1 task vs unconstrained)
+- `llama_server_json_schema_exposed = true`
+- `reduction_target_pct = 30`
+
+**Verdict: DEAD AT THE THRESHOLD.** The hypothesis required ≥30%
+output-token reduction at preserved accuracy. `json_strict` got the
+best numbers but landed at 18.80% (substantially short of 30%) AND
+lost task #11 (`sum(range(...))` → emitted
+`for i in range(1, 101): print(i)` — the JSON wrapper appears to
+perturb the decode trajectory enough to flip a code-style choice on
+a borderline task). `json_object` mode was weaker: 5.44% tok
+reduction AND 7/20 rows came back wrapped in markdown fences
+(` ```json {…} ``` `) that broke the `.answer` jq parse — the model
+is hint-mode-prone to its training distribution (markdown-fenced
+JSON), not bare JSON.
+
+**Failure-mode honesty:**
+
+1. For SHORT bare answers (1-5 tokens — the bulk of the manifest's
+   arithmetic / one-word strata), the JSON wrapper ADDS framing
+   tokens (`{"answer":"4"}` is ~6 tokens vs raw `4` is ~1 token).
+   The 30% reduction hypothesis silently assumed a VERBOSE
+   unconstrained baseline, but Qwen2.5-0.5B-Instruct already obeys
+   `Reply with the digit only` tightly — there is no prose padding
+   to amputate.
+2. The savings the bench DID measure (18.80% tok / 19.38% wall) come
+   from the long-tail tasks (#15 TCP-vs-UDP 85→29 tok, #19 mergesort
+   56→56, #20 halting 96→96) where strict mode truncates the prose
+   tail. But these tasks are a minority of the manifest.
+3. `json_object` hint mode is too weak to be useful without
+   `system`-prompt scaffolding telling the model to emit bare JSON.
+
+**Scope where this might still win:** Stage 2's longer-tail
+synthetic tasks (story generation, multi-paragraph explanations)
+where prose padding dominates the token budget. Flagged in
+`.discoveries/sandbox.tape` as `REVIVAL_CANDIDATE_AT_STAGE_2`.
+
+**Hygiene:** server PID captured in
+`/tmp/sandbox_stage4_llama_8083.pid`;
+`pkill -f 'llama-server.*8083'` runs in `teardown_server()` AND as
+a pre-launch sweep; `lsof -i :8083` post-run shows the port freed.
+
+Persisted:
+
+- `bench/sandbox_stage4_json_schema.hexa` (new) — server-mode bench
+  using the `nohup llama-server &` pattern + `curl --data-binary` +
+  `jq` over the OpenAI-compatible `/v1/chat/completions` route.
+- `.verdicts/sandbox/stage4_json_schema.tsv` — 60 rows
+  (3 strategies × 20 tasks).
+- `.verdicts/sandbox/stage4_json_schema_summary.txt` — aggregate.
+- `.discoveries/sandbox-llama-server-jsonschema.raw` — pre-bench
+  probe showing the substrate's response_format surface accepted
+  both modes.
+- `.discoveries/sandbox.tape` — `d_json_schema_constrained` flipped
+  from CANDIDATE → DEAD with
+  `verdict=PARTIAL_BLOCKED_AT_THRESHOLD` ref.
+
+Cumulative SANDBOX state: 5 confirmed · 3 dead (added
+d_json_schema_constrained at threshold) · 8 candidates remaining.

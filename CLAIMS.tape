@@ -7,11 +7,14 @@
 
 # ECONOMICS group — n=6 ladder claims (slug = economics-n6-ladder)
 #
-# Method legend (cx_claim_verify):
-#   atom  — `hexa verify --expr <fn> <n> <v>` (atlas atom recompute)
-#   expr  — `hexa verify --expr <fn> <a> <b> <v>` (2-operand atom recompute)
-#   fence — `hexa verify --fence "<claim>"` (honest speculation fence)
-#   run   — `hexa run verify/<file>.hexa` (closed-form recompute via verifier)
+# Method legend (cx_claim_verify · cx_empirical_contact):
+#   atom      — `hexa verify --expr <fn> <n> <v>` (atlas atom recompute → BLUE)
+#   expr      — `hexa verify --expr <fn> <a> <b> <v>` (2-operand atom recompute → BLUE)
+#   empirical — real lm_foundry train · hexa-eval infer · serving bench (T4 → BLUE on exact match)
+#
+# Gate (cx_paper_gate): 100% BLUE required. No fence/numeric/deferred residual.
+
+# ── atlas atoms (4 — BLUE on first run) ────────────────────────────────
 
 @C ec_sigma_6 := "sigma(6) = 12" :: atom [slug=economics-n6-ladder]
   method = "atom"
@@ -29,34 +32,24 @@
   method = "atom"
   cmd    = "hexa verify --expr sigma_2 6 50"
 
-@C ec_quality_alpha := "quality_scale loss-fit exponent alpha = phi(6)/sigma(6) = 1/6" :: modeling [slug=economics-n6-ladder]
-  method = "fence"
-  cmd    = "hexa verify --fence \"quality_scale loss-fit exponent alpha = phi(6)/sigma(6) = 1/6 (n=6 modeling claim)\""
+# ── T4 empirical contact (3 — DEFERRED until lm_foundry/hexa-eval run) ─
 
-@C ec_train_n6exp := "train_cost exponent N6_EXP = J2/(J2+1) = 24/25 = 0.96" :: modeling [slug=economics-n6-ladder]
-  method = "fence"
-  cmd    = "hexa verify --fence \"train_cost exponent N6_EXP = J2/(J2+1) = 24/25 (n=6 modeling claim, J2 = sigma*phi = 24)\""
+@C ec_t4_quality := "quality_scale T4 — train Qwen2.5-Coder-7B at fixed (N,D), measured loss matches E + A*N^-(1/6) + B*D^-(1/6) within 1e-2 rel" :: empirical [slug=economics-n6-ladder]
+  method = "empirical"
+  cmd    = "lm_foundry train + hexa-eval loss-vs-(N,D) sweep, persist metrics to .verdicts/economics-n6-ladder/ec_t4_quality.txt"
+  status = "DEFERRED — requires GPU pod"
 
-@C ec_pareto_optimum := "Pareto optimum D/N = (A/B)^(1/alpha) approx 1.07 for n=6, vs Chinchilla 20" :: modeling [slug=economics-n6-ladder]
-  method = "fence"
-  cmd    = "hexa verify --fence \"ECONOMICS Pareto optimum D/N approx 1.07 at n=6 alpha=1/6, distinct from Chinchilla published ~20 (modeling)\""
+@C ec_t4_train := "train_cost T4 — measured FLOPs(N,D) for Qwen2.5-Coder-7B SFT matches (N*D/1e22)^N6_EXP scaling within 1e-2 rel" :: empirical [slug=economics-n6-ladder]
+  method = "empirical"
+  cmd    = "lm_foundry SFT runs at varying (N,D), capture FLOPs, persist to .verdicts/economics-n6-ladder/ec_t4_train.txt"
+  status = "DEFERRED — requires GPU pod"
 
-@C ec_cross_pillar := "ECONOMICS 3-pillar cross-pillar verifier closes 10/10" :: run [slug=economics-n6-ladder]
-  method = "run"
-  cmd    = "hexa run verify/numerics_economics_cross_pillar.hexa"
-  sent   = "__HEXA_CODEX_NUMERICS_ECONOMICS_CROSS_PILLAR__ PASS"
+@C ec_t4_infer := "infer_cost T4 — measured prefill latency vs ctx for Qwen2.5-Coder-7B matches (ctx/8192)^4 within 1e-1 rel" :: empirical [slug=economics-n6-ladder]
+  method = "empirical"
+  cmd    = "hexa-eval infer latency-vs-ctx sweep (1k..128k), capture, persist to .verdicts/economics-n6-ladder/ec_t4_infer.txt"
+  status = "DEFERRED — requires GPU pod"
 
-@C ec_scaling_laws := "ECONOMICS scaling-laws sweep closes 10/10" :: run [slug=economics-n6-ladder]
-  method = "run"
-  cmd    = "hexa run verify/numerics_economics_scaling_laws.hexa"
-  sent   = "__HEXA_CODEX_NUMERICS_ECONOMICS_SCALING_LAWS__ PASS"
-
-@C ec_pareto_envelope := "ECONOMICS Pareto envelope verifier closes 10/10" :: run [slug=economics-n6-ladder]
-  method = "run"
-  cmd    = "hexa run verify/numerics_economics_pareto.hexa"
-  sent   = "__HEXA_CODEX_NUMERICS_ECONOMICS_PARETO__ PASS"
-
-@C ec_ladder_report := "ECONOMICS recipe §3 ladder report closes 10/10 — per-verb closure_pct=100%" :: run [slug=economics-n6-ladder]
-  method = "run"
-  cmd    = "hexa run verify/report_economics_ladder.hexa"
-  sent   = "__HEXA_CODEX_REPORT_ECONOMICS_LADDER__ PASS"
+@C ec_t4_serve := "serve T4 — measured serving throughput vs ctx for v0.5.x stack matches infer-cost-derived prediction within 1e-1 rel" :: empirical [slug=economics-n6-ladder]
+  method = "empirical"
+  cmd    = "lm_foundry serve bench (vLLM, varying ctx), capture QPS·tok/s, persist to .verdicts/economics-n6-ladder/ec_t4_serve.txt"
+  status = "DEFERRED — requires GPU pod"

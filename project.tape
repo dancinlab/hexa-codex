@@ -43,6 +43,10 @@
   do   = "violating paper (cx_paper_gate / significance fail) revoked immediately — PAPER/<slug>/ removed"
   dont = "keep violating paper as draft · mark WIP · defer revocation · allow gate-failure residual"
 
+@D cx_paper_one_per_domain := "one canonical paper per group — ECONOMICS · SAFETY · OPS · SUBSTRATE" :: workflow [required active]
+  do   = "ship one canonical paper per domain group — replace in place when a stronger finding lands"
+  dont = "ship multiple papers per group · accumulate paper backlog · fork same-group narratives"
+
 @D cx_discovery := "each verify cycle pairs with a discovery round" :: workflow [required active]
   do   = "verify cycle paired with `/kick` or `/gap` round — new candidates feed next CLAIMS.tape"
   dont = "stop the cycle after verification · skip discovery · treat audit-only as the whole loop"

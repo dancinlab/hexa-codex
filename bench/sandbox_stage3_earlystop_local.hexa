@@ -1,4 +1,11 @@
 #!hexa strict
+// SCORER FIX 2026-05-23: strip stderr [end of text] + common_perf_print trailer
+// per cycle-4 finding (commit d79306e). The line-based awk already stripped
+// common_perf_print lines, but the inline `[end of text]` marker (and any
+// trailer content on the same line) leaked into the substring scorer. Adding
+// sed strip for full parity with sandbox_stage3_maxtokens_cap.hexa. Old
+// verdict in git history.
+//
 // bench/sandbox_stage3_earlystop_local.hexa — SANDBOX Stage 3 PoC: local stop-sequence A/B.
 //
 // QUESTION: cycle-2 `d_early_stop` was BLOCKED at the `claude --bare -p`
@@ -102,7 +109,9 @@ fn run_one(prompt: str, expected_kw: str, prompt_prefix: str, rstop: str) -> str
               " -n " + str(MAX_TOK) + " --temp 0 -st" + rflag + " 2>&1); " +
               "t_end=$(date +%s%N); " +
               "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
-              "ans=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} /^common_perf_print/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} /^common_perf_print/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              // SCORER FIX 2026-05-23: strip inline [end of text] + any common_perf_print residue for honest scoring
+              "ans=$(printf '%s' \"$ans_raw\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//'); " +
               "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
               "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
               "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +

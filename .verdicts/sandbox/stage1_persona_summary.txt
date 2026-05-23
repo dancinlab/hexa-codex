@@ -3,17 +3,17 @@
 # host=mac-mini-m3 (brew llama.cpp + Metal)
 # cost_usd=0  (local serving; wall_ms is the proxy cost surface)
 # usable_threshold=15
-# nano_accuracy=20/20
-# mid_accuracy=20/20
-# max_accuracy=20/20
-# nano_total_wall_ms=123047
-# mid_total_wall_ms=104160
-# max_total_wall_ms=141580
+# nano_accuracy=17/20
+# mid_accuracy=18/20
+# max_accuracy=17/20
+# nano_total_wall_ms=25677
+# mid_total_wall_ms=46733
+# max_total_wall_ms=176350
 # nano_persona_works=true
 # mid_persona_works=true
 # max_persona_works=true
 # acc_ladder=false  (nano_acc<mid_acc<=max_acc)
-# ms_ladder=false  (nano_ms<mid_ms<max_ms)
-# tier_separation_observed=false
-# spread_tasks=0  (max_correct - min_correct across personas)
-# routing_simulation_viable=false
+# ms_ladder=true  (nano_ms<mid_ms<max_ms)
+# tier_separation_observed=true
+# spread_tasks=1  (max_correct - min_correct across personas)
+# routing_simulation_viable=true

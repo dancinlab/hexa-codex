@@ -1,8 +1,8 @@
 # model=Qwen2.5-0.5B-Instruct-Q4_K_M
 # total_tasks=20
-# correct=19/20
-# accuracy_pct=95.0
-# total_wall_ms=26130
+# correct=16/20
+# accuracy_pct=80.0
+# total_wall_ms=21183
 # usable_threshold=15
 # usable_floor_reached=true
 # tool=llama-completion

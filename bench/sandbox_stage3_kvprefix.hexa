@@ -1,4 +1,8 @@
 #!hexa strict
+// SCORER FIX 2026-05-23: strip stderr [end of text] + common_perf_print trailer
+// per cycle-4 finding (commit d79306e). Old verdicts (cold/warm 10/10) were
+// inflated by the same scorer artifact as Stage 0. Old verdicts in git history.
+//
 // bench/sandbox_stage3_kvprefix.hexa — SANDBOX Stage 3 (cycle-4 / kick-r4 ROI-top-2):
 // KV-prefix sharing on llama.cpp via `--prompt-cache` / `--prompt-cache-all` /
 // `--prompt-cache-ro`. Reviving cycle-2's `d_cache_aware` candidate that was
@@ -110,7 +114,9 @@ fn run_one(prompt: str, expected_kw: str, cache_arg: str) -> str {
               " -n " + str(MAX_TOK) + " --temp 0 -st " + cache_arg + " 2>&1); " +
               "t_end=$(date +%s%N); " +
               "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
-              "ans=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              // SCORER FIX 2026-05-23: strip [end of text] + common_perf_print trailer for honest scoring
+              "ans=$(printf '%s' \"$ans_raw\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//'); " +
               "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
               "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
               "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +

@@ -1,21 +1,21 @@
 idx	prompt_wc	output_tok_est	wall_ms	correct	output_snippet
-1	39	145	1849	1	4 [end of text] common_perf_print: sampling time = 0.82 ms common_perf_print: samplers time = 0.26 ms / 23 tokens common
-2	28	145	1600	1	Paris [end of text] common_perf_print: sampling time = 0.61 ms common_perf_print: samplers time = 0.24 ms / 17 tokens co
-3	64	145	1188	1	olleh [end of text] common_perf_print: sampling time = 0.95 ms common_perf_print: samplers time = 0.36 ms / 24 tokens co
-4	40	145	1648	1	49 [end of text] common_perf_print: sampling time = 0.73 ms common_perf_print: samplers time = 0.36 ms / 22 tokens commo
-5	63	145	1168	1	11 [end of text] common_perf_print: sampling time = 0.71 ms common_perf_print: samplers time = 0.32 ms / 26 tokens commo
-6	50	145	1140	1	2 [end of text] common_perf_print: sampling time = 0.67 ms common_perf_print: samplers time = 0.32 ms / 21 tokens common
-7	48	145	1197	1	6 [end of text] common_perf_print: sampling time = 0.52 ms common_perf_print: samplers time = 0.20 ms / 20 tokens common
-8	75	145	1141	1	100 [end of text] common_perf_print: sampling time = 0.88 ms common_perf_print: samplers time = 0.41 ms / 29 tokens comm
-9	55	145	599	0	97 [end of text] common_perf_print: sampling time = 0.85 ms common_perf_print: samplers time = 0.36 ms / 24 tokens commo
-10	50	145	580	1	28 [end of text] common_perf_print: sampling time = 0.58 ms common_perf_print: samplers time = 0.27 ms / 26 tokens commo
-11	73	148	1096	1	```python sum(range(1, 101)) ``` [end of text] common_perf_print: sampling time = 2.72 ms common_perf_print: samplers ti
-12	56	146	1108	1	O(log n) [end of text] common_perf_print: sampling time = 1.31 ms common_perf_print: samplers time = 0.54 ms / 25 tokens
-13	77	145	1116	1	lst[::-1] [end of text] common_perf_print: sampling time = 1.31 ms common_perf_print: samplers time = 0.63 ms / 29 token
-14	51	147	1131	1	1, 2, 3 [end of text] common_perf_print: sampling time = 1.56 ms common_perf_print: samplers time = 0.81 ms / 32 tokens
-15	60	157	1211	1	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless. [end o
-16	34	218	1593	1	Breadth-First Search (BFS) and Depth-First Search (DFS) are two fundamental algorithms used for traversing graphs and so
-17	62	211	2183	1	To implement the Fibonacci sequence using memoization in Python, we can use the `functools.cache` decorator. This decora
-18	50	161	1826	1	1101 binary = 11 * 2^2 + 1 * 2^1 + 0 * 2^0 = 42 decimal [end of text] common_perf_print: sampling time = 9.44 ms common_
-19	56	168	1630	1	Mergesort has an O(n log n) time complexity because it divides the array into smaller subarrays, sorts those, and then m
-20	45	165	1126	1	The Halting Problem is a fundamental problem in computer science that asks whether a given computer program will termina
+1	39	1	595	1	4
+2	28	1	572	1	Paris
+3	64	1	573	1	olleh
+4	40	1	1079	1	49
+5	63	1	1076	1	11
+6	50	1	1089	1	2
+7	48	1	1076	0	6
+8	75	1	1086	1	100
+9	55	1	1087	0	97
+10	50	1	1074	0	28
+11	73	4	1070	1	```python sum(range(1, 101)) ```
+12	56	2	1140	1	O(log n)
+13	77	1	1092	1	lst[::-1]
+14	51	3	1086	1	1, 2, 3
+15	60	13	1081	1	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is connectionless.
+16	34	77	1575	1	Breadth-First Search (BFS) and Depth-First Search (DFS) are two fundamental algorithms used for traversing graphs and so
+17	62	70	1585	1	To implement the Fibonacci sequence using memoization in Python, we can use the `functools.cache` decorator. This decora
+18	50	17	1083	0	1101 binary = 11 * 2^2 + 1 * 2^1 + 0 * 2^0 = 42 decimal
+19	56	24	1085	1	Mergesort has an O(n log n) time complexity because it divides the array into smaller subarrays, sorts those, and then m
+20	45	21	1079	1	The Halting Problem is a fundamental problem in computer science that asks whether a given computer program will termina

@@ -79,16 +79,18 @@ accuracy floor on the canonical 20-task economics-routing manifest
 |---|---|
 | model | Qwen2.5-0.5B-Instruct-Q4_K_M (GGUF, ~379 MB) |
 | host / tool | mac mini M3 · `llama-completion` (brew llama.cpp + Metal) |
-| accuracy | 19/20 (95.0%) |
+| accuracy | ~~19/20 (95.0%)~~ **16/20 (80.0%)** — see 2026-05-24 rebaseline entry |
 | total wall-clock | 26.13 s (~1.3 s/task incl. model-load amortization) |
 | cost | $0 USD (local serving; `wall_ms` is the proxy cost surface) |
-| usable floor reached | **true** (19/20 >= 15/20) |
+| usable floor reached | **true** (16/20 >= 15/20 — still clears) |
 
 Stage 0 verdict: self-hosted small-OSS substrate clears the usable
-floor on the canonical manifest at 95% — comparable to the baseline
-opus 18-19/20 reference, at zero per-call cost. Stage 1 (3-tier
-persona via temperature/max-tok on the same single base, mock
-haiku/sonnet/opus) is unblocked.
+floor on the canonical manifest at 80% (clean scorer; original 95%
+reading was inflated by stderr-trailer leakage, corrected in the
+2026-05-24 rebaseline entry below) — still above the 15/20 floor and
+within reach of the baseline opus reference at zero per-call cost.
+Stage 1 (3-tier persona via temperature/max-tok on the same single
+base, mock haiku/sonnet/opus) is unblocked.
 
 Honest residuals (g5 compliance — no cherry-picking):
 
@@ -125,13 +127,18 @@ Dispatch via `llama-completion -sys ... -p ...` (chat-template aware),
 same scorer (byte_exact_subset, case-insensitive), same canonical
 20-task manifest verbatim from Stage 0.
 
-Result: **all 3 personas score 20/20 — perfect ceiling saturation.**
+Result (ORIGINAL — pre-2026-05-24 rebaseline): all 3 personas score
+20/20 — apparent perfect ceiling saturation. This figure was inflated
+by the same stderr-trailer scorer artifact as Stage 0; the rebaseline
+entry at the bottom of this log corrects to nano 17/20 · mid 18/20
+· max 17/20, with `tier_separation_observed = true` (ms_ladder) and
+`routing_simulation_viable = true`.
 
-- `nano_accuracy = 20/20`  · `nano_total_wall_ms = 123047`
-- `mid_accuracy  = 20/20`  · `mid_total_wall_ms  = 104160`
-- `max_accuracy  = 20/20`  · `max_total_wall_ms  = 141580`
-- `tier_separation_observed = false` (acc_ladder=false ms_ladder=false)
-- `routing_simulation_viable = false` (spread_tasks=0)
+- ~~`nano_accuracy = 20/20`~~ **17/20** · `nano_total_wall_ms ≈ 25.7s` (rerun)
+- ~~`mid_accuracy  = 20/20`~~ **18/20** · `mid_total_wall_ms  ≈ 46.7s` (rerun)
+- ~~`max_accuracy  = 20/20`~~ **17/20** · `max_total_wall_ms  ≈ 176.4s` (rerun)
+- `tier_separation_observed = true` (ms_ladder=true; rebaseline)
+- `routing_simulation_viable = true` (spread_tasks=1; rebaseline)
 
 The persona convention is **NOT falsified** — dispatch, scorer parity,
 and per-persona wall_ms accounting all work mechanically. It is
@@ -197,8 +204,8 @@ per `llama-completion` perf print) attached to every task:
 |---|---|
 | llama_cpp_cache_flag_exposed | **true** (substrate unlock confirmed) |
 | cache_file_size | 4,725,349 bytes (~4.7 MB) on disk for 376 tokens |
-| accuracy_cold | 19/20 |
-| accuracy_warm | 19/20 (bit-identical — cache replay does not drift behavior) |
+| accuracy_cold | ~~19/20~~ **16/20** (post-rebaseline; see 2026-05-24 entry) |
+| accuracy_warm | ~~19/20~~ **17/20** (cache replay accuracy within ±1 task of cold on the clean scorer) |
 | cold_total_wall_ms | 123,914 (avg 6,195 ms/task) |
 | warm_total_wall_ms | 130,826 (avg 6,576 ms/task after first cache-write) |
 | warm_first_wall_ms (cache write) | 5,869 |
@@ -226,7 +233,7 @@ cycle-4; both are concrete successor candidates.
 | cache flag exposed | **false** (no `cache_control`) | **true** (`--prompt-cache` works) |
 | warm_saving_pct | **−24.10%** | **−6.15%** |
 | blocker class | surface-limit (BLOCKED) | scale-limit (BLOCKED_AT_SCALE) |
-| accuracy parity | 10/10 == 10/10 (small manifest) | 19/20 == 19/20 |
+| accuracy parity | 10/10 == 10/10 (small manifest) | 16/20 vs 17/20 (clean-scorer, post-rebaseline) |
 
 Cycle-4 narrowed the blocker by 17.95 pp and converted the failure
 mode from *unfixable-at-the-vendor-surface* to
@@ -681,3 +688,86 @@ Cumulative SANDBOX state: **5 confirmed** (d_stage0_poc ·
 d_early_stop_local · d_prompt_compress_local[max_tokens_cap_only] ·
 d_logit_calibration · d_stage2_scale_manifest) · 2 dead
 (d_stage1_persona · d_kv_prefix_share) · 9 candidates remaining.
+
+---
+
+## 2026-05-24 — scorer-fix rebaseline — Stage 0/1/3 verdicts cleaned
+
+The cycle-4 `sandbox_stage3_maxtokens_cap.hexa` bench (commit `d79306e`)
+discovered that the Stage 0 / Stage 1 / Stage 3 KV-prefix benches had a
+**scorer artifact**: stderr `[end of text]` + `common_perf_print:` trailer
+from `llama-completion` leaked into the substring-match scorer because the
+`awk` extractor ran from `^assistant$` to `^> EOF by user` without stripping
+the perf trailer that appears before EOF in single-turn `-st` mode.
+
+`sandbox_stage3_earlystop_local.hexa` had a partial fix (line-based
+`/^common_perf_print/{flag=0}` in awk) that incidentally produced the
+correct accuracy; `sandbox_stage3_maxtokens_cap.hexa` had the canonical
+sed-based fix (`sed 's/ *\[end of text\].*$//' | sed 's/ *common_perf_print:.*$//'`).
+
+This rebaseline patches all 4 buggy benches to the canonical sed-strip
+pattern (atomic, single commit) and reruns them. Awk/sed block changed
+only; rest of each `run_one()` preserved verbatim.
+
+| bench | old accuracy | new accuracy | flipped task indices |
+|---|---|---|---|
+| Stage 0 baseline | 19/20 | **16/20** | tasks 7, 10, 18 (ans=6/28/"=42 decimal" → kw "7"/"29"/"13" no longer match perf-line digits) |
+| Stage 1 persona — nano | 20/20 | **17/20** | tasks 7, 10, 18 |
+| Stage 1 persona — mid  | 20/20 | **18/20** | tasks 7, 10 (task 18 still passes because the working-line answer ranges over the digits) |
+| Stage 1 persona — max  | 20/20 | **17/20** | tasks 7, 10, 18 |
+| Stage 3 early-stop local | 16/16/16/0 (4 strats) | **16/16/16/0** (no change — awk strip was sufficient) | none |
+| Stage 3 KV-prefix — cold | 19/20 | **16/20** | tasks 7, 10, 18 (+ task 8 ans="0" kw="100" now correctly fails; was already at 19/20 before so net cold flips = -3) |
+| Stage 3 KV-prefix — warm | 19/20 | **17/20** | tasks 10, 18 (task 7 now passes warm: kw "7" matches the model's full answer text including digit 7 in this run; cache replay drift across runs) |
+
+**Tier separation now actually observed** in Stage 1: `ms_ladder = true`
+(nano 25.7s < mid 46.7s < max 176.4s on this rerun), `spread_tasks = 1`,
+`routing_simulation_viable = true`. The trailer artifact had been masking
+real tier behavior — the 20/20 ceiling was scorer-saturation, not model
+saturation. Stage 1 verdict is now **partially revised**: persona dispatch
++ scorer parity still work mechanically; routing simulation is **viable
+on cold-baseline accuracy** but the spread (1 task / 5pp) is still tight
+— Stage 2 (scaled stratified manifest) remains the right successor.
+
+**Substantive verdict-headline impact** (kept honest, no candidate
+state flipped):
+- d_stage0_poc — confirmed → confirmed (clean baseline 16/20 still
+  clears usable floor `>= 15/20`).
+- d_stage1_persona — dead-on-manifest → still dead, but now with
+  routing_simulation_viable=true (the manifest still saturates at
+  ≤3-task spread; Stage 2 dependency unchanged).
+- d_kv_prefix_share — dead [BLOCKED_AT_SCALE] → still dead at same
+  threshold (warm_speedup_pct 13.30% < 20% target on rerun; cold 16/20
+  vs warm 17/20 within run-to-run cache-replay noise).
+- d_early_stop_local — confirmed → confirmed (no change; awk strip
+  was already correct).
+- d_prompt_compress_local — confirmed [scope=max_tokens_cap_only] →
+  unchanged (this bench had the canonical strip from the start).
+
+**Cycle-4 honest_note_2 in `stage3_maxtokens_cap_summary.txt` is now
+RESOLVED.** The artifact it disclosed has been removed from the
+upstream benches; the Stage 0 / Stage 1 / KV-prefix verdicts now agree
+with the Stage 3 max_tokens_cap reading. Verdict refs throughout
+`.discoveries/sandbox.tape` still point at the same paths — the
+files have been rewritten in place with clean numbers.
+
+Persisted:
+- All 4 benches modified with `// SCORER FIX 2026-05-23: ...` header
+  block + sed trailer-strip in `run_one()`.
+- `.verdicts/sandbox/stage0_accuracy_floor*` — rewritten (16/20).
+- `.verdicts/sandbox/stage1_persona*` — rewritten (17/18/17).
+- `.verdicts/sandbox/stage3_earlystop_local*` — rerun (no accuracy
+  change; wall_ms numbers refreshed).
+- `.verdicts/sandbox/stage3_kvprefix*` — rewritten (16/17).
+
+Cumulative SANDBOX state UNCHANGED by this rebaseline (5 confirmed ·
+2 dead · 9 remaining after Stage 2 + logit calibration landed in
+parallel commits 91ac831 + c7e03a5). No candidate state flipped by
+the scorer-fix itself — the rebaseline only cleans the numbers that
+the existing verdict refs point at. **However:** the Stage 1
+rebaseline reveals `tier_separation_observed=TRUE` and
+`routing_simulation_viable=TRUE` (the trailer artifact had been
+masking real tier behavior under saturation); the
+"dead-on-manifest" verdict for `d_stage1_persona` is now itself
+suspect and should be revisited in a future cycle — the spread is
+tight (1 task / 5pp) but real, so Stage 2 manifest dependency
+remains the right successor.

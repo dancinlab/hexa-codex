@@ -1,41 +1,41 @@
 strategy	idx	wall_ms	output_tok_est	correct	output_snippet
-cold	1	5566	145	1	4 [end of text] common_perf_print: sampling time = 4.08 ms common_perf_print: samplers time = 0.40 ms / 385 tokens commo
-cold	2	4847	145	1	Paris [end of text] common_perf_print: sampling time = 3.98 ms common_perf_print: samplers time = 3.10 ms / 379 tokens c
-cold	3	5378	145	1	olleh [end of text] common_perf_print: sampling time = 34.87 ms common_perf_print: samplers time = 16.74 ms / 386 tokens
-cold	4	2319	145	1	49 [end of text] common_perf_print: sampling time = 1.40 ms common_perf_print: samplers time = 0.45 ms / 384 tokens comm
-cold	5	4772	145	1	11 [end of text] common_perf_print: sampling time = 9.56 ms common_perf_print: samplers time = 0.57 ms / 388 tokens comm
-cold	6	4887	145	1	2 [end of text] common_perf_print: sampling time = 25.29 ms common_perf_print: samplers time = 2.50 ms / 383 tokens comm
-cold	7	6656	145	1	6 [end of text] common_perf_print: sampling time = 1.60 ms common_perf_print: samplers time = 0.46 ms / 382 tokens commo
-cold	8	6589	145	0	0 [end of text] common_perf_print: sampling time = 12.57 ms common_perf_print: samplers time = 0.58 ms / 389 tokens comm
-cold	9	7300	145	1	65 [end of text] common_perf_print: sampling time = 1.37 ms common_perf_print: samplers time = 0.62 ms / 386 tokens comm
-cold	10	10200	145	1	27 [end of text] common_perf_print: sampling time = 15.16 ms common_perf_print: samplers time = 2.09 ms / 388 tokens com
-cold	11	8473	148	1	```python sum(range(1, 101)) ``` [end of text] common_perf_print: sampling time = 18.27 ms common_perf_print: samplers t
-cold	12	8535	146	1	O(log n) [end of text] common_perf_print: sampling time = 4.74 ms common_perf_print: samplers time = 1.53 ms / 387 token
-cold	13	4040	145	1	lst[::-1] [end of text] common_perf_print: sampling time = 34.48 ms common_perf_print: samplers time = 31.04 ms / 391 to
-cold	14	3717	147	1	{1, 2, 3} [end of text] common_perf_print: sampling time = 32.55 ms common_perf_print: samplers time = 10.18 ms / 396 to
-cold	15	5622	151	1	TCP is connection-oriented, while UDP is connectionless. [end of text] common_perf_print: sampling time = 16.14 ms commo
-cold	16	7834	210	1	Breadth-First Search (BFS) explores all nodes at the current level before moving on to the next level. DFS, on the other
-cold	17	6435	176	1	```python import functools def fibonacci_memoized(n, memo={}): if n in memo: return memo[n] if n <= 1: return n memo[n]
-cold	18	6585	151	1	1101 binary = 1101 decimal = 19 [end of text] common_perf_print: sampling time = 33.84 ms common_perf_print: samplers ti
-cold	19	6984	159	1	Mergesort has an average time complexity of O(n log n) due to its divide-and-conquer approach. [end of text] common_perf
-cold	20	7175	155	1	A halting problem is a problem that has no algorithmic solution. [end of text] common_perf_print: sampling time = 28.61
-warm	1	5869	163	1	saved session before last token to /tmp/sandbox_prefix.bin, n_tokens = 382 4 [end of text] main: saving final output to
-warm	2	8024	145	1	Paris [end of text] common_perf_print: sampling time = 1.57 ms common_perf_print: samplers time = 0.88 ms / 379 tokens c
-warm	3	7189	145	1	olleh [end of text] common_perf_print: sampling time = 2.62 ms common_perf_print: samplers time = 0.99 ms / 386 tokens c
-warm	4	6592	145	1	49 [end of text] common_perf_print: sampling time = 1.32 ms common_perf_print: samplers time = 0.52 ms / 384 tokens comm
-warm	5	5821	145	1	11 [end of text] common_perf_print: sampling time = 58.49 ms common_perf_print: samplers time = 13.45 ms / 388 tokens co
-warm	6	5666	145	1	2 [end of text] common_perf_print: sampling time = 0.96 ms common_perf_print: samplers time = 0.29 ms / 383 tokens commo
-warm	7	9416	145	1	7 [end of text] common_perf_print: sampling time = 13.11 ms common_perf_print: samplers time = 10.23 ms / 382 tokens com
-warm	8	6381	145	0	0 [end of text] common_perf_print: sampling time = 1.94 ms common_perf_print: samplers time = 0.36 ms / 389 tokens commo
-warm	9	9777	145	1	65 [end of text] common_perf_print: sampling time = 5.76 ms common_perf_print: samplers time = 0.48 ms / 386 tokens comm
-warm	10	4811	145	1	27 [end of text] common_perf_print: sampling time = 9.19 ms common_perf_print: samplers time = 0.76 ms / 388 tokens comm
-warm	11	7636	148	1	```python sum(range(1, 101)) ``` [end of text] common_perf_print: sampling time = 79.52 ms common_perf_print: samplers t
-warm	12	6428	146	1	O(log n) [end of text] common_perf_print: sampling time = 4.86 ms common_perf_print: samplers time = 2.82 ms / 387 token
-warm	13	3766	145	1	lst[::-1] [end of text] common_perf_print: sampling time = 2.56 ms common_perf_print: samplers time = 1.07 ms / 391 toke
-warm	14	8081	147	1	{1, 2, 3} [end of text] common_perf_print: sampling time = 20.14 ms common_perf_print: samplers time = 1.93 ms / 396 tok
-warm	15	3200	151	1	TCP is connection-oriented, while UDP is connectionless. [end of text] common_perf_print: sampling time = 5.19 ms common
-warm	16	6241	210	1	Breadth-First Search (BFS) explores all nodes at the current level before moving on to the next level. DFS, on the other
-warm	17	7445	176	1	```python import functools def fibonacci_memoized(n, memo={}): if n in memo: return memo[n] if n <= 1: return n memo[n]
-warm	18	5303	151	1	1101 binary = 1101 decimal = 19 [end of text] common_perf_print: sampling time = 9.31 ms common_perf_print: samplers tim
-warm	19	7045	170	1	Mergesort has an O(n log n) time complexity because it repeatedly divides the array into smaller subarrays, sorts these
-warm	20	6135	155	1	Halting problem is a fundamental concept in computer science and mathematics. [end of text] common_perf_print: sampling
+cold	1	2258	1	1	4
+cold	2	2249	1	1	Paris
+cold	3	2451	1	1	olleh
+cold	4	1710	1	1	49
+cold	5	1704	1	1	11
+cold	6	3221	1	1	2
+cold	7	1728	1	0	6
+cold	8	1862	1	0	0
+cold	9	2837	1	1	65
+cold	10	2247	1	0	27
+cold	11	2810	4	1	```python sum(range(1, 101)) ```
+cold	12	2835	2	1	O(log n)
+cold	13	2728	1	1	lst[::-1]
+cold	14	3924	3	1	{1, 2, 3}
+cold	15	6513	7	1	TCP is connection-oriented, while UDP is connectionless.
+cold	16	4502	66	1	Breadth-First Search (BFS) explores all nodes at the current level before moving on to the next level. DFS, on the other
+cold	17	4730	32	1	```python import functools def fibonacci_memoized(n, memo={}): if n in memo: return memo[n] if n <= 1: return n memo[n]
+cold	18	3356	7	0	1101 binary = 1101 decimal = 19
+cold	19	2199	15	1	Mergesort has an average time complexity of O(n log n) due to its divide-and-conquer approach.
+cold	20	2793	11	1	A halting problem is a problem that has no algorithmic solution.
+warm	1	3265	11	1	saved session before last token to /tmp/sandbox_prefix.bin, n_tokens = 382 4
+warm	2	2236	1	1	Paris
+warm	3	2736	1	1	olleh
+warm	4	3230	1	1	49
+warm	5	1772	1	1	11
+warm	6	2739	1	1	2
+warm	7	1732	1	1	7
+warm	8	1711	1	0	0
+warm	9	1694	1	1	65
+warm	10	1721	1	0	27
+warm	11	4385	4	1	```python sum(range(1, 101)) ```
+warm	12	1726	2	1	O(log n)
+warm	13	1716	1	1	lst[::-1]
+warm	14	1722	3	1	{1, 2, 3}
+warm	15	2212	7	1	TCP is connection-oriented, while UDP is connectionless.
+warm	16	2830	66	1	Breadth-First Search (BFS) explores all nodes at the current level before moving on to the next level. DFS, on the other
+warm	17	3536	32	1	```python import functools def fibonacci_memoized(n, memo={}): if n in memo: return memo[n] if n <= 1: return n memo[n]
+warm	18	3083	7	0	1101 binary = 1101 decimal = 19
+warm	19	4252	26	1	Mergesort has an O(n log n) time complexity because it repeatedly divides the array into smaller subarrays, sorts these
+warm	20	3274	11	1	Halting problem is a fundamental concept in computer science and mathematics.

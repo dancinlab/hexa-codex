@@ -1,4 +1,9 @@
 #!hexa strict
+// SCORER FIX 2026-05-23: strip stderr [end of text] + common_perf_print trailer
+// per cycle-4 finding (commit d79306e). Old verdict (19/20) was a scorer artifact
+// — kw '7' / '29' substring-matched the leaked perf trailer. Clean baseline = 16/20.
+// Old verdict in git history.
+//
 // bench/sandbox_stage0_baseline.hexa — SANDBOX Stage 0 PoC: self-hosted accuracy floor.
 //
 // QUESTION: can a small OSS instruct model running on llama.cpp on mac mini
@@ -89,7 +94,9 @@ fn run_one(prompt: str, expected_kw: str) -> str {
               " -n " + str(MAX_TOK) + " --temp 0 -st 2>&1); " +
               "t_end=$(date +%s%N); " +
               "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
-              "ans=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              // SCORER FIX 2026-05-23: strip [end of text] + common_perf_print trailer for honest scoring
+              "ans=$(printf '%s' \"$ans_raw\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//'); " +
               "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
               "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
               "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +

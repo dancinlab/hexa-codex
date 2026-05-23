@@ -1,4 +1,8 @@
 #!hexa strict
+// SCORER FIX 2026-05-23: strip stderr [end of text] + common_perf_print trailer
+// per cycle-4 finding (commit d79306e). Old verdicts (nano/mid/max 20/20) were
+// inflated by the same scorer artifact as Stage 0. Old verdicts in git history.
+//
 // bench/sandbox_stage1_persona.hexa — SANDBOX Stage 1 PoC: tier-persona convention.
 //
 // QUESTION: does the SANDBOX.md §"Tier persona convention (Stage 1)" — single
@@ -100,7 +104,9 @@ fn run_persona_task(sys_prompt: str, temp: str, max_tok: str, prompt: str, expec
               " --temp " + temp + " -st 2>&1); " +
               "t_end=$(date +%s%N); " +
               "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
-              "ans=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              // SCORER FIX 2026-05-23: strip [end of text] + common_perf_print trailer for honest scoring
+              "ans=$(printf '%s' \"$ans_raw\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//'); " +
               "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
               "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
               "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +

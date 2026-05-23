@@ -222,3 +222,29 @@
 # narrowing of the blocker class) + d_continuous_batching_server (GREEN, $0,
 # subsumes cycle-1 d_batch_amortized 50%-discount claim with a measurable
 # substrate-level mechanism; requires Stage 2 manifest to fully exercise).
+#
+# 2026-05-24 — SCORER-FIX REBASELINE (no candidate state flipped):
+# Stage 0 / Stage 1 / Stage 3 KV-prefix benches were patched to strip the
+# stderr `[end of text]+common_perf_print:` trailer (canonical sed pattern
+# from sandbox_stage3_maxtokens_cap.hexa) and rerun. Verdict refs above
+# still point at the same paths but the files now hold CLEAN numbers:
+#   Stage 0 baseline: 19/20 -> 16/20  (still clears usable floor >= 15/20)
+#   Stage 1 nano:     20/20 -> 17/20
+#   Stage 1 mid:      20/20 -> 18/20
+#   Stage 1 max:      20/20 -> 17/20
+#   Stage 1 tier_separation_observed: false -> TRUE (ms_ladder),
+#     routing_simulation_viable: false -> TRUE (spread_tasks=1) — the
+#     trailer artifact had masked real tier behavior under saturation
+#   Stage 3 KV cold: 19/20 -> 16/20  warm: 19/20 -> 17/20  (cache replay
+#     still bit-identical at model level; ±1-task drift is cross-run noise)
+#   Stage 3 early-stop: 16/16/16/0 (unchanged — its awk strip was sufficient)
+#   Stage 3 max_tokens_cap: 16x5 (unchanged — this was the reference impl)
+# No verdict state flipped from this rebaseline — d_stage0_poc still
+# confirmed, d_kv_prefix_share still dead at the 20% speedup threshold,
+# d_early_stop_local / d_prompt_compress_local still confirmed.
+# HOWEVER: d_stage1_persona had been logged as "dead-on-manifest" because
+# all 3 personas appeared identical (20/20/20). The rebaseline reveals
+# tier_separation_observed=TRUE and routing_simulation_viable=TRUE — so
+# the "dead" verdict was itself the scorer artifact. A future cycle should
+# revisit d_stage1_persona's status now that the manifest signal is real
+# (spread=1 task between nano=17, max=17, mid=18; small but non-zero).

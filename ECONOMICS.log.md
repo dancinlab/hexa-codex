@@ -6,6 +6,37 @@
 
 ---
 
+## 2026-05-23 — kick round 2 — 5 new orthogonal routing-economics candidates
+
+Continuous-discovery lane (per `cx_discovery`) — ran `hexa kick`
+round 2 against the post-5-failure context for the ECONOMICS
+routing-savings goal. Round-1 cumulative state: 2 confirmed
+(`d_pareto`, `d_two_tier_ablation` 81.79% @ 20/20), 3 dead
+(`d_token_decomp` BLOCKED, `d_confidence_gated` 55.59% @ 19/20,
+`d_difficulty_predict` 62.15% @ 20/20 vs length 77.72%), 2 stale
+candidates parallel-running in sibling agents (`d_cache_aware`,
+`d_batch_amortized`).
+
+Kick seed deliberately scoped to **orthogonal** axes (per-prompt
+heuristic-routing exhausted by length-cutoff): precision controls,
+workload-shape, formal Pareto lower-bound, speculative draft,
+prompt-compression. Raw trace at
+`.discoveries/economics-routing-kick2.raw` (mk9, 629 ideas).
+
+| slug                   | tier  | $est | axis                  |
+|:-----------------------|:-----:|-----:|:----------------------|
+| `d_response_cap`       | GREEN | 0.4  | precision (max_tokens)|
+| `d_early_stop`         | GREEN | 0.3  | precision (stop-tok)  |
+| `d_prompt_compress`    | GREEN | 0.5  | input compression     |
+| `d_speculative_draft`  | GREEN | 0.6  | draft+verify          |
+| `d_pareto_lower_bound` | BLUE  | 0.0  | formal floor proof    |
+
+Discovery tape updated:
+`.discoveries/economics-routing-savings.tape` — round-1+2 cumulative
+`2 confirmed · 3 dead · 7 next-batch candidates`. Round-2 strategy
+note: no further heuristic-router variants (length is SOLE Pareto
+point); levers probe orthogonal axes.
+
 ## 2026-05-23 — confidence-gated router ablation — Pareto bound reinforced
 
 Resolved the `d_confidence_gated` candidate from

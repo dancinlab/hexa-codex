@@ -1,0 +1,14 @@
+SUPPORTED-NUMERICAL — accuracy_delta derived from measured per-task correctness.
+
+Inputs (jq ascii_downcase | contains on .result vs expected_kw per task):
+  baseline.n_correct = 19  (1 task failed: idx 13 "Sort {3,1,2} ascending" — opus added extra prose)
+  router.n_correct   = 19  (same task failed under router, otherwise identical correctness)
+
+Closed-form derivation:
+  accuracy_delta = router.n_correct - baseline.n_correct
+                 = 19 - 19
+                 = 0
+
+No quality loss from routing.
+
+Reproducible via: hexa run bench/economics_routing.hexa

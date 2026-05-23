@@ -1,0 +1,13 @@
+SUPPORTED-NUMERICAL — savings_pct derived from measured baseline + router totals.
+
+Inputs (measured via claude --bare -p --output-format json):
+  baseline.total_cost_usd = 0.299947  (always-opus × 20 tasks)
+  router.total_cost_usd   = 0.081914  (length-heuristic × 20 tasks)
+
+Closed-form derivation:
+  savings_pct = (baseline.total - router.total) / baseline.total * 100
+              = (0.299947 - 0.081914) / 0.299947 * 100
+              = 0.218033 / 0.299947 * 100
+              = 72.6906%
+
+Reproducible via: hexa run bench/economics_routing.hexa

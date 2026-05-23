@@ -1,0 +1,4 @@
+baseline  sum_cost=$0.299947  sum_ms=50270  correct=19/20
+router    sum_cost=$0.081914  sum_ms=54285  correct=19/20
+savings   $0.218033  (72.6906% of baseline)
+acc_delta 0 (router - baseline)

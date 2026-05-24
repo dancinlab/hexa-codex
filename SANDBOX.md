@@ -42,7 +42,7 @@ M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4)       [ ] v?.?.? 
 
 ### M3 Saturation — falsifier class core coverage reached
 
-- [ ] M3.ECON — F-CODEX-1 + F-CODEX-2 empirical fit (4-point scale grid)
+- [ ] M3.ECON — F-CODEX-1 + F-CODEX-2 empirical fit (4-point scale grid). Cycle-14 F-CODEX-1 conjunct RAN against 4-rung Stage 2 data: 🔴 **FALSIFIED** (`residual=0.788` ≫ `threshold=0.1` · measured Stage-2-accuracy slope across 0.5B/1.5B/3B/7B does **not** fit the `N^24` lattice prediction). Honest closure of the F-CODEX-1 sub-conjunct as CLOSED-NEGATIVE per g5 rubric. F-CODEX-2 conjunct still 🟠 DEFERRED (LATENCY_MS_PENDING — gated on M3.OPS p50/p99 grid). Composite verdict `PARTIAL`; the M3.ECON checkbox stays `[ ]` until both conjuncts close (one closed-negative + one closed-positive/negative). `.verdicts/sandbox/f_codex_1_falsified_4rung.txt`.
 - [ ] M3.SAFETY — 3+ SAE motifs verified, refusal-matrix on canonical adversarial set
 - [ ] M3.OPS — full SLO grid (-np × offered-rate) at Stage-2 N=2000
 - [x] M3.SUBSTRATE — 4-rung scale ladder Stage 2 (0.5B/1.5B/3B/7B) FULL · cliff at `wc_31_60` between 3B (13% nano) and 7B (56% nano · cliff_crossed). Overall ladder 34%/42%/42%/59%. `routing_simulation_viable` = false (0.5B) → true (1.5B-3B) → false (7B convergence) — routing window is mid-scale only. `.verdicts/sandbox/m3_substrate_saturation_summary.txt`

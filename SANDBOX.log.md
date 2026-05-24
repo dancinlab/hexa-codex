@@ -1765,3 +1765,94 @@ artifact-detection per the cycle-9/13 pattern.
 confirmed + 1 BLOCKED_AT_PROJECT + 1 harness_run_partial
 (d_safety_refusal_matrix) + 9th confirmed (M3.SUBSTRATE 4-rung
 saturation, this entry) · 3 dead · 6 candidates remaining.
+
+---
+
+## 2026-05-24 — cycle-15 · 🔴 F-CODEX-1 conjunct FALSIFIED on 4-rung data
+
+**Verdict:** `.verdicts/sandbox/f_codex_1_falsified_4rung.txt` (verbatim
+`hexa run verify/numerics_economics_empirical_landing.hexa` stdout, 40
+lines, 10 checks).
+
+```
+[FAIL] F-CODEX-1 residual ≤ ε (measured slope vs N6_EXP_TRAIN = 24/25)
+       · residual=0.78793  threshold=0.1
+[PASS] verdict-line consistency — today expected 'PARTIAL'
+       (k_active == 4, F-CODEX-2 latency still PENDING;
+        F-CODEX-1 alone FALSIFIED on residual)
+
+9/10 checks passed
+```
+
+**Reading.** Direct downstream of the cycle-14 M3.SUBSTRATE saturation
+close: the 4-rung Stage 2 best-per-stratum accuracy data, now fully
+landed in `STAGE2_ACCURACY_{0_5B,1_5B,3B,7B}` arrays, gives a measured
+slope that does **not** fit the lattice-derived `N^24/25` (≈ `N^0.96`)
+training-cost exponent. The residual (0.788) is 7.9× the threshold
+(0.1) — a deterministic disagreement, not a noise-bound miss.
+
+**g5 verdict tier.** 🔴 **FALSIFIED** (CLOSED NEGATIVE — distinct from
+🟠 INSUFFICIENT/DEFERRED). The closed-form harness ran, returned a
+sharply-disagreeing residual, and the verdict matrix records this
+honestly. Per the rubric, FALSIFIED is a *closure*, not a "try again
+with more data" status.
+
+**Honest implications.**
+
+1. The `N6_EXP_TRAIN = 24/25` exponent (the n=6 lattice's training-cost
+   scaling prediction) does **not** fit the per-stratum Stage 2
+   accuracy curve over 0.5B → 7B Qwen 2.5. Either:
+   - the lattice prediction is incorrect for this manifest's
+     accuracy-vs-scale slope (and a different exponent fits), OR
+   - the per-stratum-max aggregation (best-of-3 personas / stratum) is
+     not the right reduction for fitting a scaling law, OR
+   - the cliff-shaped curve revealed in cycle-14 (`wc_31_60` step from
+     13% at 3B → 56% at 7B) violates the smoothness assumption built
+     into any single-exponent fit.
+
+2. The cycle-14 saturation finding already flagged that the curve
+   shape is **stepwise**, not smooth (`saturation_curve_shape=stepwise`
+   in `.verdicts/sandbox/m3_substrate_saturation_summary.txt`).
+   Step-shaped curves are known to violate single-exponent fits; the
+   F-CODEX-1 falsification confirms this empirically.
+
+3. F-CODEX-2 (latency `context^τ=4` exponent) stays 🟠 DEFERRED —
+   `LATENCY_MS_PENDING` sentinels remain in place; the latency-grid
+   bench harness shipped harness-only at cycle-12 (`87bdaa3`) and exec
+   is still PENDING. M3.ECON checkbox stays `[ ]` until that second
+   conjunct closes.
+
+4. **No paper revocation.** `PAPER/economics-routing-savings/` makes
+   no F-CODEX-1 claim (checked via `grep`); it's a routing-savings
+   paper, not a scaling-law paper. The substrate-capability-evals
+   paper scaffold's §formula was already 🟠 INSUFFICIENT and now
+   inherits the F-CODEX-1 FALSIFIED status — the scaffold's
+   `cx_paper_gate` cannot open in current shape (it would need a
+   formula that *does* fit the data).
+
+**Matrix change.**
+
+- `SANDBOX.md` M3.ECON line — annotation extended with 🔴 FALSIFIED
+  finding, verdict file path, and the F-CODEX-2 conjunct status. The
+  M3.ECON checkbox **stays `[ ]`** because the milestone phrasing is
+  conjunctive: "F-CODEX-1 + F-CODEX-2 empirical fit". One conjunct
+  closed-negative + one still-deferred = composite PARTIAL = not
+  closed.
+- `verify/numerics_economics_empirical_landing.hexa` — no change in
+  this cycle; the cycle-14 file already ingests the 4-rung data, and
+  the harness verdict-line check `expected_today='PARTIAL'` was
+  already wired correctly (no false-pass).
+
+**Why this is the honest closure path.** The /paper-significance rule
+requires "formula + real bench + quantified benefit". A FALSIFIED
+formula is the cleanest possible benefit for a scaling-law claim:
+"the lattice prediction is wrong for this substrate at this scale
+range." That finding itself is paper-grade IF accompanied by a
+*replacement* formula that does fit (cf. `cx_paper_format` §formula).
+No replacement exponent is fit in this cycle — the falsification is
+the closure; the *next* formula is a future cycle's work.
+
+**Cumulative tape footer post-cycle-15 (F-CODEX-1 falsification):** 9
+confirmed + 1 BLOCKED_AT_PROJECT + 1 harness_run_partial + 1
+falsified (F-CODEX-1) · 3 dead · 6 candidates remaining.
+

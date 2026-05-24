@@ -729,3 +729,55 @@ refuted) when the bench RUNS in a separate later cycle. Honesty per
 `cx_empirical_contact`: harness-only ships are not empirical contact;
 the v1.3.0 release cut still requires the actual measured `wall_ms`
 numbers.
+
+---
+
+## 2026-05-24 — cycle-15 · 🔴 F-CODEX-1 conjunct FALSIFIED on 4-rung Stage 2 data
+
+**Verdict:** `.verdicts/sandbox/f_codex_1_falsified_4rung.txt` (verbatim
+`hexa run` stdout). Downstream of the cycle-14 M3.SUBSTRATE saturation
+ingest: with all 4 `STAGE2_ACCURACY_{0_5B,1_5B,3B,7B}` arrays now live,
+the F-CODEX-1 closed-form residual check ran and FAILED.
+
+```
+[FAIL] F-CODEX-1 residual ≤ ε (measured slope vs N6_EXP_TRAIN = 24/25)
+       · residual=0.78793  threshold=0.1
+```
+
+**Reading.** The measured Stage-2 best-per-stratum accuracy slope
+across 0.5B → 7B Qwen 2.5 does **not** fit the lattice-derived
+`N^(24/25)` (≈ `N^0.96`) training-cost exponent. Residual 0.788 is 7.9×
+the threshold (0.1) — deterministic disagreement, not noise.
+
+**g5 verdict tier.** 🔴 **FALSIFIED** (CLOSED NEGATIVE). The harness ran,
+returned a sharply-disagreeing residual; the verdict matrix records this
+honestly. This is a *closure*, not a "more data" retry.
+
+**v1.2.0 release-gate impact (M5.ECON).** The F-CODEX-1 v1.2.0 gate
+described above ("v1.2.0 release cut requires the actual
+measured per-stratum accuracy numbers") now has its measured numbers
+AND those numbers FALSIFY F-CODEX-1. v1.2.0 cannot ship with the
+N^(24/25) claim as-stated. Two paths:
+
+1. **Replace the F-CODEX-1 exponent with a measured-fit one.** Run an
+   exponent-search over the 4-rung data and adopt whatever exponent
+   *does* fit (residual ≤ 0.1). Then v1.2.0 ships with the replacement
+   formula and a §benefit reading "we measured the actual cost-scale
+   exponent at $X for this substrate".
+
+2. **Refuse to ship v1.2.0 under the lattice-derived prediction.** Hold
+   F-CODEX-1 as a 🔴 closed-negative, do not advance to v1.2.0 until a
+   replacement formula passes the harness. M5.ECON checkbox stays
+   `[ ]` indefinitely on this branch.
+
+The cycle-14 saturation finding (`saturation_curve_shape=stepwise`)
+already implied a single-exponent fit is structurally wrong for
+step-shaped accuracy curves — the wc_31_60 cliff jumps 13% → 56% in a
+single rung (3B → 7B). A piecewise or sigmoid family would better fit
+the measured slope; that family is what a replacement F-CODEX-1 would
+look like.
+
+**No paper revocation.** `PAPER/economics-routing-savings/` makes no
+F-CODEX-1 claim (greps clean). The substrate-capability-evals scaffold
+inherits the FALSIFIED status — its §formula cannot pass
+`cx_paper_gate` until a replacement formula lands.

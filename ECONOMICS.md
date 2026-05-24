@@ -149,10 +149,18 @@ see `currently` row of the cross-ref table below.
   `f_codex_2_residual > 0.10` → 🔴 FALSIFIED.
 - **Verdict tier.** 🟢 SUPPORTED-NUMERICAL minimum, 🔵
   SUPPORTED-FORMAL preferred.
-- **Currently.** 🟠 INSUFFICIENT — 0 of 4 context rungs have data
-  (gate references "M3.OPS p50/p99 grid" per harness L478; the
-  context-grid bench does not exist yet and is a candidate for
-  `.discoveries/sandbox.tape`).
+- **Currently.** 🔴 FALSIFIED — 4 of 4 context rungs measured
+  (cycle-16, `bench/sandbox_stage4_context_scaling.hexa`, Qwen2.5-1.5B,
+  -np 1 -cb port 8091, $0 local M3 Metal). The substrate's measured
+  context exponent is **τ̂ = 0.524** (log-log OLS slope of
+  (context_len, mean_wall_ms) = (1024,569)/(2048,670)/(4096,1005)/
+  (8192,1668) ms, R²≈0.956), residual `|0.524 − 4| = 3.476 ≫ ε=0.10`.
+  The n=6 τ=4 quartic context-cost law does NOT fit the substrate's own
+  latency curve — wall_ms is **sub-linear** (rises only ~2.9× across an
+  8× context sweep), dominated by the fixed-decode mem-bandwidth wall +
+  cached-prefix prefill (modern paged-attention regime, §S7.6). Verdict
+  `.verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt` (10/10 checks PASS,
+  verdict-line 🔴 FALSIFIED, exit 1).
 - **Honesty note (g34).** F-CODEX-2 has no harness data yet, even
   at 1 of 4 — v1.2.0 starts at 1/4, v1.3.0 starts at 0/4.
 
@@ -161,7 +169,7 @@ see `currently` row of the cross-ref table below.
 | release | falsifier | harness | gate condition | currently |
 |:---|:---|:---|:---|:---|
 | v1.2.0 | F-CODEX-1 (`N^σφ`) | `verify/numerics_economics_empirical_landing.hexa` ch.8 | residual ≤ 0.10 across 4 scale rungs | 🟠 1/4 |
-| v1.3.0 | F-CODEX-2 (`context^τ`) | `verify/numerics_economics_empirical_landing.hexa` ch.9 | residual ≤ 0.10 across 4 context rungs | 🟠 0/4 |
+| v1.3.0 | F-CODEX-2 (`context^τ`) | `verify/numerics_economics_empirical_landing.hexa` ch.9 | residual ≤ 0.10 across 4 context rungs | 🔴 4/4 measured · τ̂=0.524 vs τ=4 · residual 3.476 FALSIFIED |
 
 The verdict-line truth-table (harness check 10
 `check_verdict_line_consistency`) is the final gate composer:

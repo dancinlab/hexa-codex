@@ -1,7 +1,7 @@
 # BITNET M5/M7 — BT-77 n=6 lattice K/26 recompute
-# model: BitNet b1.58 2B4T
-# date: 2026-05-24T23:54:33Z
-# config_path: /Users/ghost/Models/bitnet-bf16/config.json
+# model: BitNet b1.58 700M
+# date: 2026-05-24T23:54:38Z
+# config_path: /Users/ghost/Models/bitnet_b1_58-large/config.json
 # scorer: verify/numerics_bitnet_bt77_n6_lattice.hexa
 # atom: @R n6-atlas-breakthrough-theorems-tecs-l-cross-domain-**bt-77** [10*]
 # claim: 2B4T 25/26 EXACT, 3 models × 2 teams, 40/41 total
@@ -14,29 +14,29 @@
 # cost_usd: 0  (closed-form integer match, no LLM, no GPU)
 
 # per-row table (idx · param · value · n6_identity · match)
-01 hidden_size	2560	sopfr·2^(σ-τ+μ)	1
-02 intermediate_size	6912	sigma·J2·J2	1
-03 num_attention_heads	20	sopfr·2^φ	1
-04 num_hidden_layers	30	n·sopfr	1
-05 num_key_value_heads	5	sopfr	1
-06 vocab_size	128256	—	0
-07 max_position_embeddings	4096	2^σ	1
-08 rope_theta (int)	500000	sopfr·(σ-φ)^5	1
-09 bos_token_id	128000	2^(σ-sopfr)=2^M3·(σ-φ)^3	1
-10 eos_token_id	128001	2^(σ-sopfr)=2^M3·(σ-φ)^3+μ	1
-11 head_dim (hidden/heads)	128	2^(σ-sopfr)=2^M3	1
-12 kv_head_dim (hidden/kv_heads)	512	2^(σ-τ+μ)	1
-13 gqa_groups (heads/kv_heads)	4	tau	1
-14 kv_dim_total (kv_heads·head_dim)	640	sopfr·2^(σ-sopfr)=2^M3	1
-15 q_dim_total (heads·head_dim)	2560	sopfr·2^(σ-τ+μ)	1
-16 ctx/head_dim	32	2^sopfr	1
-17 ffn/head_dim	54	n·n/phi·n/phi	1
-18 hidden/2 (per-half dim)	1280	sopfr·2^(σ-τ)	1
-19 ffn/2 (per-half ffn)	3456	n·J2·J2	1
+01 hidden_size	1536	n·2^(σ-τ)	1
+02 intermediate_size	4096	2^σ	1
+03 num_attention_heads	16	2^τ	1
+04 num_hidden_layers	24	J2	1
+05 num_key_value_heads	16	2^τ	1
+06 vocab_size	32002	—	0
+07 max_position_embeddings	2048	phi·2^(σ-φ)	1
+08 rope_theta (int)	10000	sigma-phi·(σ-φ)^3	1
+09 bos_token_id	1	mu	1
+10 eos_token_id	2	phi	1
+11 head_dim (hidden/heads)	96	n·2^τ	1
+12 kv_head_dim (hidden/kv_heads)	96	n·2^τ	1
+13 gqa_groups (heads/kv_heads)	1	mu	1
+14 kv_dim_total (kv_heads·head_dim)	1536	n·2^(σ-τ)	1
+15 q_dim_total (heads·head_dim)	1536	n·2^(σ-τ)	1
+16 ctx/head_dim	21	sopfr·2^φ+μ	1
+17 ffn/head_dim	42	n·M3	1
+18 hidden/2 (per-half dim)	768	n·2^(σ-sopfr)=2^M3	1
+19 ffn/2 (per-half ffn)	2048	phi·2^(σ-φ)	1
 20 ternary_states	3	n/phi	1
 21 bf16_bytes	2	phi	1
-22 gqa_ratio (heads/kv)	4	tau	1
-23 vocab/1000 floor	128	2^(σ-sopfr)=2^M3	1
+22 gqa_ratio (heads/kv)	1	mu	1
+23 vocab/1000 floor	32	2^sopfr	1
 24 -log10(rms_norm_eps)	5	sopfr	1
 25 initializer_range·100	2	phi	1
 26 tie_word_embeddings (bool)	1	mu	1

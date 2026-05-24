@@ -77,7 +77,32 @@ fn _root() -> str {
 
 let ROOT = _root()
 let OUT_DIR = ROOT + "/.verdicts/bitnet"
-let CONFIG_PATH = HOME + "/Models/bitnet-bf16/config.json"
+
+// CONFIG_PATH defaults to the 2B4T bf16 config (M5). M7 (size ladder) overrides
+// it via BT77_CONFIG_PATH to score the 700M/1.3B/3B 1bitLLM configs against the
+// SAME n=6 lattice closure (the BT-77 "40/41 total, 3 models × 2 teams" claim).
+// BT77_OUT_NAME overrides the verdict filename so the M5 2B4T verdict is never
+// clobbered; BT77_MODEL_LABEL is printed in the header for provenance. The 26
+// enumerated quantities + the lattice closure are IDENTICAL across sizes — only
+// the config.json field VALUES change, so each size yields its own honest K/26.
+fn _config_path() -> str {
+    let p = env("BT77_CONFIG_PATH")
+    if p.len() > 0 { return p }
+    return HOME + "/Models/bitnet-bf16/config.json"
+}
+fn _out_name() -> str {
+    let n = env("BT77_OUT_NAME")
+    if n.len() > 0 { return n }
+    return "m5_bt77_n6_lattice_recompute.txt"
+}
+fn _model_label() -> str {
+    let l = env("BT77_MODEL_LABEL")
+    if l.len() > 0 { return l }
+    return "BitNet b1.58 2B4T"
+}
+let CONFIG_PATH = _config_path()
+let OUT_NAME    = _out_name()
+let MODEL_LABEL = _model_label()
 
 fn shq(s: str) -> str {
     return "'" + s.replace("'", "'\\''") + "'"
@@ -393,7 +418,8 @@ fn _pad(s: str, w: int) -> str {
 
 fn main() {
     println("========================================================================")
-    println("  BITNET M5 — BT-77 n=6 lattice K/26 closed-form recompute")
+    println("  BITNET M5/M7 — BT-77 n=6 lattice K/26 closed-form recompute")
+    println("  model:  " + MODEL_LABEL)
     println("  source: " + CONFIG_PATH)
     println("========================================================================")
     println("  atom: @R n6-atlas-breakthrough-theorems-tecs-l-cross-domain-**bt-77**")
@@ -471,10 +497,11 @@ fn main() {
 
     // persist verdict file
     exec("mkdir -p " + shq(OUT_DIR))
-    let verdict_path = OUT_DIR + "/m5_bt77_n6_lattice_recompute.txt"
+    let verdict_path = OUT_DIR + "/" + OUT_NAME
     exec("rm -f " + shq(verdict_path))
     let stamp = exec("date -u +'%Y-%m-%dT%H:%M:%SZ'").trim()
-    exec("echo " + shq("# BITNET M5 — BT-77 n=6 lattice K/26 recompute") + " >> " + shq(verdict_path))
+    exec("echo " + shq("# BITNET M5/M7 — BT-77 n=6 lattice K/26 recompute") + " >> " + shq(verdict_path))
+    exec("echo " + shq("# model: " + MODEL_LABEL) + " >> " + shq(verdict_path))
     exec("echo " + shq("# date: " + stamp) + " >> " + shq(verdict_path))
     exec("echo " + shq("# config_path: " + CONFIG_PATH) + " >> " + shq(verdict_path))
     exec("echo " + shq("# scorer: verify/numerics_bitnet_bt77_n6_lattice.hexa") + " >> " + shq(verdict_path))

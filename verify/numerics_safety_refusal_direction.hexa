@@ -1,0 +1,456 @@
+#!hexa strict
+// hexa-codex/verify/numerics_safety_refusal_direction.hexa — M4.SAFETY §Formula
+//
+// PURPOSE.  Deterministic recompute surface for the SAFETY-paper §Formula.
+// The M2/M3.SAFETY route(b) mechanistic finding (.verdicts/sandbox/
+// m2_safety_mechanical_probe.txt) showed that a 40x84 last-prompt-token
+// activation-norm matrix (28 layers x {residual,attn,mlp}, Qwen2.5-1.5B)
+// LINEARLY SEPARATES refused from answered. Last cycle (PR #29) every paper
+// section linked ONLY a ⚪ SPECULATION-FENCED verdict because the per-row
+// matrix lived on ubu-1 scratch (raw-bench-SoT) and there was NO committed
+// recompute surface — so §Formula could not clear (a "learned direction",
+// not a recompute-verifiable law).
+//
+// This verifier CLOSES that gap. It reads the now-committed NUMBERS-ONLY
+// matrix (.verdicts/sandbox/m2_safety_refusal_norms.tsv — adversarial prompt
+// TEXT redacted per cx_hf_safety_private) and RECOMPUTES the linear
+// refusal-direction classifier from scratch:
+//
+//   LAW (§Formula, closed-form difference-of-means linear classifier):
+//     1. z-score each of the 84 features over the n=40 rows (per-column
+//        population mean / std, sd→1 guard) -> Z[i][j]
+//     2. refusal direction  w[j] = mean(Z[refused], j) - mean(Z[answered], j)
+//     3. per-row projection score  s[i] = sum_j Z[i][j] * w[j]
+//     4. score(a) = (w . z(a)) > theta   is the refuse-vs-answer rule
+//   METRICS recomputed from {Z, labels} ONLY (no model, no GPU, no API):
+//     A. full-vector projection AUROC (rank statistic, refused = positive)
+//     B. leave-one-out held-out linear accuracy (refit w on n-1, threshold at
+//        the midpoint of the train class-projection means, predict held-out)
+//     C. permutation-test p on the LOO acc (fixed-seed label shuffles)
+//
+// The recompute REPRODUCES the committed verdict's headline numbers:
+//     AUROC ≈ 0.98 · LOO ≈ 0.825 (33/40) · permutation p ≈ 0.005,
+// turning the ⚪ probe into a 🟢 SUPPORTED-NUMERICAL recompute surface —
+// the SUBSTRATE-cliff precedent (verify/numerics_substrate_cliff_logistic.hexa),
+// applied to a learned linear direction rather than a fitted logistic.
+//
+// PERMUTATION-TEST HONESTY (not green-washed).  The original probe used
+// Python's `random.shuffle` (Mersenne-Twister, seed 1234) for the 200 label
+// shuffles. A hexa-native verifier cannot reproduce that exact PRNG stream, so
+// this file uses its OWN deterministic fixed-seed LCG Fisher-Yates shuffle for
+// the same 200-permutation LOO test. The TEST DESIGN is identical; the seed
+// stream differs. The reported p = (#{perm LOO ≥ observed} + 1)/(200 + 1); the
+// observed LOO (0.825) sits so far above the chance band that 0/200 shuffles
+// reach it under EITHER PRNG -> p ≈ 0.005. This is disclosed, not hidden:
+// the p-value's authority is the permutation DESIGN + the large margin, not a
+// specific RNG implementation.
+//
+// SOURCE DATA (verbatim, no paraphrase — per cx_empirical_contact / g5):
+//   .verdicts/sandbox/m2_safety_refusal_norms.tsv
+//     40 rows x { row_idx, is_adv, label, 84 activation-norm features }
+//     label: 1=refused (marker-scan), 0=answered; refused=20 / answered=20
+//     produced by a deterministic fp32 forward-pass re-run of the route(b)
+//     probe on full-precision Qwen2.5-1.5B (ubu-1 RTX 5070), which reproduced
+//     the committed verdict's label distribution (adv_refused=19/20,
+//     benign_refused=1/20) and crosscheck AUROC=0.98 bit-for-bit.
+//
+// PASS gate (🟢 SUPPORTED-NUMERICAL when all pass):
+//   1. full-vector projection AUROC reproduced within ε=0.02 of 0.98
+//   2. leave-one-out held-out linear acc reproduced within ε=0.02 of 0.825,
+//      AND strictly above the majority baseline 0.50
+//   3. permutation p ≤ 0.05 (label shuffles do NOT reach the observed LOO):
+//      0/200 shuffles ≥ observed -> p = 1/201 ≈ 0.00498 ≤ 0.05
+//   4. topic-confound control: the single ADV-but-ANSWERED row (row 14) lands
+//      on the ANSWERED side of the full-data threshold (direction tracks the
+//      refusal DECISION, not the adv-vs-benign topic) — exactly the verdict's
+//      robustness check, recomputed from committed data.
+//
+// REQUIRES.  read_file_pure (self/runtime/file_pure) + sqrt_pure
+//   (self/runtime/math_pure). No model spawn, no llama-server, no API.
+//
+// CONSUMER.  PAPER/safety-refusal-direction/ §Formula verdict link.
+//   Verdict persisted at .verdicts/sandbox/m4_safety_refusal_direction_recompute.txt
+//   (raw stdout verbatim, written by the cycle wrapper).
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run verify/numerics_safety_refusal_direction.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; reads a committed NUMBERS-ONLY activation-norm TSV and recomputes a difference-of-means linear classifier (AUROC / LOO / permutation p). No atlas atoms touched, no model spawn, float arithmetic only.")
+
+use "self/runtime/file_pure"
+use "self/runtime/math_pure"
+
+let DATA_PATH = ".verdicts/sandbox/m2_safety_refusal_norms.tsv"
+let N_ROWS = 40
+let N_FEAT = 84
+let N_META = 3        // row_idx, is_adv, label precede the 84 features
+
+// expected (committed verdict) headline numbers + tolerances
+let EXP_AUROC = 0.98
+let EXP_LOO   = 0.825
+let EPS_AUROC = 0.02
+let EPS_LOO   = 0.02
+let MAJORITY  = 0.50
+let N_PERM    = 200
+let ADV_ANSWERED_ROW = 14   // 0-based; the lone adversarial-topic-but-ANSWERED row
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _abs(x: float) -> float { return abs_pure(x) }
+
+fn mean_of(xs) -> float {
+    let n = xs.len()
+    if n == 0 { return 0.0 }
+    let mut s = 0.0
+    let mut i = 0
+    while i < n { s = s + xs[i]; i = i + 1 }
+    return s / (n as float)
+}
+
+// population std (divide by n) — IDENTICAL to the probe's std() (sum/len, not n-1).
+fn pop_std(xs) -> float {
+    let n = xs.len()
+    if n < 2 { return 0.0 }
+    let m = mean_of(xs)
+    let mut s = 0.0
+    let mut i = 0
+    while i < n {
+        let d = xs[i] - m
+        s = s + d * d
+        i = i + 1
+    }
+    return sqrt_pure(s / (n as float))
+}
+
+// rank AUROC with 0.5 tie credit, labels 1 = positive (refused). IDENTICAL to
+// the probe's auroc(): double loop over pos x neg, +1 if a>b, +0.5 if a==b.
+fn auroc(scores, labels) -> float {
+    let n = scores.len()
+    let mut c = 0.0
+    let mut t = 0.0
+    let mut i = 0
+    while i < n {
+        if labels[i] == 1 {
+            let mut j = 0
+            while j < n {
+                if labels[j] == 0 {
+                    t = t + 1.0
+                    if scores[i] > scores[j] { c = c + 1.0 }
+                    else { if scores[i] == scores[j] { c = c + 0.5 } }
+                }
+                j = j + 1
+            }
+        }
+        i = i + 1
+    }
+    if t == 0.0 { return 0.0 }
+    return c / t
+}
+
+// difference-of-means direction over a z-matrix Z[N][D] given an int label vec.
+fn dir_of(Z, labels, d: int) {
+    let n = Z.len()
+    let mut w = []
+    let mut j = 0
+    while j < d {
+        let mut sr = 0.0
+        let mut nr = 0.0
+        let mut sa = 0.0
+        let mut na = 0.0
+        let mut i = 0
+        while i < n {
+            if labels[i] == 1 { sr = sr + Z[i][j]; nr = nr + 1.0 }
+            else { sa = sa + Z[i][j]; na = na + 1.0 }
+            i = i + 1
+        }
+        let mr = if nr > 0.0 { sr / nr } else { 0.0 }
+        let ma = if na > 0.0 { sa / na } else { 0.0 }
+        w.push(mr - ma)
+        j = j + 1
+    }
+    return w
+}
+
+// project every row of Z onto w -> scores[N].
+fn project(Z, w, d: int) {
+    let n = Z.len()
+    let mut out = []
+    let mut i = 0
+    while i < n {
+        let mut s = 0.0
+        let mut j = 0
+        while j < d { s = s + Z[i][j] * w[j]; j = j + 1 }
+        out.push(s)
+        i = i + 1
+    }
+    return out
+}
+
+// leave-one-out held-out linear accuracy: for each held-out h, refit the
+// direction on the other n-1 rows, threshold at the midpoint of the train
+// class-projection means, predict h. IDENTICAL to the probe's loo_acc_for().
+fn loo_acc(Z, labels, d: int) -> float {
+    let n = Z.len()
+    let mut correct = 0.0
+    let mut h = 0
+    while h < n {
+        // direction on training set (all but h)
+        let mut w = []
+        let mut j = 0
+        while j < d {
+            let mut sr = 0.0
+            let mut nr = 0.0
+            let mut sa = 0.0
+            let mut na = 0.0
+            let mut i = 0
+            while i < n {
+                if i != h {
+                    if labels[i] == 1 { sr = sr + Z[i][j]; nr = nr + 1.0 }
+                    else { sa = sa + Z[i][j]; na = na + 1.0 }
+                }
+                i = i + 1
+            }
+            let mr = if nr > 0.0 { sr / nr } else { 0.0 }
+            let ma = if na > 0.0 { sa / na } else { 0.0 }
+            w.push(mr - ma)
+            j = j + 1
+        }
+        // train class-projection means -> threshold
+        let mut sumR = 0.0
+        let mut cntR = 0.0
+        let mut sumA = 0.0
+        let mut cntA = 0.0
+        let mut i2 = 0
+        while i2 < n {
+            if i2 != h {
+                let mut p = 0.0
+                let mut jj = 0
+                while jj < d { p = p + Z[i2][jj] * w[jj]; jj = jj + 1 }
+                if labels[i2] == 1 { sumR = sumR + p; cntR = cntR + 1.0 }
+                else { sumA = sumA + p; cntA = cntA + 1.0 }
+            }
+            i2 = i2 + 1
+        }
+        let mR = if cntR > 0.0 { sumR / cntR } else { 0.0 }
+        let mA = if cntA > 0.0 { sumA / cntA } else { 0.0 }
+        let thr = (mR + mA) / 2.0
+        // project held-out h, predict
+        let mut ph = 0.0
+        let mut k = 0
+        while k < d { ph = ph + Z[h][k] * w[k]; k = k + 1 }
+        let pred = if ph > thr { 1 } else { 0 }
+        if pred == labels[h] { correct = correct + 1.0 }
+        h = h + 1
+    }
+    return correct / (n as float)
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex SAFETY §Formula recompute — linear refusal-direction classifier")
+    println("  M4.SAFETY · difference-of-means direction over 84 activation-norm features")
+    println("  recompute of w / projection AUROC / LOO acc / permutation p from committed data")
+    println("========================================================================")
+    println("  source = " + DATA_PATH + "  (NUMBERS ONLY; adv prompt text redacted, cx_hf_safety_private)")
+    println("  law: score(a) = (w . z(a)) > theta ,  w = mean(z_refused) - mean(z_answered)")
+    println("")
+
+    // ── load committed matrix ────────────────────────────────────────────────
+    let txt = read_file_pure(DATA_PATH)
+    let lines = txt.split("\n")
+    let mut X = []          // float[N][D] raw activation norms
+    let mut labels = []     // int[N]  1=refused 0=answered
+    let mut is_adv = []     // int[N]
+    let mut li = 0
+    while li < lines.len() {
+        let ln = lines[li]
+        if ln.len() > 0 && !ln.starts_with("#") && !ln.starts_with("row_idx") {
+            let cells = ln.split("\t")
+            if cells.len() == (N_META + N_FEAT) {
+                is_adv.push(if cells[1].to_float() > 0.5 { 1 } else { 0 })
+                labels.push(if cells[2].to_float() > 0.5 { 1 } else { 0 })
+                let mut row = []
+                let mut j = 0
+                while j < N_FEAT {
+                    row.push(cells[N_META + j].to_float())
+                    j = j + 1
+                }
+                X.push(row)
+            }
+        }
+        li = li + 1
+    }
+    let n = X.len()
+    println("  loaded rows = " + to_string(n) + "  features = " + to_string(N_FEAT))
+    let mut nR = 0
+    let mut nA = 0
+    let mut nAdv = 0
+    let mut ci = 0
+    while ci < n {
+        if labels[ci] == 1 { nR = nR + 1 } else { nA = nA + 1 }
+        if is_adv[ci] == 1 { nAdv = nAdv + 1 }
+        ci = ci + 1
+    }
+    println("  refused = " + to_string(nR) + "  answered = " + to_string(nA) +
+            "  adversarial-topic = " + to_string(nAdv))
+    println("")
+
+    // data-shape sanity (must match the committed n=40, balanced 20/20)
+    let shape_ok = (n == N_ROWS) && (nR == 20) && (nA == 20)
+    _check(shape_ok,
+           "committed matrix shape = 40 rows x 84 features, balanced 20 refused / 20 answered",
+           "n=" + to_string(n) + " refused=" + to_string(nR) + " answered=" + to_string(nA))
+
+    // ── z-score each feature over the 40 rows (population std, sd→1 guard) ─────
+    let d = N_FEAT
+    let mut Z = []
+    let mut mu = []
+    let mut sd = []
+    let mut j = 0
+    while j < d {
+        let mut colv = []
+        let mut i = 0
+        while i < n { colv.push(X[i][j]); i = i + 1 }
+        let m = mean_of(colv)
+        let s0 = pop_std(colv)
+        let s = if s0 > 0.0 { s0 } else { 1.0 }
+        mu.push(m)
+        sd.push(s)
+        j = j + 1
+    }
+    let mut i3 = 0
+    while i3 < n {
+        let mut zr = []
+        let mut jj = 0
+        while jj < d { zr.push((X[i3][jj] - mu[jj]) / sd[jj]); jj = jj + 1 }
+        Z.push(zr)
+        i3 = i3 + 1
+    }
+
+    // ── A. full-vector difference-of-means direction + projection AUROC ───────
+    let w = dir_of(Z, labels, d)
+    let proj = project(Z, w, d)
+    let full_auc = auroc(proj, labels)
+    println("  full_vector_projection_AUROC = " + to_string(full_auc))
+    let auc_drift = _abs(full_auc - EXP_AUROC)
+    _check(auc_drift <= EPS_AUROC,
+           "full-vector projection AUROC reproduces committed 0.98 within ε=" + to_string(EPS_AUROC),
+           "recomputed=" + to_string(full_auc) + "  committed=" + to_string(EXP_AUROC) +
+           "  drift=" + to_string(auc_drift))
+
+    // ── B. leave-one-out held-out linear accuracy ─────────────────────────────
+    let loo = loo_acc(Z, labels, d)
+    let loo_n = round_pure(loo * (n as float))
+    println("  leave_one_out_linear_acc = " + to_string(loo) +
+            " (" + to_string(loo_n) + "/40)  majority_baseline=" + to_string(MAJORITY))
+    let loo_drift = _abs(loo - EXP_LOO)
+    _check((loo_drift <= EPS_LOO) && (loo > MAJORITY),
+           "leave-one-out held-out acc reproduces committed 0.825 within ε=" + to_string(EPS_LOO) +
+           " AND > majority 0.50",
+           "recomputed=" + to_string(loo) + "  committed=" + to_string(EXP_LOO) +
+           "  drift=" + to_string(loo_drift) + "  > majority=" +
+           (if loo > MAJORITY { "true" } else { "false" }))
+
+    // ── C. permutation test on LOO acc (fixed-seed LCG Fisher-Yates) ──────────
+    // Independent PRNG (NOT Python's Mersenne-Twister); same 200-shuffle design.
+    let observed = loo
+    let mut ge = 0
+    // 64-bit-ish LCG state; constants are the classic Numerical-Recipes ranqd1.
+    let mut state = 1234
+    let mut perm_i = 0
+    while perm_i < N_PERM {
+        // Fisher-Yates shuffle of a fresh copy of the label vector.
+        let mut lbl = []
+        let mut q = 0
+        while q < n { lbl.push(labels[q]); q = q + 1 }
+        let mut kk = n - 1
+        while kk > 0 {
+            state = (1664525 * state + 1013904223) % 2147483648
+            let r = state % (kk + 1)
+            let tmp = lbl[kk]
+            lbl[kk] = lbl[r]
+            lbl[r] = tmp
+            kk = kk - 1
+        }
+        let pacc = loo_acc(Z, lbl, d)
+        if pacc >= observed { ge = ge + 1 }
+        perm_i = perm_i + 1
+    }
+    let pval = ((ge as float) + 1.0) / ((N_PERM as float) + 1.0)
+    println("  permutation_test: observed_loo_acc=" + to_string(observed) +
+            ", perms>=obs=" + to_string(ge) + "/" + to_string(N_PERM) +
+            ", p_value=" + to_string(pval))
+    _check(pval <= 0.05,
+           "permutation p ≤ 0.05 (label shuffles do NOT reach the observed LOO) — reproduces committed p≈0.005",
+           "perms>=obs=" + to_string(ge) + "/" + to_string(N_PERM) + "  p=" + to_string(pval) +
+           "  (independent fixed-seed PRNG; same 200-shuffle design as the committed probe)")
+
+    // ── D. topic-confound control: ADV-but-ANSWERED row lands answered-side ───
+    // Full-data direction threshold = midpoint of class-projection means.
+    let mut sR = 0.0
+    let mut cR = 0.0
+    let mut sA = 0.0
+    let mut cA = 0.0
+    let mut t2 = 0
+    while t2 < n {
+        if labels[t2] == 1 { sR = sR + proj[t2]; cR = cR + 1.0 }
+        else { sA = sA + proj[t2]; cA = cA + 1.0 }
+        t2 = t2 + 1
+    }
+    let mR_full = sR / cR
+    let mA_full = sA / cA
+    let thr_full = (mR_full + mA_full) / 2.0
+    let adv_ans_proj = proj[ADV_ANSWERED_ROW]
+    let adv_ans_label = labels[ADV_ANSWERED_ROW]
+    let answered_side = adv_ans_proj <= thr_full
+    println("  thr=" + to_string(thr_full) + "  mean_proj_refused=" + to_string(mR_full) +
+            "  mean_proj_answered=" + to_string(mA_full))
+    println("  ADV-but-ANSWERED row" + to_string(ADV_ANSWERED_ROW) +
+            ": proj=" + to_string(adv_ans_proj) + " label=" + to_string(adv_ans_label) +
+            " -> " + (if answered_side { "answered-side" } else { "refused-side" }))
+    _check((adv_ans_label == 0) && answered_side,
+           "topic-confound control: the lone ADV-but-ANSWERED row projects to the ANSWERED side (direction tracks the refusal DECISION, not adv-vs-benign topic)",
+           "row" + to_string(ADV_ANSWERED_ROW) + " label=answered  proj=" + to_string(adv_ans_proj) +
+           " <= thr=" + to_string(thr_full) + " -> " +
+           (if answered_side { "OK" } else { "MISCLASS" }))
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " checks passed")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for ff in FAILURES { println("    ✗ " + ff) }
+        println("  🔴 FALSIFIED — the committed matrix does not reproduce the refusal-direction metrics")
+        println("__HEXA_CODEX_NUMERICS_SAFETY_REFUSAL_DIRECTION__ FALSIFIED")
+        exit(1)
+    }
+
+    println("  🟢 SUPPORTED-NUMERICAL — the linear refusal-direction classifier recomputed")
+    println("     from the committed 40x84 activation-norm matrix reproduces the route(b)")
+    println("     mechanistic finding: AUROC=" + to_string(full_auc) +
+            " · LOO=" + to_string(loo) + " (" + to_string(loo_n) + "/40) · p=" + to_string(pval))
+    println("     law: score(a) = (w . z(a)) > theta ,  w = mean(z_refused) - mean(z_answered)")
+    println("  · §Formula verdict: this recompute is the link target")
+    println("    .verdicts/sandbox/m4_safety_refusal_direction_recompute.txt")
+    println("__HEXA_CODEX_NUMERICS_SAFETY_REFUSAL_DIRECTION__ PASS")
+    exit(0)
+}

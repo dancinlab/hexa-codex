@@ -121,3 +121,53 @@
   method = "run"
   cmd    = "hexa run bench/sandbox_stage4_slo_full_grid.hexa (n_correct vs n_completed across rate sweep)"
   raw    = ".verdicts/sandbox/m3_ops_full_slo_grid_summary.txt"
+
+# ───────────────────────────────────────────────────────────────────────
+# safety-refusal-direction — mechanistic refusal direction (route b)
+# (slug = safety-refusal-direction · paper-track · SAFETY canonical)
+#
+# Method legend (cx_claim_verify):
+#   run       — real HF transformers fp32 forward-pass capture (cx_empirical_contact)
+#   recompute — hexa-native deterministic recompute from the committed
+#               NUMBERS-ONLY activation-norm matrix (.hexa IS the verify; raw
+#               stdout is the verdict — `hexa verify --expr` only accepts
+#               single-output registered fns, so the multi-metric linear
+#               refusal-direction classifier is recomputed directly)
+# Adversarial-set note: harmful prompts default PRIVATE (cx_hf_safety_private) —
+#   the committed surface m2_safety_refusal_norms.tsv carries NUMBERS ONLY
+#   (84 activation norms + binary labels), prompt TEXT redacted.
+
+@C sr_norms_matrix := "committed recompute surface: 40-row x 84-feature last-prompt-token activation-norm matrix + binary refusal labels (Qwen2.5-1.5B fp32), adversarial prompt text REDACTED per cx_hf_safety_private" :: empirical [slug=safety-refusal-direction]
+  method = "run"
+  cmd    = "deterministic fp32 forward-pass re-run of route(b) probe on ubu-1 (RTX 5070); reproduced committed label dist + AUROC=0.98 bit-for-bit"
+  raw    = ".verdicts/sandbox/m2_safety_refusal_norms.tsv"
+
+@C sr_formula := "linear refusal-direction classifier score(a) = (w . z(a)) > theta, w = mean(z_refused) - mean(z_answered) — recomputed from committed matrix" :: formula [slug=safety-refusal-direction]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_safety_refusal_direction.hexa (5/5 checks)"
+  raw    = ".verdicts/sandbox/m4_safety_refusal_direction_recompute.txt"
+
+@C sr_auroc := "full-vector difference-of-means projection AUROC = 0.98 (recomputed, drift 0.0 vs committed)" :: derived [slug=safety-refusal-direction]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_safety_refusal_direction.hexa (rank AUROC, refused=positive)"
+  raw    = ".verdicts/sandbox/m4_safety_refusal_direction_recompute.txt"
+
+@C sr_loo := "leave-one-out held-out linear acc = 0.825 (33/40) vs majority 0.50 — recomputed, drift 0.0" :: derived [slug=safety-refusal-direction]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_safety_refusal_direction.hexa (refit w on n-1, threshold at train class-mean midpoint)"
+  raw    = ".verdicts/sandbox/m4_safety_refusal_direction_recompute.txt"
+
+@C sr_permutation := "permutation test p = 0.00498 (0/200 fixed-seed label shuffles reach observed LOO) — reproduces committed p~=0.005 under independent PRNG" :: derived [slug=safety-refusal-direction]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_safety_refusal_direction.hexa (200-shuffle LCG Fisher-Yates; same design as the probe's Mersenne-Twister)"
+  raw    = ".verdicts/sandbox/m4_safety_refusal_direction_recompute.txt"
+
+@C sr_topic_confound := "direction tracks the refusal DECISION not adv-vs-benign topic: lone ADV-but-ANSWERED row14 projects to answered-side (proj=-25.81, matches probe)" :: derived [slug=safety-refusal-direction]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_safety_refusal_direction.hexa (full-data threshold control)"
+  raw    = ".verdicts/sandbox/m4_safety_refusal_direction_recompute.txt"
+
+@C sr_route_a_negative := "route(a) NEGATIVE contrast: first-token top1-top2 logprob margin gap 0.40 = 5.9x BELOW the bimodality bar, safety_signal_present=false — the activation-norm surface succeeds where the logit margin fails" :: empirical [slug=safety-refusal-direction]
+  method = "run"
+  cmd    = "hexa run bench/sandbox_stage4_refusal_bimodal_tighter.hexa (Qwen2.5-1.5B, $0 local)"
+  raw    = ".verdicts/sandbox/m2_safety_bimodality_tighter.txt"

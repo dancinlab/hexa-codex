@@ -2692,3 +2692,62 @@ paper(3-page)와 동일하게 figure 패딩/10-page 강제 안 함(정직-잔여
 | §Benefit  | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m3_ops_full_slo_grid_summary.txt` (findings 1–2 + throughput ceiling) |
 
 **M4.OPS 체크박스 `[ ]`→`[x]`** — OPS 도메인 캐노니컬 paper 4/4 🟢 졸업.
+
+
+---
+
+## cycle-17 — M4.SAFETY CLOSED: 캐노니컬 SAFETY paper (mechanistic refusal direction) Path A 언블록
+
+**전 사이클 잔여 닫음.** cycle-16(PR #29)에서 M4.SAFETY는 정직하게 BLOCKED였음
+(`BLOCKED_PENDING_FORMULA_RECOMPUTE`) — route(b) mechanistic refusal direction
+(AUROC 0.98 / LOO 0.825 / perm p=0.005, 3 motif)은 진짜였지만 4개 섹션 전부 ⚪
+SPECULATION-FENCED verdict만 링크 가능했음(committed recompute surface 부재).
+per-row 84-feature 행렬이 ubu-1 `~/sandbox_probe/motif_summary.json` provenance
+에만 있고 repo에 없어 hexa-native verifier가 AUROC/LOO/p를 재현할 수 없었기 때문.
+
+**Path A 실행 (⚪ → 🟢 변환).**
+1. **40×84 activation-norm 행렬 + binary label** 을 ubu-1에서 추출 — deterministic
+   fp32 forward-pass 재실행(`pool on ubu-1`, RTX 5070, transformers 4.51.3 clean
+   venv, $0)이 committed verdict의 label 분포(adv_refused=19/20 — row14
+   acetaminophen ANSWERED, benign_refused=1/20 — row39 ER-warning REFUSED)와
+   crosscheck AUROC=0.98을 **bit-for-bit 재현**. `.verdicts/sandbox/m2_safety_refusal_norms.tsv`
+   로 커밋 — **NUMBERS ONLY, adversarial prompt TEXT는 REDACTED**(`cx_hf_safety_private`).
+   45 lines(5 header + 40 data), data row당 87 field(row_idx·is_adv·label + 84 feat).
+2. **`verify/numerics_safety_refusal_direction.hexa`** 작성(hexa-only, .py/.sh 신규 없음).
+   committed TSV를 `read_file_pure`로 읽어 deterministic 재계산 — z-score(population
+   std, sd→1 guard) → difference-of-means direction `w` → per-row projection →
+   rank AUROC → leave-one-out held-out linear acc → permutation p(fixed-seed LCG
+   Fisher-Yates). raw stdout verbatim → `.verdicts/sandbox/m4_safety_refusal_direction_recompute.txt`
+   **= 🟢 SUPPORTED-NUMERICAL verdict (5/5 PASS, exit 0)**:
+   - full_vector_projection_AUROC = **0.98** (drift 0.0 vs committed 0.98)
+   - leave_one_out_linear_acc = **0.825 (33/40)** (drift 0.0) > majority 0.50
+   - permutation p = **0.00498** (0/200 shuffle ≥ obs)
+   - topic-confound: ADV-but-ANSWERED row14 proj=−25.81 → answered-side OK (probe −25.81 일치)
+   **정직 disclosure:** 원 probe는 Python random.shuffle(Mersenne-Twister, seed 1234),
+   hexa verifier는 자체 fixed-seed LCG Fisher-Yates — test DESIGN 동일, PRNG stream만
+   다름. 관측 0.825가 chance band보다 훨씬 위라 어느 PRNG로도 0/200 → p≈0.005.
+   (substrate-cliff 선례 `verify/numerics_substrate_cliff_logistic.hexa` 패턴.)
+
+**Paper 게이트 재시도 — 4/4 🟢.** `/paper new safety-refusal-direction` → main.tex
+4-section + verdict-matrix(English) → `PAPER/safety-refusal-direction/`로 이동(repo
+layout) → `/paper compile` main.pdf **5 pages** 생성(bibtex 포함). figures dir는
+OPS paper처럼 drop(main.tex가 figure 참조 안 함, hexa-only authoring).
+
+| 섹션 | tier | verdict anchor |
+|------|------|----------------|
+| §Formula  | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m4_safety_refusal_direction_recompute.txt` (linear-direction recompute, 5/5) |
+| §Method   | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m2_safety_mechanical_probe.txt` (capture protocol header) + recompute |
+| §Benchmark | 🟢 SUPPORTED-NUMERICAL | recompute (AUROC/LOO/p + 3 distinct motifs: residual L17-19↑ · MLP L17-22↑ · attn L22/23/26↓) |
+| §Benefit  | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m2_safety_bimodality_tighter.txt` (route(a) negative: margin gap 5.9× below bar) + recompute |
+
+`cx_paper_significance` 충족(linear-classifier formula + 40×84 실측 bench + 정량
+benefit: held-out 0.825 vs 0.50 · route(a) 5.9×-below-bar negative · topic-confound
+control), 잔여 🟠 row 없음(`cx_paper_violation` clean).
+
+**g51 publish-lint은 별개 잔여(M5.SAFETY-release).** commons g51(≥10 page + ≥1 fal.ai
+figure)은 섹션-verdict 게이트와 무관한 출판-길이 조건 — page-count 5<10 ✗, fal.ai
+figure 없음 ✗. OPS/substrate paper와 동일하게 figure 패딩/10-page 강제 안 함(정직-잔여
+우선, g51은 노트만, 패딩 금지).
+
+**M4.SAFETY 체크박스 `[ ]`→`[x]`** — SAFETY 도메인 캐노니컬 paper 4/4 🟢 졸업.
+CLAIMS.tape에 safety-refusal-direction slug 등록.

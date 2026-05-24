@@ -2444,3 +2444,69 @@ figure 패딩/10-page 강제는 하지 않음(정직-잔여 우선, 과잉작업
 
 **M4.SUBSTRATE 체크박스 `[ ]`→`[x]`** — SUBSTRATE 도메인 캐노니컬 paper
 4/4 🟢 졸업.
+
+## 2026-05-25 — cycle-16 · M4.SAFETY 캐노니컬 paper 게이트 평가 — §Formula recompute 부재로 NOT-SHIP (정직한 잔여 유지)
+
+**Verdict 근거:** `.verdicts/sandbox/m2_safety_mechanical_probe.txt`
+(route(b) MECHANISTIC refusal direction — 84-feature activation-norm
+vector, AUROC 0.98 / LOO 0.825 / permutation p=0.005, 3 distinct
+motifs) · `.verdicts/sandbox/m2_safety_bimodality_tighter.txt`
+(route(a) first-token-margin = 확정 negative, gap 5.9× below bar).
+
+**평가 결론 — 졸업 불가 (정직한 잔여 유지). paper SHIP 안 함.**
+M3.SAFETY로 갓 풀린 mechanistic refusal direction은 *진짜* 발견이지만
+`cx_paper_gate` + `cx_paper_significance` + `cx_paper_sections`를
+충족하지 못한다. 4개 섹션 전부 ⚪-tier뿐 — 단 하나도 🟢/🔵 verdict에
+링크할 수 없으므로 paper는 SHIP 불가. M4.SAFETY 체크박스 `[ ]` 유지,
+`BLOCKED_PENDING_FORMULA_RECOMPUTE`로 annotate.
+
+**§Formula가 막힌 정확한 이유 (이게 결정타).**
+
+1. **closed-form recompute LAW이 아님.** §Formula 후보는 선형 분류기
+   `score(a) = w·a > θ` (w = 84-dim difference-of-means refusal
+   direction). 이건 n=40 위에서 *학습된 경험적 방향*이지, SUBSTRATE
+   §Formula 선례(`m4_substrate_formula_fit.txt` — 2-param logistic을
+   `verify/numerics_substrate_cliff_logistic.hexa`가 committed 데이터로
+   recompute → 5/5)처럼 닫힌 형태로 재계산 가능한 법칙이 아니다.
+2. **committed recompute surface 부재.** AUROC/LOO/p를 독립 recompute
+   하려면 per-row 84-feature 벡터 + 라벨이 필요한데, 이건 ubu-1의
+   `~/sandbox_probe/motif_summary.json`에만 있고 repo에 커밋되지 않음
+   (raw-bench-SoT, `project_bench_sot`). hexa-native 검증기가 재현할
+   데이터가 repo에 없다 — substrate cliff는 /30 fraction을 verifier에
+   verbatim 담았던 것과 대비.
+3. **probe verdict가 ⚪.** `hexa verify --fence` → ⚪ SPECULATION-FENCED
+   (T4 measured-empirical, atlas atom/libm identity 아님). 🟢/🔵가
+   아니므로 어떤 섹션도 링크할 green/blue가 없다.
+4. **n=40 / 84-feature 과적합.** verdict 본인의 honest-residuals 블록이
+   in-sample 0.98 과적합 위험을 명시 — n=40은 캐노니컬 claim에 약함.
+
+**섹션 → verdict 게이트 매트릭스 (전부 BLOCK).**
+
+| 섹션 | tier | verdict anchor |
+|------|------|----------------|
+| §Formula  | 🟠 INSUFFICIENT (게이트 BLOCK) | `.verdicts/sandbox/m2_safety_mechanical_probe.txt` (⚪ — 학습된 방향, closed-form recompute 없음) |
+| §Method   | 🟠 ⚪-tier만 가능 | `.verdicts/sandbox/m2_safety_mechanical_probe.txt` (⚪ — protocol 실재하나 green/blue verdict 부재) |
+| §Benchmark | 🟠 ⚪-tier · n=40 underpowered | `.verdicts/sandbox/m2_safety_mechanical_probe.txt` (⚪) |
+| §Benefit  | 🟠 ⚪-tier (§Formula/§Benchmark BLOCK 상속) | `.verdicts/sandbox/m2_safety_mechanical_probe.txt` (⚪) + `m2_safety_bimodality_tighter.txt` (route-a negative) |
+
+**`cx_paper_violation` 준수.** 게이트 실패 paper는 즉시 revoke 대상이므로
+ship 후 revoke는 ship 안 함보다 엄격히 나쁨 → `PAPER/safety-*` scaffold
+안 함. 정직한 잔여 > 조급한 캐노니컬 claim (M4.SUBSTRATE §Formula가
+cycle-15c 이전에 겪은 것과 동일한 결말).
+
+**M4.SAFETY unblock 경로 (다음 cycle claim seed).**
+
+- **path A (권장, substrate-cliff 패턴):** ubu-1 `motif_summary.json`에서
+  40-row × {projection score, label} TSV를 repo에 커밋(adv snippet은
+  `cx_hf_safety_private`로 REDACT) + `verify/numerics_safety_refusal_direction.hexa`가
+  difference-of-means w · per-row projection · AUROC · LOO held-out acc ·
+  permutation p를 committed 데이터에서 recompute → deterministic 🟢.
+  ⚪ probe를 🟢 recompute verdict로 전환하면 §Formula 링크 가능.
+- **path B:** n≫40으로 probe 재실행 (matched pair / model rung 추가) →
+  held-out separation을 캐노니컬-grade로.
+
+**g51 무관.** paper를 scaffold하지 않았으므로 g51(≥10 page + fal.ai
+figure ≥1) publish-lint은 이 게이트와 무관하고 M5.SAFETY 릴리스 소관이다.
+figure 패딩/10-page 강제 없음 (과잉작업 회피).
+
+전체 평가 + 섹션 게이트 표: `.discoveries/m4_safety_paper_gate_blocked.tape`.

@@ -468,9 +468,11 @@
 # F-CODEX-2 context-grid bench (0/4)."
 # raw: .discoveries/sandbox-kick4.raw (mk9, smash+414 free+211 res+16(σ=0.10), 641 total)
 
-@C d_qwen_7b_scale := "Qwen2.5-7B-Instruct GGUF on disk + smoke (4th ladder rung)" :: candidate [target_tier=GREEN cost_est=$0 source=cycle-11-direct-successor]
+@C d_qwen_7b_scale := "Qwen2.5-7B-Instruct GGUF on disk + smoke (4th ladder rung; M3.SUBSTRATE 4-rung prereq met)" :: confirmed_base_pick [target_tier=GREEN cost_actual=$0 source=cycle-12-direct-successor verdict=.verdicts/sandbox/m3_substrate_7b_pick.txt scope=base-on-disk+smoke-test-only bench_rerun_pending=true]
   cmd = "curl -L bartowski/Qwen2.5-7B-Instruct-GGUF Q4_K_M (~4.5GB; fits mac mini M3 16GB UMA); shasum -a 256; smoke-test 'What is 2+2?'; verdict .verdicts/sandbox/m3_substrate_7b_pick.txt mirroring cycle-8/10 schema"
   hyp = "7B Q4_K_M loads + serves on M3 Metal at >=10 tok/s decode; smoke PASS; M3.SUBSTRATE 4-rung saturation prereq met; nano on wc_31_60 lifts to >=50% (would close cliff_shifted_vs_0_5b=true honestly per cycle-9 ada5 cliff annotation)"
+  base_pick_result = "M3.SUBSTRATE 4-rung prereq complete (2026-05-24, cycle-12, mirror of cycle-10 d_qwen_3b_scale and cycle-8 d_qwen_1_5b_scale patterns). huggingface-cli still not installed; fell back to direct `curl -L` from bartowski/Qwen2.5-7B-Instruct-GGUF (HF resolve URL). Downloaded 4683074240 bytes (~4.36 GiB / 4.47 GB) in 1124 s (~4.0 MB/s, ~2.7x the 3B wall as the file is ~2.4x larger). sha256=65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423. Smoke-test PASS: `llama-completion -m … -p 'What is 2+2? Reply with the digit only.' -n 32 --temp 0 -st` emitted `4 [end of text]` (substring match on kw '4' ✓), bracketed wall 2364 ms (load 1150.76 ms · prompt-eval 261.87 ms · single-tok decode 65.27 ms · prompt_eval_tps 80.19 on 21 prompt tokens, eval_tps 15.32 reported on 1-tok sample — load+EOS-dominated, not steady-state) on M3 Metal. MTL post-load: total 18186 MiB · free 11921 MiB · self 6264 MiB (model 4168 + ctx 1792 + compute 304) = comfortable ~11.6 GB headroom on 16 GB UMA. Verdict at .verdicts/sandbox/m3_substrate_7b_pick.txt. Co-resident scale-ladder on disk = {0.5B, 1.5B, 3B, 7B} = 4-of-4 rungs, total ~8.0 GB of GGUFs. SANDBOX.md M3.SUBSTRATE checkbox STAYS `[ ]` honestly — M3.SUBSTRATE saturation requires running the FULL ladder through Stage 2 + locating per-stratum cliff position; this commit only adds the 7B base-on-disk + closes the 4-rung prereq, the saturation closure is a separate later cycle. Also unblocks F-CODEX-1 v1.2.0 release-gate scale-grid (per ECONOMICS.md §M5.ECON the 4 rungs are exactly the F-CODEX-1 fit input)."
+  bench_rerun_state = "PENDING — successor cycle = M3.SUBSTRATE saturation (run all 4 rungs through bench/sandbox_stage2_persona_scaled.hexa, then locate cliff position across all 4 scales). NOT executed in this cycle — task scope was strictly the 7B base-on-disk + load-verified rung, mirroring the cycle-8/10 M1.SUBSTRATE / M3.SUBSTRATE-prereq pattern."
 
 @C d_transformers_hooks_substrate := "M1.SAFETY+ via transformers+hooks alt-engine — sidestep cycle-9 llama.cpp BLOCKED_AT_PROJECT" :: confirmed [actual_tier=GREEN cost_actual=$0 cross_cut=SAFETY+SUBSTRATE source=cycle-12-interface-self-test-PASS verdict=.verdicts/sandbox/m1_safety_plus_hf_unblock.txt scope=interface+self-test-only]
   cmd = "add lm_foundry/tool/activation_capture_hf.hexa wrapping `transformers.AutoModel + register_forward_hook` on residual/attn/mlp; same TSV schema as activation_capture.hexa (cycle-8 b683287); pull HF .safetensors of same Qwen2.5 checkpoint"
@@ -499,3 +501,35 @@
 # Top-2 ROI: d_transformers_hooks_substrate (unblocks M1.SAFETY+ AND opens
 # richer SUBSTRATE surface, sidesteps cycle-9 PROJECT block) + d_qwen_7b_scale
 # (closes M3.SUBSTRATE 4-rung saturation, lifts F-CODEX-1 v1.2.0 gate to 🟢).
+#
+# 2026-05-24 (cycle-12) — d_qwen_7b_scale candidate → confirmed_base_pick
+# (PARTIAL, scope=base-on-disk+smoke-test-only, mirror of cycle-10 3B pattern):
+# Qwen2.5-7B-Instruct-Q4_K_M GGUF downloaded to ~/Models/gguf/ (4,683,074,240
+# bytes / ~4.36 GiB, sha256 65b8fcd92af6b4fe…) via `curl -L` (huggingface-cli
+# still not installed; task-spec fallback). Download wall 1124 s (~4.0 MB/s,
+# ~2.7x the 3B time as the file is ~2.4x larger). Smoke-test PASS via
+# `llama-completion` on M3 Metal: prompt "What is 2+2? Reply with the digit
+# only." → output `4 [end of text]` (kw '4' ✓), bracketed wall 2364 ms (load
+# 1150.76 ms, ~0.4x the 3B's 2801 ms — actually FASTER load, file is more
+# pre-warmed in the page cache mid-cycle; prompt_eval_tps 80.19 tok/s on 21
+# prompt tokens (vs 3B 173.00 — 7B sees the expected ~2x slowdown vs 3B as
+# weight matrices ~2x larger); eval_tps 15.32 is a thin 1-token sample, NOT a
+# steady-state decode number — to be remeasured under the Stage-2 rerun).
+# Monotone-decreasing eval_tps across rungs: 1.5B 62.15 → 3B 20.81 → 7B 15.32
+# (all 1-token samples; trend direction is correct, magnitudes are
+# load-dominated). MTL post-load: total 18186 MiB · free 11921 MiB · self 6264
+# MiB (model 4168 + ctx 1792 + compute 304) = ~11.6 GB headroom on 16 GB UMA,
+# confirms 4 GGUFs co-resident on disk + 7B fits comfortably in unified memory.
+# Verdict at .verdicts/sandbox/m3_substrate_7b_pick.txt. Closes the 4th rung
+# of the M3.SUBSTRATE scale ladder. SANDBOX.md M3.SUBSTRATE checkbox STAYS [ ]
+# honestly — M3 is "saturation" = full ladder (0.5/1.5/3/7B) Stage-2 rerun +
+# cliff position; this commit only adds the 7B base-on-disk + closes the
+# 4-rung *prereq*, the saturation closure is a separate later cycle.
+#
+# Cumulative (post cycle-12): scale-ladder bases on disk = {0.5B (PoC), 1.5B
+# (cycle-8 d_qwen_1_5b_scale), 3B (cycle-11 d_qwen_3b_scale), 7B (this cycle
+# d_qwen_7b_scale)} = 4 of 4 rungs ✓. M3.SUBSTRATE 4-rung prereq met;
+# saturation gate now blocked solely on Stage-2 rerun across all 4 rungs +
+# locating per-stratum cliff position. F-CODEX-1 v1.2.0 release-gate scale-grid
+# (per ECONOMICS.md §M5.ECON the 4 rungs are exactly the F-CODEX-1 fit input)
+# is structurally unblocked.

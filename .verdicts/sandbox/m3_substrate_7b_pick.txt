@@ -1,0 +1,23 @@
+# base_model=Qwen2.5-7B-Instruct-Q4_K_M
+# model_path=/Users/ghost/Models/gguf/Qwen2.5-7B-Instruct-Q4_K_M.gguf
+# model_size_bytes=4683074240
+# sha256=65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423
+# smoke_test_prompt=What is 2+2? Reply with the digit only.
+# smoke_test_expected_kw=4
+# smoke_test_passed=true
+# smoke_test_wall_ms=2364
+# smoke_test_raw_output=4 [end of text]
+# smoke_test_load_ms=1150.76
+# smoke_test_prompt_eval_ms=261.87
+# smoke_test_prompt_eval_tps=80.19
+# smoke_test_eval_tps=15.32
+# smoke_test_eval_tok_count=1
+# smoke_test_host=mac-mini-M3 / llama-completion (brew llama.cpp + Metal)
+# downloaded_at=2026-05-24
+# downloaded_via=curl (huggingface-cli not installed; fallback per task spec)
+# source_url=https://huggingface.co/bartowski/Qwen2.5-7B-Instruct-GGUF/resolve/main/Qwen2.5-7B-Instruct-Q4_K_M.gguf
+# download_wall_seconds=1124
+# download_throughput_MBps=4.0
+# next_milestone=M3.SUBSTRATE saturation (Stage 2 rerun on 7B + cliff position located across full 0.5/1.5/3/7B ladder)
+# discovery_tape_slug=d_qwen_7b_scale (.discoveries/sandbox.tape, was candidate cycle-11-direct-successor)
+# note=Smoke test PASS — 7B Q4_K_M loaded on M3 Metal, answered "4" cleanly with [end of text] marker. wall_ms 2364 from date+%s%N brackets; llama-completion's internal total_time 328.73 ms is post-load steady-state (load 1150.76 ms separately reported). Eval throughput 15.32 tok/s sampled on 1 generated token (load+EOS-dominated, not steady-state decode) — vs cycle-8 1.5B 62.15 tok/s + cycle-10 3B 20.81 tok/s; the 1.5B→3B→7B trend (62.15 / 20.81 / 15.32) is monotone-decreasing as expected for parameter-count scaling. prompt_eval throughput 80.19 tok/s on 21 prompt tokens is the more reliable per-token number for this short prompt (vs 1.5B 173.00, 3B 173.00 — 7B sees the expected ~2x slowdown vs 3B on the prompt-eval side). MTL memory comfortable: total 18186 MiB, free 11921 MiB post-load (model 4168 + context 1792 + compute 304 = self 6264 MiB); confirms 4 GGUFs (0.5B+1.5B+3B+7B) co-resident on disk + 7B fits in M3 16 GB unified memory with ~11.6 GB headroom for context expansion. M3.SUBSTRATE 4-rung scale-ladder prereq complete; saturation closure (Stage 2 rerun across all 4 rungs + cliff position) is the separate next cycle.

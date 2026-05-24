@@ -54,6 +54,34 @@ the substrate. cliff_shifted=false (1.5B nano on wc_31_60 is 16%
 wc_61_100 (off the floor) make M3.SUBSTRATE saturation a 7B push
 away.
 
+## 2026-05-24 — M3.SUBSTRATE prep — Qwen2.5-7B-Instruct-Q4_K_M on disk (4th ladder rung; 4-rung saturation prereq met)
+
+Cross-ref to `SUBSTRATE.log.md` 2026-05-24 entry "Stage-4 ladder
+extended to 7B". Scale-ladder closes to 4 rungs (0.5B PoC + 1.5B
+cycle-8 M1.SUBSTRATE + 3B cycle-11-3B + 7B this cycle). Direct
+execution of the cycle-11 `d_qwen_7b_scale` candidate in
+`.discoveries/sandbox.tape`, modelled on the cycle-10 `56aae56` 3B
+pattern.
+
+| field | value |
+|:---|:---|
+| model | Qwen2.5-7B-Instruct-Q4_K_M (bartowski GGUF) |
+| size | 4 683 074 240 bytes (≈ 4.36 GiB) |
+| sha256 (16) | `65b8fcd92af6b4fe` |
+| smoke verdict | **PASS** (output `4 [end of text]`, wall 2 364 ms · load 1 150.76 ms · prompt_eval 80.19 tok/s) |
+| cost | $0 (curl -L + local llama-completion on M3 Metal) |
+| verdict file | `.verdicts/sandbox/m3_substrate_7b_pick.txt` |
+
+`SANDBOX.md` M3.SUBSTRATE checkbox **stays `[ ]`** honestly — M3 is
+saturation = full ladder (0.5/1.5/3/7B) Stage-2 rerun + per-stratum
+cliff position; this commit only adds 7B to disk and closes the
+4-rung *prereq*. Successor cycle: run all 4 rungs through
+`bench/sandbox_stage2_persona_scaled.hexa` to locate the cliff. The
+`d_qwen_7b_scale` candidate flips `candidate` → `confirmed_base_pick`
+(scope = base-on-disk + smoke-test-only). 4-rung saturation prereq
+also unblocks the F-CODEX-1 v1.2.0 release-gate scale-grid (per
+`ECONOMICS.md` §M5.ECON the 4 rungs are exactly the fit input).
+
 ## 2026-05-24 — M3.SUBSTRATE prep — Qwen2.5-3B-Instruct-Q4_K_M on disk (3rd ladder rung)
 
 Cross-ref to `SUBSTRATE.log.md` 2026-05-24 entry "Stage-4 ladder

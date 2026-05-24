@@ -47,6 +47,56 @@ SANDBOX.md M2.SUBSTRATE flipped `[ ]` → `[x]` (matrix + line item).
 `confirmed_base_pick` (cycle-8 008482e) to `confirmed_full` with
 honest `cliff_partially_lifted` annotation.
 
+## 2026-05-24 — Stage-4 ladder extended to 7B — Qwen2.5-7B-Instruct-Q4_K_M on disk, smoke-test PASS (M3.SUBSTRATE 4-rung prereq met)
+
+The SANDBOX scale ladder closes to 4 rungs (0.5B PoC + 1.5B
+M1.SUBSTRATE + 3B cycle-11-3B + 7B this cycle). Direct execution of
+the cycle-11 `d_qwen_7b_scale` candidate (`.discoveries/sandbox.tape`
+line 471), modelled on the cycle-10 3B pattern (commit `56aae56`) and
+ultimately on the cycle-8 1.5B M1.SUBSTRATE pattern (commit `008482e`).
+4-rung scale-ladder is the explicit prerequisite for M3.SUBSTRATE
+*saturation* AND for the F-CODEX-1 v1.2.0 release-gate scale-grid
+(per `ECONOMICS.md` §M5.ECON, the 4 scale rungs are exactly the
+F-CODEX-1 fit input) — but **M3.SUBSTRATE itself stays `[ ]`** because
+saturation still requires running the FULL ladder through Stage 2 +
+locating per-stratum cliff position, not merely adding rungs to disk.
+
+| field | value |
+|:---|:---|
+| base_model | Qwen2.5-7B-Instruct-Q4_K_M (bartowski GGUF) |
+| model_path | `~/Models/gguf/Qwen2.5-7B-Instruct-Q4_K_M.gguf` |
+| model_size | 4 683 074 240 bytes (≈ 4.36 GiB / 4.47 GB) |
+| sha256 | `65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423` |
+| download via | `curl -L` (huggingface-cli still not installed; task-spec fallback) |
+| download wall | 1 124 s (≈ 4.0 MB/s, 4.47 GB total — ≈ 2.7× the 3B wall as file is ≈ 2.4× larger) |
+| smoke prompt | "What is 2+2? Reply with the digit only." |
+| smoke output | `4 [end of text]` (substring match on kw "4" ✓) |
+| smoke verdict | **PASS** |
+| smoke wall | 2 364 ms total (date+%s%N brackets) · load 1 150.76 ms · prompt-eval 261.87 ms · single-tok decode 65.27 ms |
+| prompt_eval throughput | 80.19 tok/s on 21 prompt tokens (M3 Metal); vs 3B 173.00 / 1.5B 173.00 — 7B sees the expected ~2× slowdown vs 3B on prompt-eval |
+| eval throughput | 15.32 tok/s reported — *thin 1-token sample*, load+EOS-dominated, not steady-state; vs cycle-10 3B 20.81 tok/s and cycle-8 1.5B 62.15 tok/s; monotone-decreasing 62.15 → 20.81 → 15.32 across 1.5B / 3B / 7B as expected. To be remeasured under the Stage-2 rerun. |
+| MTL memory (post-load) | total 18 186 MiB · free 11 921 MiB · self 6 264 MiB (model 4 168 + ctx 1 792 + compute 304) — ~11.6 GB headroom on 16 GB UMA |
+| host / tool | mac mini M3 · `llama-completion` (brew llama.cpp + Metal) |
+| cost | $0 (local download + local inference) |
+
+Persisted: `.verdicts/sandbox/m3_substrate_7b_pick.txt` carries the
+full provenance header (sha256, size, smoke verdict, source URL,
+download method, MTL memory breakdown, next-milestone link). Schema
+mirrors `m3_substrate_3b_pick.txt`.
+
+The `d_qwen_7b_scale` candidate in `.discoveries/sandbox.tape` flips
+from `candidate` → `confirmed_base_pick` (mirror of the cycle-10
+`d_qwen_3b_scale` flip pattern; honest scope =
+`base-on-disk+smoke-test-only`, `bench_rerun_pending=true`).
+`SANDBOX.md` M3.SUBSTRATE checkbox is **NOT** flipped — saturation gate
+is full-ladder Stage-2 + cliff position, separate later cycle.
+
+Co-resident scale ladder on disk now: {0.5B 397 808 192 B, 1.5B
+986 048 768 B, 3B 1 929 903 264 B, 7B 4 683 074 240 B} = 4-of-4 rungs,
+total ~8.0 GB of GGUFs in `~/Models/gguf/`. Next on the substrate
+lane: run all 4 rungs through `bench/sandbox_stage2_persona_scaled.hexa`
+for per-stratum cliff position; that cycle closes M3.SUBSTRATE.
+
 ## 2026-05-24 — Stage-4 ladder extended to 3B — Qwen2.5-3B-Instruct-Q4_K_M on disk, smoke-test PASS (M3.SUBSTRATE prereq)
 
 The SANDBOX scale ladder gains its 3rd rung (after 0.5B PoC and 1.5B

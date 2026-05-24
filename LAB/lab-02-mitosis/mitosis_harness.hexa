@@ -1,0 +1,415 @@
+#!hexa strict
+// LAB/lab-02-mitosis/mitosis_harness.hexa — domain-mitosis MECE measurement harness.
+//
+// LAB-02 MITOSIS — domain 유사분열 (see LAB/README.md LAB-02).
+//
+// HYPOTHESIS (falsifiable):
+//   A domain-generating LLM, given a SATURATED parent domain SSOT (a fixed set
+//   of milestones each tagged with a stable ID), can autonomously divide it into
+//   N child sub-domains, distributing EVERY parent milestone to EXACTLY ONE child
+//   — i.e. a MECE partition with 0% loss and 0% duplication.
+//
+// FALSIFIER:
+//   Across the division runs, if ANY parent milestone lands in ZERO children
+//   (loss) OR in >=2 children (duplication), the "clean mitosis" hypothesis is
+//   FALSE. loss_rate>0 OR dup_rate>0 on the first smoke is an honest early
+//   falsification signal — we report the real rate either way.
+//
+// LIFTED INVARIANT (anima HEXAD/MITOSIS B-MITOSIS-3):
+//   cell-count conservation n(t+1) = n(t) + Δsplit − Δmerge   (a-closed, sympy 5/5)
+//   →  MILESTONE conservation:  parent_count == Σ child_count
+//   In a clean (MECE) split there is no birth/death of milestones, only a
+//   partition, so the conservation collapses to parent_count == Σ child_count
+//   (Δsplit = Δmerge = 0 at the milestone-count level). We assert it per run.
+//   B-MITOSIS-1 split-predicate (split ↔ tension>thr, thr=0.3) maps to the
+//   saturation trigger — here the parent IS declared saturated (tension>thr by
+//   construction: 6 milestones >= SATURATION_MS), so every run is a valid split.
+//
+// HONESTY (cx_lab_sandbox · g5 no-self-judge):
+//   • All LLM calls route to the self-hosted SANDBOX substrate (local
+//     llama-server, Qwen2.5-7B-Instruct-Q4_K_M, port 8097). T4 empirical.
+//   • The loss/dup/extra counts are a DETERMINISTIC set-diff over milestone IDs
+//     extracted by jq from the model's JSON — the LLM NEVER judges its own
+//     correctness. The model only proposes the partition; the counting is
+//     closed-form integer arithmetic on stable ID tags (M1..M6).
+//   • Each division uses a distinct prompt seed (child-count N + ordering nonce)
+//     so the N runs are not bit-identical re-asks.
+//
+// METHOD:
+//   1. Pre-flight: assert llama-server reachable at SERVER_URL.
+//   2. PARENT = 6-milestone saturated synthetic domain, IDs M1..M6 (stable tags).
+//   3. For each of DIVISIONS runs, with a target child-count drawn from a fixed
+//      schedule {2,3,4,3,2,4,...}, POST /v1/chat/completions asking for a MECE
+//      partition as strict JSON {"children":[{"name","milestones":[...]}]}.
+//   4. Parse per-child milestone-ID lists via jq (fence-stripped). For each
+//      parent ID count how many children claim it:
+//        claim=0 → loss · claim>=2 → duplication · claim==1 → clean.
+//      Child IDs not in PARENT → extra (hallucinated milestone).
+//   5. Conservation: parent_count == Σ(child milestone counts incl. dups/extra)?
+//      And the strict MECE form: every parent ID claimed exactly once AND no
+//      extra. mece_clean = (loss==0 && dup==0 && extra==0).
+//   6. Aggregate over runs: total loss / dup / extra cells, loss_rate, dup_rate,
+//      conservation_hold_rate, mece_clean_rate.
+//
+// OUTPUT (persisted under LAB/lab-02-mitosis/):
+//   result_mitosis.tsv          (per-run: run, target_n, observed_children,
+//                                claimed_distinct, loss, dup, extra,
+//                                conservation_hold, mece_clean)
+//   result_mitosis_summary.txt  (aggregate verdict: loss_rate, dup_rate, ...)
+//
+// Run:
+//   export POOL_DISABLE=1
+//   nohup llama-server -m ~/Models/gguf/Qwen2.5-7B-Instruct-Q4_K_M.gguf \
+//       --host 127.0.0.1 --port 8097 -np 1 --log-disable -c 4096 &
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+//       ~/.hx/packages/hexa/hexa.real run LAB/lab-02-mitosis/mitosis_harness.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External HTTP subprocess (curl → llama-server) + jq set-diff + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/LAB/lab-02-mitosis"
+let MODEL_NAME = "Qwen2.5-7B-Instruct-Q4_K_M"
+let SERVER_URL = "http://127.0.0.1:8097"
+let MAX_TOK = 512
+let SATURATION_MS = 4          // B-MITOSIS-1 lift: parent saturated iff ms_count >= this (tension>thr)
+
+// PARENT — a saturated synthetic domain. 6 milestones, stable ID tags.
+// Each entry: [id, text]. IDs are the closed-form anchor for the set-diff.
+let PARENT = [
+    ["M1", "design the authentication login flow"],
+    ["M2", "implement the OAuth token refresh"],
+    ["M3", "build the billing invoice generator"],
+    ["M4", "add the payment retry queue"],
+    ["M5", "write the metrics dashboard"],
+    ["M6", "set up the alerting SLO rules"],
+]
+
+// Division schedule — target child-count per run. Mixed 2/3/4 so the N runs
+// exercise different partition shapes (not bit-identical re-asks). len = DIVISIONS.
+let TARGET_N = [3, 2, 4, 3, 2]
+let DIVISIONS = 5
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn json_escape(s: str) -> str {
+    let mut t = s.replace("\\", "\\\\")
+    t = t.replace("\"", "\\\"")
+    t = t.replace("\n", "\\n")
+    t = t.replace("\r", "\\r")
+    t = t.replace("\t", "\\t")
+    return t
+}
+
+// Build the parent-milestone block "M1: text\nM2: text\n..."
+fn parent_block() -> str {
+    let mut s = ""
+    let mut i = 0
+    while i < len(PARENT) {
+        let row = PARENT[i]
+        s = s + row[0] + ": " + row[1]
+        if i < len(PARENT) - 1 { s = s + "\n" }
+        i = i + 1
+    }
+    return s
+}
+
+// Build the division prompt for a given target child-count n and a nonce
+// (so distinct runs are distinct asks, not cached repeats).
+fn build_prompt(n: int, nonce: int) -> str {
+    let pb = parent_block()
+    let p = "You are a domain architect. A domain PARENT is SATURATED with " +
+            str(len(PARENT)) + " milestones, each tagged with a stable ID. " +
+            "Divide PARENT into exactly " + str(n) + " child sub-domains. " +
+            "Assign EVERY milestone to EXACTLY ONE child (MECE: mutually exclusive, " +
+            "collectively exhaustive — no milestone omitted, none in two children). " +
+            "Some children may hold only one milestone. (plan variant " + str(nonce) + ")\n\n" +
+            "Parent milestones:\n" + pb + "\n\n" +
+            "Return ONLY a JSON object, no prose, of the form:\n" +
+            "{\"children\":[{\"name\":\"...\",\"milestones\":[\"M1\"]}, ...]}\n" +
+            "Use the milestone IDs exactly (M1.." + PARENT[len(PARENT)-1][0] + ")."
+    return p
+}
+
+// Dispatch one division to the SANDBOX substrate. Returns a tab-joined string:
+//   wall_ms \t n_children \t childlines
+// where childlines is a "|"-joined list, one segment per child, each segment a
+// space-joined list of the milestone IDs that child claims (jq-parsed,
+// fence-stripped). Deterministic: jq does the JSON extraction, no LLM-judge.
+fn run_division(prompt: str) -> str {
+    let pj = json_escape(prompt)
+    let body = "{\"messages\":[{\"role\":\"user\",\"content\":\"" + pj +
+               "\"}],\"max_tokens\":" + str(MAX_TOK) + ",\"temperature\":0}"
+    // Pipeline:
+    //  - POST, capture wall_ms
+    //  - extract message content
+    //  - strip ``` fences
+    //  - jq: per child, join milestones with space; children joined with "|"
+    //  - count children
+    let cmd = "t_start=$(date +%s%N); " +
+              "resp=$(curl -s -X POST " + SERVER_URL + "/v1/chat/completions " +
+              "-H 'Content-Type: application/json' -d " + shq(body) + "); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "content=$(printf '%s' \"$resp\" | jq -r '.choices[0].message.content // \"\"'); " +
+              "stripped=$(printf '%s' \"$content\" | sed -e 's/```json//g' -e 's/```//g'); " +
+              // per-child milestone IDs, one child per line (space-joined), then
+              // collapse newlines to '|' so it survives a single tab-field.
+              "lines=$(printf '%s' \"$stripped\" | jq -r '.children[] | (.milestones | join(\" \"))' 2>/dev/null); " +
+              "nch=$(printf '%s' \"$lines\" | grep -c . ); " +
+              "joined=$(printf '%s' \"$lines\" | paste -sd '|' -); " +
+              "printf '%s\\t%s\\t%s' \"$wall_ms\" \"$nch\" \"$joined\""
+    return exec(cmd).trim()
+}
+
+// Is id present in PARENT?
+fn is_parent_id(id: str) -> bool {
+    let mut i = 0
+    while i < len(PARENT) {
+        if PARENT[i][0] == id { return true }
+        i = i + 1
+    }
+    return false
+}
+
+fn main() {
+    println("========================================================================")
+    println("  LAB-02 MITOSIS — domain 유사분열 MECE harness")
+    println("  model:        " + MODEL_NAME + "  (SANDBOX substrate · port 8097)")
+    println("  parent:       " + str(len(PARENT)) + " milestones (M1.." + PARENT[len(PARENT)-1][0] + ")")
+    println("  divisions:    " + str(DIVISIONS) + "  target child-counts: see TARGET_N")
+    println("  invariant:    B-MITOSIS-3 lift — parent_count == Σ child_count")
+    println("  set-diff:     deterministic jq ID-count (NO LLM self-judge)")
+    println("========================================================================")
+
+    // Pre-flight
+    let health = exec("curl -s -o /dev/null -w '%{http_code}' " + SERVER_URL + "/health").trim()
+    if health != "200" {
+        println("")
+        println("  ! llama-server NOT reachable at " + SERVER_URL + "/health (http=" + health + ")")
+        println("  ! start with:")
+        println("       llama-server -m ~/Models/gguf/" + MODEL_NAME + ".gguf \\")
+        println("           --host 127.0.0.1 --port 8097 -np 1 --log-disable -c 4096 &")
+        println("__LAB_02_MITOSIS__ BLOCKED_AT_BUILD")
+        exit(2)
+    }
+
+    // B-MITOSIS-1 split-predicate (lifted): parent must be saturated to split.
+    let parent_count = len(PARENT)
+    let saturated = parent_count >= SATURATION_MS
+    println("")
+    println("  B-MITOSIS-1 split-predicate: parent_count(" + str(parent_count) +
+            ") >= saturation_thr(" + str(SATURATION_MS) + ") = " + str(saturated))
+    if saturated == false {
+        println("  ! parent NOT saturated — no split warranted. Aborting (honest).")
+        println("__LAB_02_MITOSIS__ BLOCKED_AT_BUILD")
+        exit(2)
+    }
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/result_mitosis.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo " + shq("# bench=LAB/lab-02-mitosis/mitosis_harness.hexa · LAB-02 first smoke") + " >> " + shq(tsv_path))
+    exec("echo " + shq("# model=" + MODEL_NAME + " · SANDBOX substrate · port 8097 · cost_usd=0") + " >> " + shq(tsv_path))
+    exec("echo " + shq("# loss=parent ids claimed by 0 children · dup=claimed by >=2 · extra=child id not in parent") + " >> " + shq(tsv_path))
+    exec("echo " + shq("# conservation_hold = (parent_count == sum_child_milestone_count) · mece_clean = (loss==0 && dup==0 && extra==0)") + " >> " + shq(tsv_path))
+    exec("echo " + shq("run\ttarget_n\tobserved_children\tsum_child_ms\tclaimed_distinct_parent\tloss\tdup\textra\tconservation_hold\tmece_clean\twall_ms") + " >> " + shq(tsv_path))
+
+    // Aggregate accumulators
+    let mut total_loss = 0
+    let mut total_dup = 0
+    let mut total_extra = 0
+    let mut conservation_holds = 0
+    let mut mece_cleans = 0
+    let mut total_ms = 0
+    let mut runs_ok = 0
+    // loss_rate / dup_rate denominators: each run has parent_count milestones to place.
+    let denom = parent_count * DIVISIONS
+
+    let mut run = 0
+    while run < DIVISIONS {
+        let n = TARGET_N[run % len(TARGET_N)]
+        let nonce = run + 1
+        println("")
+        println("  [run " + str(run+1) + "/" + str(DIVISIONS) + "] target_n=" + str(n) + " nonce=" + str(nonce))
+        let prompt = build_prompt(n, nonce)
+        let line = run_division(prompt)
+        let parts = line.split("\t")
+        if parts.len() < 3 {
+            println("    ! dispatch/parse error, raw=" + line.substr(0, 160))
+            // honest: record a failed run with all-zero parse (treated as full loss)
+            let row = str(run+1) + "\t" + str(n) + "\t0\t0\t0\t" + str(parent_count) + "\t0\t0\tfalse\tfalse\t0"
+            exec("echo " + shq(row) + " >> " + shq(tsv_path))
+            total_loss = total_loss + parent_count
+            run = run + 1
+            continue
+        }
+        let wall_ms = int(parts[0])
+        let n_children = int(parts[1])
+        let mut joined = ""
+        if parts.len() >= 3 { joined = parts[2] }
+        total_ms = total_ms + wall_ms
+        runs_ok = runs_ok + 1
+
+        // Build per-parent-ID claim counts (deterministic set-diff).
+        // claim[i] = number of children claiming PARENT[i].
+        let mut claim = [0, 0, 0, 0, 0, 0]
+        let mut k = 0
+        while k < len(claim) { claim[k] = 0; k = k + 1 }
+        let mut extra = 0
+        let mut sum_child_ms = 0
+
+        // Split children on '|'; each segment is space-joined IDs.
+        let segs = joined.split("|")
+        let mut si = 0
+        while si < len(segs) {
+            let seg = segs[si].trim()
+            if seg.len() > 0 {
+                let ids = seg.split(" ")
+                let mut ii = 0
+                while ii < len(ids) {
+                    let id = ids[ii].trim()
+                    if id.len() > 0 {
+                        sum_child_ms = sum_child_ms + 1
+                        // map to parent index
+                        let mut matched = false
+                        let mut pi = 0
+                        while pi < len(PARENT) {
+                            if PARENT[pi][0] == id {
+                                claim[pi] = claim[pi] + 1
+                                matched = true
+                                pi = len(PARENT)   // break
+                            } else {
+                                pi = pi + 1
+                            }
+                        }
+                        if matched == false { extra = extra + 1 }
+                    }
+                    ii = ii + 1
+                }
+            }
+            si = si + 1
+        }
+
+        // loss / dup / claimed-distinct over parent IDs.
+        let mut loss = 0
+        let mut dup = 0
+        let mut claimed_distinct = 0
+        let mut ci = 0
+        while ci < len(PARENT) {
+            let c = claim[ci]
+            if c == 0 { loss = loss + 1 }
+            if c >= 1 { claimed_distinct = claimed_distinct + 1 }
+            if c >= 2 { dup = dup + (c - 1) }   // dup = excess claims beyond the first
+            ci = ci + 1
+        }
+
+        // Conservation (B-MITOSIS-3 lift): parent_count == Σ child milestone count?
+        // In a clean MECE partition sum_child_ms == parent_count exactly.
+        let mut conservation_hold = "false"
+        if sum_child_ms == parent_count { conservation_hold = "true" }
+        if conservation_hold == "true" { conservation_holds = conservation_holds + 1 }
+
+        let mut mece_clean = "false"
+        if loss == 0 && dup == 0 && extra == 0 { mece_clean = "true" }
+        if mece_clean == "true" { mece_cleans = mece_cleans + 1 }
+
+        total_loss = total_loss + loss
+        total_dup = total_dup + dup
+        total_extra = total_extra + extra
+
+        let row = str(run+1) + "\t" + str(n) + "\t" + str(n_children) + "\t" +
+                  str(sum_child_ms) + "\t" + str(claimed_distinct) + "\t" +
+                  str(loss) + "\t" + str(dup) + "\t" + str(extra) + "\t" +
+                  conservation_hold + "\t" + mece_clean + "\t" + str(wall_ms)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("    -> children=" + str(n_children) + " sum_child_ms=" + str(sum_child_ms) +
+                " loss=" + str(loss) + " dup=" + str(dup) + " extra=" + str(extra) +
+                " conservation=" + conservation_hold + " mece_clean=" + mece_clean +
+                " (" + str(wall_ms) + "ms)")
+        run = run + 1
+    }
+
+    // ── aggregate verdict ──
+    // loss_rate / dup_rate as x10000 (basis points), denom = parent_count * DIVISIONS
+    let mut loss_rate_x10000 = 0
+    let mut dup_rate_x10000 = 0
+    if denom > 0 {
+        loss_rate_x10000 = (total_loss * 10000) / denom
+        dup_rate_x10000 = (total_dup * 10000) / denom
+    }
+    let mut conservation_rate_x100 = 0
+    let mut mece_rate_x100 = 0
+    if DIVISIONS > 0 {
+        conservation_rate_x100 = (conservation_holds * 10000) / DIVISIONS
+        mece_rate_x100 = (mece_cleans * 10000) / DIVISIONS
+    }
+
+    // Hypothesis verdict: clean mitosis holds iff loss==0 AND dup==0 across ALL runs.
+    let mut hypothesis = "FALSIFIED"
+    if total_loss == 0 && total_dup == 0 { hypothesis = "SUPPORTED" }
+    // extra (hallucinated milestone) is a separate honesty flag — reported but
+    // does not flip the loss/dup falsifier (the falsifier is strictly about
+    // parent milestones landing in 0 or >=2 children).
+    let mut extra_flag = "none"
+    if total_extra > 0 { extra_flag = "present(" + str(total_extra) + ")" }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — LAB-02 MITOSIS first smoke")
+    println("========================================================================")
+    println("  divisions            : " + str(DIVISIONS) + "  (runs_dispatched_ok=" + str(runs_ok) + ")")
+    println("  parent_count         : " + str(parent_count))
+    println("  total_loss_cells     : " + str(total_loss) + "  / " + str(denom) + " placements")
+    println("  total_dup_cells      : " + str(total_dup))
+    println("  total_extra_cells    : " + str(total_extra) + "  (hallucinated non-parent IDs)")
+    println("  loss_rate            : " + str(loss_rate_x10000 / 100) + "." + str(loss_rate_x10000 % 100) + "%")
+    println("  dup_rate             : " + str(dup_rate_x10000 / 100) + "." + str(dup_rate_x10000 % 100) + "%")
+    println("  conservation_hold    : " + str(conservation_holds) + "/" + str(DIVISIONS) +
+            "  (" + str(conservation_rate_x100 / 100) + "." + str(conservation_rate_x100 % 100) + "%)")
+    println("  mece_clean           : " + str(mece_cleans) + "/" + str(DIVISIONS) +
+            "  (" + str(mece_rate_x100 / 100) + "." + str(mece_rate_x100 % 100) + "%)")
+    println("  extra_flag           : " + extra_flag)
+    println("  HYPOTHESIS           : " + hypothesis + "  (clean mitosis iff loss==0 AND dup==0 ∀ runs)")
+    println("  total_wall_ms        : " + str(total_ms))
+
+    // ── persist summary verdict ──
+    let summary_path = OUT_DIR + "/result_mitosis_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# verdict=LAB-02 MITOSIS first smoke · domain 유사분열 MECE") + " >> " + shq(summary_path))
+    exec("echo " + shq("# bench=LAB/lab-02-mitosis/mitosis_harness.hexa") + " >> " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME + " · SANDBOX substrate (local llama-server) · port 8097") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal) · cost_usd=0") + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-server /v1/chat/completions (OpenAI-compatible) + curl + jq (deterministic set-diff, NO LLM self-judge)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# divisions=" + str(DIVISIONS) + " runs_dispatched_ok=" + str(runs_ok)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# parent_count=" + str(parent_count) + " saturation_thr=" + str(SATURATION_MS) + " (B-MITOSIS-1 split-predicate: saturated=true)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_loss_cells=" + str(total_loss) + " / " + str(denom) + " placements") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_dup_cells=" + str(total_dup)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_extra_cells=" + str(total_extra) + " (hallucinated non-parent milestone IDs)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# loss_rate=" + str(loss_rate_x10000 / 100) + "." + str(loss_rate_x10000 % 100) + "%  (total_loss / (parent_count*divisions))") + " >> " + shq(summary_path))
+    exec("echo " + shq("# dup_rate=" + str(dup_rate_x10000 / 100) + "." + str(dup_rate_x10000 % 100) + "%  (excess claims beyond first / placements)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# conservation_hold=" + str(conservation_holds) + "/" + str(DIVISIONS) + "  (B-MITOSIS-3 lift: parent_count == sum_child_ms)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# mece_clean=" + str(mece_cleans) + "/" + str(DIVISIONS) + "  (loss==0 && dup==0 && extra==0)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# hypothesis=" + hypothesis + "  (clean mitosis SUPPORTED iff loss==0 AND dup==0 across ALL runs; else FALSIFIED)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# falsifier=any parent milestone in 0 children (loss) OR >=2 children (dup) -> FALSE") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_wall_ms=" + str(total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# raw_per_row=LAB/lab-02-mitosis/result_mitosis.tsv") + " >> " + shq(summary_path))
+    exec("echo " + shq("# prior_art=anima HEXAD/MITOSIS B-MITOSIS-1..5 (cell mitosis, 5/5 SUPPORTED-FORMAL); B-MITOSIS-3 conservation lifted to milestone conservation") + " >> " + shq(summary_path))
+
+    println("")
+    println("  -> " + tsv_path)
+    println("  -> " + summary_path)
+    println("__LAB_02_MITOSIS__ OK")
+}

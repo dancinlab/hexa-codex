@@ -1,0 +1,19 @@
+# verdict=LAB-02 MITOSIS first smoke · domain 유사분열 MECE
+# bench=LAB/lab-02-mitosis/mitosis_harness.hexa
+# model=Qwen2.5-7B-Instruct-Q4_K_M · SANDBOX substrate (local llama-server) · port 8097
+# host=mac-mini-m3 (brew llama.cpp + Metal) · cost_usd=0
+# tool=llama-server /v1/chat/completions (OpenAI-compatible) + curl + jq (deterministic set-diff, NO LLM self-judge)
+# divisions=5 runs_dispatched_ok=5
+# parent_count=6 saturation_thr=4 (B-MITOSIS-1 split-predicate: saturated=true)
+# total_loss_cells=0 / 30 placements
+# total_dup_cells=0
+# total_extra_cells=0 (hallucinated non-parent milestone IDs)
+# loss_rate=0.0%  (total_loss / (parent_count*divisions))
+# dup_rate=0.0%  (excess claims beyond first / placements)
+# conservation_hold=5/5  (B-MITOSIS-3 lift: parent_count == sum_child_ms)
+# mece_clean=5/5  (loss==0 && dup==0 && extra==0)
+# hypothesis=SUPPORTED  (clean mitosis SUPPORTED iff loss==0 AND dup==0 across ALL runs; else FALSIFIED)
+# falsifier=any parent milestone in 0 children (loss) OR >=2 children (dup) -> FALSE
+# total_wall_ms=54653
+# raw_per_row=LAB/lab-02-mitosis/result_mitosis.tsv
+# prior_art=anima HEXAD/MITOSIS B-MITOSIS-1..5 (cell mitosis, 5/5 SUPPORTED-FORMAL); B-MITOSIS-3 conservation lifted to milestone conservation

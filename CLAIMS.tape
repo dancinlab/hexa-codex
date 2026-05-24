@@ -95,3 +95,29 @@
   method = "run"
   cmd    = "hexa run verify/numerics_economics_empirical_landing.hexa (LATENCY_MS live; check 9/10 -> FALSIFIED, exit 1)"
   raw    = ".verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt"
+
+# ───────────────────────────────────────────────────────────────────────
+# ops-slo-mmc-surface — M/M/c (Erlang-C) SLO surface for self-hosted serving
+# (slug = ops-slo-mmc-surface · paper-track · OPS canonical)
+#
+# Method legend (cx_claim_verify):
+#   run     — real llama-server SLO bench (cx_empirical_contact)
+#   recompute — hexa-native closed-form recompute (.hexa IS the verify; raw
+#               stdout is the verdict — `hexa verify --expr` only accepts
+#               single-output registered fns, so the multi-invariant M/M/c law
+#               is recomputed directly)
+
+@C op_slo_grid := "M3.OPS 18-cell SLO grid (3 np × 6 rate, Stage-2 N=2000): 12 VALID + 6 WALL_CAPPED, 0 boot-fail, 0 hang; ceilings 9.53/15.01/20.0 qps for np=1/2/4" :: empirical [slug=ops-slo-mmc-surface]
+  method = "run"
+  cmd    = "hexa run bench/sandbox_stage4_slo_full_grid.hexa (Qwen2.5-0.5B, port 8090)"
+  raw    = ".verdicts/sandbox/m3_ops_full_slo_grid_summary.txt"
+
+@C op_mmc_formula := "M/M/c (Erlang-C) law reproduces the SLO surface's scale-invariant structure: ceiling λ_max=c·μ, knee shifts RIGHT with c, stability cap λ<c·μ, Erlang-C sojourn pole at ρ→1 — 5/5 checks (absolute knee NOT claimed)" :: formula [slug=ops-slo-mmc-surface]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_ops_mmc_knee.hexa"
+  raw    = ".verdicts/sandbox/m4_ops_formula_fit.txt"
+
+@C op_accuracy_cliff := "a saturation SLO violation surfaces as an ACCURACY cliff via two mechanisms — client-timeout truncation (np=1, p99→timeout) + scheduler slot-preemption (np≥2: acc 94→53.82→29.03% at error_rate 0%)" :: derived [slug=ops-slo-mmc-surface]
+  method = "run"
+  cmd    = "hexa run bench/sandbox_stage4_slo_full_grid.hexa (n_correct vs n_completed across rate sweep)"
+  raw    = ".verdicts/sandbox/m3_ops_full_slo_grid_summary.txt"

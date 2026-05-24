@@ -52,7 +52,7 @@ M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4)       [ ] v?.?.? 
 - [x] M4.ECON — `PAPER/economics-routing-savings/` (already shipped)
 - [ ] M4.SAFETY — safety paper canonical, formula + bench + benefit
 - [ ] M4.OPS — ops paper canonical
-- [ ] M4.SUBSTRATE — DRAFT_PENDING at `PAPER/substrate-capability-evals/` (scaffold landed cycle-11; 4/4 sections 🟠 INSUFFICIENT per `cx_paper_gate` until M3.SUBSTRATE saturation lands)
+- [ ] M4.SUBSTRATE — DRAFT_PENDING_FORMULA at `PAPER/substrate-capability-evals/` (scaffold cycle-11). M3.SUBSTRATE saturation LANDED → §Method·§Benchmark·§Benefit graduated 🟠→🟢 SUPPORTED-NUMERICAL (cycle-15b `98210ba`, all linked to `.verdicts/sandbox/m3_substrate_saturation_summary.txt` + per-rung verdicts). §Formula stays 🟠 INSUFFICIENT — **sole open gate**: measured Stage-2 slope `0.172` is *stepwise* (wc_31_60 cliff 3B→7B +43pp), so no single-exponent fit holds and no closed-form (piecewise/sigmoid) law has been fit + recompute-verified yet. `cx_paper_gate` requires 4/4 🟢 → checkbox stays `[ ]`. Verdict: `.verdicts/sandbox/f_codex_1_lattice_lifted.txt` (PARTIAL, slope disclosed-only).
 
 ### M5 Release — roadmap version landed
 

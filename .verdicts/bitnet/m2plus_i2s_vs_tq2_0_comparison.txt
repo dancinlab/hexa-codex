@@ -1,0 +1,104 @@
+# === BITNET M2+ — TRUE 1.58-bit i2_s vs 2.06-bpw TQ2_0 (canonical 20-task floor) ===
+#
+# Closes the /gap ROOT-B finding: BITNET M1/M2 served BitNet b1.58 2B4T as
+# TQ2_0 (2.06 bpw) because the official microsoft/BitNet-b1.58-2B-4T-gguf
+# i2_s GGUF does NOT load in stock brew llama.cpp 9150 (ggml type-id 36
+# collides with TYPE_IQ4_NL_4_4 REMOVED). So the M1/M2 headline "1.58-bit"
+# was actually tested at 2.06 bpw — this verdict measures the GENUINE
+# i2_s ternary kernel via Microsoft's official bitnet.cpp engine on the
+# SAME canonical 20-task manifest + SAME byte_exact_subset scorer.
+#
+# --- ENGINE COMPARISON ---
+# i2_s engine    = ~/BitNet/build/bin/llama-cli  (Microsoft bitnet.cpp,
+#                  bundled llama.cpp fork Eddie-Wang1120 @ 1f86f058, built
+#                  locally arm64 with ccache=OFF + codegen_tl1 header)
+# TQ2_0 engine   = brew llama.cpp 9150 (stock)  — TQ2_0 is llama.cpp's
+#                  native 2.06-bpw ternary path; no Metal kernel either,
+#                  also runs -ngl 0 CPU
+#
+# --- MODEL ORIGIN (note: BOTH derived from microsoft/BitNet-b1.58-2B-4T-bf16) ---
+# i2_s gguf      = self-converted via bitnet.cpp utils/convert-helper-bitnet.py
+#                  (preprocess-huggingface-bitnet → convert-ms-to-gguf-bitnet
+#                  → build/bin/llama-quantize ... I2_S 1) → 1.19 GB (1187801216 B)
+#                  arch=bitnet-b1.58, file-type=40, ggml-type=36
+#                  Coherent output with raw "User: <q>\nAssistant:" 2B4T format.
+#                  (The pre-downloaded official i2_s GGUF
+#                  sha256=4221b252...884c2162 matches HF exactly but uses a
+#                  community 'bitnet2b' Human:/BITNETAssistant: template that
+#                  decodes to garbage on this engine — engine-matched
+#                  self-convert is the fair test.)
+# TQ2_0 gguf     = self-converted via brew convert_hf_to_gguf.py from same
+#                  bf16, file-type=37, 1.15 GB (1203563552 B). See M1 verdict.
+#
+# --- SAME CANONICAL 20-TASK MANIFEST + SAME byte_exact_subset SCORER ---
+# (verbatim from bench/sandbox_stage0_baseline.hexa, identical bytes in both
+# bench/bitnet_m1_accuracy_floor.hexa and bench/bitnet_i2s_true_1_58bit.hexa)
+#
+# --- HEADLINE NUMBERS ---
+# Metric              i2_s (1.58 bpw)      TQ2_0 (2.06 bpw)      delta
+# accuracy            6/20 = 30.0%         6/20 = 30.0%          0.0 pp
+# peak_rss_mb         1527 MB              1568 MB               −41 MB (−2.6%)
+# total_wall_ms       87,727 ms            221,772 ms            −134,045 ms (2.53× speedup)
+# usable_floor_15/20  FALSE                FALSE                 unchanged
+#
+# --- INTERPRETATION ---
+# 1) ACCURACY DELTA = 0.0 pp. The /gap ROOT-B premise "we never tested 1.58-bit
+#    so the M1 negative could be a quantization artifact" is REFUTED. The
+#    TRUE i2_s ternary kernel scores the SAME 6/20 on this manifest as TQ2_0.
+#    BitNet b1.58 2B4T's failure on this canonical floor is NOT a TQ2_0
+#    quantization artifact — it is an instruct-model verbosity / scorer-format
+#    failure (the M1 falsifier interpretation HOLDS).
+# 2) MEMORY DELTA = small (−2.6%). Both ternary paths live in the same memory
+#    band; i2_s is marginally tighter as expected (fewer bpw). The M2
+#    "memory below baseline" half remains TRUE for either quant.
+# 3) THROUGHPUT DELTA = LARGE (2.53× speedup). bitnet.cpp's I2_S LUT/MAD
+#    kernel beats llama.cpp's TQ2_0 path by 2.53× wall-time on this Apple
+#    Silicon CPU — that's the bitnet.cpp paper's headline (1.37×–5.07× on
+#    ARM CPUs vs llama.cpp) confirmed empirically on this substrate.
+# 4) KERNEL STABILITY artifact: 10 of 20 i2_s failures collapsed to repeated
+#    token-0 ("!!!!"), a deterministic NaN/inf-logit failure on certain
+#    prompts on the arm64 i2_s LUT path. TQ2_0 did not exhibit this failure
+#    mode (its 14 wrong answers were verbose-prose misses, not degenerate
+#    tokens). So the joint accuracy is the same but the i2_s failure mode
+#    is qualitatively different (kernel-stability-driven) — additional
+#    falsifier surface for bitnet.cpp arm64 i2_s on M3 worth flagging.
+#
+# --- JOINT CLAIM TEST ('1.58-bit ≈ full quality at a fraction of memory') ---
+# memory_below_baseline       = true   (i2_s 1527 MB < Qwen-1.5B-Q4-CPU 2878 MB
+#                                       same-backend control → 0.53×)
+# accuracy_floor_held         = false  (i2_s 6/20=30% vs Qwen-0.5B-Q4 16/20=80% floor)
+# verdict                     = FALSIFIED (joint claim refuted on this substrate
+#                               REGARDLESS of which ternary kernel — TQ2_0 or i2_s.
+#                               Memory IS a real fraction below the Q4 baseline;
+#                               quality is NOT preserved on this 20-task floor.)
+# m1_m2_story_changes         = NO     (engine choice does not flip the verdict)
+# /gap ROOT-B finding         = answered (true 1.58-bit measured; ROOT-B closed)
+#
+# --- hexa verify (verbatim) — same path as M1 (empirical T4, no --expr) ---
+# M2+ i2_s accuracy is a T4 EMPIRICAL serving benchmark (cx_empirical_contact):
+# weights ternary-quantized + served on bitnet.cpp, scored by byte_exact_subset.
+# Per 'hexa verify rubric' this is 🟠 DEFERRED (external hw/data dep) — there is
+# NO closed-form --expr fn that recomputes a served-accuracy number, so the
+# verifier correctly does not auto-judge it. The recompute path IS the committed
+# bench (bench/bitnet_i2s_true_1_58bit.hexa) re-run against the same 20-task
+# manifest. BT-77 atlas atom probe falls through to rubric (same as M1).
+#
+# --- REPRODUCE ---
+# Engine build:
+#   git clone --recursive https://github.com/microsoft/BitNet.git ~/BitNet
+#   cd ~/BitNet && python3 -m venv .venv && .venv/bin/pip install \
+#       3rdparty/llama.cpp/gguf-py "numpy<2" torch transformers safetensors
+#   .venv/bin/python utils/codegen_tl1.py --model bitnet_b1_58-3B \
+#       --BM 160,320,320 --BK 64,128,64 --bm 32,64,32
+#   cmake -S /Users/ghost/BitNet -B /Users/ghost/BitNet/build \
+#       -DGGML_CCACHE=OFF -DBITNET_ARM_TL1=OFF \
+#       -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+#   cmake --build /Users/ghost/BitNet/build --target llama-cli llama-quantize -j 8
+# Model convert (engine-matched i2_s from bf16 already on disk):
+#   .venv/bin/python utils/convert-helper-bitnet.py /Users/ghost/Models/bitnet-bf16
+#   # → /Users/ghost/Models/bitnet-bf16/ggml-model-i2s-bitnet.gguf
+# Bench:
+#   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+#     HEXA_CODEX_ROOT="$PWD" hexa run bench/bitnet_i2s_true_1_58bit.hexa
+#
+# host=mac-mini-m3 (24 GB UMA); cost_usd=0 (entirely local, $0)

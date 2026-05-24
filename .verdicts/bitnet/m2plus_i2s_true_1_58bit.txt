@@ -1,0 +1,17 @@
+# model=BitNet-b1.58-2B-4T-i2_s
+# model_path=/Users/ghost/Models/bitnet-bf16/ggml-model-i2s-bitnet.gguf
+# engine=/Users/ghost/BitNet/build/bin/llama-cli
+# total_tasks=20
+# correct=6/20
+# accuracy_pct=30.0
+# total_wall_ms=87727
+# peak_rss_bytes=1601191936
+# peak_rss_mb=1527
+# usable_threshold=15
+# usable_floor_reached=false
+# tool=bitnet.cpp llama-cli (Microsoft official, I2_S ternary kernel, arm64 -ngl 0 CPU)
+# quant=i2_s (file-type 40, ggml type-id 36 = I2_S; ~1.58 bpw TRUE ternary, NOT TQ2_0 2.06 bpw)
+# serving_mode=raw User:/Assistant: prefix --temp 0 greedy (official 2B4T format; -cnv template collapses to token-0)
+# host=mac-mini-m3 (24 GB UMA, arm64 NEON+ACCELERATE)
+# scorer=byte_exact_subset (case-insensitive, VERBATIM from bitnet_m1_accuracy_floor.hexa)
+# cost_usd=0  (local serving; wall_ms is the proxy cost surface)

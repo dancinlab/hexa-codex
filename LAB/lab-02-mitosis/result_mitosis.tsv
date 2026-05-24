@@ -1,0 +1,10 @@
+# bench=LAB/lab-02-mitosis/mitosis_harness.hexa · LAB-02 first smoke
+# model=Qwen2.5-7B-Instruct-Q4_K_M · SANDBOX substrate · port 8097 · cost_usd=0
+# loss=parent ids claimed by 0 children · dup=claimed by >=2 · extra=child id not in parent
+# conservation_hold = (parent_count == sum_child_milestone_count) · mece_clean = (loss==0 && dup==0 && extra==0)
+run	target_n	observed_children	sum_child_ms	claimed_distinct_parent	loss	dup	extra	conservation_hold	mece_clean	wall_ms
+1	3	3	6	6	0	0	0	true	true	14669
+2	2	2	6	6	0	0	0	true	true	8047
+3	4	4	6	6	0	0	0	true	true	13322
+4	3	3	6	6	0	0	0	true	true	11899
+5	2	2	6	6	0	0	0	true	true	6716

@@ -12,7 +12,7 @@
 | ID | 실험 | 가설 / 질문 | 상태 | 결과 · 작업물 |
 |------|------|------------|------|--------------|
 | LAB-01 | LLM 중간 끼어들기 · 유실 없음 | 응답 생성 중 들어온 추가 입력을 큐에 쌓지 않고 라이브로 이어붙여도 메시지가 유실되지 않는 방법이 존재한다 | 🔵 진행중 | — |
-| LAB-02 | MITOSIS · 도메인 유사분열 | 도메인 생성 LLM이 포화된 도메인을 자식 N개로 자율 분열시킬 때, 부모 milestone을 유실·중복 0%로 MECE 분배할 수 있다 | ⬜ 대기 | — |
+| LAB-02 | MITOSIS · 도메인 유사분열 | 도메인 생성 LLM이 포화된 도메인을 자식 N개로 자율 분열시킬 때, 부모 milestone을 유실·중복 0%로 MECE 분배할 수 있다 | ✅ 확인 (1st smoke) | **5분열 · loss 0.0% · dup 0.0% · 보존 5/5** — [`LAB/lab-02-mitosis/`](lab-02-mitosis/) |
 
 **상태 범례** — ⬜ 대기 · 🔵 진행중 · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류
 
@@ -90,7 +90,37 @@ conservation 은 이미 closed-form 증명됐으니, 도메인 mitosis 의 "유�
 (한 자식이 core 보존, 다른 자식이 분화)을 도메인 분열에 적용하면, 자식
 도메인이 균등 분배가 아니라 "core 유지 + spin-off" 패턴이 될 수 있다.
 
-**진행.** ⬜ 대기 — 측정 하니스(포화 도메인 입력 → 분열 → 부모/자식
-milestone 집합 diff 로 유실·중복 카운트)부터.
+**진행.** ✅ 확인 (1st smoke, 2026-05-25) — 측정 하니스
+[`LAB/lab-02-mitosis/mitosis_harness.hexa`](lab-02-mitosis/mitosis_harness.hexa)
+가 포화 도메인(6 milestone, 안정 ID tag M1..M6)을 SANDBOX substrate
+(self-hosted llama-server · Qwen2.5-7B-Instruct-Q4_K_M · port 8097)에
+던져 **N=2/3/4 혼합 5회 분열**시키고, 자식들이 청구한 milestone ID 를
+**결정론적 jq set-diff** 로 부모 집합과 대조해 유실·중복·extra 를
+카운트한다 (LLM 은 분할만 제안 · 채점은 정수 counting, **self-judge
+아님**).
 
-**작업물.** `LAB/lab-02-mitosis/` (예정)
+**1차 스모크 결과** (`result_mitosis_summary.txt`):
+
+| 지표 | 값 |
+|---|---|
+| divisions | 5 (N=3,2,4,3,2) |
+| loss_rate | **0.0%** (0/30 placement) |
+| dup_rate | **0.0%** |
+| extra (hallucinated ID) | 0 |
+| conservation (B-MITOSIS-3 lift `parent_count == Σ child_count`) | **5/5 hold** |
+| mece_clean (loss=0 ∧ dup=0 ∧ extra=0) | **5/5** |
+| 비용 | $0 (local Metal) · total 54.7s |
+
+→ **"clean mitosis" 가설 1차 SUPPORTED** — 5회 분열 모두 부모 6
+milestone 이 정확히 1개 자식에 들어갔다 (유실 0 자식, 중복 2+ 자식
+없음). falsifier(0 자식 ∨ 2+ 자식) 미발동. anima 세포 mitosis 의
+B-MITOSIS-3 conservation (🔵 SUPPORTED-FORMAL, sympy 5/5)이 도메인
+milestone conservation 으로 들어올려 **경험적으로** 성립함을 확인.
+honest 단서: N=5 작은 표본 · 단일 합성 부모 도메인 · 7B 모델 — 더
+큰 부모(SANDBOX.md 20-셀 등)·작은 모델(0.5B)·고-N 분열로 확장하면
+유실/중복이 나타날 수 있다 (그때가 진짜 반증 지점).
+
+**작업물.** [`LAB/lab-02-mitosis/`](lab-02-mitosis/) —
+`mitosis_harness.hexa` (하니스) · `result_mitosis.tsv` (per-run) ·
+`result_mitosis_summary.txt` (집계 verdict) · `verdict_mitosis.txt`
+(tier 매핑 note).

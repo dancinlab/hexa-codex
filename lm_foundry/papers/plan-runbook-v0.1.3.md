@@ -189,29 +189,52 @@ ratio ≤ 0.5× on the hexa source sample.
 
 ## §5 HF upload targets (post-bench, post-SFT)
 
-Once forge produces artefacts, upload to `dancinlab/*` namespace:
+> **2026-05-25 정정:** 이 §5 표는 원래 v0.1.3 진입 시점의 *제안 네이밍*이었고,
+> 그 사이 네이밍 피벗이 일어나 표에 적힌 5개 id (`sft-lora-r16` 단일판 ·
+> `fullft` · `gguf-q5` · `mlx` · `eval-results`)는 실제로는 그 이름으로
+> 랜딩되지 않았다. 아래 표를 **라이브 Hub 현실에 맞게 동기화**한다
+> (cx_hf_audit — token-host `ubu-1`에서 `HfApi.list_models/list_datasets`로
+> 확인한 id verbatim). SHIPPED = 현재 Hub에 존재 · PLANNED = 아직 미구축.
 
-| Forge artefact                                          | HF repo (proposed naming)                                       | Visibility |
-| ------------------------------------------------------- | --------------------------------------------------------------- | ---------- |
-| Stack v2 5% sample (filtered + tokenized stats)         | `dancinlab/hexa-forge-corpus-stack-v2-sample-v0.1.3`            | public     |
-| `tool/tokenizer_extension.toml` → extended tokenizer    | `dancinlab/hexa-forge-tokenizer-qwen-hexa-v1`                   | public     |
-| Cold-bench results (3 models × 6 specs)                 | `dancinlab/hexa-forge-bench-cold-v0.1.3`                        | public     |
-| First SFT checkpoint (LoRA r=16 default — D-NEW-TC-C)   | `dancinlab/hexa-forge-code-7b-qwen2.5-lora-r16-v0.2.0`          | public     |
-| Full-FT reproducibility checkpoint (v1.0.0 gate ⑪)      | `dancinlab/hexa-forge-code-7b-qwen2.5-fullft-v1.0.0`            | public     |
-| Quantised laptop tier (Q5_K_M, GGUF — `docs/code-llm.md §VERIFY`) | `dancinlab/hexa-forge-code-7b-Q5_K_M-GGUF-v1.0.0`     | public     |
-| MLX-converted (M-series laptop)                         | `dancinlab/hexa-forge-code-7b-MLX-v1.0.0`                       | public     |
-| Eval result aggregation                                 | `dancinlab/hexa-forge-eval-results-v1.0.0`                      | public     |
+실제 랜딩된 산출물은 두 라인으로 나뉜다 — **3B PoC 라인** (Qwen2.5-Coder-3B
+LoRA r16) 과 **7B RL 라인** (Qwen2.5-Coder-7B LoRA r64).
 
-**Naming convention:**
+| Forge artefact                                          | HF repo (actual on Hub)                                                           | Status   | Visibility |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------- | -------- | ---------- |
+| Stack v2 5% sample (filtered + tokenized stats)         | `dancinlab/hexa-forge-corpus-stack-v2-sample-v0.1.3`                              | SHIPPED  | public     |
+| Extended tokenizer (`tool/tokenizer_extension.toml`)    | `dancinlab/hexa-forge-tokenizer-qwen-hexa-v1`                                     | SHIPPED  | public     |
+| Cold-bench results (3 models × 6 specs)                 | `dancinlab/hexa-forge-bench-cold-v0.1.3`                                          | SHIPPED  | public     |
+| 3B PoC SFT 체크포인트 (LoRA r16, 13 cycles)             | `dancinlab/hexa-forge-code-3b-qwen2.5-lora-r16-v0.2.0-r1` … `-r13`                | SHIPPED  | public     |
+| 3B PoC GGUF f16 변환                                    | `dancinlab/hexa-forge-code-3b-GGUF-f16-v0.2.0-{r4,r6,r7,r8,r11}`                  | SHIPPED  | public     |
+| 3B PoC GGUF Q5_K_M 양자화 (laptop tier)                 | `dancinlab/hexa-forge-code-3b-Q5_K_M-GGUF-v0.2.0-{r4,r6,r7,r8,r11}`               | SHIPPED  | public     |
+| 7B RL 라인 SFT/RL 체크포인트 (LoRA r64)                 | `dancinlab/hexa-forge-code-7b-qwen2.5-lora-r64-v0.3.0` … `v0.4.3-route-rl-hybrid` | SHIPPED  | public     |
+| 7B Full-FT 재현 체크포인트 (v1.0.0 gate ⑪)              | *(naming TBD — 아직 미구축)*                                                       | PLANNED  | public     |
+| 7B GGUF / Q5_K_M laptop tier                            | *(naming TBD — 7B는 아직 GGUF 미변환)*                                             | PLANNED  | public     |
+| 7B MLX 변환 (M-series laptop)                           | *(naming TBD — 아직 미구축)*                                                       | PLANNED  | public     |
+| Eval result aggregation (집계 리포트)                   | *(naming TBD — per-round bench는 HF가 SoT, 집계판 미구축)*                          | PLANNED  | public     |
+
+> 7B RL 라인의 실제 cycle id (verbatim): `v0.3.0`, `v0.3.0-r2`, `-r3`, `-r4`,
+> `-r5`, `v0.4.0-delegate`, `v0.4.0-rl-t4`, `-rl-t4-v2`, `-rl-t4-v3`,
+> `-rl-t4-v3-t3patch`, `v0.4.1-delegate`, `v0.4.2-route-rl`,
+> `v0.4.3-route-rl-hybrid`.
+
+**Naming convention (실제 정착된 형태):**
 
 ```
-dancinlab/hexa-forge-<artefact-class>-<base-or-config>-<version>
+모델:    dancinlab/hexa-forge-code-<size>-qwen2.5-lora-r<rank>-<version>[-<variant>]
+GGUF:    dancinlab/hexa-forge-code-<size>-GGUF-f16-<version>
+양자화:  dancinlab/hexa-forge-code-<size>-Q5_K_M-GGUF-<version>
+코퍼스:  dancinlab/hexa-forge-corpus-<name>-<version>
+토크나이저: dancinlab/hexa-forge-tokenizer-<base>-<name>-<version>
+벤치:    dancinlab/hexa-forge-bench-<name>-<version>
 ```
 
-- All MIT-licensed (forge repo license).
-- All include `LICENSE` + `README.md` + provenance (forge commit SHA +
-  `datasets.toml@<hash>` + `tokenizer_extension.toml@<hash>`).
-- v0.1.x artefacts marked `RESEARCH_FIRST` in their README.
+- 원래 제안했던 `<artefact-class>-<base-or-config>-<version>` 단일 패턴 대신,
+  위처럼 산출물 종류별 prefix 가 정착했다.
+- 전부 MIT 라이선스 (forge repo license).
+- 모든 public repo 는 `README.md` (English-only model/dataset card) 보유 —
+  cx_hf_complete 준수 (card 가 미업로드 파일을 참조하지 않을 것).
+- v0.1.x / v0.2.0 산출물은 README 에서 research-first 로 표기.
 
 ## §6 Mac-exec audit log schema
 

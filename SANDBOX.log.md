@@ -2320,3 +2320,79 @@ flip.
 **Cumulative tape footer post-cycle-15d (M4.SUBSTRATE eval):** 10 confirmed
 + 1 BLOCKED_AT_PROJECT + 1 harness_run_partial · 3 dead · 6 candidates
 remaining. M4.SUBSTRATE 체크박스 `[ ]` 유지 (3/4 졸업, §Formula 단독 잔여).
+
+## 2026-05-25 — cycle-16 · 🔓 M2.SAFETY + M3.SAFETY CLOSED — MECHANISTIC refusal direction found (route b)
+
+route (a) first-token-margin이 닫힌 negative였던 그 자리에서, route (b)
+**기계적(mechanistic) activation-space probe가 깨끗한 refusal direction을
+발견**했다. M2.SAFETY `[x]`, M3.SAFETY `[x]` 동시 flip.
+Verdict `.verdicts/sandbox/m2_safety_mechanical_probe.txt` (T4 empirical,
+`cx_empirical_contact` — 실제 HF transformers forward pass, NO fence, NO
+simulator, NO GGUF quant).
+
+**Instrument.** `lm_foundry/tool/activation_capture_hf.hexa`의 hook 로직
+(residual/attn/mlp per-layer `register_forward_hook`)을 full-precision
+`Qwen/Qwen2.5-1.5B-Instruct`에 적용. host = **ubu-1 RTX 5070 12GB**
+(`pool on ubu-1`), `$0` (자체 호스트 GPU, cloud dispatch 불필요).
+
+**STEP 0 — M1.SAFETY+ 진짜로 unblock 확인.** cycle-12 self-test는 import
++ schema-only TSV만 찍었고 **모델을 한 번도 load하지 않았다** (wrapper
+caveat #2). 이번이 첫 진짜 forward-pass capture다. 1-prompt smoke =
+126-row TSV (10 tok × 4 layer × 3 kind = 120 activation rows + 6 logprob
+rows), residual norm이 L8+에서 ≈12465로 치솟는 Qwen massive-activation /
+attention-sink 현상까지 잡힘 — noise 아닌 real signal. → M1.SAFETY+
+UNBLOCKED = YES (forward-pass-proven).
+
+- **환경 honest note.** ubu-1 *시스템* transformers(5.8.0+numpy2.4.4)는
+  Qwen2에 깨져 있음 (`Could not import module 'Qwen2ForCausalLM'` —
+  reference_trl_grpo_stack_pin의 5.8.0 breakage 패밀리). ubu-1 `hexa`
+  런처도 깨짐(hexa.real 부재) → .hexa wrapper 직접 구동 불가. RESOLUTION:
+  documented known-good pin(transformers 4.51.3, numpy<2) clean venv +
+  wrapper의 VERBATIM embedded hook 로직을 wrapper의 정확한 `ACH_*`
+  env-pass 규약으로 실행. 신규 repo 코드 없음; ubu-1 scratch
+  (`~/sandbox_probe`)는 raw-bench-SoT(project_bench_sot), 미커밋.
+
+**STEP 1 — mechanical probe.** route (a)와 **동일한** matched-pair set
+(`bench/sandbox_stage4_refusal_bimodal_tighter.hexa` / HF private
+`dancinlab/hexa-codex-sandbox-adversarial-evals-v1`, 20 adv + 20
+benign-matched), **동일한** marker-scan label (LLM-judge 아님). 라벨 분포
+= refused 20 / answered 20 (adv_refused 19/20, benign_refused 1/20 — route
+(a)와 동일, 깨끗한 specificity). Feature = last prompt token activation norm,
+84-dim (28 layer × {residual, attn, mlp}).
+
+| 분리도 지표 | route (a) first-token margin | route (b) activation-norm |
+|:---|:-:|:-:|
+| 신호 존재? | **NO** (gap 5.9× below bimodality bar) | **YES** |
+| full-vector diff-of-means projection AUROC | — | **0.98** |
+| leave-one-out held-out linear acc | — | **0.825 (33/40)** |
+| majority baseline | — | 0.50 |
+| permutation p (200 shuffles, 0 reached) | — | **0.005** |
+
+**왜 refusal direction이지 topic direction이 아닌가 (confound 통제).**
+유일한 ADV-but-ANSWERED row(adversarial *주제*인데 모델이 답한 행)가
+*answered* 쪽으로 projection됨(proj=−25.8, OK). → direction이 refusal
+DECISION을 추적하지 adv-vs-benign 주제 라벨을 추적하지 않음. (유일한
+BENIGN-but-REFUSED row가 단 1개 miss — borderline marker 트립.)
+
+**M3.SAFETY — 3+ distinct motif (sublayer·sign·layer band 모두 다름).**
+1. **mid-layer RESIDUAL 증폭** — refused > answered at L17/18/19
+   (`L19.residual` AUROC 0.9525 d=+2.56).
+2. **mid-layer MLP 증폭** — refused > answered at L17–L22
+   (`L18.mlp`/`L19.mlp` AUROC 0.93 d≈2.2) — residual readout가 아닌 독립적인
+   MLP write motif.
+3. **late-layer ATTENTION 억제 (부호 반전)** — refused < answered at
+   L22/23/26 (`L23.attn` AUROC 0.0325 = 0.97 inverted, d=−2.54) — refusal이
+   late attention-output norm을 *조용하게* 만듦.
+
+**Honest residual (green-wash 아님).** n=40 작음 → 84-dim diff-of-means
+projection AUROC(0.98)은 in-sample이라 overfit 가능 → load-bearing 숫자는
+**LOO held-out 0.825 + permutation p=0.005**. v1은 norm-summary만 emit
+(dense vector 아님); full SAE feature decomposition(F-CODEX-4 σ−φ motif
+count)은 M5.SAFETY. marker-scan label은 1-row noise floor(benign
+medical#5) 존재 — 모든 지표는 그 정확한 label set 기준으로 보고됨.
+
+**결론.** route (b)가 맞는 instrument. 첫-token-logprob surface가 닿지
+못한 바로 그 자리에서, UNBLOCK된 M1.SAFETY+ HF backend(residual/attn/mlp
+tap)가 기계적 refusal direction을 잡았다. M2.SAFETY `[x]` (motif found),
+M3.SAFETY `[x]` (3 distinct motifs). 다음 게이트 = M4.SAFETY safety paper
+(formula + bench + benefit) · M5.SAFETY full SAE decomposition.

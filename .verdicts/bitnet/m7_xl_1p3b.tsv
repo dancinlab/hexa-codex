@@ -1,0 +1,21 @@
+idx	prompt_wc	output_tok_est	wall_ms	correct	rss_bytes	output_snippet
+1	39	47	20407	0	1303298048	Reply with the digit only. Reply with the digit only. Reply with the digit only. Reply with the digit only. Reply with t
+2	28	87	18888	1	1303543808	The capital of France is Paris. It is the largest city in France and the capital of the French Republic. It is also the
+3	64	32	21526	0	1303232512	A: You can use the following regex: ^[a-zA-Z0-9_]+$ A: You can use the following regex: ^[a-zA-Z0-9_]+$ A: You can use t
+4	40	56	17869	0	1301921792	I'm not sure if this is the right place to ask this, but I'm trying to find a square of 7. I've tried using the square r
+5	63	10	18351	0	1303445504	First prime number greater than 10? First prime number greater
+6	50	64	20433	0	1304870912	The smallest prime number is 17. The smallest prime number is 17. The smallest prime number is 17. The smallest prime nu
+7	48	1	11803	0	1304969216	1000000000000000000000000000000000000000000000000000000000000000000000000000000000
+8	75	67	11290	0	1302757376	I'm trying to find the boiling point of water in Celsius at sea level. I'm trying to find the boiling point of water in
+9	55	84	9298	0	1303314432	A number that is not a whole number. A number that is a whole number. A number that is a whole number and a fraction. A
+10	50	51	8803	0	1303773184	February 2024 is the 10th month of the year in the Gregorian calendar. There are 30 days in February. February 2024 is t
+11	73	0	0	0	0	PARSE_ERROR:9784	73	0	0	1303674880
+12	56	69	9460	0	1304215552	I'm trying to understand the time complexity of binary search. I'm trying to understand the time complexity of binary se
+13	77	4	9285	0	1303150592	Python: reverse a list
+14	51	0	0	0	0	PARSE_ERROR:8789	51	0	0	1303953408
+15	60	68	8768	1	1302740992	I'm trying to understand the difference between TCP and UDP. I'm trying to understand the difference between TCP and UDP
+16	34	51	7200	0	1301315584	Explain BFS vs DFS in 3 sentences. Explain BFS vs DFS in 4 sentences. Explain BFS vs DFS in 5 sentences. Explain BFS vs
+17	62	2	9300	0	1303920640	### 1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1
+18	50	36	7221	0	1302249472	This is a one-line summary of the binary 1101. This is a one-line summary of the binary 1101. This is a one-line summary
+19	56	52	8761	1	1303625728	I'm trying to understand why mergesort O(n log n) is O(n log n). I've seen it explained as follows: The mergesort O(n lo
+20	45	76	8762	0	1302921216	The problem is that the problem is not a problem. The problem is not a problem. The problem is not a problem. The proble

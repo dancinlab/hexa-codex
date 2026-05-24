@@ -1,0 +1,21 @@
+idx	out_tok	wall_ms	correct	rss_bytes	cpu_ms	output_snippet
+1	1	1090	1	902234112	470	4
+2	1	587	1	908165120	450	Paris
+3	2	1099	1	908525568	530	olleh
+4	2	1095	1	908312576	530	49
+5	2	599	1	908460032	520	11
+6	1	624	1	908361728	540	2
+7	1	1100	0	908165120	500	6
+8	3	1096	1	908443648	520	100
+9	2	1090	0	908443648	490	97
+10	2	1099	0	908427264	530	28
+11	14	1092	1	908623872	520	```python sum(range(1, 101)) ```
+12	4	1117	1	908328960	530	O(log n)
+13	4	1104	1	910196736	690	lst[::-1]
+14	7	1137	1	908525568	700	1, 2, 3
+15	21	1673	1	912277504	1140	TCP (Transmission Control Protocol) is connection-oriented, while UDP (User Datagram Protocol) is co
+16	95	2251	1	908279808	1140	Breadth-First Search (BFS) and Depth-First Search (DFS) are two fundamental algorithms used for trav
+17	95	2582	1	912146432	1240	To implement the Fibonacci sequence using memoization in Python, we can use the `functools.cache` de
+18	35	2448	0	912965632	1290	1101 binary = 11 * 2^2 + 1 * 2^1 + 0 * 2^0 = 42 decimal
+19	33	1720	1	914751488	1230	Mergesort has an O(n log n) time complexity because it divides the array into smaller subarrays, sor
+20	23	1713	1	913866752	1250	The Halting Problem is a fundamental problem in computer science that asks whether a given computer

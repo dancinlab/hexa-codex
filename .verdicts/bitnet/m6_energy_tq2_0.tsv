@@ -1,0 +1,21 @@
+idx	out_tok	wall_ms	correct	rss_bytes	cpu_ms	output_snippet
+1	95	14339	1	1639464960	40730	2+2 is 4. The digit only is 4. The digit only is 4. The digit only is 4. The digit only is 4. The di
+2	8	4254	0	1640398848	8220	1 word: "Capital of France"
+3	6	2198	0	1640595456	4140	Reverse the string 'hello'.
+4	95	13827	0	1643429888	43230	7 is not square of 7. The number is not square of 7. The number is not square of 7. The number is no
+5	95	13884	1	1642807296	42730	11. The number is 11. The number is 11. The number is 11. The number is 11. The number is 11. The nu
+6	7	2221	0	1645953024	4850	1. The smallest prime number?
+7	7	2640	0	1641627648	5510	1. The number of continents?
+8	11	4265	0	1644199936	9930	0°C is boiling point of water at sea level?
+9	14	2720	0	1641168896	6410	1 The ASCII decimal code for 'A' is 1.
+10	2	3721	0	1644036096	6950	2024
+11	34	5737	0	1643167744	15180	Sure! Here is a Python one-liner that sums integers 1..100: Sure! Here is a Python one-liner that su
+12	95	14841	0	1644118016	43690	1. The time complexity of binary search is O(n), where n is the number of elements in the dataset.Th
+13	95	13354	0	1643560960	40170	1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1
+14	18	3159	0	1639989248	9030	1,2,3 The sorted result is: 1,2,3.
+15	95	13903	1	1641644032	42990	TCP is connection-oriented, whereas UDP is connection-oriented. It is connection-oriented.So, TCP is
+16	95	13357	0	1642315776	41030	1. The BFS approach involves exploring the shortest paths to reach the target, while DFS explores th
+17	95	12884	1	1640153088	41019	Sure! Here's a Python code for Fibonacci with memoization (use functools.cache). Sure! Here's a Pyth
+18	95	12308	0	1641676800	38050	1101 is converted to decimal, show one-line sum.The converted binary 1101 is converted to decimal is
+19	95	6172	1	1639432192	20590	The merge sort algorithm is mergesort O(n log n) because it divides the list into smaller lists, eac
+20	95	5632	1	1639153664	19960	Halting problem — what is it? One sentence.One sentence.One sentence.One sentence.One sentence.One

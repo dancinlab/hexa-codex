@@ -1,0 +1,482 @@
+#!hexa strict
+// bench/sandbox_stage4_slo_full_grid.hexa — SANDBOX Stage 4: OPS SLO
+// FULL grid (M3.OPS milestone — full SLO grid -np × offered-rate at
+// Stage-2 N=2000). Sibling/successor of the M2.OPS pilot
+// `bench/sandbox_stage4_slo_under_load.hexa` (3×3, 6/9 valid).
+//
+// CONTEXT (M2.OPS, cycle-15c · .verdicts/sandbox/stage4_slo_under_load_summary.txt):
+//   The M2.OPS pilot ran a 3-np × 3-rate {5,20,100} grid and CONFIRMED the
+//   M/M/c knee (rate=5 ≈56% util, p99=681ms, acc 88%) + the accuracy cliff
+//   at rate>=20 (p99 4434ms+, acc 88%->19.75%), best_np=1 for 0.5B/16GB UMA.
+//   It left THREE honest residuals this full-grid run is built to close:
+//     R1 boot-fail port-race  — 2/9 cells recorded 0 arrivals because the
+//        prior cell's llama-server had not freed port 8090 before the next
+//        boot-poll timed out (2s SIGTERM->SIGKILL teardown too short).
+//     R2 cell-9 over-saturation hang — np=4/rate=100 hung ~30min; the
+//        per-curl 30s timeout + unbounded arrival drain never terminated.
+//     R3 knee unresolved between 5..20 qps — the {5,20,100} grid was too
+//        coarse to locate the exact knee.
+//
+// FULL GRID (this run):
+//                rate=1  rate=2  rate=5  rate=10  rate=20  rate=40   (qps)
+//   np=1          .       .       .       .        .        .
+//   np=2          .       .       .       .        .        .
+//   np=4          .       .       .       .        .        .
+//   = 18 cells. rate grid {1,2,5,10,20,40} spans sub-knee (1,2 qps ~11..22%
+//   util) -> at-knee (5,10 qps ~56..>100% util) -> over-capacity (20,40 qps).
+//   This refines R3: 5 sub-/at-knee samples bracket the ~8.9 req/s single-
+//   stream service rate measured in M2.OPS, so the knee qps is bisected.
+//   np=8 stays OMITTED — cycle-6 d_continuous_batching_server: np=8 is 27.9%
+//   slower than np=4 on this 16GB UMA box (mem-bw saturation).
+//
+// STAGE-2 N=2000 SCALE + RUNTIME TRACTABILITY:
+//   The manifest is the Stage-2 stratified N=2000 (wc[5..200]); requests are
+//   drawn from it (mod 2000 cycling). "N=2000/cell" is honored as the
+//   MEASURE-phase request ceiling: measure_budget = min(2000, rate*MEASURE_SEC).
+//   At rate>=10 the 2000 ceiling binds (clears the p999 n>=1000 gate); at
+//   rate 1..5 the MEASURE_SEC time window binds (hundreds of samples — enough
+//   for p50/p99; p999 honestly flagged NA). A literal 2000-request enqueue at
+//   rate=1 would take 33min/cell (>10h for 18 cells); the duration-bounded
+//   measure window keeps every low-rate cell statistically sound AND finite.
+//
+// HARDENING vs M2.OPS residuals (the core of this commit):
+//   FIX-R1 (boot port-race): boot_server() now (a) waits for the TCP port to
+//     be observably FREE (lsof poll, up to PORT_FREE_WAIT_S) BEFORE launching,
+//     and (b) retries the whole boot up to BOOT_RETRIES times, killing + re-
+//     waiting between attempts. The teardown SIGKILL grace widens 2s -> 4s.
+//   FIX-R2 (saturation hang): every cell's drive is wrapped in a hard
+//     wall-clock cap `timeout <CELL_WALL_CAP_S>` so a non-terminating drain
+//     can NEVER hang the run; the arrival generator stops emitting once the
+//     measure budget is reached (no unbounded 6000-arrival overshoot); the
+//     per-curl --max-time stays (REQ_TIMEOUT_S) so a single slow completion
+//     can't wedge a worker. A cell that hits the wall cap is recorded
+//     WALL_CAPPED with whatever it measured (honest partial, not a hang).
+//
+// EVERYTHING ELSE matches M2.OPS for comparability: same model, port 8090,
+// same byte-exact_subset scorer on expected_kw, same warmup-excluded
+// percentile rollup, same shard schema.
+//
+// Output:
+//   .verdicts/sandbox/m3_ops_full_slo_grid.tsv          (1 row per cell)
+//   .verdicts/sandbox/m3_ops_full_slo_grid_summary.txt  (run-time filled)
+//
+// Run (mem-budget preflight: 0.5B Q4 np=4 c=4096 ~ 1.0GB resident on 24GB
+//   UMA -> ~23GB headroom; local llama-server, NO GPU dispatch):
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage4_slo_full_grid.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External HTTP subprocess (curl → llama-server) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MANIFEST_PATH = ROOT + "/.verdicts/sandbox/stage2_manifest.tsv"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+let SERVER_HOST = "127.0.0.1"
+let SERVER_PORT = "8090"
+let SERVER_URL  = "http://127.0.0.1:8090"
+let MAX_TOK = 64
+let SHARD_DIR    = "/tmp/sandbox_stage4_slofg_shards"
+let PAYLOAD_DIR  = "/tmp/sandbox_stage4_slofg_payloads"
+let SERVER_LOG   = "/tmp/sandbox_stage4_slofg_server.log"
+let SERVER_PIDF  = "/tmp/sandbox_stage4_slofg_server.pid"
+let SLOT_DIR     = "/tmp/sandbox_stage4_slofg_slots"
+
+let WARMUP_SEC      = 15      // EXCLUDED from percentile rollup
+let MEASURE_SEC     = 60      // duration bound on measure phase
+let MEASURE_BUDGET  = 2000    // Stage-2 N=2000 per-cell measure ceiling
+let MIN_FOR_P999    = 1000    // n_completed gate for p999
+let REQ_TIMEOUT_S   = 30      // per-curl --max-time (FIX-R2 worker safety)
+
+// FIX-R1: port-free poll + boot retry
+let PORT_FREE_WAIT_S = 20     // seconds to wait for the TCP port to free
+let BOOT_RETRIES     = 3      // whole-boot retry attempts
+let TEARDOWN_GRACE_S = 4      // SIGTERM -> SIGKILL grace (was 2s in pilot)
+
+// FIX-R2: hard per-cell wall-clock cap. Generous enough for a clean cell
+// (warmup 15 + measure 60 + drain) but bounded so a hang can't run away.
+let CELL_WALL_CAP_S = 240
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Is the server port currently held by a LISTEN socket? "1" yes / "0" no.
+fn port_in_use() -> bool {
+    let r = exec("lsof -iTCP:" + SERVER_PORT + " -sTCP:LISTEN -t 2>/dev/null | head -1").trim()
+    return r.len() > 0
+}
+
+// Kill any server on our port + remove pidfile. Idempotent. Widened grace.
+fn kill_server() {
+    exec("if [ -f " + shq(SERVER_PIDF) + " ]; then " +
+         "  pid=$(cat " + shq(SERVER_PIDF) + " 2>/dev/null); " +
+         "  if [ -n \"$pid\" ] && kill -0 $pid 2>/dev/null; then " +
+         "    kill -TERM $pid 2>/dev/null; sleep " + str(TEARDOWN_GRACE_S) + "; " +
+         "    if kill -0 $pid 2>/dev/null; then kill -KILL $pid 2>/dev/null; fi; " +
+         "  fi; " +
+         "  rm -f " + shq(SERVER_PIDF) + "; " +
+         "fi; " +
+         "for p in $(lsof -iTCP:" + SERVER_PORT + " -sTCP:LISTEN -t 2>/dev/null); do " +
+         "  kill -TERM $p 2>/dev/null; sleep 1; kill -KILL $p 2>/dev/null; " +
+         "done; " +
+         "true")
+}
+
+// FIX-R1: block until the TCP port is observably free (or wait budget spent).
+// Returns true if free, false if still held after the wait.
+fn wait_port_free() -> bool {
+    let mut i = 0
+    while i < PORT_FREE_WAIT_S * 2 {
+        if !port_in_use() { return true }
+        exec("sleep 0.5")
+        i = i + 1
+    }
+    return !port_in_use()
+}
+
+// Boot llama-server with given -np N. FIX-R1: wait-for-free + retry loop.
+// Returns "ok" or "fail:<reason>".
+fn boot_server(np: int) -> str {
+    let mut attempt = 0
+    while attempt < BOOT_RETRIES {
+        attempt = attempt + 1
+        kill_server()
+        // FIX-R1: do not launch until the port is observably free
+        if !wait_port_free() {
+            // port still held — escalate kill + retry
+            kill_server()
+            exec("sleep 1")
+            continue
+        }
+        exec("mkdir -p " + shq(SLOT_DIR))
+        let inner = "nohup llama-server -m " + shq(MODEL_PATH) +
+                    " --host " + SERVER_HOST + " --port " + SERVER_PORT +
+                    " -np " + str(np) + " -cb --log-disable " +
+                    " -c 4096" +
+                    " --slot-save-path " + shq(SLOT_DIR) +
+                    " > " + shq(SERVER_LOG) + " 2>&1 < /dev/null " +
+                    " & echo $! > " + shq(SERVER_PIDF)
+        let launch = "( " + inner + " ) &"
+        exec("/bin/sh -c " + shq(launch))
+        exec("for i in 1 2 3 4 5; do [ -s " + shq(SERVER_PIDF) + " ] && break; sleep 1; done")
+        let pid = exec("cat " + shq(SERVER_PIDF) + " 2>/dev/null").trim()
+        if pid.len() == 0 {
+            continue   // no pid — retry
+        }
+        // poll /health for up to 30s
+        let probe = "for i in $(seq 1 60); do " +
+                    "  code=$(curl -s -o /dev/null -w '%{http_code}' " + SERVER_URL + "/health 2>/dev/null); " +
+                    "  if [ \"$code\" = \"200\" ]; then echo READY; exit 0; fi; " +
+                    "  if ! kill -0 " + pid + " 2>/dev/null; then echo DIED; exit 1; fi; " +
+                    "  sleep 0.5; " +
+                    "done; echo TIMEOUT; exit 1"
+        let r = exec(probe).trim()
+        if r.contains("READY") { return "ok" }
+        // health failed — kill + retry
+        kill_server()
+        exec("sleep 1")
+    }
+    if port_in_use() { return "fail:port_busy_after_retries" }
+    return "fail:health_timeout_after_retries"
+}
+
+// Stage payloads — Stage-2 manifest -> per-idx JSON bodies. Done once.
+fn stage_payloads() -> int {
+    exec("rm -rf " + shq(PAYLOAD_DIR) + "; mkdir -p " + shq(PAYLOAD_DIR))
+    let cmd = "awk -F'\\t' 'NR>1 {" +
+              "  idx=$1; prompt=$4; " +
+              "  gsub(/\\\\/, \"\\\\\\\\\", prompt); " +
+              "  gsub(/\"/,  \"\\\\\\\"\", prompt); " +
+              "  gsub(/\\n/, \"\\\\n\", prompt); " +
+              "  body=\"{\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"\" prompt \"\\\"}],\\\"max_tokens\\\":" + str(MAX_TOK) + ",\\\"temperature\\\":0}\"; " +
+              "  path=\"" + PAYLOAD_DIR + "/\" idx \".json\"; " +
+              "  print body > path; close(path); " +
+              "  cnt++; " +
+              "} END { print cnt }' " + shq(MANIFEST_PATH)
+    let out = exec(cmd).trim()
+    if out.len() == 0 { return 0 }
+    return int(out)
+}
+
+// idx-to-expected_kw lookup table (TSV: idx \t expected_kw)
+fn stage_keywords() -> str {
+    let kw_path = "/tmp/sandbox_stage4_slofg_kw.tsv"
+    exec("awk -F'\\t' 'NR>1 { print $1 \"\\t\" $5 }' " + shq(MANIFEST_PATH) +
+         " > " + shq(kw_path))
+    return kw_path
+}
+
+// Drive one cell. Shard rows:
+//   phase \t enqueue_ns \t complete_ns \t wall_ms \t http_code \t output_tok \t correct
+// Returns "n_total \t n_completed \t n_errors \t n_correct \t wall_capped(0/1)".
+fn drive_cell(np: int, target_rate_qps: int, manifest_n: int, kw_path: str) -> str {
+    let shard = SHARD_DIR + "/" + str(np) + "_" + str(target_rate_qps) + ".tsv"
+    exec("rm -f " + shq(shard) + "; mkdir -p " + shq(SHARD_DIR))
+    exec("printf 'phase\\tenqueue_ns\\tcomplete_ns\\twall_ms\\thttp_code\\toutput_tok\\tcorrect\\n' > " + shq(shard))
+
+    let body =
+        "_dispatch_one() { " +
+        "  local phase=\"$1\"; local idx=\"$2\"; " +
+        "  local payload=" + shq(PAYLOAD_DIR) + "/${idx}.json; " +
+        "  local t0=$(date +%s%N); " +
+        "  local resp=$(curl -s --max-time " + str(REQ_TIMEOUT_S) + " -X POST " + SERVER_URL + "/v1/chat/completions " +
+        "       -H 'Content-Type: application/json' --data-binary @${payload} " +
+        "       -w '\\n__HTTP_CODE__=%{http_code}'); " +
+        "  local t1=$(date +%s%N); " +
+        "  local wall_ms=$(( (t1 - t0) / 1000000 )); " +
+        "  local http_code=$(printf '%s' \"$resp\" | grep -o '__HTTP_CODE__=[0-9]*' | tail -1 | cut -d= -f2); " +
+        "  local payload_resp=$(printf '%s' \"$resp\" | sed 's/__HTTP_CODE__=.*$//'); " +
+        "  local ans=$(printf '%s' \"$payload_resp\" | jq -r '.choices[0].message.content // \"\"' 2>/dev/null | tr '\\n' ' '); " +
+        "  local otok=$(printf '%s' \"$payload_resp\" | jq -r '.usage.completion_tokens // 0' 2>/dev/null); " +
+        "  local kw=$(awk -F'\\t' -v i=\"$idx\" '$1==i {print $2; exit}' " + shq(kw_path) + "); " +
+        "  local low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+        "  local kwl=$(printf '%s' \"$kw\" | tr 'A-Z' 'a-z'); " +
+        "  local correct=0; " +
+        "  if [ -n \"$kwl\" ] && printf '%s' \"$low\" | grep -qF \"$kwl\"; then correct=1; fi; " +
+        "  printf '%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n' \"$phase\" \"$t0\" \"$t1\" \"$wall_ms\" \"$http_code\" \"$otok\" \"$correct\" >> " + shq(shard) + "; " +
+        "}; export -f _dispatch_one; "
+
+    // FIX-R2: measure budget = min(2000, rate * MEASURE_SEC). The generator
+    // stops emitting once warmup_n + measure_budget arrivals are produced —
+    // no unbounded overshoot.
+    let warmup_n = target_rate_qps * WARMUP_SEC
+    let mut measure_budget = target_rate_qps * MEASURE_SEC
+    if measure_budget > MEASURE_BUDGET { measure_budget = MEASURE_BUDGET }
+    let total_n = warmup_n + measure_budget
+
+    let mut concurrency = np * 4
+    if concurrency < 16 { concurrency = 16 }
+    if concurrency > 64 { concurrency = 64 }
+
+    let gen =
+        "tick_s=$(awk -v r=" + str(target_rate_qps) + " 'BEGIN{printf \"%.4f\", 1.0/r}'); " +
+        "i=0; while [ $i -lt " + str(total_n) + " ]; do " +
+        "  if [ $i -lt " + str(warmup_n) + " ]; then phase=warmup; else phase=measure; fi; " +
+        "  idx=$(( (i % " + str(manifest_n) + ") + 1 )); " +
+        "  printf '%s %s\\n' \"$phase\" \"$idx\"; " +
+        "  sleep $tick_s; " +
+        "  i=$((i+1)); " +
+        "done"
+
+    // FIX-R2: wrap the whole pipeline in a hard wall-clock cap. macOS ships
+    // `timeout`? not always — guard with command -v and fall back to gtimeout
+    // (coreutils via brew) else run uncapped but the generator self-bounds.
+    let pipeline = "(" + gen + ") | xargs -n 2 -P " + str(concurrency) +
+                   " bash -c '_dispatch_one \"$0\" \"$1\"'"
+    let cmd = body +
+              "TO=''; " +
+              "if command -v timeout >/dev/null 2>&1; then TO='timeout " + str(CELL_WALL_CAP_S) + "'; " +
+              "elif command -v gtimeout >/dev/null 2>&1; then TO='gtimeout " + str(CELL_WALL_CAP_S) + "'; fi; " +
+              "$TO bash -c " + shq(pipeline) + "; echo \"__WALL_RC__=$?\""
+
+    let drive_out = exec(cmd)
+    // timeout(1) exits 124 when the wall cap fires.
+    let mut wall_capped = 0
+    if drive_out.contains("__WALL_RC__=124") { wall_capped = 1 }
+
+    let roll =
+        "awk -F'\\t' 'NR>1 && $1==\"measure\" { " +
+        "  n++; " +
+        "  if ($5 ~ /^2/) { ok++; } else { err++; } " +
+        "  if ($7==\"1\") corr++; " +
+        "} END { printf \"%d\\t%d\\t%d\\t%d\", n, ok, err, corr }' " + shq(shard)
+    let totals = exec(roll).trim()
+    return totals + "\t" + str(wall_capped)
+}
+
+// Percentile from shard measure rows. q is 0..10000 (q=5000=p50, 9900=p99).
+fn percentile_ms(np: int, target_rate_qps: int, q_x10000: int) -> int {
+    let shard = SHARD_DIR + "/" + str(np) + "_" + str(target_rate_qps) + ".tsv"
+    let cmd = "awk -F'\\t' 'NR>1 && $1==\"measure\" && $5 ~ /^2/ {print $4}' " + shq(shard) +
+              " | sort -n | awk -v q=" + str(q_x10000) +
+              " 'BEGIN{n=0} {a[++n]=$1} END{ " +
+              "  if (n==0) {print -1; exit} " +
+              "  idx=int(n*q/10000); if (idx<1) idx=1; if (idx>n) idx=n; " +
+              "  print a[idx] " +
+              "}'"
+    let out = exec(cmd).trim()
+    if out.len() == 0 { return -1 }
+    return int(out)
+}
+
+fn two_dp(x_x100: int) -> str {
+    let frac = x_x100 % 100
+    let mut fs = str(frac)
+    if frac < 10 { fs = "0" + str(frac) }
+    return str(x_x100 / 100) + "." + fs
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage4_slo_full_grid  (M3.OPS — full SLO grid)")
+    println("  model:    " + MODEL_NAME)
+    println("  surface:  llama-server -np N -cb on " + SERVER_URL)
+    println("  manifest: " + MANIFEST_PATH + " (N=2000, stratified wc[5..200])")
+    println("  grid:     np ∈ {1,2,4} × rate_qps ∈ {1,2,5,10,20,40} = 18 cells")
+    println("  measure:  min(2000, rate*60) reqs/cell · warmup " + str(WARMUP_SEC) + "s excluded")
+    println("  hardened: FIX-R1 port-free+retry boot · FIX-R2 " + str(CELL_WALL_CAP_S) + "s wall cap")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/m3_ops_full_slo_grid.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("printf '%s\\n' " +
+         shq("np\ttarget_rate_qps\tn_total_arrivals\tn_completed\tn_errors\tn_correct\tp50_ms\tp95_ms\tp99_ms\tp999_ms\tthroughput_qps\terror_rate\taccuracy\tstate") +
+         " >> " + shq(tsv_path))
+
+    let manifest_n = stage_payloads()
+    println("  staged_payloads=" + str(manifest_n))
+    if manifest_n < 100 {
+        println("  ! manifest too small or missing — abort")
+        exit(2)
+    }
+    let kw_path = stage_keywords()
+    println("  staged_keywords=" + kw_path)
+
+    // FULL grid — 3 np × 6 rate
+    let grid = [
+        [1,  1], [1,  2], [1,  5], [1, 10], [1, 20], [1, 40],
+        [2,  1], [2,  2], [2,  5], [2, 10], [2, 20], [2, 40],
+        [4,  1], [4,  2], [4,  5], [4, 10], [4, 20], [4, 40],
+    ]
+
+    let mut cells_valid = 0
+    let mut cells_boot_fail = 0
+    let mut cells_wall_capped = 0
+    let mut gi = 0
+    while gi < len(grid) {
+        let cell = grid[gi]
+        let np = int(cell[0])
+        let rate = int(cell[1])
+        println("")
+        println("  --- cell np=" + str(np) + " rate=" + str(rate) + "qps  (" + str(gi+1) + "/18) ---")
+
+        let boot = boot_server(np)
+        if boot != "ok" {
+            println("  ! boot failed: " + boot + " — recording BOOT_FAIL")
+            let row = str(np) + "\t" + str(rate) + "\t0\t0\t0\t0\t-1\t-1\t-1\tNA\t0.00\t0.00\t0.00\tBOOT_FAIL"
+            exec("echo " + shq(row) + " >> " + shq(tsv_path))
+            kill_server()
+            cells_boot_fail = cells_boot_fail + 1
+            gi = gi + 1
+            continue
+        }
+
+        let totals = drive_cell(np, rate, manifest_n, kw_path)
+        let parts = totals.split("\t")
+        let mut n_total = 0
+        let mut n_done  = 0
+        let mut n_err   = 0
+        let mut n_corr  = 0
+        let mut wall_capped = 0
+        if parts.len() >= 5 {
+            n_total = int(parts[0])
+            n_done  = int(parts[1])
+            n_err   = int(parts[2])
+            n_corr  = int(parts[3])
+            wall_capped = int(parts[4])
+        }
+
+        let p50  = percentile_ms(np, rate, 5000)
+        let p95  = percentile_ms(np, rate, 9500)
+        let p99  = percentile_ms(np, rate, 9900)
+        let mut p999_str = "NA"
+        if n_done >= MIN_FOR_P999 {
+            let p999 = percentile_ms(np, rate, 9990)
+            p999_str = str(p999)
+        }
+
+        // throughput = n_done / MEASURE_SEC (measure window seconds)
+        let throughput_x100 = (n_done * 100) / MEASURE_SEC
+        let throughput_str = two_dp(throughput_x100)
+
+        let mut error_rate_x100 = 0
+        if n_total > 0 { error_rate_x100 = (n_err * 10000) / n_total }
+        let error_rate_str = two_dp(error_rate_x100)
+
+        let mut acc_x100 = 0
+        if n_done > 0 { acc_x100 = (n_corr * 10000) / n_done }
+        let acc_str = two_dp(acc_x100)
+
+        let mut state = "VALID"
+        if wall_capped == 1 {
+            state = "WALL_CAPPED"
+            cells_wall_capped = cells_wall_capped + 1
+        } else if n_done > 0 {
+            cells_valid = cells_valid + 1
+        } else {
+            state = "EMPTY"
+        }
+
+        println("  n_total=" + str(n_total) + " n_done=" + str(n_done) +
+                " n_err=" + str(n_err) + " n_correct=" + str(n_corr) + " state=" + state)
+        println("  p50=" + str(p50) + "ms p95=" + str(p95) + "ms p99=" + str(p99) + "ms p999=" + p999_str + "ms")
+        println("  throughput=" + throughput_str + " qps  error_rate=" + error_rate_str + "%  accuracy=" + acc_str + "%")
+
+        let row = str(np) + "\t" + str(rate) + "\t" + str(n_total) + "\t" + str(n_done) +
+                  "\t" + str(n_err) + "\t" + str(n_corr) +
+                  "\t" + str(p50) + "\t" + str(p95) + "\t" + str(p99) + "\t" + p999_str +
+                  "\t" + throughput_str + "\t" + error_rate_str + "\t" + acc_str + "\t" + state
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+
+        kill_server()
+        // FIX-R1: hand the port back to the OS before the next boot.
+        wait_port_free()
+        gi = gi + 1
+    }
+
+    let cells_total = len(grid)
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — M3.OPS full SLO grid")
+    println("  cells_valid=" + str(cells_valid) + " boot_fail=" + str(cells_boot_fail) +
+            " wall_capped=" + str(cells_wall_capped) + " / " + str(cells_total))
+    println("========================================================================")
+
+    let sp = OUT_DIR + "/m3_ops_full_slo_grid_summary.txt"
+    exec("rm -f " + shq(sp))
+    exec("echo " + shq("# status=executed") + " >> " + shq(sp))
+    exec("echo " + shq("# milestone=M3.OPS (full SLO grid -np × offered-rate at Stage-2 N=2000)") + " >> " + shq(sp))
+    exec("echo " + shq("# bench_script=bench/sandbox_stage4_slo_full_grid.hexa") + " >> " + shq(sp))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(sp))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal, 24GB UMA)") + " >> " + shq(sp))
+    exec("echo " + shq("# llama_server_port=" + SERVER_PORT) + " >> " + shq(sp))
+    exec("echo " + shq("# manifest=" + MANIFEST_PATH + " (N=" + str(manifest_n) + ")") + " >> " + shq(sp))
+    exec("echo " + shq("# np_grid={1,2,4}") + " >> " + shq(sp))
+    exec("echo " + shq("# rate_grid_qps={1,2,5,10,20,40}") + " >> " + shq(sp))
+    exec("echo " + shq("# cells_total=" + str(cells_total)) + " >> " + shq(sp))
+    exec("echo " + shq("# cells_valid=" + str(cells_valid)) + " >> " + shq(sp))
+    exec("echo " + shq("# cells_boot_fail=" + str(cells_boot_fail)) + " >> " + shq(sp))
+    exec("echo " + shq("# cells_wall_capped=" + str(cells_wall_capped)) + " >> " + shq(sp))
+    exec("echo " + shq("# warmup_sec=" + str(WARMUP_SEC) + " (EXCLUDED from percentile rollup)") + " >> " + shq(sp))
+    exec("echo " + shq("# measure_sec=" + str(MEASURE_SEC) + "  measure_budget=" + str(MEASURE_BUDGET) + " (min applied)") + " >> " + shq(sp))
+    exec("echo " + shq("# p999_min_n=" + str(MIN_FOR_P999)) + " >> " + shq(sp))
+    exec("echo " + shq("# req_timeout_s=" + str(REQ_TIMEOUT_S) + "  cell_wall_cap_s=" + str(CELL_WALL_CAP_S)) + " >> " + shq(sp))
+    exec("echo " + shq("# boot_retries=" + str(BOOT_RETRIES) + "  port_free_wait_s=" + str(PORT_FREE_WAIT_S) + "  teardown_grace_s=" + str(TEARDOWN_GRACE_S)) + " >> " + shq(sp))
+    exec("echo " + shq("# np_8_skipped=cycle-6 d_continuous_batching_server found np=8 is 27.9% slower than np=4 (16GB UMA mem-bw saturation)") + " >> " + shq(sp))
+    exec("echo " + shq("# ── per-cell rows in m3_ops_full_slo_grid.tsv ──") + " >> " + shq(sp))
+    exec("cat " + shq(tsv_path) + " | sed 's/^/# /' >> " + shq(sp))
+
+    kill_server()
+    exec("rm -rf " + shq(PAYLOAD_DIR) + " " + shq(SHARD_DIR) + " " + shq(SLOT_DIR))
+    exec("rm -f " + kw_path)
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + sp)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE4_SLO_FULL_GRID__ PASS")
+    exit(0)
+}

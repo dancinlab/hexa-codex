@@ -162,6 +162,18 @@ serving-cost telemetry.
 | R6 | self-judge trap (g5 violation) | byte-exact_subset only, never LLM-judge |
 | R7 | RunPod fragility | mac mini local for Stage 0-3 ([[project_runpod_platform_incident]]) |
 
+## HF datasets — registered eval/bench sets (cx_hf_eval_register)
+
+SANDBOX 측정 입력셋은 `dancinlab/*` HF 데이터셋으로 등록 (cycle-16, ubu1 push).
+모든 row 는 `.verdicts/sandbox/*` recompute verdict 로 linked, card 는 English-only.
+
+| visibility | dataset | files (rows) | links verdict |
+|:---|:---|:---|:---|
+| 🌐 public | [`hexa-codex-sandbox-evals-v1`](https://huggingface.co/datasets/dancinlab/hexa-codex-sandbox-evals-v1) | slo_load_manifest(2000) · slo_grid_cells(27) · persona_ladder_cases(450) · persona_tiers(3) | `stage4_slo_under_load` · `m3_ops_full_slo_grid` · `stage2_persona_scaled*` |
+| 🔒 private | [`hexa-codex-sandbox-adversarial-evals-v1`](https://huggingface.co/datasets/dancinlab/hexa-codex-sandbox-adversarial-evals-v1) | refusal_matrix(40) · refusal_bimodal_tighter(40) · refusal_markers(24) | `stage4_refusal_matrix` · `m2_safety_bimodality_tighter` |
+
+> 적대적셋 PRIVATE 격리 = `cx_hf_safety_private` (re-checked `private=True`).
+
 ## Cross-refs
 
 - **Sibling verb-group domains (all consumers of this substrate):**

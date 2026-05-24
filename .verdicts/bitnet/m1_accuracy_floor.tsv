@@ -1,0 +1,21 @@
+idx	prompt_wc	output_tok_est	wall_ms	correct	rss_bytes	output_snippet
+1	39	67	19759	1	1639415808	2+2 is 4. The digit only is 4. The digit only is 4. The digit only is 4. The digit only is 4. The digit only is 4. The d
+2	28	5	6257	0	1645166592	1 word: "Capital of France"
+3	64	4	2622	0	1640087552	Reverse the string 'hello'.
+4	40	75	21310	0	1639104512	7 is not square of 7. The number is not square of 7. The number is not square of 7. The number is not square of 7. The n
+5	63	64	55027	1	1643610112	11. The number is 11. The number is 11. The number is 11. The number is 11. The number is 11. The number is 11. The numb
+6	50	5	3722	0	1644199936	1. The smallest prime number?
+7	48	5	2649	0	1641267200	1. The number of continents?
+8	75	9	2622	0	1640087552	0°C is boiling point of water at sea level?
+9	55	9	2628	0	1639514112	1 The ASCII decimal code for 'A' is 1.
+10	50	1	2156	0	1639481344	2024
+11	73	20	4653	0	1640628224	Sure! Here is a Python one-liner that sums integers 1..100: Sure! Here is a Python one-liner that sums integers 1..100.
+12	56	77	11204	0	1639366656	1. The time complexity of binary search is O(n), where n is the number of elements in the dataset.The time complexity of
+13	77	39	11216	0	1641512960	1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1
+14	51	6	3140	0	1639841792	1,2,3 The sorted result is: 1,2,3.
+15	60	53	10176	1	1640890368	TCP is connection-oriented, whereas UDP is connection-oriented. It is connection-oriented.So, TCP is connection-oriented
+16	34	82	11751	0	1638842368	1. The BFS approach involves exploring the shortest paths to reach the target, while DFS explores the longest paths to r
+17	62	63	13229	1	1639432192	Sure! Here's a Python code for Fibonacci with memoization (use functools.cache). Sure! Here's a Python code for Fibonacc
+18	50	65	12222	0	1641644032	1101 is converted to decimal, show one-line sum.The converted binary 1101 is converted to decimal is 11, show one-line s
+19	56	81	13229	1	1640529920	The merge sort algorithm is mergesort O(n log n) because it divides the list into smaller lists, each list is sorted O(n
+20	45	60	12200	1	1640054784	Halting problem — what is it? One sentence.One sentence.One sentence.One sentence.One sentence.One sentence. One sente

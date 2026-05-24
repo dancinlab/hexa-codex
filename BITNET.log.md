@@ -2,6 +2,16 @@
 
 Append-only history sister of `BITNET.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-25 — M1 측정 confound 해소 (the /gap ROOT-A): 30%는 진짜 ternary floor, 스코어러 아티팩트 아님
+
+- [x] **INSTRUCT-FAIR 스코어러 family 작성** (`bench/bitnet_m1_scorer_ablation.hexa`, deterministic, LLM-judge 금지 g5/R6). 기존 `byte_exact_subset` 옆에 (a) **whitespace-lenient**(대소문자 fold + 양쪽 공백 전부 제거 후 substring), (b) **answer-extraction**("Answer:" 뒤 / 첫 문장 / 첫 줄 span을 먼저 뽑고 그 span에서만 gold 매칭). 케이스 fold는 기존 스코어러와 byte-identical하게 shell `tr 'A-Z' 'a-z'` + `grep -qF` 사용.
+- [x] **저장된 completion 재채점**(re-serve 안 함 — `m1_accuracy_floor.tsv` col 7). **byte_exact 6/20=30.0%(원본 정확 재현) · lenient 7/20=35.0%(Δ+1) · extraction 6/20=30.0%(Δ+0).** lenient가 회복한 단 1건 = idx14(`1,2,3` vs gold `1, 2, 3`, 순수 공백 아티팩트). 나머지 실패는 전부 **사실이 틀린** 답("not square of 7", "ASCII is 1", "1101 = 11") — verbose-but-correct 가설 기각.
+- [x] **template/prompting ablation**(Task 3, 실패 5개 task만 재serve, $0 local). 2-shot 프리픽스는 `--jinja` 챗 템플릿이 few-shot 블록을 한 user turn으로 감싸 모델이 예시만 반복 → 0/5 회복(오히려 해로움). strict "answer only" 지시는 1/5만 회복(원래 verbosity-only miss인 gold=2). 나머지 4개는 prompting으로 안 고쳐지는 진짜 사실 오류. → **prompting은 floor를 의미있게 못 움직임.**
+- [x] **정직한 relabel (ROOT-B honesty 합침).** served/measured 값은 **TQ2_0 2.06bpw** — 광고된 i2_s **1.58-bit 아님**(stock llama.cpp에서 로드 불가). BITNET.md M1/M2 + M2 summary + discovery tape에서 "1.58-bit를 측정했다"고 읽히는 문구를 전부 "TQ2_0 2.06bpw"로 정정. (메모리 결론은 보수적: 진짜 1.58-bit RSS는 ≤ TQ2_0이므로 memory-holds는 유지.)
+- [x] **verdict 영향:** 30%는 **진짜 TQ2_0 2.06bpw floor** — 스코어러 아티팩트 성분은 +5pp(14개 실패 중 1개)뿐. **M1/M2 "quality FAIL" verdict 유지** (M2 silent flip 안 함, surface만 함). `.verdicts/bitnet/m1_scorer_ablation.txt`(per-scorer raw + hexa verify --fence verbatim + ablation 블록).
+- [x] **cross-domain FLAG (g58, 실행 안 함):** 같은 `byte_exact_subset`가 SANDBOX 21개 파일(canonical 16/20 stage-0 floor 포함) 채점에 쓰임 → SANDBOX-active cycle용 discovery seed로만 등록(`.discoveries/sandbox-byte-exact-blast-radius.tape`, hexa tape 검증 통과). 여기서 SANDBOX verdict는 안 건드림.
+- [x] discovery: `.discoveries/bitnet-m1-ternary-floor.tape`에 `d_bitnet_m1_scorer_artifact_ruled_out` 추가 + floor-negative/M3-seed claim relabel(7 entries, 0 malformed). M3 seed의 스코어러 절반은 RESOLVED, Q4/Q8/fp16 Pareto knee만 남음.
+
 ## 2026-05-25 — M1 Surface + M2 Memory 닫음 (BitNet 2B4T 1.58-bit, $0 local, 정직한 음성 결과)
 
 - [x] **M1 엔진 언블록 (load-bearing).** 공식 `microsoft/bitnet-b1.58-2B-4T-gguf`의 i2_s GGUF는 stock brew llama.cpp 9150에서 **로드 불가** — ggml type-id 36이 이 빌드의 `TYPE_IQ4_NL_4_4 REMOVED`와 충돌(i2_s는 bitnet.cpp 전용, 미설치). bitnet.cpp 빌드 대신 llama.cpp 네이티브 삼진(ternary) 경로 **TQ2_0**(2.06 bpw)를 택함: bf16 safetensors(`microsoft/bitnet-b1.58-2B-4T-bf16`, 4.83 GB) 다운로드 → brew `convert_hf_to_gguf.py`로 변환. 2B4T 변종 때문에 로컬 one-off 패치 3개 필요(커밋 안 함): (1) config arch `BitNetForCausalLM`→`BitnetForCausalLM`(컨버터 레지스트리 키가 소문자 n, 대소문자 구분), (2) tensor_mapping에 `self_attn.attn_sub_norm`·`mlp.ffn_sub_norm` source 이름 추가(2B4T의 subln 레이어 — 구형 bitnet_b1_58 컨버터엔 없음), (3) `BitnetModel.set_vocab` BPE fallback(2B4T는 SentencePiece가 아니라 GPT-2/BPE `tokenizer.json` 사용). 결과 GGUF(332 tensors, 210 tq2_0, file-type 37) 로드+실행 확인.

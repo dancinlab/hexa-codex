@@ -30,7 +30,9 @@
 #
 # FINDING (M1, honest negative): BitNet-b1.58-2B-4T-TQ2_0 scored 6/20 = 30.0% on
 # the SAME 20-task canonical manifest where Qwen2.5-0.5B-Q4 scored 16/20 = 80%
-# (clean SANDBOX stage-0 floor). The 1.58-bit 2B model is FAR BELOW the usable
+# (clean SANDBOX stage-0 floor). HONEST RELABEL: the served value is TQ2_0 (2.06
+# bpw), NOT the marketed i2_s 1.58-bit (which does not load in stock llama.cpp).
+# The served TQ2_0 2B model is FAR BELOW the usable
 # floor (>=15/20) AND below the 4-bit 0.5B baseline. Dominant failure mode: the
 # instruct model IGNORES "reply with X only" and emits verbose/repetitive prose
 # (e.g. "The digit only is 4. The digit only is 4. ..."), so the byte_exact_subset
@@ -50,17 +52,22 @@
   hyp     = "stock brew llama.cpp can run BitNet b1.58 2B4T ternary kernels at $0 local without bitnet.cpp"
   verdict = "TRUE for TQ2_0 on CPU — official i2_s GGUF FAILS to load (type-36 collision, bitnet.cpp-only) and TQ2_0 has NO Metal kernel (asserts type 35), but the CPU TQ2_0 path loads+runs (332 tensors, 210 tq2_0, ~7.7 tok/s). Engine working = M1 surface met. .verdicts/bitnet/m1_accuracy_floor_summary.txt"
 
-@C d_bitnet_m1_floor_negative := "BitNet 1.58-bit 2B4T scores 6/20=30% — BELOW usable floor AND below the 4-bit 0.5B baseline (16/20) on the same manifest" :: landed [verified_tier=GREEN status=measured-in-repo]
+@C d_bitnet_m1_floor_negative := "BitNet 2B4T TQ2_0 (2.06bpw) scores 6/20=30% — BELOW usable floor AND below the 4-bit 0.5B baseline (16/20) on the same manifest" :: landed [verified_tier=GREEN status=measured-in-repo]
   cmd     = "bench/bitnet_m1_accuracy_floor.hexa (20-task manifest VERBATIM from sandbox_stage0_baseline.hexa, byte_exact_subset scorer identical)"
-  hyp     = "a 1.58-bit 2B model reaches the SANDBOX usable accuracy floor (>=15/20) — near-full quality at ternary precision"
-  verdict = "FALSIFIED — 6/20=30.0% << 15/20 floor, and < Qwen-0.5B-Q4 16/20=80%. Failure mode = verbosity (ignores 'reply with X only') + ternary quality loss; the byte_exact_subset scorer (deliberately unchanged for comparability) penalizes rambling answers. .verdicts/bitnet/m1_accuracy_floor.tsv"
+  hyp     = "a 1.58-bit-class 2B model (here served as TQ2_0 2.06bpw — i2_s does not load) reaches the SANDBOX usable accuracy floor (>=15/20) at ternary precision"
+  verdict = "FALSIFIED — 6/20=30.0% << 15/20 floor, and < Qwen-0.5B-Q4 16/20=80%. HONEST RELABEL: measured at TQ2_0 2.06bpw, not the marketed i2_s 1.58-bit. Failure mode = ternary quality loss (model emits factually WRONG answers, not verbose-but-correct). .verdicts/bitnet/m1_accuracy_floor.tsv"
+
+@C d_bitnet_m1_scorer_artifact_ruled_out := "the /gap ROOT-A confound RESOLVED — re-scoring saved completions under 2 INSTRUCT-FAIR scorers moves 30% only to 35%/30%, so 30% is a TRUE TQ2_0 floor, NOT a scorer artifact" :: landed [verified_tier=GREEN status=measured-in-repo]
+  cmd     = "bench/bitnet_m1_scorer_ablation.hexa — re-score the SAVED m1_accuracy_floor.tsv (col 7, NO re-serve) under byte_exact_subset | lenient_normalized (strip whitespace) | answer_extraction (first span); deterministic, no LLM-judge (g5/R6)"
+  hyp     = "BitNet's 30% on byte_exact_subset is mostly a scorer artifact (verbose-but-correct answers the literal substring misses) — a fair scorer lifts it materially"
+  verdict = "FALSIFIED (the artifact hypothesis) — byte_exact 6/20=30% reproduced exactly; lenient 7/20=35% (delta +1 = idx14 '1,2,3' vs gold '1, 2, 3' whitespace only); extraction 6/20=30% (delta +0). The verbose failures are factually WRONG ('not square of 7', 'ASCII is 1', '1101=11'), not buried-correct. Artifact component = 1/14 failures = +5pp; the rest is genuine ternary weakness. M1/M2 'quality FAIL' verdict STANDS. .verdicts/bitnet/m1_scorer_ablation.txt"
 
 @C d_bitnet_m2_memory_holds_quality_fails := "M2: memory fraction HOLDS (0.55x same-backend) but quality FAILS — joint '1.58-bit ~= full quality at a fraction of memory' FALSIFIED" :: landed [verified_tier=GREEN status=measured-in-repo]
   cmd     = "/usr/bin/time -l RSS capture during the M1 serving session; BitNet 1568 MB vs Qwen2.5-1.5B-Q4 2878 MB (CPU) / 1944 MB (Metal)"
   hyp     = "1.58-bit serving uses a fraction of the Q4 baseline memory AND preserves near-full quality"
   verdict = "FALSIFIED (joint) — memory IS a real fraction (0.55x same-backend, 0.81x cross-backend) but accuracy gap is LARGE (30% vs 80%), so the 'near-full quality' conjunct fails. .verdicts/bitnet/m2_memory_profile_summary.txt"
 
-@C d_bitnet_m3_template_confound_pareto := "next-cycle seed — is 30% a TERNARY floor or a SCORER/TEMPLATE artifact? + the M3 accuracy-per-bit Pareto ladder" :: seed [verified_tier_target=GREEN status=open]
-  cmd     = "M3 Pareto: re-run the 20-task manifest at Q4/Q8/fp16 of the SAME 2B4T (bf16 already on disk) to isolate the bit<->quality knee; AND probe whether a generous scorer (LLM-graded or relaxed extraction) or a strict 'answer only' system-prompt lifts BitNet's 30% — to separate genuine ternary quality loss from byte_exact_subset penalizing verbose-but-correct answers"
-  hyp     = "BitNet's 30% on byte_exact_subset understates its capability; a Q4/Q8/fp16 ladder of the same model + a verbosity-tolerant scorer will locate the true bit<->quality knee and the scorer-artifact component"
-  verdict = "PENDING — M3.BITNET. The bf16 model (~4.83 GB) is already local, so the Q8/Q4/fp16 rungs are $0-local converts; the scorer-confound probe is the cheapest single next measurement (the M1 TSV shows several answers contain the right fact but not the exact keyword)."
+@C d_bitnet_m3_template_confound_pareto := "next-cycle seed — SCORER half RESOLVED (30% is real, not artifact); only the M3 accuracy-per-bit Pareto ladder remains" :: seed [verified_tier_target=GREEN status=open]
+  cmd     = "M3 Pareto: re-run the 20-task manifest at Q4/Q8/fp16 of the SAME 2B4T (bf16 already on disk) to isolate the bit<->quality knee. (The scorer-confound probe is DONE — see d_bitnet_m1_scorer_artifact_ruled_out: fair re-scoring moved 30% only to 35%.)"
+  hyp     = "a Q4/Q8/fp16 ladder of the same 2B4T will locate the true bit<->quality knee; the 30% TQ2_0 floor is now known to be genuine (not a scorer artifact)"
+  verdict = "PARTIALLY RESOLVED — scorer-confound CLOSED (artifact = +5pp only). The bf16 model (~4.83 GB) is already local, so the Q8/Q4/fp16 rungs are $0-local converts; what remains is the bit<->quality knee, NOT the scorer question."

@@ -1,0 +1,68 @@
+# bench/bitnet_m1_scorer_ablation.hexa — 3-scorer re-score of saved M1 completions
+# input=.verdicts/bitnet/m1_accuracy_floor.tsv (col 7 = saved answer; NO re-serve)
+# model=BitNet-b1.58-2B-4T-TQ2_0 (TQ2_0 2.06bpw — NOT the claimed i2_s 1.58-bit; served value is the 2.06bpw ternarization)
+# scorers: byte_exact_subset | lenient_normalized (strip ws) | answer_extraction (first span)
+#
+idx	gold	byte_exact	lenient	extract	answer_snippet
+1	4	1	1	1	2+2 is 4. The digit only is 4. The digit only is 4. The digi
+2	paris	0	0	0	1 word: "Capital of France"
+3	olleh	0	0	0	Reverse the string 'hello'.
+4	49	0	0	0	7 is not square of 7. The number is not square of 7. The num
+5	11	1	1	1	11. The number is 11. The number is 11. The number is 11. Th
+6	2	0	0	0	1. The smallest prime number?
+7	7	0	0	0	1. The number of continents?
+8	100	0	0	0	0°C is boiling point of water at sea level?
+9	65	0	0	0	1 The ASCII decimal code for 'A' is 1.
+10	29	0	0	0	2024
+11	sum(range	0	0	0	Sure! Here is a Python one-liner that sums integers 1..100: 
+12	log n	0	0	0	1. The time complexity of binary search is O(n), where n is 
+13	[::-1]	0	0	0	1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 
+14	1, 2, 3	0	1	0	1,2,3 The sorted result is: 1,2,3.
+15	tcp	1	1	1	TCP is connection-oriented, whereas UDP is connection-orient
+16	breadth	0	0	0	1. The BFS approach involves exploring the shortest paths to
+17	fib	1	1	1	Sure! Here's a Python code for Fibonacci with memoization (u
+18	13	0	0	0	1101 is converted to decimal, show one-line sum.The converte
+19	merge	1	1	1	The merge sort algorithm is mergesort O(n log n) because it 
+20	halt	1	1	1	Halting problem — what is it? One sentence.One sentence.On
+#
+# === AGGREGATE ===
+# byte_exact_subset  = 6/20 = 30.0%
+# lenient_normalized = 7/20 = 35.0%  (delta vs byte_exact = +1 tasks)
+# answer_extraction  = 6/20 = 30.0%  (delta vs byte_exact = +0 tasks)
+#
+# VERDICT: the artifact component is (max_fair - byte_exact); the residual below 100%
+#          is genuine ternary weakness at TQ2_0 2.06bpw on this 20-task manifest.
+#
+# === hexa verify (verbatim) — re-score is a T4 EMPIRICAL recompute, no --expr path ===
+# This ablation IS the deterministic recompute surface (re-run bench/bitnet_m1_scorer_ablation.hexa
+# against the saved m1_accuracy_floor.tsv). Per `hexa verify rubric` there is NO closed-form
+# --expr fn that recomputes a served-accuracy number, so the verifier does not auto-judge it.
+# The fence route confirms the claim is not an atlas identity (verification N/A by design):
+# verify --fence
+#   claim  = BitNet-b1.58-2B-4T-TQ2_0 scores 7/20 under a whitespace-lenient scorer and 6/20 under answer-extraction — the 30% byte_exact floor is NOT a scorer artifact
+#   tier   = ⚪ SPECULATION-FENCED
+#   reason = imagination/metaphor class (hexa-bio AXIS) — verification
+#            N/A by design; NOT a proven atlas atom (g4 honest fence,
+#            SF ≠ verified — atlas certification intrinsically N/A)
+#
+# === TEMPLATE / PROMPTING ABLATION (re-served, 5 failed tasks, BitNet-TQ2_0 -ngl 0 --jinja --temp 0) ===
+# Task 3: does PROMPTING move BitNet off 30%? Re-served 5 tasks that failed all 3
+# scorers, under two prompt variants. (Bounded micro-probe; not the full 20-task manifest.)
+#
+# (a) 2-shot exemplar prefix ("Q:/A:" answer-only demos, then the real Q):
+#     The --jinja chat template wraps the whole few-shot block as ONE user turn; the
+#     model REGURGITATES the exemplars ("8 ... Tokyo ... Q: <real question>") and never
+#     emits the real answer. 2-shot HURTS under this serving path — 0/5 recovered.
+#
+# (b) strict "Answer with ONLY the final value, no explanation, no repetition." prefix:
+#     gold=2  (smallest prime)  -> "2"                         HIT  (was a verbosity-only miss)
+#     gold=49 (square of 7)     -> "The final value is 7"      miss (factually WRONG)
+#     gold=7  (continents)      -> "1. The number of continents?"  miss (WRONG)
+#     gold=65 (ASCII 'A')       -> "0.000000000000..."         miss (WRONG)
+#     gold=100 (boiling point)  -> "0C at sea level?"           miss (WRONG)
+#     => strict directive recovers 1/5 (the genuine verbosity miss); the other 4 are
+#        genuine factual errors no prompting fixes.
+#
+# CONCLUSION (Task 3): prompting does NOT materially move the floor — it recovers only
+# the same kind of verbosity-only miss the lenient scorer already caught. The residual
+# is genuine TQ2_0 2.06bpw ternary weakness. Consistent with the scorer ablation above.

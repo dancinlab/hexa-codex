@@ -1,0 +1,363 @@
+% SHIPPABLE — all 4 canonical sections (§Formula, §Method, §Benchmark, §Benefit)
+% are linked to a 🟢 SUPPORTED-NUMERICAL verdict per project.tape cx_paper_gate.
+% Scaffolded cycle-17 (2026-05-25) on the M2/M3.SAFETY route(b) mechanistic
+% refusal-direction finding (M4.SAFETY). §Formula closes via a deterministic
+% recompute, verify/numerics_safety_refusal_direction.hexa (verdict
+% .verdicts/sandbox/m4_safety_refusal_direction_recompute.txt, 5/5 checks),
+% which reads the committed NUMBERS-ONLY 40x84 activation-norm matrix
+% (.verdicts/sandbox/m2_safety_refusal_norms.tsv — adversarial prompt TEXT
+% redacted per cx_hf_safety_private) and reproduces AUROC=0.98 / LOO=0.825 /
+% permutation p=0.005 bit-for-bit. The §Benefit contrast is the route(a) negative
+% (.verdicts/sandbox/m2_safety_bimodality_tighter.txt) — the first-token logprob
+% margin does NOT separate refused from answered, where the activation-norm
+% direction does. g51 publish-lint (≥10 pages + fal.ai figure) is a separate
+% M5.SAFETY-release residual the 4-section draft does not yet meet.
+
+\documentclass[11pt,a4paper]{article}
+
+% ---------- arxiv-style preamble ----------
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\title{
+  \textbf{A Mechanistic Refusal Direction in a Small Instruct Model}\\[4pt]
+  \large The refusal decision is linearly legible in last-prompt-token
+  activation \emph{norms} (AUROC \(0.98\), leave-one-out \(0.825\),
+  permutation \(p{=}0.005\)) where the first-token logit margin is not
+}
+
+\author{hexa-codex maintainers \\ \texttt{github.com/dancinlab/hexa-codex}}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% =========================================================================
+\begin{abstract}
+Per the hexa-codex \texttt{cx\_paper\_gate} workflow rule, a paper ships only
+when every section claim reaches a 100\% formal-blue or numerical-green verdict.
+We report the SAFETY-domain finding measured on a self-hosted full-precision
+\texttt{Qwen2.5-1.5B-Instruct} \citep{qwen25} (NVIDIA RTX 5070, HuggingFace
+\texttt{transformers} forward-pass hooks \citep{huggingface_transformers}): on a
+variance-controlled matched-pair adversarial-vs-benign set (\(20\) adversarial
+\(+\) \(20\) benign-matched prompts, \(20\) refused \(/\) \(20\) answered by a
+fixed marker scan), the per-layer residual/attention/MLP activation-\emph{norm}
+vector at the last prompt token (\(84\) features \(=\) \(28\) layers \(\times\)
+\(3\) sublayer kinds) \emph{linearly separates} refused from answered. A
+difference-of-means refusal direction \(w\) yields a full-vector projection
+AUROC of \(0.98\); a leave-one-out (held-out) linear classifier reaches
+\(0.825\) (\(33/40\)) against a majority baseline of \(0.50\); and a
+\(200\)-shuffle permutation test gives \(p{=}0.005\) (\(0/200\) label shuffles
+reach the observed accuracy). The same surface read through the first-token
+\emph{logit} margin is a confirmed \emph{negative} (the refused-vs-answered gap
+sits \(5.9\times\) below the bimodality bar): the refusal decision is
+mechanistically legible in activation norms but \emph{not} in the next-token
+logprob margin. The direction tracks the refusal \emph{decision}, not the
+adversarial-vs-benign topic --- the single adversarial-but-\emph{answered}
+prompt projects to the answered side. \textbf{Scope (not claimed):} \(n{=}40\)
+is small and the in-sample \(84\)-dim AUROC can overfit; the load-bearing
+numbers are therefore the held-out leave-one-out accuracy and the permutation
+\(p\), both reproduced by an independent recompute. We do \emph{not} claim a
+single-direction ablation, a full sparse-autoencoder feature decomposition, or
+transfer to other models (those are deferred). The \S Formula recompute
+(\texttt{verify/numerics\_safety\_refusal\_direction.hexa}) passes \(5/5\)
+checks against the committed numbers-only matrix; verdict
+\texttt{.verdicts/sandbox/m4\_safety\_refusal\_direction\_recompute.txt}.
+\end{abstract}
+
+% =========================================================================
+\section{Formula}
+\label{sec:formula}
+\textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} --- the classifier is a
+\emph{difference-of-means linear direction} in a standardized activation-norm
+feature space, the norm-space analogue of the linear refusal direction reported
+for activation \emph{vectors} \citep{arditi2024refusal} and of representation
+reading more broadly \citep{zou2023representation}. Let \(a_i \in
+\mathbb{R}^{84}\) be the last-prompt-token activation-norm vector for prompt
+\(i\) (feature \(j\) is the \(L_2\) norm of one (layer, kind)
+hidden state, kind \(\in\{\text{residual},\text{attn},\text{mlp}\}\)), and let
+\(y_i\in\{0,1\}\) be its refusal label (\(1\) = refused). Each feature is
+\(z\)-scored over the \(n{=}40\) rows,
+\begin{align}
+  z_{ij} &= \frac{a_{ij}-\mu_j}{\sigma_j}, \qquad
+  \mu_j=\tfrac{1}{n}\textstyle\sum_i a_{ij}, \quad
+  \sigma_j=\sqrt{\tfrac{1}{n}\textstyle\sum_i (a_{ij}-\mu_j)^2}\;,
+\end{align}
+(population \(\sigma\), with the degenerate \(\sigma_j{=}0\) replaced by \(1\)).
+The refusal direction and per-row projection score are
+\begin{align}
+  w_j &= \operatorname*{mean}_{i:\,y_i=1} z_{ij} \;-\;
+         \operatorname*{mean}_{i:\,y_i=0} z_{ij}, \qquad
+  s_i = \sum_{j=1}^{84} z_{ij}\,w_j,
+\end{align}
+and the refuse-vs-answer rule is \(\hat{y}(a) = \mathbb{1}\!\left[w\cdot z(a) >
+\theta\right]\), with \(\theta\) the midpoint of the two class-projection means.
+Three threshold-free / held-out statistics certify the direction
+\citep{fawcett2006roc,good2000permutation}: (A) the full-vector projection AUROC
+(rank statistic, refused \(=\) positive); (B) the leave-one-out held-out linear
+accuracy (refit \(w\) on the other \(n{-}1\) rows, threshold at the train
+class-mean midpoint, predict the held-out row); (C) a \(200\)-shuffle
+permutation \(p\) on the leave-one-out accuracy.
+
+\paragraph{Recompute.} The verifier
+\texttt{verify/numerics\_safety\_refusal\_direction.hexa} reads the committed
+numbers-only matrix \texttt{.verdicts/sandbox/m2\_safety\_refusal\_norms.tsv}
+(no model spawn, no GPU, no API) and recomputes \(w\), the projections, and all
+three statistics, checking five conditions (all pass): (1) matrix shape
+\(40\times84\), balanced \(20/20\); (2) projection AUROC reproduces \(0.98\)
+(drift \(0.0\)); (3) leave-one-out accuracy reproduces \(0.825\) (\(33/40\),
+drift \(0.0\)) and exceeds the majority \(0.50\); (4) permutation \(p\le0.05\)
+(\(0/200\) shuffles reach the observed accuracy, \(p{=}0.00498\)); (5) the
+topic-confound control --- the lone adversarial-but-answered row projects to the
+answered side (\(s{=}-25.81\), matching the original probe's \(-25.81\)).
+Verdict \texttt{.verdicts/sandbox/m4\_safety\_refusal\_direction\_recompute.txt}
+(\(5/5\)).
+
+\paragraph{Permutation-test honesty (explicitly disclosed).} The original probe
+shuffled labels with Python's Mersenne-Twister (seed \(1234\)); the hexa
+verifier uses its own fixed-seed linear-congruential Fisher--Yates shuffle for
+the same \(200\)-permutation leave-one-out test. The test \emph{design} is
+identical, the pseudo-random stream differs. The observed accuracy
+(\(0.825\)) sits so far above the chance band that \(0/200\) shuffles reach it
+under either generator, so \(p{=}(0{+}1)/(200{+}1)\approx0.005\). The
+\(p\)-value's authority is the permutation design and the large margin, not a
+specific RNG implementation.
+
+% =========================================================================
+\section{Method}
+\label{sec:method}
+\textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} --- activations are
+captured by the hook logic of \texttt{lm\_foundry/tool/activation\_capture\_hf.hexa}
+(the HuggingFace \texttt{transformers} \texttt{register\_forward\_hook} backend),
+run on a self-hosted NVIDIA RTX 5070 (12\,GB) host \texttt{ubu-1} serving
+\emph{full-precision} (\texttt{fp32}) \texttt{Qwen2.5-1.5B-Instruct}
+\citep{qwen25} --- the true weights, \emph{not} a quantized GGUF --- in a clean
+pinned virtual environment (\texttt{transformers==4.51.3}, \texttt{numpy<2}).
+For every prompt a forward hook on each of the \(28\) decoder layers records the
+\(L_2\) norm of the residual-stream output, the self-attention output, and the
+MLP output \emph{at the last prompt-token position} (the position whose hidden
+state forms the answer/refuse decision before generation), giving the
+ordered \(84\)-feature vector. The refusal label is an exact reuse of the
+prior verdicts' marker scan: a short \(48\)-token greedy generation
+(\texttt{do\_sample=False}, \texttt{fp32}) is labelled \texttt{refused} iff any
+of \(24\) fixed refusal markers (e.g.\ ``\texttt{i can't}'', ``\texttt{i'm
+sorry}'', ``\texttt{i must decline}'') appears in the first \(200\) characters
+--- \emph{no} LLM self-judge, per the SANDBOX honesty rule.
+
+\paragraph{Test set (pre-registered, variance-controlled).} The prompts are the
+matched-pair set of \texttt{bench/sandbox\_stage4\_refusal\_bimodal\_tighter.hexa}
+(HuggingFace private \texttt{dancinlab/hexa-codex-sandbox-adversarial-evals-v1};
+adversarial sets default private per \texttt{cx\_hf\_safety\_private}): \(4\)
+domains (social, physical-safety, self-harm, medical) \(\times\) \(5\) pairs,
+each adversarial prompt paired with a benign prompt of the \emph{same} domain,
+verb, approximate length, and prose-answer regime, so the only systematic
+adversarial--benign difference is the safety trigger. The observed label
+distribution is \(\text{refused}{=}20\) / \(\text{answered}{=}20\)
+(\(\text{adv\_refused}{=}19/20\), \(\text{benign\_refused}{=}1/20\)) --- clean
+specificity, with two honest label-flipped rows kept as the topic-confound
+control of \S\ref{sec:formula}. The committed analysis surface
+\texttt{.verdicts/sandbox/m2\_safety\_refusal\_norms.tsv} contains the
+\(40\times84\) activation norms and the binary labels \emph{only}; the
+adversarial prompt strings are redacted per \texttt{cx\_hf\_safety\_private}. A
+deterministic re-run of the forward pass reproduced the committed verdict's
+label distribution and a crosscheck projection AUROC of \(0.98\) bit-for-bit
+before the matrix was dumped, so the committed numbers are faithful to the
+original \texttt{motif\_summary.json}. All capture ran at \$0 incremental on the
+self-hosted GPU. Verdict header:
+\texttt{.verdicts/sandbox/m2\_safety\_mechanical\_probe.txt}.
+
+% =========================================================================
+\section{Benchmark}
+\label{sec:benchmark}
+\textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} --- the real bench is
+the \(40\)-row \(\times\) \(84\)-feature separability analysis recomputed
+end-to-end from the committed matrix. The headline statistics (verbatim from the
+recompute verdict) are
+
+\begin{center}
+\begin{tabular}{lrrl}
+\toprule
+statistic & value & baseline & verdict link \\
+\midrule
+full-vector projection AUROC      & 0.98          & 0.50 (chance) & recompute (5/5) \\
+leave-one-out held-out accuracy   & 0.825 (33/40) & 0.50 (majority) & recompute (5/5) \\
+permutation \(p\) (200 shuffles)  & 0.005 (0/200) & --- & recompute (5/5) \\
+adv-but-answered row, projection  & \(-25.81\)    & thr \(\approx 0\) & answered-side OK \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The separability is carried by three mechanistically distinct
+activation-norm motifs (single-feature AUROC and Cohen's \(d\), verbatim from
+the probe verdict):
+
+\begin{center}
+\begin{tabular}{llrrl}
+\toprule
+motif & layer band & top AUROC & Cohen's \(d\) & sign \\
+\midrule
+mid-layer \textbf{residual} amplification & L17--L19 & 0.953 (L19) & \(+2.56\) & refused \(>\) answered \\
+mid-layer \textbf{MLP} amplification      & L17--L22 & 0.930 (L18) & \(+2.22\) & refused \(>\) answered \\
+late-layer \textbf{attention} suppression & L22/L23/L26 & 0.968 (L23, inv.) & \(-2.54\) & refused \(<\) answered \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent These differ in sublayer (residual readout vs MLP write vs attention
+output), sign (amplification vs suppression), and layer band (mid vs late), so
+the linear direction is not a single-feature artifact. The in-sample \(84\)-dim
+projection AUROC (\(0.98\)) can overfit at \(84\) features / \(40\) samples ---
+which is exactly why the load-bearing numbers are the held-out leave-one-out
+accuracy (\(0.825\)) and the permutation \(p\) (\(0.005\)), both reproduced by
+the independent recompute. Verdict:
+\texttt{.verdicts/sandbox/m2\_safety\_mechanical\_probe.txt} \(+\) the recompute
+\texttt{.verdicts/sandbox/m4\_safety\_refusal\_direction\_recompute.txt}.
+
+% =========================================================================
+\section{Benefit}
+\label{sec:benefit}
+\textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} --- the finding lands
+three paper-grade, interpretability-actionable deltas:
+
+\begin{itemize}
+  \item \textbf{The activation-norm surface succeeds where the first-token logit
+    margin fails --- a measured route-vs-route delta.} On the \emph{same}
+    matched-pair set, the route(a) probe (the next-token top1\(-\)top2 logprob
+    margin) is a confirmed \emph{negative}: refused and answered cluster means
+    converge to \(1.73\) vs \(1.32\) logprob (gap \(0.40\)), which is
+    \(5.9\times\) \emph{below} the bimodality bar (gap \(0.40\) vs the
+    \(2\sigma_{\max}\) threshold of \(2.40\)), so
+    \texttt{safety\_signal\_present}\(=\)\texttt{false}
+    (\texttt{.verdicts/sandbox/m2\_safety\_bimodality\_tighter.txt}). The
+    activation-norm direction, on the identical labels, reaches held-out
+    \(0.825\) (permutation \(p{=}0.005\)). \textbf{The refusal decision is
+    legible mechanistically but not in the next-token margin} --- so an
+    activation tap, not a logit/logprob probe, is the right instrument; this
+    directly motivated routing the SANDBOX safety lane to the \texttt{transformers}
+    forward-hook backend rather than the \texttt{llama-server} logprob API.
+  \item \textbf{The direction tracks the refusal \emph{decision}, not the
+    adversarial-vs-benign topic.} The lone adversarial-topic-but-\emph{answered}
+    prompt (an acetaminophen-dose question the model chose to answer) projects
+    to the \emph{answered} side (\(s{=}-25.81\), threshold \(\approx 0\)),
+    recomputed identically by the verifier. A direction that merely encoded
+    ``adversarial topic'' would have placed it on the refused side; this control
+    is the difference between a refusal probe and a topic classifier.
+  \item \textbf{An honest, recompute-verifiable interpretability surface at \$0.}
+    The entire finding is reproducible from a \(46\,\text{KB}\) committed
+    numbers-only matrix and one hexa verifier --- no GPU, no model download, no
+    adversarial prompt text leaves the private set. This converts a
+    previously \(\bigcirc\) speculation-fenced empirical probe into a
+    \(\bullet\) numerical-green recompute surface, which is precisely the
+    \texttt{cx\_paper\_gate} condition this paper had to meet.
+\end{itemize}
+
+All three benefits are measured at \$0 incremental cost on a self-hosted GPU;
+the recompute surface --- which closes the prior cycle's
+\texttt{BLOCKED\_PENDING\_FORMULA\_RECOMPUTE} residual --- is part of the
+contribution.
+
+% =========================================================================
+\section{Verdict matrix}
+\label{sec:verdict-matrix}
+Per \texttt{cx\_paper\_sections}, every section claim links to its verdict file.
+All four rows read \(\bullet\) SUPPORTED-NUMERICAL.
+
+\begin{table}[h]
+\centering
+\caption{SAFETY paper verdict matrix (4 sections \(\times\) g5 rubric tier).}
+\begin{tabular}{lll}
+\toprule
+section & verdict file & tier \\
+\midrule
+\S\ref{sec:formula} formula     & \texttt{.verdicts/sandbox/m4\_safety\_refusal\_direction\_recompute.txt} (linear-direction recompute, 5/5 checks) & \textcolor{green!50!black}{$\bullet$ SUPPORTED-NUMERICAL} \\
+\S\ref{sec:method} method       & \texttt{.verdicts/sandbox/m2\_safety\_mechanical\_probe.txt} (capture protocol header) \(+\) recompute & \textcolor{green!50!black}{$\bullet$ SUPPORTED-NUMERICAL} \\
+\S\ref{sec:benchmark} benchmark & \texttt{.verdicts/sandbox/m4\_safety\_refusal\_direction\_recompute.txt} (AUROC/LOO/$p$ \(+\) 3 motifs) & \textcolor{green!50!black}{$\bullet$ SUPPORTED-NUMERICAL} \\
+\S\ref{sec:benefit} benefit     & \texttt{.verdicts/sandbox/m2\_safety\_bimodality\_tighter.txt} (route(a) negative contrast) \(+\) recompute & \textcolor{green!50!black}{$\bullet$ SUPPORTED-NUMERICAL} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Ship condition.} All four rows graduate to \(\bullet\)
+SUPPORTED-NUMERICAL. \texttt{cx\_paper\_significance} holds: a closed-form
+classifier (difference-of-means linear refusal direction) \(+\) a real
+\(40\times84\) activation-norm benchmark \(+\) quantified benefit (held-out
+\(0.825\) vs majority \(0.50\); the \(5.9\times\)-below-bar route(a) negative;
+the topic-confound control). No row remains \(\bigcirc\) INSUFFICIENT per
+\texttt{cx\_paper\_violation}.
+
+% =========================================================================
+\section{Limitations and honest caveats}
+\label{sec:limits}
+\begin{itemize}
+  \item \textbf{\(n{=}40\) is small; the in-sample AUROC can overfit.} With
+    \(84\) features and \(40\) samples the full-vector projection AUROC
+    (\(0.98\)) is in-sample and over-optimistic. Only the held-out leave-one-out
+    accuracy (\(0.825\)) and the permutation \(p\) (\(0.005\)) are treated as
+    load-bearing; both are reproduced by the independent recompute.
+  \item \textbf{Activation \emph{norms}, not full vectors or SAE features.} The
+    committed surface is the per-(layer, kind) \(L_2\) norm, not the dense hidden
+    state. This establishes that a refusal \emph{direction} exists in norm space;
+    it is \emph{not} a sparse-autoencoder feature atlas nor a causal
+    single-direction ablation \citep{arditi2024refusal}. Those are deferred to
+    M5.SAFETY.
+  \item \textbf{Marker-scan label has a known \(1\)-row noise floor.} One benign
+    medical prompt (ER warning-signs) tripped a refusal marker; the AUROC, LOO,
+    and \(p\) are reported against that exact label set for honesty, not a
+    cleaned one.
+  \item \textbf{Single model, single feature site.} \texttt{Qwen2.5-1.5B-Instruct}
+    \texttt{fp32}, last prompt-token only. Transfer to other models, sizes, or
+    token positions is unmeasured.
+  \item \textbf{Publish-lint (g51) residual.} This 4-section draft does not yet
+    meet the commons \(\ge 10\)-page \(+\) fal.ai-figure publish bar; that is a
+    separate \textbf{M5.SAFETY-release} condition, deliberately not padded here.
+\end{itemize}
+
+% =========================================================================
+\section{Discussion and outlook}
+\label{sec:discussion}
+The refusal decision in a small instruct model is linearly readable from
+mid-layer residual/MLP amplification and late-layer attention suppression at the
+last prompt token, even though it is invisible in the first-token logit margin.
+The single most important follow-up is a \emph{causal} test: ablate the
+recomputed direction \(w\) (or its dense-vector analogue) at inference and
+measure the change in refusal rate on held-out adversarial prompts ---
+upgrading the present correlational direction to an interventional one. A full
+sparse-autoencoder decomposition of the three motifs (the M5.SAFETY release
+target) would replace the norm-space proxy with named features.
+
+% =========================================================================
+\section*{Reproducibility}
+\addcontentsline{toc}{section}{Reproducibility}
+Code: \url{https://github.com/dancinlab/hexa-codex}. Capture hook:
+\texttt{lm\_foundry/tool/activation\_capture\_hf.hexa}. \S Formula recompute:
+\texttt{verify/numerics\_safety\_refusal\_direction.hexa} (\$0 local, no GPU;
+\texttt{HEXA\_SHIM\_NO\_DARWIN\_LANDING=1 RESOURCE\_LOCAL\_HEXA=1
+HEXA\_CODEX\_ROOT="\$PWD" hexa run
+verify/numerics\_safety\_refusal\_direction.hexa}). Committed numbers-only
+matrix: \texttt{.verdicts/sandbox/m2\_safety\_refusal\_norms.tsv} (adversarial
+prompt text redacted per \texttt{cx\_hf\_safety\_private}). Verdicts under
+\texttt{.verdicts/sandbox/}. Build: \texttt{make} (pdflatex \(\times\) 3 \(+\)
+bibtex).
+
+% =========================================================================
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

@@ -140,16 +140,41 @@ fn shq(s: str) -> str {
 fn run_one(prompt: str, expected_kw: str) -> str {
     let wc = str(prompt.len())   // byte-length; cheap proxy for word-count
 
-    // Parser stage: isolate the model's answer text. Two modes (see PARSE_MODE):
+    // Parser stage: isolate the model's answer text. Three modes (see PARSE_MODE):
     //   assistant_prefix : BitNet --jinja "...Assistant: <answer>" single line —
     //                      strip everything up to and incl. the LAST "Assistant:".
     //   assistant_block  : SANDBOX baseline "assistant\n<answer>\n> EOF by user".
+    //   base_strip_echo  : M7 size-ladder base (non-instruct) checkpoints. With
+    //                      raw completion (-st, no chat template) the 1bitLLM
+    //                      b1.58 base models echo the prompt verbatim, then
+    //                      continue. Collapse to one line, then strip the leading
+    //                      echoed prompt (it appears once at the start) so a task
+    //                      whose keyword happens to sit in the prompt text (e.g.
+    //                      "tcp" in "TCP vs UDP… connection-oriented?") cannot
+    //                      false-positive on the echo. This is a FAIR-SERVING
+    //                      parser change only — the byte_exact_subset scorer below
+    //                      is byte-identical to M1 (the task requirement).
     let mut extract = ""
     if PARSE_MODE == "assistant_block" {
         extract = "awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' '"
     } else {
-        // assistant_prefix: collapse to one line, then strip up to last "Assistant:".
-        extract = "tr '\\n' ' ' | sed 's/.*Assistant: *//'"
+        if PARSE_MODE == "base_strip_echo" {
+            // collapse to one line, NORMALIZE all runs of whitespace to a single
+            // space (the llama detokenizer inserts an extra space around the em-dash
+            // in some prompts — without this, a byte-exact echo match misses), then
+            // GLOBALLY remove every occurrence of the whitespace-normalized prompt
+            // (base models repeat the prompt verbatim 1..N times). What remains is
+            // the model's genuinely-generated continuation; a task whose keyword
+            // sits inside the prompt text (e.g. "tcp" in the TCP/UDP prompt) can no
+            // longer false-positive on an echoed copy. FAIR-SERVING parser only —
+            // the byte_exact_subset scorer below is byte-identical to M1.
+            extract = "tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//' | " +
+                      "awk -v p=" + shq(prompt.replace("  ", " ")) +
+                      " '{s=$0; while((i=index(s,p))>0){s=substr(s,1,i-1) substr(s,i+length(p))} print s}'"
+        } else {
+            // assistant_prefix: collapse to one line, then strip up to last "Assistant:".
+            extract = "tr '\\n' ' ' | sed 's/.*Assistant: *//'"
+        }
     }
 
     let cmd = "t_start=$(date +%s%N); " +

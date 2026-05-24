@@ -1,0 +1,21 @@
+idx	prompt_wc	output_tok_est	wall_ms	correct	rss_bytes	output_snippet
+1	39	20	6738	1	4467884032	2+2 = 4. 2+2 = 4. 2+2 = 4. 2+2 = 4. 2+2 = 4. What is 2+2? Reply with
+2	28	81	5695	1	4463673344	The capital of France is Paris. The capital of France is Paris. The capital of France is Paris. The capital of France is
+3	64	6	6168	0	4465704960	Reverse the string 'hello'. Reply with
+4	40	64	5612	0	4464984064	I'm not sure if this is the right place to ask this, but I'm looking for a square of 7. I'm looking for a square of 7. I
+5	63	10	5651	0	4465737728	First prime number greater than 10? Reply with the number
+6	50	64	10747	0	4464852992	I'm looking for the smallest prime number. I'm looking for the smallest prime number. I'm looking for the smallest prime
+7	48	7	8787	0	4468047872	How many continents? Reply with the number
+8	75	74	9795	0	4469440512	I am trying to find the boiling point of water in Celsius at sea level. I have found the boiling point of water in Fahre
+9	55	6	10289	0	4468768768	ASCII decimal code for 'A'? Rep
+10	50	46	10336	0	4468736000	February 2024 is a month in the Gregorian calendar. February 2024 is a leap year, which means that it contains 366 days.
+11	73	23	8756	0	4470784000	Write a Python one-liner that sums integers 1..100. Write a Python one-liner that sums integers 1..100. Write a Python o
+12	56	71	8734	0	4468080640	I'm trying to understand the time complexity of binary search. I'm trying to understand the time complexity of binary se
+13	77	55	10314	0	4467359744	Reverse a list lst in one expression. Reverse a list lst in one expression. Reply with the expression only. Reverse a li
+14	51	0	0	0	0	PARSE_ERROR:10346	51	0	0	4468834304
+15	60	42	10782	1	4468916224	— is a question that has been asked many times on Stack Overflow. The answer is that TCP is connection-oriented, while
+16	34	6	9729	0	4464852992	Explain BFS vs DFS in 2
+17	62	34	10344	1	4469948416	Write Python Fibonacci with memoization (use functools.memoize). Write Python Fibonacci with memoization (use functools.
+18	50	7	10791	0	4467785728	Convert binary 1101 to decimal, show one
+19	56	81	11297	0	4468768768	A: The reason is that the number of bits in the input is constant. The number of bits in the output is not constant. The
+20	45	80	10835	0	4467572736	The problem is that the problem is not a problem. The problem is that the problem is not a problem. The problem is that

@@ -1,0 +1,16 @@
+# model=BitNet-b1.58-1.3B-TQ2_0
+# model_path=/Users/ghost/Models/gguf/bitnet-xl/ggml-model-tq2_0.gguf
+# total_tasks=20
+# correct=3/20
+# accuracy_pct=15.0
+# total_wall_ms=227425
+# peak_rss_bytes=1304969216
+# peak_rss_mb=1244
+# usable_threshold=15
+# usable_floor_reached=false
+# tool=llama-completion (stock brew llama.cpp 9150, native TQ2_0 ternary)
+# extra_flags=-ngl 0  (BitNet TQ2_0: CPU-only -ngl 0 — Metal lacks type-35 kernel; --jinja for 2B4T chat template)
+# parse_mode=base_strip_echo
+# host=mac-mini-m3 (brew llama.cpp, CPU/NEON+ACCELERATE, UMA)
+# scorer=byte_exact_subset (case-insensitive, VERBATIM from sandbox_stage0_baseline.hexa)
+# cost_usd=0  (local serving; wall_ms is the proxy cost surface)

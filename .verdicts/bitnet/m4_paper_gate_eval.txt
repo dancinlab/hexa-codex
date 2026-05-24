@@ -1,0 +1,134 @@
+# ════════════════════════════════════════════════════════════════════════════
+# M4.BITNET  —  canonical-paper GATE EVALUATION (HONEST, not a forced ship)
+# ════════════════════════════════════════════════════════════════════════════
+# domain   = BITNET (Microsoft BitNet b1.58 2B4T evaluation on the SANDBOX substrate)
+# milestone= M4 Paper — "BITNET canonical paper (§formula + bench + benefit) once a
+#            closed-form bit↔quality law lands (cx_paper_gate)"
+# date     = 2026-05-25  (cycle following #46 / M5 close)
+# governance= cx_paper_gate · cx_paper_significance · cx_paper_format ·
+#             cx_paper_sections · cx_paper_one_per_domain · cx_paper_violation
+# method   = map the 4 mandated §-sections (cx_paper_format) to their underlying
+#            verdicts; apply the cx_paper_gate bar (100% formal-blue OR numerical-
+#            green AND cx_paper_significance). NO LLM-self-judge — each cell links
+#            a committed .verdicts/ artifact. This file IS the gate witness.
+#
+# ════════════════════════════════════════════════════════════════════════════
+# PART 1 — BITNET-SOLO PAPER  (the milestone as literally scoped)
+# ════════════════════════════════════════════════════════════════════════════
+# Candidate §formula = the M3 bit↔quality "law" = acc(bpw) = 30.0%  (a 1-parameter
+# constant). Candidate §benchmark = the M1/M2+/M3 robustness chain. Candidate
+# §benefit = the storage-vs-quantization-precision methodological clarification.
+#
+# ┌──────────┬───────┬────────────────────────────────────────────────┬──────────────────────────────────────────────┐
+# │ §section │ tier  │ linked verdict                                  │ why this tier (honest)                          │
+# ├──────────┼───────┼────────────────────────────────────────────────┼──────────────────────────────────────────────┤
+# │ §formula │ 🟠    │ .verdicts/bitnet/m3_pareto_ladder_summary.txt   │ the "law" is acc(bpw)=30%, a 1-parameter        │
+# │          │ INSUF │ (VERDICT: MODEL CEILING, spread=0pp)            │ CONSTANT. Not a paper-grade closed form. The    │
+# │          │       │                                                 │ SUBSTRATE M4 §Formula precedent cleared 🟢 only │
+# │          │       │                                                 │ on a 2-param LOGISTIC recomputed vs committed   │
+# │          │       │                                                 │ data; the OPS M4 §Formula on an M/M/c Erlang-C  │
+# │          │       │                                                 │ closed form. A flat constant has no recompute-  │
+# │          │       │                                                 │ verifiable structure — it is a NEGATIVE result, │
+# │          │       │                                                 │ not a law. THIS CELL BLOCKS THE GATE.           │
+# ├──────────┼───────┼────────────────────────────────────────────────┼──────────────────────────────────────────────┤
+# │ §method  │ 🟢    │ .verdicts/bitnet/m1_accuracy_floor_summary.txt  │ real engine (llama.cpp TQ2_0 + bitnet.cpp i2_s),│
+# │          │       │ + m2plus_i2s_true_1_58bit.txt                   │ identical 20-task manifest + byte_exact scorer, │
+# │          │       │                                                 │ $0 local, reproducible bit-for-bit. Method is   │
+# │          │       │                                                 │ sound — but a method with no LAW to demonstrate │
+# │          │       │                                                 │ is not a paper.                                 │
+# ├──────────┼───────┼────────────────────────────────────────────────┼──────────────────────────────────────────────┤
+# │ §bench   │ 🟢    │ m3_pareto_ladder_summary.txt (4 rungs T4 🟢)    │ 5-rung storage ladder, 3-axis robustness        │
+# │          │       │ + m1_scorer_ablation.txt + m2plus_i2s_vs_tq2_0  │ (scorer · ternary-kernel · GGUF container) all  │
+# │          │       │                                                 │ land 30%. Genuinely strong benchmark. But it    │
+# │          │       │                                                 │ benchmarks a CONSTANT — see §formula.           │
+# ├──────────┼───────┼────────────────────────────────────────────────┼──────────────────────────────────────────────┤
+# │ §benefit │ 🟠    │ m3_pareto_ladder_summary.txt §Substantive       │ memory 0.55× a Q4 baseline (M2, real) AND the   │
+# │          │ WEAK  │ + m2_memory_profile_summary.txt                 │ storage-vs-quantization distinction (a method-  │
+# │          │       │                                                 │ ological clarification, not a QUANTIFIED        │
+# │          │       │                                                 │ capability benefit). The memory win is real but │
+# │          │       │                                                 │ inseparable from the FALSIFIED quality half —   │
+# │          │       │                                                 │ the joint "fraction of memory at full quality"  │
+# │          │       │                                                 │ claim is FALSIFIED, so there is no net positive │
+# │          │       │                                                 │ "benefit vs baseline" to headline.              │
+# └──────────┴───────┴────────────────────────────────────────────────┴──────────────────────────────────────────────┘
+#
+# GATE ARITHMETIC (cx_paper_gate):  requires 4/4 sections 🟢/🔵 AND significance.
+#   sections green/blue = 2/4 (§method, §benchmark).  §formula 🟠 BLOCKS.  §benefit 🟠.
+#   cx_paper_significance (formula + real bench + QUANTIFIED benefit): FAILS on both
+#     §formula (constant, not a law) and §benefit (no quantified capability delta —
+#     the only positive delta, memory, comes packaged with a FALSIFIED quality claim).
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │  BITNET-SOLO M4 VERDICT  =  NOT-SHIP.                                       │
+# │  §formula is a trivial 1-parameter constant acc(bpw)=30%, NOT a paper-grade │
+# │  closed-form law. Confirms the prior-cycle honest expectation. Scaffolding  │
+# │  a paper here would violate cx_paper_gate + cx_paper_significance and be     │
+# │  revoked immediately (cx_paper_violation). M4 stays [ ],                     │
+# │  annotated BLOCKED_NO_NONTRIVIAL_FORMULA in BITNET.md.                       │
+# └──────────────────────────────────────────────────────────────────────────┘
+#
+# Honest note — this is the CORRECT outcome, not a failure to produce work. The
+# BITNET domain's findings (30% floor robust across 3 axes; joint claim FALSIFIED;
+# memory-holds-quality-fails) are a strong NEGATIVE result already fully captured in
+# the .verdicts + .discoveries surfaces. A negative result has no closed-form law to
+# anchor a "formula·method·benchmark·benefit" paper. Forcing the constant into a fake
+# "law" is explicitly forbidden (cx_paper_significance dont-clause: "paper for ...
+# known identity"). The honest residual is preferable to a premature canonical paper.
+#
+# ════════════════════════════════════════════════════════════════════════════
+# PART 2 — THE PAPER-WORTHY FINDING ONE LEVEL UP (cross-architecture frontier)
+# ════════════════════════════════════════════════════════════════════════════
+# The genuinely paper-gradeable artifact is NOT a BITNET-solo paper — it is a
+# CROSS-ARCHITECTURE capability/memory/bits frontier on the byte-identical 20-task
+# manifest, one scorer, three engines, all $0 local:
+#
+#   ┌────────────────────────┬───────────┬───────────┬──────────┬──────────────────────┬─────────────────────────────┐
+#   │ model                  │ arch fam  │ accuracy  │ correct  │ peak RSS             │ memory law                  │
+#   ├────────────────────────┼───────────┼───────────┼──────────┼──────────────────────┼─────────────────────────────┤
+#   │ BitNet b1.58 2B4T      │ ternary   │ 30.0%     │  6/20    │ 1527 MB (i2_s)       │ ternary, sub-floor accuracy │
+#   │ RWKV-7 Goose 2.9B q5   │ RNN(attn- │ 75.0%     │ 15/20    │ 2249 MB FLAT (no KV) │ constant memory, no KV-cache│
+#   │                        │ free)     │           │          │                      │                             │
+#   │ Qwen2.5-0.5B-Q4        │ Transformr│ 80.0%     │ 16/20    │ (KV-growth baseline) │ O(n) KV-cache growth        │
+#   └────────────────────────┴───────────┴───────────┴──────────┴──────────────────────┴─────────────────────────────┘
+#   (BitNet: .verdicts/bitnet/m1_accuracy_floor_summary.txt + m2plus; RWKV:
+#    .verdicts/rwkv/m1_accuracy_floor_summary.txt; Qwen: SANDBOX stage-0 baseline.)
+#
+# Why this is paper-gradeable in PRINCIPLE: it has a real §benchmark (one manifest,
+# one scorer, three engines — already 🟢 each) and a real §benefit (a QUANTIFIED
+# capability × memory × bits frontier across 3 architecture FAMILIES — the kind of
+# cross-family delta cx_paper_significance wants).
+#
+# Why it CANNOT be shipped this round:
+#   (a) cx_paper_one_per_domain — it is a CROSS-DOMAIN paper. It spans BITNET +
+#       RWKV + SANDBOX; the natural owner is SANDBOX (the substrate that measured
+#       all three). It is NOT a BITNET-solo paper, so it does not belong to M4.BITNET.
+#   (b) g58 — it is OFF the active BITNET domain. Scaffolding it is a SANDBOX-cycle
+#       decision, not a BITNET-cycle action.
+#   (c) §formula STILL OPEN even at this level — three points (30/75/80%) across
+#       three architectures is a 3-row TABLE, not yet a closed-form law over the
+#       bits/architecture/capability frontier. It needs a fitted closed form
+#       (e.g. a memory-per-correct-answer frontier curve, or a capability-vs-
+#       active-parameter / vs-bits-per-weight law with ≥2 fitted params recomputed
+#       vs committed data, matching the SUBSTRATE 2-param-logistic / OPS Erlang-C
+#       bar) before it clears cx_paper_significance §formula.
+#
+# DECISION: seed it for the SANDBOX domain via .discoveries/, do NOT scaffold this
+# round.  Recorded at:  .discoveries/sandbox-cross-arch-frontier-paper.tape
+#   What it needs to graduate to a SANDBOX canonical paper:
+#     1. a closed-form §formula across the frontier (≥2 fitted params, recompute-
+#        verifiable vs committed data) — NOT the BitNet constant, NOT a 3-row table.
+#     2. ≥1 more architecture point (e.g. a Mamba/SSM or a larger Transformer) to
+#        give the fit degrees of freedom.
+#     3. memory axis closed for all three at matched context (the RWKV M2 ctx-length
+#        sweep — RWKV flat vs Transformer O(n) — is the natural §formula candidate).
+#     4. SANDBOX-cycle ownership decision (cx_paper_one_per_domain — confirm SANDBOX
+#        is the group, not ECONOMICS/OPS).
+#
+# ════════════════════════════════════════════════════════════════════════════
+# RESIDUAL SUMMARY
+# ════════════════════════════════════════════════════════════════════════════
+#   M4.BITNET            = [ ]  BLOCKED_NO_NONTRIVIAL_FORMULA  (NOT-SHIP, honest)
+#   cross-arch frontier  = seeded for SANDBOX at
+#                          .discoveries/sandbox-cross-arch-frontier-paper.tape
+#                          (verified_tier_target=NUMERICAL, status=open)
+#   no paper scaffolded  = cx_paper_violation respected (ship-then-revoke is worse)

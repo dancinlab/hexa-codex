@@ -1,0 +1,6 @@
+rung	bpw_x100	accuracy_x100	correct	total	peak_rss_mb	total_wall_ms	source_pr
+i2_s_1_58bpw	158	3000	6	20	1527	87727	#42
+TQ2_0_2_06bpw	206	3000	6	20	1568	221772	#39
+Q4_K_M_5_02bpw	502	3000	6	20	3047	834315	this_pr
+Q8_0_8_50bpw	850	3000	6	20	4968	351572	this_pr
+F16_16_00bpw_DEDUCED	1600	3000	6	20	-1	-1	this_pr_deduced

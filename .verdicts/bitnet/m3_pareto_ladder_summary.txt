@@ -1,0 +1,94 @@
+# bench=bench/bitnet_m3_pareto_ladder.hexa  (combiner; per-rung benches = M1 harness with GGUF path swap)
+# method=read 4 persisted per-rung summaries + apply harness pre-registered fit policy (constant-floor / monotone-lift / non-monotone)
+# host=mac-mini-m3 ($0 local, brew llama.cpp 9150 + microsoft bitnet.cpp)
+# scorer=byte_exact_subset  (verbatim from sandbox_stage0_baseline.hexa; M1.5 confirmed fair on this manifest, scorer artifact ≤ +5pp)
+# date=2026-05-25
+# parent_model=microsoft/BitNet-b1.58-2B-4T-bf16  (single bf16 source for all 5 storage rungs)
+
+5-rung storage-precision ladder of BitNet-b1.58-2B-4T:
+
+| rung           | bpw   | accuracy | correct/20 | RSS (MB) | wall (ms)  | tier                  | source        |
+|----------------|-------|----------|------------|----------|------------|-----------------------|---------------|
+| i2_s           | 1.58  | 30.0%    | 6/20       |  1527    |   87,727   | 🟢 NUMERICAL          | M2+ (#42)     |
+| TQ2_0          | 2.06  | 30.0%    | 6/20       |  1568    |  221,772   | 🟢 NUMERICAL          | M1 (#39)      |
+| Q4_K_M         | 5.02  | 30.0%    | 6/20       |  3047    |  834,315   | 🟢 NUMERICAL          | this PR       |
+| Q8_0           | 8.50  | 30.0%    | 6/20       |  4968    |  351,572   | 🟢 NUMERICAL          | this PR       |
+| F16            | 16.00 | 30.0% †  | 6/20 †     |   n/a †  |     n/a †  | 🔵 SUPPORTED-FORMAL † | DEDUCED †     |
+
+spread = 0 pp  (max−min = 0)
+mean   = 30.0%
+
+═══════════════════════════════════════════════════════════════════════════════
+VERDICT  —  MODEL CEILING.
+═══════════════════════════════════════════════════════════════════════════════
+The harness pre-registered fit policy: spread <= TOL_PP (5 pp) ⇒ CONSTANT-FLOOR,
+storage precision is NOT the bottleneck. With spread=0 pp << 5 pp, every measured
+rung lands at 6/20 = 30.0%. The "law" is the trivial constant acc(bpw) = 30.0%.
+
+§ F16 deduction (the † row) — 🔵 SUPPORTED-FORMAL by source-code identity
+  llama.cpp `convert_hf_to_gguf.py BitnetModel.modify_tensors` (line ~3434) FORCES
+  every Q/K/V/O/up/down/gate tensor to {-1, 0, +1} (ternary) BEFORE the GGUF
+  storage type is applied — verbatim comment "# transform weight into 1/0/-1
+  (in fp32)". So any GGUF derived from BitNet's bf16 safetensors (Q4_K_M / Q8_0 /
+  F16) carries the SAME ternary weights, just in a fatter binary container.
+  The F16 measurement is empirically foregone: identical weights → identical
+  logits → identical scoring. Per g0 Occam, the 5th measurement is redundant —
+  the 4 measured rungs + the source-code identity together fix F16 at 6/20
+  deterministically. (If a future engine breaks the convert-path identity, the
+  deduction falsifies and F16 needs measuring — the falsifier is named.)
+
+§ Substantive M3 finding (the load-bearing reframing)
+  "M3 Pareto" was framed as "is 30% a ternary FLOOR or the 2B4T model CEILING?",
+  implicitly assuming quantization precision and storage precision are the same
+  axis. They are NOT for BitNet b1.58. The model was PRETRAINED ternary; the
+  convert path preserves that regardless of --outtype. So this ladder is a
+  STORAGE-precision ladder (file-format bpw, varying 1.5→16), not a QUANTIZATION-
+  precision ladder (information-content bpw, fixed at ~1.58 for all 5 rungs).
+  All 5 rungs encode the SAME ternary weights — they are the SAME quantization
+  at different storage costs. The floor-vs-ceiling distinction is malformed for
+  THIS experiment; the substrate-measured fact is "BitNet b1.58 2B4T saturates
+  at 6/20 = 30% on the canonical 20-task manifest, regardless of GGUF storage
+  container." That stands as the M3 verdict.
+
+§ Cross-confirmation chain
+  Combined with M1.5 (ROOT-A: scorer artifact ≤ +5pp) and M2+ (ROOT-B: i2_s ≡
+  TQ2_0), 30% is now robust across THREE independent axes:
+    (i)   scorer formulation         — byte_exact vs lenient vs answer-extract
+    (ii)  ternary-kernel choice      — TQ2_0 (llama.cpp) vs i2_s (bitnet.cpp)
+    (iii) GGUF storage container     — i2_s / TQ2_0 / Q4_K_M / Q8_0 / F16(deduced)
+  Joint claim "1.58-bit ≈ full quality at a fraction of memory" remains
+  FALSIFIED at the MODEL level — within BitNet's own ternarization, no
+  storage container recovers the gap.
+
+  Honest scope: "is ternary the bottleneck?" requires a NON-ternary baseline of
+  the SAME 2B architecture (e.g. a non-BitNet 2B trained at fp16 from scratch
+  on the same data), which this ladder does NOT measure. The Qwen-1.5B-Q4
+  baseline that scores 80% on this manifest is a different model family.
+
+§ M4 Paper gate (cx_paper_gate)
+  Requires §formula + §benchmark + §benefit, all 🟢/🔵. Present:
+    §benchmark  🟢 (5-rung ladder)
+    §benefit    🟢 (storage-vs-quantization distinction, a substrate-measured
+                methodological clarification)
+    §formula    🟠 INSUFFICIENT — the "law" is trivially acc(bpw) = 30%, a
+                1-parameter constant, NOT a paper-grade closed-form (the
+                SUBSTRATE M4 §Formula precedent set the bar at a 2-param
+                logistic fit). The substantive value is the source-code identity
+                + the storage-vs-quantization distinction, which is a
+                methodological clarification more than a quantitative law.
+  → M4 NOT graduated. Honest residual.
+
+═══════════════════════════════════════════════════════════════════════════════
+hexa verify --fence  (verbatim)
+═══════════════════════════════════════════════════════════════════════════════
+verify --fence
+  claim  = BitNet b1.58 2B4T storage-precision ladder (i2_s 1.58bpw / TQ2_0 2.06bpw / Q4_K_M 5.02bpw / Q8_0 8.50bpw) all measure 6/20 = 30.0% on the canonical 20-task manifest; F16 is deduced 6/20 from convert_hf_to_gguf.py BitnetModel.modify_tensors ternary-clip identity (closed-form, applied regardless of --outtype). MODEL CEILING — storage precision is not the bottleneck within BitNet's own ternarization.
+  tier   = ⚪ SPECULATION-FENCED
+  reason = imagination/metaphor class (hexa-bio AXIS) — verification
+           N/A by design; NOT a proven atlas atom (g4 honest fence,
+           SF ≠ verified — atlas certification intrinsically N/A)
+
+(The ⚪ fence is the rubric's honest tier for a multi-claim synthesis — it is
+NOT an atlas atom. Per-rung empirical tiers (🟢 × 4) stand on their own per-rung
+summaries; the F16 deduction (🔵 by convert-path identity) stands on
+`convert_hf_to_gguf.py` source. The ladder ⚪ synthesis = the composition.)

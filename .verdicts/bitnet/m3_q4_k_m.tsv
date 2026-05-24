@@ -1,0 +1,21 @@
+idx	prompt_wc	output_tok_est	wall_ms	correct	rss_bytes	output_snippet
+1	39	67	17291	1	3195469824	2+2 is 4. The digit only is 4. The digit only is 4. The digit only is 4. The digit only is 4. The digit only is 4. The d
+2	28	5	5726	0	3189948416	1 word: "Capital of France"
+3	64	4	5738	0	3191898112	Reverse the string 'hello'.
+4	40	75	48472	0	3191504896	7 is not square of 7. The number is not square of 7. The number is not square of 7. The number is not square of 7. The n
+5	63	64	36588	1	3114991616	11. The number is 11. The number is 11. The number is 11. The number is 11. The number is 11. The number is 11. The numb
+6	50	72	75793	0	3172253696	1. The smallest prime number is 1. The smallest prime number is 1. The smallest prime number is 1. The smallest prime nu
+7	48	7	20974	0	3127902208	1. The number of continents is 1.
+8	75	9	12723	0	3192012800	0°C is boiling point of water at sea level?
+9	55	9	14229	0	3191193600	1 The ASCII decimal code for 'A' is 1.
+10	50	1	12217	0	3116220416	2024
+11	73	20	46047	0	3125870592	Sure! Here is a Python one-liner that sums integers 1..100: Sure! Here is a Python one-liner that sums integers 1..100.
+12	56	77	49949	0	3117694976	1. The time complexity of binary search is O(n), where n is the number of elements in the dataset.The time complexity of
+13	77	39	48480	0	3123249152	1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1. 0 1
+14	51	6	31405	0	3115778048	1,2,3 The sorted result is 1,2,3.
+15	60	53	206343	1	3135651840	TCP is connection-oriented, whereas UDP is connection-oriented. It is connection-oriented.So, TCP is connection-oriented
+16	34	87	92934	0	3093512192	1. The BFS approach involves exploring the shortest paths to reach the target, while DFS explores the longest paths to r
+17	62	69	34304	1	2949087232	Sure! Here is a Python code for Fibonacci with memoization (use functools.cache). Sure! Here is a Python code for Fibona
+18	50	67	21115	0	3109486592	1101 is converted to decimal, show one-line sum.The converted binary 1101 is converted to decimal is 11. The converted b
+19	56	78	32106	1	3192619008	The merge sort algorithm is mergesort O(n log n) because it divides the list into smaller lists, each list is sorted O(n
+20	45	61	21881	1	3190702080	Halting problem — what is it? One sentence.One sentence.One sentence.One sentence.One sentence. One sentence. One sent

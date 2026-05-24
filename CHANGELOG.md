@@ -4,6 +4,10 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — inbox/ → INBOX 도메인 이관 (2026-05-24)
+
+- **inbox/ → `INBOX` 도메인 이관** — cross-project handoff 를 `inbox/<kind>/<slug>.md` 폴더에서 repo 루트의 `INBOX` 도메인 1쌍(`INBOX.md` 스냅샷 + `INBOX.log.md` append-only 로그)으로 전환 (pool · sidecar 의 inbox→INBOX 폐기와 정합 · `cd <repo> && /domain set INBOX` 로 관리). 기존 2건 이관 — 열린 1건(sidecar/pool-route mac-only tool escalation, cycle-13)은 `INBOX.md` 에 `- [ ]`, 해소된 1건(hexa-lang runtime_core.c clang forward-decl, VERIFIED-RESOLVED)은 `INBOX.log.md` 에 `- [x]`. `inbox/` 폴더 삭제.
+
 ## [Unreleased] — ECONOMICS Pareto envelope (2026-05-23)
 
 Third ECONOMICS-specific cross-cutter — closed-form Pareto-frontier

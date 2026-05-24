@@ -7,7 +7,23 @@
 
 ---
 
-## 2026-05-24 — kick round 4 — 5 new cross-cutting candidates (post-cycle-10 closure)
+## 2026-05-25 — M5.OPS cycle-16b — OPS canonical paper g51 publish-readiness (RELEASE-READY pending tag)
+
+M4.OPS 에서 ship 한 OPS canonical paper `PAPER/ops-slo-mmc-surface/` 를 commons **g51 publish-lint (≥10p + ≥1 fal.ai figure)** 까지 끌어올림. **honest-no-pad 가드 통과** — finding 이 실제로 10페이지 분량의 진짜 학술 콘텐츠를 지탱함(패딩 아님). 추가한 것:
+
+- **§Formula 확장 — M/M/c birth–death 유도.** stationary `p_n` (detailed balance), Erlang-C 를 saturated-state 합으로 도출, `c·μ` throughput ceiling 증명(busy-channel 상한 + Little's law), Erlang-C **pole 증명** `W_q = C/(c·μ(1−ρ)) → ∞` (ρ→1, 1차 극점). 기존 certified 식·verdict 링크는 그대로 보존.
+- **§Related work (신설).** 고전 queueing(Erlang 1917 · Kleinrock 1975 · Harchol-Balter 2013 · Little 1961 · Erlang-B Jagerman 1974) + 현대 continuous-batching/SLO-aware LLM-serving(vLLM/PagedAttention `kwon2023vllm` · slice-level scheduling `cheng2024scls` — slot-preemption 기전의 직접 근거 · Apt-Serve `gao2025aptserve` · JITServe `zhang2025jitserve` · Kairos `wang2026kairos`). 모두 arxiv API 로 실재 확인한 traceable 인용 — references.bib 에 6개 신규 entry(전부 DOI/arXiv).
+- **§Discussion (신설).** (1) knee-shift law + `μ_eff(c)` sub-linear 저하(9.53/7.505/5.0 req/s/slot, UMA mem-bw 경합) (2) 두 accuracy-cliff 기전(client-timeout truncation vs scheduler slot-preemption)이 **반대 c-의존성**을 가져 한 손잡이로 합쳐질 수 없음 (3) 6개 cliff cell 전부 `error_rate=0` → latency+error 대시보드는 green 인데 46–81% 답이 silently wrong → correctness 축 필수 논변 (4) host-load invariance 로 M2.OPS pilot(`best_np=1`, μ≈8.9/s) ↔ 이번(`best_np∈{2,4}`, μ≈3.4/s) 화해 — 절대 knee qps 는 비보편적, scale-invariant 구조만 주장.
+- **§Limitations** 정식 절 + **Appendix**: 전체 18-cell grid verbatim(본문은 9-cell 발췌) + `verify/numerics_ops_mmc_knee.hexa` raw stdout verbatim. 재실행 5/5 PASS 재확인(cycle-16b, 숫자 불변).
+- **fal.ai figure.** `/paper fig`(openai/gpt-image-2, landscape_16_9) 로 `figures/fig01_knee_shift.png` 생성(636KB, prompt `figures/_prompts/knee_shift.txt` provenance 보존). §Benchmark 에 `\includegraphics`. caption 에 "load-bearing 숫자는 grid/recompute 이지 artwork 아님" 명기.
+
+**컴파일.** pdflatex×3 + bibtex 클린 — 0 LaTeX warning, 0 overfull, 15 citation 전부 resolve, bibtex warning 0. **10 페이지**(5→10).
+
+**g51 substantively SATISFIED.** lint 자체 명령으로 수동 검증: `pdfinfo main.pdf | awk '/Pages:/'` → 10 (≥10 ✓), `ls figures/_prompts | grep -Ec '\.(txt|md)$'` → 1 (≥1 ✓), png 존재 + `\includegraphics` 1회. 모든 numeric claim 은 기존 🟢 verdict(`m4_ops_formula_fit.txt`/`m3_ops_full_slo_grid*`)에 그대로 연결 — 변경 없음.
+
+**잔여(정직 기록).** `/paper lint` 자동 verdict 은 exit 1 — sidecar/paper 0.5.3 `_paper.hexa` `_path_exists(main.pdf)` 가 존재하는 10페이지 PDF 에 false 반환(pages 체크 false-negative). byte-identical 복제본은 동일 path+argv 로 true → hexa-runtime `exec_with_status("test -e …")` large-script quirk, **paper 잘못 아님**. `/tmp` 복사본에서도 재현(경로 무관). hexa-only/no-workaround 룰 → 우회·플러그인 패치 없이 **INBOX 등록**(target sidecar/paper, 2026-05-25, `INBOX.md`+`INBOX.log.md`).
+
+**milestone 결정.** M5.OPS = "OPS **release** with empirical SLO landing". empirical SLO landing(M3.OPS 18-cell grid) + paper g51 readiness 는 완료이나, milestone 명의 "release" 를 완성하는 행위(git tag / GitHub release / 외부 publish)는 **user-gated**. 따라서 checkbox 는 `[ ]` 유지하되 **"RELEASE-READY pending user tag"** 로 annotate. 사용자 sign-off + tag 시 flip.
 
 Ran `hexa kick --rounds 1` against the post-cycle-10/11 context
 (M1 row 4/4, M2.SUBSTRATE done, M1.SAFETY+ BLOCKED_AT_PROJECT,

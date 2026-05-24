@@ -2,6 +2,13 @@
 
 Append-only history sister of `INBOX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-25 — /paper lint pages false-negative (target sidecar/paper)
+- [ ] `/paper lint` (sidecar/paper 0.5.3 `bin/_paper.hexa`, `_cmd_lint` L264) 가 존재하고 10페이지로 컴파일된 `main.pdf` 에 대해 `✗ pages: main.pdf not found` 를 출력 → g51 (≥10p + fal.ai figure) pages 절반이 false-negative 로 막힘. figure 절반은 `✓` 정상.
+- 근본 원인 격리: 문제는 `_path_exists(pdf)` (L68-71) = `exec_with_status("test -e " + _shq(pdf))` 의 `r[1] == 0` 판정. byte-identical 복제본(`_shq`+`_path_exists`+`main`)을 **동일 argv** (`--root <paper-root> lint <dir>`) 로 실행 시 `test -e` status=0, `_path_exists=true`, `pdfinfo` pages=10 정상 반환. 즉 로직·경로·인자 모두 동일한데 375줄 번들 스크립트 실행에서만 false → hexa-runtime `exec_with_status` 의 large-script 실행 컨텍스트 quirk(또는 `--root` 동반 시 sandbox-mode file-stat 차이)로 추정. figure 체크(`ls|grep -c`, `test -d`)는 통과하므로 `exec_with_status` 전체가 죽은 건 아님 — `test -e <file>` 특정 케이스.
+- 재현: 워크트리 내부(`.claude/worktrees/…/PAPER/ops-slo-mmc-surface`) 및 `/tmp/ops_lint_check` 복사본 양쪽 모두 동일 false-negative → 경로 위치 무관. `HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT=…` 환경에서도 동일.
+- 영향: M5.OPS (OPS canonical paper g51 publish-readiness). g51 두 기준은 lint 자체 명령으로 수동 검증 시 **모두 PASS** (pages=10≥10, prompt files=1≥1, `fig01_knee_shift.png` 존재 + `\includegraphics` 1회) → g51 실질 충족이나 `/paper lint` 자동 verdict 은 exit 1. hexa-only/no-workaround 룰(`feedback_kick_failure_inbox.md`)에 따라 설치 플러그인 패치·우회 없이 inbox 등록.
+- 제안 fix — `_path_exists`/`pdfinfo` 호출을 `_cmd_compile` 처럼 `cd <dir> && test -e main.pdf` 상대경로 형태로 통일하거나, `exec_with_status` 의 large-script file-stat 경로를 런타임에서 점검. target: sidecar/paper · discovered_by hexa-codex M5.OPS cycle-16b (severity medium — paper 자체는 g51 충족, lint gate 만 막힘).
+
 ## 2026-05-24 — pool-route mac-only tool escalation (target sidecar/pool-route)
 - [ ] `pool-route` PreToolUse 훅이 mac load 가 높을 때 `hexa`(및 `claude`/`llama-*`) 문자열을 포함한 `Bash` 호출을 ubu-1/ubu-2 로 load-escalate 하지만, 해당 도구들은 mac-only 또는 mac mini 전용(`hexa.real` @ `~/.hx/packages/hexa/` · `~/Models/gguf/*.gguf` · Metal `llama-completion` · `pool` CLI 자체) → ubu 에서 `command not found` / `No such file or directory` 로 caller 가 작업 완료 불가.
 - [ ] 제안 fix — escalate 전에 **mac-only-tool allowlist** 조회 (`hexa`/`hexa.real` · `llama-completion`/`llama-server`/`llama-cli` · `~/Models/gguf/` 하위 경로 · `pool`); 매칭 시 high load 에서도 escalation 억제. (옵션) `POOL_DISABLE=1` 을 훅 자체의 hard override 로 존중 — 현재 env var 는 subprocess 시작 전 훅이 소비.

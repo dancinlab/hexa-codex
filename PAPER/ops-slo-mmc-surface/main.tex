@@ -8,8 +8,19 @@
 % structure — throughput ceiling λ_max=c·μ, knee shifts RIGHT with -np, stability
 % cap λ<c·μ, Erlang-C sojourn pole at ρ→1 — is reproduced from the measured grid;
 % the absolute knee utilization is explicitly NOT claimed (host-harness tax is
-% exogenous). g51 publish-lint (≥10 pages + fal.ai figure) is a separate
-% M5.OPS-release residual the 4-section draft does not yet meet.
+% exogenous).
+%
+% M5.OPS-RELEASE EXPANSION (cycle-16b, PR #35): the 4-section draft (5pp) is
+% expanded to satisfy commons g51 publish-lint (≥10 pages + ≥1 fal.ai figure)
+% with GENUINE scholarly content — a fuller M/M/c (birth-death) derivation with
+% the c·μ ceiling and Erlang-C-pole proofs, a Related Work section (classical
+% queueing theory + modern continuous-batching / SLO-aware LLM-serving
+% literature), an extended Discussion (the c→knee-shift law via μ_eff(c)
+% degradation, the two accuracy-cliff mechanisms, the host-load-invariance
+% reconciliation), and an Appendix carrying the full 18-cell grid + the verbatim
+% verify recompute stdout. NO numeric claim changes — every figure stays linked
+% to its existing 🟢 verdict. The fal.ai figure is figures/fig01_knee_shift.png
+% (prompt: figures/_prompts/knee_shift.txt).
 
 \documentclass[11pt,a4paper]{article}
 
@@ -76,26 +87,131 @@ The \S Formula recompute (\texttt{verify/numerics\_ops\_mmc\_knee.hexa}) passes
 \end{abstract}
 
 % =========================================================================
+\section{Related work}
+\label{sec:related}
+\paragraph{Classical multi-server queueing.} The \(M/M/c\) queue and its
+Erlang-C delay formula \citep{erlang1917} are the foundational model of a
+shared pool of \(c\) identical servers fed by Poisson arrivals; the stationary
+analysis, the \(c\,\mu\) stability bound, and the sojourn-time pole are standard
+\citep{kleinrock1975,harchol2013}, with Little's law \(L=\lambda W\)
+\citep{little1961} tying queue length to latency and the Erlang-B loss formula
+\citep{erlangb1948} giving the numerically stable recursion for \(C(c,a)\). Our
+contribution is not the theory but the \emph{identification}: we show that a
+modern continuous-batching LLM server, instrumented end-to-end, reproduces the
+scale-invariant \(M/M/c\) structure when each \texttt{-np} slot is read as a
+service channel \(c\) --- and, critically, that the per-slot service rate
+\(\mu_{\mathrm{eff}}(c)\) is \emph{not} constant on shared-memory hardware.
+
+\paragraph{Continuous batching and the slot abstraction.} The performance
+regime we measure is set by \emph{iteration-level} (continuous) batching, in
+which the scheduler admits and retires requests at token granularity rather than
+per-request, keeping the \(c\) decode slots maximally busy. PagedAttention/vLLM
+\citep{kwon2023vllm} made this the dominant serving design by removing the
+KV-cache fragmentation that previously capped the batch size; \texttt{llama.cpp}'s
+\texttt{-np} parameter is the same abstraction --- it fixes the number of
+concurrent decode slots, i.e. our \(c\). Slice-level scheduling
+\citep{cheng2024scls} analyses precisely the failure mode we observe as our
+second accuracy mechanism: iteration-level schedulers ``often limit the number
+of parallel-processing requests to [avoid] OOM errors,'' and admitting new
+arrivals into a saturated batch contends for finite KV memory. We do not propose
+a new scheduler; we quantify, on a controlled grid, how the existing
+continuous-batch scheduler's admission/preemption behaviour manifests as a
+\emph{correctness} loss under overload.
+
+\paragraph{SLO-aware LLM serving.} A recent line of systems optimises serving
+against explicit latency SLOs --- effective-throughput maximisation under TTFT
+constraints \citep{gao2025aptserve}, goodput maximisation with imprecise
+request-length information \citep{zhang2025jitserve}, and SLO-aware scheduling
+for disaggregated prefill/decode that tackles head-of-line blocking
+\citep{wang2026kairos}. These works target the \emph{latency} axis (TTFT/TPOT,
+p99) and assume responses are correct once returned. Our finding is orthogonal
+and cautionary: on the saturated side of the knee, a fraction of HTTP-200
+responses are \emph{content-truncated} (\(\texttt{error\_rate}=0\) yet accuracy
+collapses), so a purely latency-defined SLO --- the object every one of these
+systems optimises --- can be ``met'' while goodput as measured by answer
+correctness has already cratered. We argue the correctness axis belongs in the
+SLO definition itself.
+
+% =========================================================================
 \section{Formula}
 \label{sec:formula}
 \textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} --- the measured serving
 surface is the classical \(M/M/c\) (Erlang-C) multi-server queue
-\citep{erlang1917,kleinrock1975}. Each \texttt{llama.cpp} continuous-batch slot
-(\(\texttt{-np}\)) is a service channel; with \(c\) channels, per-channel service
-rate \(\mu\) and Poisson arrival rate \(\lambda\),
+\citep{erlang1917,kleinrock1975,harchol2013}. Each \texttt{llama.cpp}
+continuous-batch slot (\(\texttt{-np}\)) is a service channel; with \(c\)
+channels, per-channel service rate \(\mu\) and Poisson arrival rate \(\lambda\),
 \begin{align}
-  a &= \lambda/\mu, \qquad \rho = a/c = \lambda/(c\,\mu), \\
+  a &= \lambda/\mu, \qquad \rho = a/c = \lambda/(c\,\mu), \label{eq:rho}\\
   C(c,a) &= \frac{a^{c}/\!\big(c!\,(1-\rho)\big)}
                {\displaystyle\sum_{k=0}^{c-1}\frac{a^{k}}{k!}
-                \;+\; \frac{a^{c}}{c!\,(1-\rho)}}, \\
+                \;+\; \frac{a^{c}}{c!\,(1-\rho)}}, \label{eq:erlangc}\\
   W_q &= \frac{C(c,a)}{c\,\mu - \lambda}, \qquad
-  W = W_q + \frac{1}{\mu},
+  W = W_q + \frac{1}{\mu}, \label{eq:sojourn}
 \end{align}
 where \(C(c,a)\) is the Erlang-C probability that an arrival must queue and \(W\)
 is the mean sojourn time. Two closed-form consequences govern the SLO surface:
 the \emph{throughput ceiling} \(\lambda_{\max} = c\,\mu\) (no goodput beyond it,
 the stability bound \(\lambda < c\,\mu\)) and the \emph{latency knee}, where
-\(W\to\infty\) as the utilization \(\rho\to 1\) (a pole, not a smooth bend).
+\(W\to\infty\) as the utilization \(\rho\to 1\) (a pole, not a smooth bend). The
+remainder of this section derives Eqs.~\eqref{eq:rho}--\eqref{eq:sojourn} from
+first principles and proves both consequences; the recompute that certifies them
+against the measured grid follows.
+
+\paragraph{Birth--death derivation.} An \(M/M/c\) queue is the continuous-time
+Markov chain on the number-in-system \(n\) with constant arrival rate \(\lambda\)
+(births) and state-dependent service rate \(\mu_n = \min(n,c)\,\mu\) (deaths) ---
+\(n\) busy channels each clear work at rate \(\mu\) until all \(c\) are busy,
+after which the aggregate service rate saturates at \(c\,\mu\). Detailed balance
+across the cut between states \(n-1\) and \(n\) gives the stationary
+probabilities \(p_n\):
+\begin{equation}
+  p_n =
+  \begin{cases}
+    \dfrac{a^{n}}{n!}\,p_0, & 0 \le n \le c,\\[6pt]
+    \dfrac{a^{c}}{c!}\,\rho^{\,n-c}\,p_0, & n > c,
+  \end{cases}
+  \qquad
+  p_0 = \Bigg[\sum_{k=0}^{c-1}\frac{a^{k}}{k!}
+        + \frac{a^{c}}{c!}\,\frac{1}{1-\rho}\Bigg]^{-1}.
+  \label{eq:stationary}
+\end{equation}
+The geometric tail \(\rho^{\,n-c}\) for \(n>c\) is summable iff \(\rho<1\); this
+is the stability condition. Summing \(p_n\) over the saturated states
+\(n\ge c\) gives exactly the Erlang-C delay probability of
+Eq.~\eqref{eq:erlangc}, \(C(c,a)=\sum_{n\ge c}p_n\). Erlang-C is related to the
+Erlang-B loss formula \(B(c,a)\) \citep{erlangb1948} by
+\(C = cB/\big(c-a(1-B)\big)\), which gives the numerically stable recursion we
+use for small \(c\).
+
+\paragraph{The \(c\,\mu\) throughput ceiling (proof).} In steady state the mean
+departure (goodput) rate equals \(\mu\) times the expected number of busy
+channels, \(\sum_n \min(n,c)\,\mu\,p_n\). For a stable queue (\(\rho<1\)) Little's
+law and flow conservation force throughput to equal the arrival rate
+\(\lambda\); but the busy-channel count is bounded above by \(c\), so the maximum
+sustainable departure rate is \(c\,\mu\). As \(\lambda\uparrow c\,\mu\) the system
+approaches \(\rho\to1\): every channel is busy essentially always, the queue
+length grows without bound, and offered load beyond \(c\,\mu\) cannot raise
+goodput --- it only deepens the queue. Hence \(\lambda_{\max}=c\,\mu\) is a hard
+ceiling, and it grows \emph{linearly} in \(c\). This is the structural origin of
+the ``knee shifts right with \(\texttt{-np}\)'' finding: more channels move the
+ceiling, and with it the knee, to a higher offered rate.
+
+\paragraph{The latency knee is a pole (proof).} Substituting
+\(c\,\mu-\lambda=c\,\mu(1-\rho)\) into Eq.~\eqref{eq:sojourn},
+\begin{equation}
+  W_q(\rho) = \frac{C(c,a)}{c\,\mu\,(1-\rho)},
+  \qquad
+  \lim_{\rho\to1^-} W_q = +\infty,
+  \label{eq:pole}
+\end{equation}
+since the numerator \(C(c,a)\to1\) (queueing becomes certain) while the
+denominator \(\to0^+\). The divergence is a simple pole of order one in
+\((1-\rho)\): \(W\) is convex and strictly increasing in \(\lambda\) on
+\([0,c\,\mu)\) and rises super-linearly as \(\rho\to1\). The latency ``knee'' is
+therefore not a gentle saturation curve but a genuine asymptote --- which is why
+a deployment that crosses \(\rho=1\) sees latency explode rather than degrade
+gracefully, and why an SLO drawn at a fixed millisecond budget is crossed almost
+discontinuously near the ceiling.
 
 \paragraph{Fit and recompute.} The effective per-slot service rate is read from
 the measured saturation throughput, \(\mu_{\mathrm{eff}}(c) = \text{ceiling}/c\)
@@ -179,8 +295,28 @@ p50/p99 \(\times\) accuracy surface (verbatim from
 \end{tabular}
 \end{center}
 
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figures/fig01_knee_shift.png}
+  % generated via fal.ai (openai/gpt-image-2); prompt: figures/_prompts/knee_shift.txt
+  \caption{Schematic of the measured M/M/c SLO surface. As the parallel-slot
+    count \(c{=}\texttt{-np}\) rises (\(1\!\to\!2\!\to\!4\)) the latency knee ---
+    the offered rate at which p99 bends into the Erlang-C pole of
+    Eq.~\eqref{eq:pole} --- shifts \emph{right}, tracking the throughput ceiling
+    \(\lambda_{\max}=c\,\mu\) (\(9.53/15.01/20.0\) qps; dashed verticals). Past
+    the knee, a single offered-load violation surfaces on the \emph{correctness}
+    axis: the lower strip shows accuracy collapsing from 100\% (sub-knee) into the
+    cliff (\S\ref{sec:benefit}). Curve shapes are the qualitative M/M/c structure
+    certified in \S\ref{sec:formula}; the per-cell numbers are
+    Table~\ref{tab:grid-app}. AI-generated schematic
+    (\texttt{figures/\_prompts/knee\_shift.txt}); the load-bearing numbers live in
+    the verbatim grid, not the artwork.}
+  \label{fig:knee}
+\end{figure}
+
 \noindent The measured throughput ceilings are \(9.53/15.01/20.0\) qps for
-\(c{=}1/2/4\) (the \(c\,\mu\) saturation rate of \S\ref{sec:formula}); the
+\(c{=}1/2/4\) (the \(c\,\mu\) saturation rate of \S\ref{sec:formula};
+Fig.~\ref{fig:knee} sketches the surface); the
 sub-knee band (rate 1--2) is clean across all \(\texttt{-np}\) (p50 162--297\,ms,
 acc 100\%); and the per-\(\texttt{-np}\) knee crossing is sharp and locatable.
 Two strata of the truncation behaviour appear: at \(\texttt{-np}{=}1\) the long
@@ -233,6 +369,83 @@ the harness itself --- which closes all three M2.OPS residuals (boot-race,
 saturation-hang, unlocated knee) --- is part of the contribution.
 
 % =========================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{The knee-shift law and why \(\mu_{\mathrm{eff}}\) degrades with \(c\).}
+The \(c\,\mu\) ceiling proof (\S\ref{sec:formula}) predicts the knee shifts
+right with the channel count; the measured ceilings \(9.53\to15.01\to20.0\) qps
+confirm it. But the shift is \emph{sub-linear}: doubling \(c\) from 1 to 2 buys
+\(1.57\times\) throughput, not \(2\times\), and quadrupling to 4 buys
+\(2.10\times\), not \(4\times\). Read through the model, this means the
+effective per-slot service rate falls,
+\(\mu_{\mathrm{eff}}(c)=\text{ceiling}/c = 9.53\to7.505\to5.0\) req/s/slot. The
+mechanism is shared-memory contention: a 24\,GB unified-memory M3 has a single
+memory-bandwidth budget, and decode is bandwidth-bound (every token streams the
+model weights and the growing KV cache). Adding decode slots splits one
+bandwidth budget more ways, exactly the KV-cache pressure that PagedAttention
+\citep{kwon2023vllm} was designed to relieve on discrete GPUs. The practical
+consequence is a diminishing-returns curve: extra slots help until the
+memory-bandwidth wall, beyond which (cycle-6 measured \(\texttt{-np}{=}8\) at
+\(27.9\%\) \emph{slower} than \(\texttt{-np}{=}4\)) they hurt. The \emph{shape}
+--- ceiling grows, slope diminishes --- is the robust, model-certified law; the
+absolute breakpoint is hardware-specific.
+
+\paragraph{Two accuracy-cliff mechanisms, and why they are separable.} The
+M2.OPS pilot saw accuracy collapse under saturation and attributed it to a
+single cause --- the client timeout truncating slow completions. The full grid
+shows two mechanisms that the pilot's coarse grid conflated:
+\begin{enumerate}
+  \item \textbf{Client-timeout truncation} dominates at low \(c\) / long tail:
+    when p99 \(>\) the request timeout (\SI{30}{\second}) the slowest
+    completions are cut off and score byte-exact-WRONG. It is \emph{latency}
+    crossing a client-side threshold. In this run it was \emph{not} triggered
+    (every cell's p99 stayed \(<\SI{11.5}{\second}\)), so \(\texttt{-np}{=}1\)
+    accuracy held \(86\text{--}94\%\) even when saturated.
+  \item \textbf{Scheduler slot-preemption} dominates at high \(c\) / high
+    concurrency: the continuous-batch scheduler admits new arrivals into a full
+    batch and preempts or early-stops in-flight generations, returning
+    short-but-HTTP-200 bodies. This is the OOM-avoidance / concurrency-cap
+    behaviour that \citet{cheng2024scls} describe for iteration-level
+    schedulers. It is \emph{content} truncation at the server, invisible to both
+    latency and transport monitors.
+\end{enumerate}
+The separability is the operationally important part: the two mechanisms have
+\emph{opposite} \(c\)-dependence (timeout-truncation eases as more slots cut the
+tail; slot-preemption worsens as more slots compete for the batch), so they
+cannot be collapsed into one knob. A deployment tuned to dodge (1) by adding
+slots can walk straight into (2). Our grid exhibits exactly this: raising
+\(\texttt{-np}\) from 1 to 4 removes the timeout tail but introduces the
+preemption cliff at rate \(\ge20\) (acc \(94\to41.5\to19.3\%\)).
+
+\paragraph{Why the correctness axis is non-optional.} In all six cliff cells
+\(\texttt{error\_rate}=0.00\%\): every response was HTTP 200. A latency-and-error
+dashboard --- the standard SRE pair, and the object the SLO-aware serving systems
+of \S\ref{sec:related} optimise --- would show \emph{green} on both axes while
+\(46\text{--}81\%\) of answers were silently wrong. The accuracy axis is the only
+signal that fires. We therefore state the OPS law in correctness terms: an
+offered-load SLO violation surfaces as an accuracy cliff via whichever truncation
+path the deployment exposes first, and a serving SLO that omits a correctness
+probe is structurally blind to the failure mode that overload actually produces.
+
+\paragraph{Host-load invariance: reconciling the pilot.} The M2.OPS pilot
+reported \(\texttt{best\_np}{=}1\) and a single-slot service rate
+\(\mu_{c=1}\approx8.9\)/s; this run measures \(\mu_{c=1}\approx3.4\)/s and
+\(\texttt{best\_np}\in\{2,4\}\). Both are honest. The pilot ran under light host
+load so its \(\texttt{rate}{=}5\) fit under a single slot; this run's harness
+drives its own per-request shell pipeline (\texttt{xargs} fan-out \(+\)
+\texttt{jq} parse \(+\) \texttt{awk} keyword lookup) which competes for the same
+UMA/CPU, depressing \(\mu_{c=1}\) and exposing the parallel-slot advantage. The
+\emph{absolute} knee qps is thus a function of (model, box, harness overhead,
+background load) and is \textbf{not} a universal constant --- which is why
+\S\ref{sec:formula} certifies only the scale-invariant structure and the
+recompute deliberately reads \(\mu_{\mathrm{eff}}\) from the data rather than
+assuming it. The \emph{relative} structure --- knee shifts right with \(c\),
+ceiling at \(c\,\mu\), accuracy cliff at saturation --- held in both runs and is
+invariant to the absolute \(\mu\). This is the load-invariant claim, and the only
+one we make.
+
+% =========================================================================
 \section{Verdict matrix}
 \label{sec:verdict-matrix}
 Per \texttt{cx\_paper\_sections}, every section claim links to its verdict file.
@@ -278,9 +491,20 @@ two-mechanism accuracy cliff, the \(c\,\mu\) throughput cap). No row remains
     percentiles over their \SI{240}{\second} partial drain; their p50/p99 are
     valid samples of the saturated regime, but \(n_{\text{completed}}\) is an
     undercount of true demand.
-  \item \textbf{Publish-lint (g51) residual.} This 4-section draft does not yet
-    meet the commons \(\ge 10\)-page \(+\) fal.ai-figure publish bar; that is a
-    separate \textbf{M5.OPS-release} condition, deliberately not padded here.
+  \item \textbf{Open-loop, single-prompt-mix workload.} The arrival process is
+    Poisson-spaced and the request distribution is the fixed Stage-2 manifest;
+    we do not model bursty (closed-loop) clients, prompt-length heterogeneity,
+    or the long-tail generation lengths that the SLO-aware schedulers of
+    \S\ref{sec:related} target. The \(M/M/c\) exponential-service assumption is
+    an idealisation of a service-time distribution that is in reality
+    length-dependent; it captures the ceiling and the pole, not the exact tail
+    shape.
+  \item \textbf{Schematic figure is illustrative, not a data plot.}
+    Figure~\ref{fig:knee} is an AI-generated schematic of the qualitative
+    surface; the load-bearing numbers are the verbatim grid
+    (Table~\ref{tab:grid-app}) and the recompute (Appendix~\ref{app:recompute}),
+    never the artwork. Its provenance prompt is kept at
+    \texttt{figures/\_prompts/knee\_shift.txt}.
 \end{itemize}
 
 % =========================================================================
@@ -293,6 +517,125 @@ Code: \url{https://github.com/dancinlab/hexa-codex}. Harness:
 HEXA\_CODEX\_ROOT="\$PWD" hexa run verify/numerics\_ops\_mmc\_knee.hexa}).
 Verdicts under \texttt{.verdicts/sandbox/}. Build: \texttt{make} (pdflatex
 \(\times\) 3 \(+\) bibtex).
+
+% =========================================================================
+\appendix
+
+\section{The full 18-cell SLO grid}
+\label{app:grid}
+Table~\ref{tab:grid-app} is the complete measured surface --- all 18 cells
+(3 \(\texttt{-np}\) \(\times\) 6 offered rate), verbatim from
+\texttt{.verdicts/sandbox/m3\_ops\_full\_slo\_grid.tsv}. The body of the paper
+(Table in \S\ref{sec:benchmark}) excerpts 9 cells; this is the surface in full,
+including the rate-1 baselines and every WALL\_CAPPED cell with its partial-drain
+percentiles. Columns: \(n_t\) arrivals offered, \(n_c\) completed, \(n_{ok}\)
+byte-exact-correct; latencies in ms; throughput \(=n_c/60\)\,s; \texttt{err}
+transport error rate (non-2xx); \texttt{acc} content accuracy.
+
+\begin{table}[h]
+\centering
+\caption{Full M3.OPS SLO grid (Stage-2 \(N{=}2000\)). \texttt{WALL\_CAPPED}
+  cells report percentiles over the \SI{240}{\second} partial drain --- honest
+  partials, not hangs. \texttt{p999} is \texttt{NA} unless
+  \(n_c\ge1000\) (honesty gate). Verbatim;
+  \texttt{.verdicts/sandbox/m3\_ops\_full\_slo\_grid.tsv}.}
+\label{tab:grid-app}
+\small
+\begin{tabular}{rrrrrrrrrrrr}
+\toprule
+\(c\) & rate & \(n_t\) & \(n_c\) & \(n_{ok}\) & p50 & p95 & p99 & p999 & thru & acc & state \\
+\midrule
+1 & 1  & 60   & 60   & 60  & 278  & 417   & 463   & NA   & 1.00  & 100.00 & VALID \\
+1 & 2  & 120  & 120  & 120 & 297  & 413   & 512   & NA   & 2.00  & 100.00 & VALID \\
+1 & 5  & 300  & 300  & 272 & 4400 & 5588  & 7688  & NA   & 5.00  & 90.66  & VALID \\
+1 & 10 & 572  & 572  & 536 & 4552 & 10902 & 11494 & NA   & 9.53  & 93.70  & W\_CAP \\
+1 & 20 & 481  & 481  & 445 & 5009 & 8829  & 10336 & NA   & 8.01  & 92.51  & W\_CAP \\
+1 & 40 & 233  & 233  & 202 & 3818 & 5327  & 6330  & NA   & 3.88  & 86.69  & W\_CAP \\
+\midrule
+2 & 1  & 60   & 60   & 60  & 171  & 243   & 281   & NA   & 1.00  & 100.00 & VALID \\
+2 & 2  & 120  & 120  & 120 & 183  & 254   & 263   & NA   & 2.00  & 100.00 & VALID \\
+2 & 5  & 300  & 300  & 272 & 266  & 932   & 1769  & NA   & 5.00  & 90.66  & VALID \\
+2 & 10 & 600  & 600  & 564 & 2898 & 5979  & 6712  & NA   & 10.00 & 94.00  & VALID \\
+2 & 20 & 901  & 901  & 485 & 2771 & 5658  & 7516  & NA   & 15.01 & 53.82  & W\_CAP \\
+2 & 40 & 806  & 806  & 234 & 1909 & 2994  & 3465  & NA   & 13.43 & 29.03  & W\_CAP \\
+\midrule
+4 & 1  & 60   & 60   & 60  & 162  & 200   & 234   & NA   & 1.00  & 100.00 & VALID \\
+4 & 2  & 120  & 120  & 120 & 187  & 237   & 247   & NA   & 2.00  & 100.00 & VALID \\
+4 & 5  & 300  & 300  & 272 & 480  & 1181  & 1549  & NA   & 5.00  & 90.66  & VALID \\
+4 & 10 & 600  & 600  & 564 & 2668 & 5443  & 5864  & NA   & 10.00 & 94.00  & VALID \\
+4 & 20 & 1200 & 1200 & 498 & 1778 & 4447  & 5656  & 7668 & 20.00 & 41.50  & VALID \\
+4 & 40 & 1225 & 1225 & 236 & 1631 & 2465  & 3142  & 5871 & 20.41 & 19.26  & W\_CAP \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\noindent Reading down each \(c\)-block, the rate-1/rate-2 sub-knee band is clean
+(acc 100\%, p50 162--297\,ms) for every \(c\); the knee crossing is where p50
+jumps by an order of magnitude (\(c{=}1\): 297\(\to\)4400 at rate 2\(\to\)5;
+\(c{=}2,4\): the 2668--2898 cell at rate 10); and the accuracy cliff appears only
+for \(c\ge2\) at rate \(\ge20\), as the Discussion's slot-preemption mechanism
+predicts. The \(n_{ok}\!\ll\!n_c\) gap in the cliff rows (e.g. \(c{=}4\), rate 40:
+\(n_c{=}1225\), \(n_{ok}{=}236\)) with \texttt{err}\(=0\) throughout is the
+content-truncation signature.
+
+\section{The \S\ref{sec:formula} recompute, verbatim}
+\label{app:recompute}
+The \S\ref{sec:formula} verdict link target is the closed-form recompute
+\texttt{verify/numerics\_ops\_mmc\_knee.hexa} (hexa-native, no model spawn). Its
+raw stdout is reproduced verbatim below (verdict
+\texttt{.verdicts/sandbox/m4\_ops\_formula\_fit.txt}); the recompute is the
+verification, not a paraphrase of it.
+
+{\footnotesize
+\begin{verbatim}
+========================================================================
+  hexa-codex OPS Formula recompute -- M/M/c throughput-ceiling + knee
+  M4.OPS . Erlang-C closed form vs the measured M3.OPS SLO grid
+  recompute of lambda_max=c.mu ceiling + rho=lambda/(c.mu)=1 knee from { c, mu_eff }
+========================================================================
+  LAW: rho=lambda/(c.mu) . C(c,a)=Erlang-C . W=C/(c.mu-lambda)+1/mu . ceiling=c.mu
+
+  np=c   ceiling_obs(qps)   mu_eff=ceiling/c (req/s/slot)
+   1      9.53             9.53
+   2      15.01             7.505
+   4      20.0             5.0
+
+  [PASS] ceiling identity lambda_max=c.mu_eff reproduces measured saturation
+         throughput (<=0.5 qps)
+         . max_ceiling_err=0.0 qps  (c.mu_eff is the c.mu ceiling)
+  [PASS] c.mu ceiling grows monotonically with c -> M/M/c knee shifts RIGHT
+         with -np (primary M3.OPS finding)
+         . ceilings: c=1 9.53 < c=2 15.01 < c=4 20.0 qps
+  [PASS] knee shifts RIGHT with c: sustained-rate vector strictly increasing
+         in c, each operating point rho=rate/ceiling<=1
+         . sustained {2,10,20}qps strictly increasing, all rho<=1:
+           [c=1: sustained=2.0qps rho=0.209864<=1]
+           [c=2: sustained=10.0qps rho=0.666223<=1]
+           [c=4: sustained=20.0qps rho=1.0<=1]
+  [PASS] stability cap lambda<c.mu holds: throughput at rate=40 never exceeds
+         the c.mu ceiling (no goodput past the knee)
+         . thru@40 vs ceiling: [c=1: 3.88 <= 10.13] [c=2: 13.43 <= 15.61]
+           [c=4: 20.41 <= 20.6]
+  [PASS] Erlang-C W(lambda) is a pole at rho->1: strictly increasing, >3.0x
+         over rho 0.5->0.95, unbounded at rho=1
+         . W(.5)=177.659ms < W(.8)=370.124 < W(.95)=1366.61 < W(.99)=6695.7ms
+           ratio(.95/.5)=7.69231  W(rho=1)=infinity(pole)
+
+========================================================================
+  5/5 checks passed
+  SUPPORTED-NUMERICAL -- the M/M/c (Erlang-C) queueing law reproduces
+     the measured M3.OPS SLO surface's SCALE-INVARIANT structure:
+       . throughput ceiling lambda_max = c.mu  (c=1/2/4 -> 9.53/15.01/20.0 qps)
+       . mu_eff degrades with c on shared UMA: 9.53/7.505/5.0 req/s/slot
+       . knee = rho=lambda/(c.mu)=1 stability boundary, shifts RIGHT with -np
+       . offered lambda past c.mu buys no goodput (stability cap)
+       . Erlang-C W(lambda) is a pole at rho->1 (sharp knee, not a smooth bend)
+     NOT claimed: absolute W in ms (host-harness overhead is exogenous).
+  . Formula verdict: this recompute is the link target
+    .verdicts/sandbox/m4_ops_formula_fit.txt
+__HEXA_CODEX_NUMERICS_OPS_MMC_KNEE__ PASS
+\end{verbatim}
+}
 
 % =========================================================================
 \bibliographystyle{plainnat}

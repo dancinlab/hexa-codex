@@ -1,0 +1,163 @@
+# BITNET M5 — atlas BT-77 confirm-or-refute by recompute
+# verdict_tier: 🟡 SUPPORTED-BY-CITATION  (atlas-registered, NO in-repo recompute path)
+# m5_flip: false  (residual remains [ ] until an in-repo recompute path lands)
+# host: mac-mini-m3
+# date: 2026-05-25
+# cost_usd: 0  (atlas-only inspection; no GPU / no serving)
+# tool: hexa atlas lookup + hexa verify
+# bench_file: NONE (no in-repo benchmark exists; the atom carries no manifest / model list / paper ref)
+
+# ════════════════════════════════════════════════════════════════════
+# 1) WHAT BT-77 ACTUALLY IS — the verbatim atlas atom
+# ════════════════════════════════════════════════════════════════════
+
+# $ hexa atlas lookup R 'n6-atlas-breakthrough-theorems-tecs-l-cross-domain-**bt-77**'
+atlas: loaded 16088 nodes from embedded.gen.hexa
+@R n6-atlas-breakthrough-theorems-tecs-l-cross-domain-**bt-77** :: embedded.gen.hexa:41284
+@R n6-atlas-breakthrough-theorems-tecs-l-cross-domain-**bt-77** = BitNet Quantization n=6 n6 :: n6atlas [10*]
+  "**BT-77** — 2B4T 25/26 EXACT, 3 models × 2 teams, 40/41 total"
+--
+
+# $ hexa atlas lookup X 'n6-bt-77'   (X-kind sibling, namespace-disjoint)
+atlas: loaded 16088 nodes from embedded.gen.hexa
+@X n6-bt-77 :: embedded.gen.hexa:59451
+@X n6-bt-77 = ONE_STAR bt :: bt [10]
+  "Cross-Vendor HBM Capacity Convergence to n=6"
+--
+# NOTE: the X-kind 'n6-bt-77' is HBM, NOT BitNet — different domain in a
+# different namespace. Only the R-kind atom above is the BitNet quantization
+# claim. M5 scope = the R-kind atom only.
+
+# ════════════════════════════════════════════════════════════════════
+# 2) WHAT DOES "25/26 EXACT, 3 models × 2 teams, 40/41 total" MEASURE?
+# ════════════════════════════════════════════════════════════════════
+# Source provenance probe (full hexa-lang tree + this repo):
+#   $ grep -rn "bt-77\|BT-77\|BitNet Quantization n=6\|2B4T 25/26\|40/41"
+#     - /Users/ghost/core/hexa-lang/n6/atlas.n6:40221-40222  (the headline, 2 lines)
+#     - /Users/ghost/core/hexa-lang/firmware/.../n6-advanced-packaging-*.md
+#       (cross-references to BT-77 as "HBM 12-Hi sigma σ=12 stack depth" —
+#       this is the HBM/packaging X-kind sibling, NOT the BitNet R-kind)
+#     - /Users/ghost/core/hexa-lang/comb/ + self/test_bitnet*.hexa
+#       (generic BitNet library refs, NO link to BT-77 / no "26 task" set)
+#     - n6-66-techniques-integrated-paper.md lists BT-77 as a predecessor BT
+#       but does NOT enumerate its 26 sub-claims
+#   Sub-row probe:
+#     $ grep -E "bitnet-quantization|atlas-bitnet|bt-77-" atlas.n6
+#       -> ZERO matches.
+# Verdict: BT-77 was registered WITHOUT sub-row witnesses. Compare:
+#   - BT-71 NeRF/3DGS "7/7" has 8 @R sub-rows ("...table-bt-71-⭐⭐-σ-φ = 10", etc.)
+#   - BT-72 EnCodec "7/7" has 8 @R sub-rows ("...table-bt-72-⭐⭐-σ-τ = 8", etc.)
+#   - BT-73 Tokenizer "6/6" has 6 @R sub-rows
+#   - BT-75 HBM IF "...." has multiple @R sub-rows
+#   - BT-77 BitNet "25/26 EXACT, 40/41 total" — 0 sub-rows. Headline only.
+#
+# n6 fact-pattern interpretation (cross-checked against BT-66/70/71/72/73/78/79/86):
+#   "25/26 EXACT" = 25 out of 26 BitNet 2B4T architecture parameters
+#     (layers, dims, heads, kv-heads, ffn-dim, vocab, ctx, n-experts, ...)
+#     land on n=6 divisor identities (n=6, σ=12, σ-φ=10, σ-τ=8, τ=4, σ·τ=48,
+#     2^(σ-τ)=256, sopfr=5, n-φ=3, μ=2, J₂=24, ...).
+#   "3 models × 2 teams" = the BitNet b1.58 family (700M + 1.3B + 3B = 3 sizes;
+#     Microsoft Research + the BitNet community/HF team = 2 teams),
+#     each scored independently against the same n=6 lattice → 40/41 cumulative.
+#   "40/41 total" = the union of 3-model sub-claims that land on the n=6 lattice.
+#
+# This is the n=6 numerology framework (TECS-L cross-domain), NOT a runnable ML
+# benchmark like MMLU/IFEval/HumanEval. There is no "26-task scoring script",
+# no model list with checkpoints, no per-task scorer, no fp16 baseline to
+# compare against. The "EXACT" is integer-pattern-match (does parameter X
+# equal n=6 divisor identity Y?), not served-accuracy.
+
+# ════════════════════════════════════════════════════════════════════
+# 3) HONEST TIER — what the substrate can ACTUALLY do here
+# ════════════════════════════════════════════════════════════════════
+# RUBRIC PROBE (verbatim):
+# $ hexa verify BT-77
+hexa verify — cross-project tier rubric (TECS-L-aligned, LATTICE_POLICY real-limits-first)
+
+  🔵 SUPPORTED-FORMAL      hexa-native calc reproduces a CLOSED-FORM/symbolic
+                           identity exactly — TECS-L n6-rep Tier 1 (pure-math,
+                           deterministic) · g_self_verify · anima HEXAD g_verdict_tier_blue(a)
+  🟢 SUPPORTED-NUMERICAL   hexa-native NUMERICAL recompute matches (libm/Newton,
+                           non-symbolic) — TECS-L n6-rep Tier 2 (~10min suite)
+  🟡 SUPPORTED-BY-CITATION atlas/literature registered, NO hexa recompute
+                           (external sympy/citation carry — never auto-🔵)
+  🟠 INSUFFICIENT          not in atlas + no calc path (g_tier_default default)
+  🟠 DEFERRED              external hw/data/API dep — TECS-L Tier 3 (GPU) /
+                           g_external_calc_forbidden (closure-external)
+  🔴 FALSIFIED             calc DETERMINISTICALLY disagrees with the claim —
+                           a CLOSED negative (TECS-L result-agnostic: PASS or
+                           FAIL both verified-closed; ≠ INSUFFICIENT)
+  ⚪ SPECULATION-FENCED    imagination/metaphor (hexa-bio AXIS) — verify N/A,
+                           SF ≠ proven (g4 honest fence)
+# ... (falls through to rubric — BT-77 is a registered fact-pattern atom
+# without an @C/@R --expr closed-form recompute, so verify cannot auto-judge it)
+
+# WHY NOT 🟢 NUMERICAL: a 🟢 needs hexa-native recompute matching a stated
+# numerical value. BT-77 carries one count pair ("25/26", "40/41") but NO
+# closed-form expr (`<fn> <n> <v>`) — and no in-repo dataset of the 26 BitNet
+# parameters with their n=6 lattice match codes. Manufacturing the sub-rows
+# now from external knowledge would be LLM-self-judging (violates cx_claim_verify),
+# not recomputing.
+#
+# WHY NOT 🔵 FORMAL: same reason. No symbolic identity is stated.
+#
+# WHY NOT 🟠 DEFERRED: "external hw/data dep" means a recompute PATH exists
+# but needs hw/data we don't have. Here NO recompute path exists at all — the
+# atom-as-written has no scoring function to run. M1/M2 were correctly 🟠
+# DEFERRED because their served-accuracy IS a closed scoring function
+# (byte_exact_subset on a 20-task manifest, just needs the GGUF + llama.cpp).
+# BT-77's 25/26 has no equivalent scoring function in the atom.
+#
+# WHY NOT 🔴 FALSIFIED: nothing measured contradicts the headline.
+#
+# CORRECT TIER: 🟡 SUPPORTED-BY-CITATION
+#   "atlas/literature registered, NO hexa recompute (external sympy/citation
+#   carry — never auto-🔵)". BT-77 IS in the atlas (grade=10*, verified=true),
+#   but its in-repo recompute path is empty — exactly the 🟡 boundary.
+
+# ════════════════════════════════════════════════════════════════════
+# 4) RELATION TO M1/M2/M2+ — what WAS recomputed
+# ════════════════════════════════════════════════════════════════════
+# M1, M2, M2+ DID land empirical T4 contact on the same model that BT-77
+# alludes to (BitNet b1.58 2B4T):
+#   - M1: 6/20 = 30% on canonical 20-task SANDBOX manifest, byte_exact_subset,
+#     TQ2_0 2.06 bpw on stock llama.cpp     (.verdicts/bitnet/m1_accuracy_floor_summary.txt)
+#   - M2: peak RSS 1568 MB CPU vs Qwen2.5-1.5B-Q4 1944 MB Metal / 2878 MB CPU
+#                                            (.verdicts/bitnet/m2_memory_profile_summary.txt)
+#   - M2+: 6/20 = 30% on TRUE i2_s 1.58 bpw via Microsoft bitnet.cpp self-convert,
+#     bit-for-bit identical to TQ2_0 (.verdicts/bitnet/m2plus_i2s_true_1_58bit.txt)
+# Those served-accuracy numbers are NOT what BT-77's "25/26 EXACT" measures.
+# Conflating them would falsely report a recompute that does not exist.
+# So M5 stays honest at 🟡 — and references M1/M2/M2+ as evidence that
+# the underlying MODEL is real and usable on this substrate, but not that
+# BT-77's specific 25/26 pattern-match claim has been independently recomputed.
+
+# ════════════════════════════════════════════════════════════════════
+# 5) WHAT WOULD UNBLOCK A GENUINE M5 RECOMPUTE (next-cycle seed)
+# ════════════════════════════════════════════════════════════════════
+# An in-repo recompute path for BT-77 would require:
+#   (a) ENUMERATE the 26 BitNet 2B4T architecture parameters publicly
+#       known + each one's n=6 divisor identity match code  -> commit as a
+#       .hexa table (same shape as BT-71 / BT-72 / BT-73 sub-rows).
+#       Source: BitNet b1.58 2B4T config.json (already on disk at
+#       /Users/ghost/Models/.../bitnet-b1.58-2B-4T-bf16/config.json).
+#   (b) WRITE a closed-form scorer (`bench/bitnet_bt77_n6_lattice_match.hexa`)
+#       that re-derives 25/26 from the .hexa table + the n=6 lattice
+#       (n, σ=12, σ-φ=10, σ-τ=8, τ=4, σ·τ=48, sopfr=5, n-φ=3, μ=2, J₂=24).
+#       Output: confirmed_K/26, list of {parameter, n6_identity, exact}.
+#   (c) EXTEND to "3 models × 2 teams = 40/41 total" by repeating for
+#       BitNet 700M + 1.3B configs (cross-team variants), same lattice.
+#   (d) Resolve atlas at the same `**bt-77**` id via `hexa atlas append-witness`
+#       carrying the recomputed integer; flip M5 [x] on 🟢 NUMERICAL.
+# Estimated effort: <1 day local, $0. Blocked today only by the missing
+# .hexa table (a) — once that lands, the recompute is closed-form and cheap.
+
+# ════════════════════════════════════════════════════════════════════
+# REPRODUCE
+# ════════════════════════════════════════════════════════════════════
+#   cd /Users/ghost/core/hexa-codex
+#   hexa atlas lookup R 'n6-atlas-breakthrough-theorems-tecs-l-cross-domain-**bt-77**'
+#   hexa atlas lookup X 'n6-bt-77'
+#   hexa verify BT-77
+#   grep -E "bitnet-quantization|atlas-bitnet|bt-77-" /Users/ghost/core/hexa-lang/n6/atlas.n6
+#     # -> ZERO matches (no sub-row witnesses, just the headline)

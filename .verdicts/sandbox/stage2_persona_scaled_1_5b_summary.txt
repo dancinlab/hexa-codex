@@ -1,0 +1,47 @@
+# bench=sandbox_stage2_persona_scaled_1_5b (M2.SUBSTRATE 1.5B rerun of cycle-6)
+# cross_ref_0_5b=.verdicts/sandbox/stage2_persona_scaled_summary.txt (cycle-6 sister)
+# cross_ref_m1=.verdicts/sandbox/m1_substrate_base_pick.txt (1.5B base smoke verdict)
+# model_sha256=1adf0b11065d8ad2e8123ea110d1ec956dab4ab038eab665614adba04b6c3370
+# model=Qwen2.5-1.5B-Instruct-Q4_K_M
+# tool=llama-completion (chat-template aware via -sys)
+# manifest=.verdicts/sandbox/stage2_manifest.tsv (N=2000, 5 strata × 400)
+# n_sampled=150
+# per_stratum_n=30
+# stride=13
+# scorer=byte_exact_subset case-insensitive (SCORER-FIXED trailer-strip pattern)
+# cost_usd=0  (local serving; wall_ms is proxy cost surface)
+# nano_overall_accuracy=69/150 46%
+# mid_overall_accuracy=61/150 40%
+# max_overall_accuracy=61/150 40%
+# nano_total_wall_ms=354816
+# mid_total_wall_ms=212733
+# max_total_wall_ms=189873
+# spread_tasks=8  (max_correct - min_correct across personas)
+# overall_spread_ge_1pp=true  (spread_tasks >= 2 = 1pp on N=150)
+# acc_3pp=true  (spread_tasks >= 5 = 3pp on N=150)
+# latency_2x=false  (max_total_ms >= 2 * min_total_ms)
+# ranking_differs_across_strata=true
+# tier_separation_observed=true
+# routing_simulation_viable=true
+# best_persona_per_stratum=wc_5_15:nano,wc_16_30:nano,wc_31_60:nano,wc_61_100:nano,wc_101_200:mid
+# difficulty_cliff_position=wc_5_15  (lowest wc-stratum where ANY persona >= 50% = 15/30)
+# cliff_shifted_vs_0_5b=false  (true iff 1.5B cleared the wc_31_60 stratum 0.5B failed at 3-6%)
+# cleared_wc_31_60=false  (auxiliary: 1.5B cleared the wc_31_60 stratum?)
+# completion_status=FULL  (FULL if all personas finished N=150; PARTIAL_<names>_only if any halted early on the 20-min/persona budget)
+
+# per-stratum cross-tab: persona	stratum	correct	n	acc_pct	total_wall_ms
+# nano	wc_5_15	29	30	96%	42758
+# nano	wc_16_30	29	30	96%	37391
+# nano	wc_31_60	5	30	16%	135760
+# nano	wc_61_100	5	30	16%	78994
+# nano	wc_101_200	1	30	3%	59913
+# mid	wc_5_15	29	30	96%	57172
+# mid	wc_16_30	29	30	96%	36792
+# mid	wc_31_60	1	30	3%	39302
+# mid	wc_61_100	0	30	0%	40382
+# mid	wc_101_200	2	30	6%	39085
+# max	wc_5_15	29	30	96%	32818
+# max	wc_16_30	29	30	96%	39832
+# max	wc_31_60	0	30	0%	32773
+# max	wc_61_100	1	30	3%	40463
+# max	wc_101_200	2	30	6%	43987

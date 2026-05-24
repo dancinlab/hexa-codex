@@ -10,7 +10,7 @@ graduates only when every domain has cleared it.
 ```
                   ECONOMICS              SAFETY                       OPS                   SUBSTRATE
 M1 Surface        ✓ done (cycles 1-6)   [x] logit/logprob (+M1.SF+) [x] SLO harness       [x] scale ladder pick
-M2 First verdict  ✓ done (7 confirmed)  [ ] 1st interp probe         [ ] 1st p50/p99       [ ] 1st capability eval
+M2 First verdict  ✓ done (7 confirmed)  [ ] 1st interp probe         [ ] 1st p50/p99       [x] 1.5B persona Stage-2 (routing_viable=true)
 M3 Saturation     [ ] F-CODEX-1/2 fit   [ ] 3+ SAE motifs            [ ] full SLO grid     [ ] scale ladder 0.5/1.5/3/7B
 M4 Paper          ✓ done (routing-svgs) [ ] safety canonical         [ ] ops canonical     [ ] substrate canonical
 M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4)       [ ] v?.?.?            [ ] v?.?.?
@@ -38,7 +38,7 @@ M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4)       [ ] v?.?.? 
 - [x] M2.ECON — 7 confirmed verdicts (cycles 1-6: stage0/early_stop/maxtok/logit/manifest/kv_persistent/batching)
 - [ ] M2.SAFETY — 1st circuit-motif or SAE-feature probe verdict
 - [ ] M2.OPS — 1st p50/p99 latency SLO measurement
-- [ ] M2.SUBSTRATE — 1st capability-eval verdict on Stage-2 manifest at ≥1.5B
+- [x] M2.SUBSTRATE — 1st capability-eval verdict on Stage-2 manifest at 1.5B — `bench/sandbox_stage2_persona_scaled_1_5b.hexa` rerun (N=150 × 3 personas FULL), per-persona overall nano 46% > mid 40% = max 40%, spread=8 tasks, **`tier_separation_observed=true` · `routing_simulation_viable=true`** (flipped from cycle-6 0.5B `false`); cliff_shifted_vs_0_5b=false (1.5B nano 16% on wc_31_60 still < 50% threshold, but 0.5B was 6% — partial lift). `.verdicts/sandbox/stage2_persona_scaled_1_5b_summary.txt`
 
 ### M3 Saturation — falsifier class core coverage reached
 

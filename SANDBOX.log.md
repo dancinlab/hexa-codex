@@ -7,6 +7,20 @@
 
 ---
 
+## 2026-05-24 — M2.SUBSTRATE done — 1.5B Stage 2 persona `routing_viable=TRUE` ⭐
+
+Recovery commit for cycle-9 ada5 bench (agent thread timed out at
+monitor wait but bench ran to completion in background). 450 rows
+on disk; flipped checkbox + matrix cell to `[x]`. Cross-link to
+SUBSTRATE.log.md 2026-05-24 entry for the per-stratum table +
+0.5B→1.5B delta. Headline: `tier_separation_observed=true` and
+`routing_simulation_viable=true` — flipped from cycle-6 0.5B
+`false`, so SUBSTRATE's first measurement gate is now closed on
+the substrate. cliff_shifted=false (1.5B nano on wc_31_60 is 16%
+< 50% threshold) but +10pp lift on the wc_31_60 cliff and +16pp on
+wc_61_100 (off the floor) make M3.SUBSTRATE saturation a 7B push
+away.
+
 ## 2026-05-24 — M3.SUBSTRATE prep — Qwen2.5-3B-Instruct-Q4_K_M on disk (3rd ladder rung)
 
 Cross-ref to `SUBSTRATE.log.md` 2026-05-24 entry "Stage-4 ladder

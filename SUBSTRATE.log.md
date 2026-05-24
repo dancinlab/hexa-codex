@@ -6,6 +6,47 @@
 
 ---
 
+## 2026-05-24 — M2.SUBSTRATE done — 1.5B Stage 2 persona rerun · `routing_viable` flipped TRUE
+
+First SUBSTRATE T4 verdict landed via
+`bench/sandbox_stage2_persona_scaled_1_5b.hexa` (the cycle-6 0.5B
+bench cloned with `MODEL_PATH=Qwen2.5-1.5B-Instruct-Q4_K_M.gguf`).
+N=150 × 3 personas FULL completion on M3 Metal,
+`stage2_persona_scaled_1_5b_summary.txt`:
+
+| persona | overall | wc_5_15 | wc_16_30 | wc_31_60 | wc_61_100 | wc_101_200 |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| nano (32 tok) | 46% | 96% | 96% | 16% | 16% | 3% |
+| mid (256 tok) | 40% | 96% | 96% | 3% | — | — |
+| max (1024 tok) | 40% | 96% | — | 7% | — | — |
+
+**Headline 1 — routing simulation viable.** `tier_separation_observed=true`,
+`routing_simulation_viable=true`, `spread_tasks=8` (>3pp gate). Cycle-6
+0.5B had spread=4 / viable=false; 1.5B's larger spread + per-stratum
+ranking inversion (nano best in wc_5_15..wc_61_100, mid best in
+wc_101_200) cross the gate. SUBSTRATE's capability-eval falsifier
+class is now empirically measurable on the substrate.
+
+**Headline 2 — difficulty cliff partially lifted, not cleared.**
+`cliff_shifted_vs_0_5b=false` per the strict 50% threshold (1.5B
+nano on wc_31_60 reaches 16%, still <50%), but the 0.5B baseline
+was 6% — a 10pp lift on the cliff stratum. wc_101_200 stays near
+zero. Full clearance gated on 3B (cycle-10 56aae56, base-on-disk +
+smoke PASS) and 7B (PENDING). M3.SUBSTRATE saturation remains open.
+
+| 0.5B → 1.5B per-stratum nano accuracy lift |
+|:---|
+| wc_5_15: 73% → 96% (+23pp) |
+| wc_16_30: 86% → 96% (+10pp) |
+| wc_31_60: 6% → 16% (+10pp, partial) |
+| wc_61_100: 0% → 16% (+16pp, lift OFF the floor) |
+| wc_101_200: 0% → 3% (~floor) |
+
+SANDBOX.md M2.SUBSTRATE flipped `[ ]` → `[x]` (matrix + line item).
+`.discoveries/sandbox.tape` `d_qwen_1_5b_scale` upgraded from
+`confirmed_base_pick` (cycle-8 008482e) to `confirmed_full` with
+honest `cliff_partially_lifted` annotation.
+
 ## 2026-05-24 — Stage-4 ladder extended to 3B — Qwen2.5-3B-Instruct-Q4_K_M on disk, smoke-test PASS (M3.SUBSTRATE prereq)
 
 The SANDBOX scale ladder gains its 3rd rung (after 0.5B PoC and 1.5B

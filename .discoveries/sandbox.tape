@@ -550,3 +550,23 @@
   cmd  = "POOL_DISABLE=1 hexa kick --seed \"<post-cycle-12 frontier shift>\" --rounds 1"
   hyp  = "kick would surface 3-5 candidates around M2.SAFETY+ HF probes, M4.SAFETY/OPS paper scaffolds, F-CODEX-4 harness, LATTICE_POLICY cliff prediction"
   note = "NOT a kick bug per feedback_kick_failure_inbox.md — the failure mode is the pool-route hook (load-escalates on `hexa` keyword and re-routes to ubu hosts where hexa.real is not installed). POOL_DISABLE=1 env var works in shell but pool-route hook intercepts before export takes effect on the agent's subshell. Inbox patch goes upstream to SIDECAR (pool-route plugin), not hexa-lang. Tracked separately in inbox/patches/pool-route-mac-only-tool-escalation.md."
+
+# ── cycle-14 (2026-05-24) — M3.SUBSTRATE saturation CLOSED + M2.SAFETY 1st probe RAN ──
+# 2 of 3 retried agents recovered honestly (kick-5 ✓ landed cycle-14 candidates ·
+# refusal-matrix ✓ first probe RAN, M2.SAFETY [ ] honestly · M3.SUBSTRATE
+# saturation ✓ 4-rung Stage 2 FULL despite final-row rate-limit). kick-5 hit
+# pool-route escalation again; workaround confirmed (`export POOL_DISABLE=1 &&
+# <cmd>` single-shell).
+
+@C d_m3_substrate_saturation := "M3.SUBSTRATE 4-rung saturation — full scale ladder Stage 2 + cliff position" :: confirmed [actual_tier=GREEN cost_actual=$0 cross_cut=SUBSTRATE+ECONOMICS source=cycle-14-direct verdict=.verdicts/sandbox/m3_substrate_saturation_summary.txt]
+  cmd  = "run bench/sandbox_stage2_persona_scaled_{3b,7b}.hexa on M3 Metal mac mini (1.5B + 0.5B already on disk from cycles 6/9), compose 4-rung summary"
+  hyp  = "4-rung ladder reveals difficulty cliff position per stratum; tier_separation_observed across all 4 rungs; routing_simulation_viable persists at least through 7B"
+  result = "🔥 CONFIRMED 2026-05-24 (cycle-14). 4-rung Stage 2 FULL: 0.5B/1.5B/3B/7B × 150 tasks × 3 personas × 5 strata × 30 = 450 rows/rung. Overall accuracy ladder: 34%/42%/42%/59%. wc_31_60 cliff matrix: 6%/16%/13%/56% → cliff CROSSED between 3B and 7B (single-rung 43pp lift). routing_simulation_viable inverts: false (0.5B uniform-fail) → true (1.5B-3B spread=8) → false (7B convergence spread=2). Saturation finding: substrate is mid-scale routable, both ends collapse the arbitrage. cost = $0 (all rungs local M3 Metal); total wall-clock 4-rung ~66 min cycles 6+9+14. F-CODEX-1 numerical residual recompute deferred — empirical landing data now READY for the residual ingestion."
+  honest_residual = "Cliff bracket 3B-7B is wide; tightening needs Qwen2.5-4B/5B (neither on disk). Routing-viability collapse at 7B narrows the PAPER/economics-routing-savings claim window — the paper's premise holds only when substrate is small-enough. F-CODEX-1 residual still PENDING in verify/numerics_economics_empirical_landing.hexa."
+  m3_substrate_state = "SANDBOX.md M3.SUBSTRATE checkbox FLIPPED `[ ] → [x]`. 8/21 → 9/21 milestones (43%). PAPER/substrate-capability-evals/ §benchmark gate now READY-FOR-RECOMPUTE; §formula + §benefit still need F-CODEX-1 residual before cx_paper_gate opens."
+
+# Cumulative (post cycle-14): 9 confirmed + 1 BLOCKED_AT_PROJECT + 1
+# harness_run_partial (d_safety_refusal_matrix) · 3 dead · 4 new candidates
+# from kick round 5 (d_safety_plus_first_probe, d_paper_scaffold_safety,
+# d_paper_scaffold_ops, d_lattice_policy_cliff_predict) + d_context_scaling_bench
+# harness-only · 5 candidates total remaining for next cycle.

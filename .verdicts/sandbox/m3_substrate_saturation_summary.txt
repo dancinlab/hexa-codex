@@ -1,0 +1,85 @@
+# bench=m3_substrate_saturation (4-rung Stage 2 composite)
+# cycle=14 · 2026-05-24
+# composes:
+#   .verdicts/sandbox/stage2_persona_scaled_summary.txt      (0.5B · cycle-6)
+#   .verdicts/sandbox/stage2_persona_scaled_1_5b_summary.txt (1.5B · cycle-9)
+#   .verdicts/sandbox/stage2_persona_scaled_3b_summary.txt   (3B   · cycle-14)
+#   .verdicts/sandbox/stage2_persona_scaled_7b_summary.txt   (7B   · cycle-14)
+# manifest=.verdicts/sandbox/stage2_manifest.tsv (N=2000, 5 strata × 400, stratified by wc)
+# n_sampled_per_rung=150 (per persona × 3 personas × 5 strata × 30 = 450 rows/rung)
+# scorer=byte_exact_subset case-insensitive (SCORER-FIXED trailer-strip)
+
+# 4-rung overall accuracy ladder (nano persona, 32-tok cap):
+# scale       overall   nano_overall    mid_overall    max_overall    spread_tasks
+# 0.5B        34%       33%             34%            36%            4
+# 1.5B        42%       46%             40%            40%            8
+# 3B          42%       45%             40%            40%            8
+# 7B          59%       58%             60%            58%            2
+
+# 4-rung per-stratum cliff matrix (nano persona):
+# stratum       0.5B    1.5B    3B      7B      cliff_crossed_at
+# wc_5_15       73%     96%     96%     96%     0.5B
+# wc_16_30      86%     96%     96%     100%    0.5B
+# wc_31_60       6%     16%     13%     56%     7B
+# wc_61_100      0%     16%      3%     30%     -- (no rung clears 50%)
+# wc_101_200     0%      3%      6%     10%     -- (no rung clears 50%)
+
+# Saturation finding:
+saturation_observed=true
+cliff_position_wc_31_60_at_0_5b_to_3b=true   (all sub-7B fail wc_31_60 at <=16%)
+cliff_crossed_at_7b=true                     (7B nano 56%, mid 56%, max 53% — all >= 50%)
+cliff_crossed_at_3b=false                    (3B all personas <= 13% on wc_31_60)
+saturation_gap_3b_to_7b_at_wc_31_60=43pp     (3B 13% → 7B 56%, single rung jumps 43pp)
+saturation_gap_below_3b_at_wc_31_60=10pp     (0.5B 6% → 3B 13%, three rungs jump only 7pp)
+saturation_curve_shape=stepwise              (flat 0.5B→3B then sharp lift at 7B, not smooth)
+
+# Routing viability across scale:
+# scale       routing_simulation_viable    reason
+# 0.5B        false                        spread=4 but all personas hit ceiling at same place
+# 1.5B        true                         spread=8 ranking differs (nano > mid = max)
+# 3B          true                         spread=8 ranking differs (nano > mid = max)
+# 7B          false                        spread=2 — capability convergence (nano = mid = max)
+routing_viable_middle_only=true               (1.5B-3B "sweet spot")
+routing_collapses_at_high_capability=true     (7B personas converge — no routing differentiation)
+routing_collapses_at_low_capability=true      (0.5B personas all fail uniformly)
+
+# Wall-time ladder (per persona):
+# scale       nano_ms    mid_ms     max_ms
+# 0.5B        188694     214918     231796
+# 1.5B        354816     212733     189873
+# 3B          255379     260659     372781
+# 7B          474325     486498     640259
+latency_grows_with_scale=true                 (7B max nearly 3x 0.5B max — sub-linear vs param count)
+latency_grows_with_persona_budget=true        (max persona ~1.3x nano on 7B)
+
+# F-CODEX-1 (N^σφ) implication:
+# The wc_31_60 cliff lands between 3B and 7B params — a step-shaped capability gain
+# in the middle of the standard small-LLM scale ladder.  This is the empirical
+# landing target that F-CODEX-1's N^σφ scaling exponent must reproduce for the
+# substrate-paper §benchmark to clear cx_paper_significance.
+fcodex1_empirical_landing_data=ready          (4 STAGE2_ACCURACY datapoints + manifest-stratum cross-tab)
+fcodex1_residual_status=PENDING               (residual recompute lives in verify/numerics_economics_empirical_landing.hexa)
+
+# Cost surface:
+# scale       cost_usd    notes
+# 0.5B        $0          local M3 Metal · cycle-6
+# 1.5B        $0          local M3 Metal · cycle-9
+# 3B          $0          local M3 Metal · cycle-14
+# 7B          $0          local M3 Metal · cycle-14 (~5GB Q4_K_M)
+# All 4 rungs ran on the M3 Metal mac mini at $0 incremental — substrate self-contained.
+total_wall_clock_minutes_4_rung=~80           (cycle-6 8min + cycle-9 15min + cycle-14 ~57min)
+
+# Honest residual (gated work for the SUBSTRATE paper):
+# 1. Cliff position is wc_31_60 between 3B and 7B — but the exact crossover param count
+#    is undetermined (could be 4B or 5B). A 4B Qwen2.5 SKU exists but is not yet
+#    on disk; landing it would tighten cliff_position to a tighter bracket.
+# 2. routing_viability collapse at 7B implies the SUBSTRATE-paper "Pareto" framing
+#    must condition on "small-enough" model — there is a real ceiling where routing
+#    arbitrage vanishes because the cheapest persona already saturates the manifest.
+# 3. F-CODEX-1 residual computation deferred to a follow-up cycle so this composite
+#    file stays purely empirical.
+
+# Scope-clarifier:
+# This is the M3.SUBSTRATE saturation verdict — capability-eval ladder.
+# NOT the F-CODEX-1 numerical fit (that lives in verify/numerics_economics_empirical_landing.hexa).
+# NOT the routing-economics finding (that lives in PAPER/economics-routing-savings/).

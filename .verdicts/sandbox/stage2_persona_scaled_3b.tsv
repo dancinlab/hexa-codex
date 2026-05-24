@@ -1,0 +1,451 @@
+persona	stratum	task_idx	wc	wall_ms	output_tok_est	correct	output_snippet
+nano	wc_5_15	1	5	1074	1	1	2
+nano	wc_5_15	14	5	1074	1	1	15
+nano	wc_5_15	27	5	1077	1	1	9
+nano	wc_5_15	40	5	1093	1	1	22
+nano	wc_5_15	53	5	1079	1	1	16
+nano	wc_5_15	66	5	1072	1	1	10
+nano	wc_5_15	79	5	1085	1	1	23
+nano	wc_5_15	92	5	1091	1	1	17
+nano	wc_5_15	105	5	1081	1	1	11
+nano	wc_5_15	118	5	1108	1	1	24
+nano	wc_5_15	131	5	1074	1	1	18
+nano	wc_5_15	144	5	1083	1	1	12
+nano	wc_5_15	157	5	1079	1	1	25
+nano	wc_5_15	170	5	1081	1	1	19
+nano	wc_5_15	183	5	1114	1	1	13
+nano	wc_5_15	196	5	1082	1	1	26
+nano	wc_5_15	209	7	1072	1	1	20
+nano	wc_5_15	222	7	1081	1	1	12
+nano	wc_5_15	235	7	1079	1	1	30
+nano	wc_5_15	248	7	1112	1	1	54
+nano	wc_5_15	261	7	1077	1	1	16
+nano	wc_5_15	274	7	1067	1	1	45
+nano	wc_5_15	287	7	1071	1	1	80
+nano	wc_5_15	300	7	1076	1	1	121
+nano	wc_5_15	313	5	1084	1	1	Vienna
+nano	wc_5_15	326	6	1072	1	0	monole
+nano	wc_5_15	339	11	1077	1	1	30
+nano	wc_5_15	352	11	1074	1	1	25
+nano	wc_5_15	365	11	1075	1	1	29
+nano	wc_5_15	378	11	1068	1	1	33
+nano	wc_16_30	401	19	1084	1	1	22
+nano	wc_16_30	414	19	1082	1	1	35
+nano	wc_16_30	427	19	1067	1	1	29
+nano	wc_16_30	440	19	1093	1	1	42
+nano	wc_16_30	453	19	1081	1	1	36
+nano	wc_16_30	466	19	1091	1	1	30
+nano	wc_16_30	479	19	1078	1	1	43
+nano	wc_16_30	492	19	1084	1	1	37
+nano	wc_16_30	505	19	1083	1	1	31
+nano	wc_16_30	518	19	1076	1	1	44
+nano	wc_16_30	531	19	1077	1	1	38
+nano	wc_16_30	544	19	1079	1	1	32
+nano	wc_16_30	557	19	1087	1	1	45
+nano	wc_16_30	570	19	1073	1	1	39
+nano	wc_16_30	583	19	1087	1	1	33
+nano	wc_16_30	596	19	1075	1	1	46
+nano	wc_16_30	609	18	1068	1	1	20
+nano	wc_16_30	622	18	1073	1	1	9
+nano	wc_16_30	635	18	1080	1	1	48
+nano	wc_16_30	648	18	1086	1	1	36
+nano	wc_16_30	661	18	1071	1	1	10
+nano	wc_16_30	674	18	1064	1	1	75
+nano	wc_16_30	687	18	1081	1	1	48
+nano	wc_16_30	700	18	1079	1	1	126
+nano	wc_16_30	713	18	1575	1	0	1054
+nano	wc_16_30	726	18	1575	1	1	56
+nano	wc_16_30	739	18	2669	1	1	160
+nano	wc_16_30	752	18	1622	1	1	117
+nano	wc_16_30	765	18	2126	1	1	60
+nano	wc_16_30	778	18	1634	1	1	190
+nano	wc_31_60	801	33	2173	1	1	8
+nano	wc_31_60	814	49	2174	1	0	64
+nano	wc_31_60	827	43	2727	1	0	42
+nano	wc_31_60	840	56	2181	1	0	28
+nano	wc_31_60	853	48	2783	1	0	36
+nano	wc_31_60	866	38	2319	1	0	50
+nano	wc_31_60	879	50	2250	1	1	20
+nano	wc_31_60	892	42	3206	1	0	44
+nano	wc_31_60	905	36	3542	1	0	56
+nano	wc_31_60	918	50	3390	1	0	48
+nano	wc_31_60	931	42	3297	1	0	44
+nano	wc_31_60	944	35	2747	1	0	54
+nano	wc_31_60	957	55	2163	1	0	44
+nano	wc_31_60	970	49	2728	1	1	58
+nano	wc_31_60	983	33	2144	1	0	50
+nano	wc_31_60	996	48	2170	1	0	40
+nano	wc_31_60	1009	40	2149	1	0	88
+nano	wc_31_60	1022	38	1606	1	0	58
+nano	wc_31_60	1035	50	2227	1	1	44
+nano	wc_31_60	1048	42	2185	1	0	18
+nano	wc_31_60	1061	36	2154	1	0	105
+nano	wc_31_60	1074	44	2378	1	0	93
+nano	wc_31_60	1087	42	2122	1	0	45
+nano	wc_31_60	1100	53	1591	1	0	54
+nano	wc_31_60	1113	45	2111	1	0	135
+nano	wc_31_60	1126	39	1678	1	0	84
+nano	wc_31_60	1139	52	2225	1	0	63
+nano	wc_31_60	1152	48	2417	1	0	240
+nano	wc_31_60	1165	40	2098	1	0	135
+nano	wc_31_60	1178	51	2103	1	0	126
+nano	wc_61_100	1201	63	1616	1	0	18
+nano	wc_61_100	1214	75	2103	1	0	34
+nano	wc_61_100	1227	87	2173	1	1	32
+nano	wc_61_100	1240	70	1607	1	0	46
+nano	wc_61_100	1253	86	2665	1	0	40
+nano	wc_61_100	1266	72	1605	1	0	44
+nano	wc_61_100	1279	79	1585	1	1	40
+nano	wc_61_100	1292	66	1611	1	0	160
+nano	wc_61_100	1305	77	1615	1	0	58
+nano	wc_61_100	1318	90	2120	1	0	45
+nano	wc_61_100	1331	74	1651	1	1	48
+nano	wc_61_100	1344	89	1593	1	0	22
+nano	wc_61_100	1357	69	1596	1	0	48
+nano	wc_61_100	1370	85	1587	1	1	62
+nano	wc_61_100	1383	68	1592	1	0	58
+nano	wc_61_100	1396	79	1581	1	0	120
+nano	wc_61_100	1409	93	1602	1	0	81
+nano	wc_61_100	1422	72	1618	1	0	54
+nano	wc_61_100	1435	87	2123	1	0	27
+nano	wc_61_100	1448	73	1598	1	1	54
+nano	wc_61_100	1461	84	1615	1	0	27
+nano	wc_61_100	1474	69	1622	1	0	120
+nano	wc_61_100	1487	80	1630	1	0	69
+nano	wc_61_100	1500	99	1578	1	0	150
+nano	wc_61_100	1513	73	1636	1	0	27
+nano	wc_61_100	1526	94	1612	1	0	180
+nano	wc_61_100	1539	78	1577	1	0	123
+nano	wc_61_100	1552	87	1610	1	0	126
+nano	wc_61_100	1565	72	1619	1	0	153
+nano	wc_61_100	1578	78	1630	1	0	84
+nano	wc_101_200	1601	108	1576	1	0	20
+nano	wc_101_200	1614	118	1621	1	0	30
+nano	wc_101_200	1627	128	1588	1	0	42
+nano	wc_101_200	1640	142	2080	1	0	40
+nano	wc_101_200	1653	162	1595	1	0	48
+nano	wc_101_200	1666	170	2088	1	0	46
+nano	wc_101_200	1679	182	2616	1	0	70
+nano	wc_101_200	1692	104	1579	1	0	42
+nano	wc_101_200	1705	115	1583	1	0	46
+nano	wc_101_200	1718	128	1579	1	0	40
+nano	wc_101_200	1731	144	2085	1	0	50
+nano	wc_101_200	1744	158	2104	1	0	48
+nano	wc_101_200	1757	168	2134	1	0	48
+nano	wc_101_200	1770	184	2098	1	0	62
+nano	wc_101_200	1783	106	2134	1	0	102
+nano	wc_101_200	1796	122	2115	1	0	100
+nano	wc_101_200	1809	134	2141	1	0	100
+nano	wc_101_200	1822	143	2107	1	0	120
+nano	wc_101_200	1835	161	2610	1	0	122
+nano	wc_101_200	1848	170	2646	1	0	120
+nano	wc_101_200	1861	184	2630	1	0	120
+nano	wc_101_200	1874	109	2659	1	0	120
+nano	wc_101_200	1887	123	2165	1	0	44
+nano	wc_101_200	1900	135	2104	1	0	60
+nano	wc_101_200	1913	144	2102	1	0	102
+nano	wc_101_200	1926	157	2634	1	0	100
+nano	wc_101_200	1939	170	2163	1	0	126
+nano	wc_101_200	1952	187	2639	1	0	126
+nano	wc_101_200	1965	105	2145	1	0	142
+nano	wc_101_200	1978	119	2119	1	1	154
+mid	wc_5_15	1	5	1622	5	1	1 plus 1 is 2.
+mid	wc_5_15	14	5	1619	1	1	15
+mid	wc_5_15	27	5	1611	1	1	9
+mid	wc_5_15	40	5	1088	1	1	22
+mid	wc_5_15	53	5	1090	1	1	16
+mid	wc_5_15	66	5	1658	1	1	10
+mid	wc_5_15	79	5	1655	1	1	23
+mid	wc_5_15	92	5	1624	1	1	17
+mid	wc_5_15	105	5	1101	1	1	11
+mid	wc_5_15	118	5	1630	1	1	24
+mid	wc_5_15	131	5	2163	1	1	18
+mid	wc_5_15	144	5	1672	1	1	12
+mid	wc_5_15	157	5	1095	1	1	25
+mid	wc_5_15	170	5	1584	5	1	9 plus 10 is 19.
+mid	wc_5_15	183	5	4246	5	1	10 plus 3 is 13.
+mid	wc_5_15	196	5	3369	1	1	26
+mid	wc_5_15	209	7	2206	1	1	20
+mid	wc_5_15	222	7	1974	1	1	12
+mid	wc_5_15	235	7	1090	1	1	30
+mid	wc_5_15	248	7	1091	1	1	54
+mid	wc_5_15	261	7	1107	1	1	16
+mid	wc_5_15	274	7	1103	1	1	45
+mid	wc_5_15	287	7	1122	1	1	80
+mid	wc_5_15	300	7	1102	1	1	121
+mid	wc_5_15	313	5	1074	1	1	Vienna
+mid	wc_5_15	326	6	1070	1	0	monel
+mid	wc_5_15	339	11	1089	1	1	30
+mid	wc_5_15	352	11	1589	1	1	25
+mid	wc_5_15	365	11	1085	1	1	29
+mid	wc_5_15	378	11	1079	1	1	33
+mid	wc_16_30	401	19	1081	1	1	22
+mid	wc_16_30	414	19	1606	1	1	35
+mid	wc_16_30	427	19	1652	1	1	29
+mid	wc_16_30	440	19	1644	1	1	42
+mid	wc_16_30	453	19	1084	1	1	36
+mid	wc_16_30	466	19	1577	1	0	20
+mid	wc_16_30	479	19	1626	1	1	43
+mid	wc_16_30	492	19	1092	1	1	37
+mid	wc_16_30	505	19	1084	1	1	31
+mid	wc_16_30	518	19	1646	1	1	44
+mid	wc_16_30	531	19	1691	1	1	38
+mid	wc_16_30	544	19	1092	1	1	32
+mid	wc_16_30	557	19	1098	1	1	45
+mid	wc_16_30	570	19	1107	1	1	39
+mid	wc_16_30	583	19	1151	1	1	33
+mid	wc_16_30	596	19	1611	1	1	46
+mid	wc_16_30	609	18	1079	1	1	20
+mid	wc_16_30	622	18	1603	1	1	9
+mid	wc_16_30	635	18	1077	1	1	48
+mid	wc_16_30	648	18	1089	1	1	36
+mid	wc_16_30	661	18	1585	1	1	10
+mid	wc_16_30	674	18	1088	1	1	75
+mid	wc_16_30	687	18	1061	1	1	48
+mid	wc_16_30	700	18	1090	1	1	126
+mid	wc_16_30	713	18	1090	1	0	105
+mid	wc_16_30	726	18	1618	1	1	56
+mid	wc_16_30	739	18	1100	1	1	160
+mid	wc_16_30	752	18	1600	1	1	117
+mid	wc_16_30	765	18	1594	1	1	60
+mid	wc_16_30	778	18	1074	1	1	190
+mid	wc_31_60	801	33	1085	1	0	16
+mid	wc_31_60	814	49	1578	1	0	66
+mid	wc_31_60	827	43	1076	1	0	54
+mid	wc_31_60	840	56	1573	1	0	24
+mid	wc_31_60	853	48	1081	1	0	72
+mid	wc_31_60	866	38	1591	1	0	50
+mid	wc_31_60	879	50	1573	1	0	40
+mid	wc_31_60	892	42	1687	1	0	44
+mid	wc_31_60	905	36	1588	1	0	76
+mid	wc_31_60	918	50	1581	1	0	88
+mid	wc_31_60	931	42	1579	1	0	44
+mid	wc_31_60	944	35	1088	1	0	54
+mid	wc_31_60	957	55	1078	1	0	160
+mid	wc_31_60	970	49	1582	1	0	78
+mid	wc_31_60	983	33	1612	1	0	58
+mid	wc_31_60	996	48	1574	1	0	140
+mid	wc_31_60	1009	40	1597	1	0	144
+mid	wc_31_60	1022	38	1622	1	0	55
+mid	wc_31_60	1035	50	1586	1	0	64
+mid	wc_31_60	1048	42	1568	1	0	18
+mid	wc_31_60	1061	36	1095	1	0	105
+mid	wc_31_60	1074	44	1579	1	0	240
+mid	wc_31_60	1087	42	1622	1	0	45
+mid	wc_31_60	1100	53	1640	1	0	54
+mid	wc_31_60	1113	45	1582	1	0	135
+mid	wc_31_60	1126	39	1084	1	0	84
+mid	wc_31_60	1139	52	1069	1	0	123
+mid	wc_31_60	1152	48	1568	1	0	216
+mid	wc_31_60	1165	40	1629	1	0	135
+mid	wc_31_60	1178	51	1614	1	0	216
+mid	wc_61_100	1201	63	1600	1	0	24
+mid	wc_61_100	1214	75	1592	1	0	52
+mid	wc_61_100	1227	87	2104	1	0	64
+mid	wc_61_100	1240	70	1586	1	0	86
+mid	wc_61_100	1253	86	1585	1	0	56
+mid	wc_61_100	1266	72	2091	1	0	58
+mid	wc_61_100	1279	79	1625	1	0	50
+mid	wc_61_100	1292	66	1613	1	0	160
+mid	wc_61_100	1305	77	1591	1	0	14
+mid	wc_61_100	1318	90	2090	1	1	54
+mid	wc_61_100	1331	74	2179	1	0	58
+mid	wc_61_100	1344	89	1591	1	0	222
+mid	wc_61_100	1357	69	1579	1	0	48
+mid	wc_61_100	1370	85	1585	1	0	70
+mid	wc_61_100	1383	68	1599	1	0	58
+mid	wc_61_100	1396	79	1581	1	0	120
+mid	wc_61_100	1409	93	2086	1	0	105
+mid	wc_61_100	1422	72	1586	1	0	84
+mid	wc_61_100	1435	87	1573	1	0	273
+mid	wc_61_100	1448	73	1600	1	0	240
+mid	wc_61_100	1461	84	2148	1	0	216
+mid	wc_61_100	1474	69	1632	1	0	108
+mid	wc_61_100	1487	80	2179	1	0	69
+mid	wc_61_100	1500	99	1638	1	0	150
+mid	wc_61_100	1513	73	1623	1	0	273
+mid	wc_61_100	1526	94	2105	1	0	84
+mid	wc_61_100	1539	78	2136	1	0	162
+mid	wc_61_100	1552	87	2210	1	0	126
+mid	wc_61_100	1565	72	2685	1	0	153
+mid	wc_61_100	1578	78	2176	1	0	84
+mid	wc_101_200	1601	108	3265	1	0	26
+mid	wc_101_200	1614	118	3189	1	0	30
+mid	wc_101_200	1627	128	3249	1	0	42
+mid	wc_101_200	1640	142	3274	1	0	40
+mid	wc_101_200	1653	162	3856	1	0	48
+mid	wc_101_200	1666	170	2814	1	0	46
+mid	wc_101_200	1679	182	3234	1	0	74
+mid	wc_101_200	1692	104	2698	1	1	26
+mid	wc_101_200	1705	115	2126	1	0	46
+mid	wc_101_200	1718	128	2725	1	0	40
+mid	wc_101_200	1731	144	2673	1	0	50
+mid	wc_101_200	1744	158	2690	1	0	40
+mid	wc_101_200	1757	168	2740	1	0	48
+mid	wc_101_200	1770	184	2718	1	0	62
+mid	wc_101_200	1783	106	2211	1	0	86
+mid	wc_101_200	1796	122	2131	1	0	84
+mid	wc_101_200	1809	134	2157	1	0	100
+mid	wc_101_200	1822	143	2661	1	0	120
+mid	wc_101_200	1835	161	2633	1	0	122
+mid	wc_101_200	1848	170	2108	1	0	120
+mid	wc_101_200	1861	184	2606	1	0	108
+mid	wc_101_200	1874	109	2162	1	0	120
+mid	wc_101_200	1887	123	1578	1	0	44
+mid	wc_101_200	1900	135	2097	1	0	60
+mid	wc_101_200	1913	144	2111	1	0	102
+mid	wc_101_200	1926	157	2095	1	0	100
+mid	wc_101_200	1939	170	2081	1	0	126
+mid	wc_101_200	1952	187	2106	1	0	126
+mid	wc_101_200	1965	105	2128	1	0	142
+mid	wc_101_200	1978	119	1596	1	1	154
+max	wc_5_15	1	5	1612	7	1	1 plus 1 is equal to 2.
+max	wc_5_15	14	5	4728	26	1	To find the sum of 1 plus 14, you simply add the two numbers together: 1 + 14 = 15 So, 1 plus 14 equals 15.
+max	wc_5_15	27	5	1751	5	1	2 plus 7 equals 9.
+max	wc_5_15	40	5	4730	26	1	To find the sum of 2 plus 20, you simply add the two numbers together: 2 + 20 = 22 So, 2 plus 20 equals 22.
+max	wc_5_15	53	5	4722	26	1	To find the sum of 3 plus 13, you simply add the two numbers together: 3 + 13 = 16 So, 3 plus 13 equals 16.
+max	wc_5_15	66	5	4810	26	1	To find the sum of 4 plus 6, you simply add the two numbers together: 4 + 6 = 10 So, 4 plus 6 equals 10.
+max	wc_5_15	79	5	4332	26	1	To find the sum of 4 plus 19, you simply add the two numbers together: 4 + 19 = 23 So, 4 plus 19 equals 23.
+max	wc_5_15	92	5	3729	26	1	To find the sum of 5 plus 12, you simply add the two numbers together: 5 + 12 = 17 So, 5 plus 12 equals 17.
+max	wc_5_15	105	5	2249	5	1	6 plus 5 is 11.
+max	wc_5_15	118	5	4156	26	1	To find the sum of 6 plus 18, you simply add the two numbers together: 6 + 18 = 24 So, 6 plus 18 equals 24.
+max	wc_5_15	131	5	4223	26	1	To find the sum of 7 plus 11, you simply add the two numbers together: 7 + 11 = 18 So, 7 plus 11 equals 18.
+max	wc_5_15	144	5	1685	5	1	8 plus 4 equals 12.
+max	wc_5_15	157	5	4632	26	1	To find the sum of 8 plus 17, you simply add the two numbers together: 8 + 17 = 25 So, 8 plus 17 equals 25.
+max	wc_5_15	170	5	1670	5	1	9 plus 10 is 19.
+max	wc_5_15	183	5	1587	5	1	10 plus 3 equals 13.
+max	wc_5_15	196	5	4164	26	1	To find the sum of 10 plus 16, you simply add the two numbers together: 10 + 16 = 26 So, 10 plus 16 equals 26.
+max	wc_5_15	209	7	5247	38	1	To determine what 2 times 10 is, we perform the multiplication operation: \[ 2 	imes 10 = 20 \] So, 2 times 10 equals 2
+max	wc_5_15	222	7	7221	64	1	To determine what 4 times 3 is, we first need to calculate the product of 4 and 3. 4 times 3 is 12. The question then as
+max	wc_5_15	235	7	4713	37	1	To determine what 5 times 6 is, we first need to calculate the product of these two numbers. 5 times 6 is 30. The questi
+max	wc_5_15	248	7	2161	21	1	6 times 9 equals 54. Therefore, if you are to select only one number from this product, it would be 54.
+max	wc_5_15	261	7	6778	56	1	To determine what 8 times 2 is, we first calculate the product of 8 and 2: \[ 8 	imes 2 = 16 \] The question then asks
+max	wc_5_15	274	7	7836	65	1	To determine what 9 times 5 is, we first need to perform the multiplication: 9 times 5 is 45. The question asks for "one
+max	wc_5_15	287	7	3460	23	1	10 times 8 equals 80. Therefore, if you are to provide only one number as per your instruction, the answer would be 80.
+max	wc_5_15	300	7	3250	20	1	11 times 11 equals 121. Therefore, when you are asked for "one number" from this multiplication, the answer is 121.
+max	wc_5_15	313	5	2174	1	1	Vienna
+max	wc_5_15	326	6	1111	1	0	monel
+max	wc_5_15	339	11	1590	1	1	30
+max	wc_5_15	352	11	1627	1	1	25
+max	wc_5_15	365	11	1657	1	1	29
+max	wc_5_15	378	11	2161	1	0	23
+max	wc_16_30	401	19	2207	10	1	The sum of integer 11 and integer 11 is 22.
+max	wc_16_30	414	19	5469	33	1	To compute the sum of the integers 11 and 24, you simply add them together: \[ 11 + 24 = 35 \] So, the result as a singl
+max	wc_16_30	427	19	2188	12	1	The sum of the integer 12 and the integer 17 is 29.
+max	wc_16_30	440	19	3674	22	1	The sum of the integer 12 and the integer 30 is 42. Therefore, the result as a single integer only is 42.
+max	wc_16_30	453	19	4848	29	1	To compute the sum of the integers 13 and 23, you simply add them together: 13 + 23 = 36 Therefore, the result as a sing
+max	wc_16_30	466	19	2206	12	1	The sum of the integer 14 and the integer 16 is 30.
+max	wc_16_30	479	19	4644	29	1	To compute the sum of the integers 14 and 29, you simply add them together: 14 + 29 = 43 Therefore, the result as a sing
+max	wc_16_30	492	19	4745	29	1	To compute the sum of the integers 15 and 22, you simply add them together: 15 + 22 = 37 Therefore, the result as a sing
+max	wc_16_30	505	19	3211	22	1	The sum of the integer 16 and the integer 15 is 31. Therefore, the result as a single integer only is 31.
+max	wc_16_30	518	19	4263	33	1	To compute the sum of the integers 16 and 28, you simply add them together: \[ 16 + 28 = 44 \] So, the result as a singl
+max	wc_16_30	531	19	4673	33	1	To compute the sum of the integers 17 and 21, you simply add them together: \[ 17 + 21 = 38 \] So, the result as a singl
+max	wc_16_30	544	19	3757	29	1	To compute the sum of the integers 18 and 14, you simply add them together: 18 + 14 = 32 Therefore, the result as a sing
+max	wc_16_30	557	19	3199	29	1	To compute the sum of the integers 18 and 27, you simply add them together: 18 + 27 = 45 Therefore, the result as a sing
+max	wc_16_30	570	19	3295	20	1	The sum of integer 19 and integer 20 is 39. Therefore, the result as a single integer only is 39.
+max	wc_16_30	583	19	4192	29	1	To compute the sum of the integers 20 and 13, you simply add them together: 20 + 13 = 33 Therefore, the result as a sing
+max	wc_16_30	596	19	3751	33	1	To compute the sum of the integers 20 and 26, you simply add them together: \[ 20 + 26 = 46 \] So, the result as a singl
+max	wc_16_30	609	18	2220	1	1	20
+max	wc_16_30	622	18	1073	1	1	9
+max	wc_16_30	635	18	1070	1	1	48
+max	wc_16_30	648	18	1093	1	1	36
+max	wc_16_30	661	18	1577	1	1	10
+max	wc_16_30	674	18	1584	1	1	75
+max	wc_16_30	687	18	1075	1	1	48
+max	wc_16_30	700	18	5141	39	1	To solve the problem of multiplying the integer 6 by the integer 21, we perform the following calculation: \[ 6 	imes 2
+max	wc_16_30	713	18	1633	1	0	105
+max	wc_16_30	726	18	1096	1	1	56
+max	wc_16_30	739	18	1583	1	1	160
+max	wc_16_30	752	18	11232	95	1	To solve the problem of multiplying the integer 9 by the integer 13, we can follow these steps: 1. Identify the integers
+max	wc_16_30	765	18	2205	1	1	60
+max	wc_16_30	778	18	1607	1	1	190
+max	wc_31_60	801	33	1670	1	0	16
+max	wc_31_60	814	49	2195	1	0	62
+max	wc_31_60	827	43	1589	1	0	60
+max	wc_31_60	840	56	1610	1	0	24
+max	wc_31_60	853	48	2205	1	0	80
+max	wc_31_60	866	38	1599	1	0	100
+max	wc_31_60	879	50	2136	1	0	46
+max	wc_31_60	892	42	1577	1	0	44
+max	wc_31_60	905	36	2128	1	0	80
+max	wc_31_60	918	50	1636	1	0	88
+max	wc_31_60	931	42	1609	1	0	44
+max	wc_31_60	944	35	1598	1	0	54
+max	wc_31_60	957	55	2111	1	0	160
+max	wc_31_60	970	49	2185	1	0	78
+max	wc_31_60	983	33	1597	1	0	50
+max	wc_31_60	996	48	1586	1	0	140
+max	wc_31_60	1009	40	1574	1	1	64
+max	wc_31_60	1022	38	1580	1	0	55
+max	wc_31_60	1035	50	1589	1	0	64
+max	wc_31_60	1048	42	1575	1	0	24
+max	wc_31_60	1061	36	1076	1	0	105
+max	wc_31_60	1074	44	1575	1	0	243
+max	wc_31_60	1087	42	1590	1	0	57
+max	wc_31_60	1100	53	1084	1	0	240
+max	wc_31_60	1113	45	1578	1	0	135
+max	wc_31_60	1126	39	1618	1	0	120
+max	wc_31_60	1139	52	2111	1	0	105
+max	wc_31_60	1152	48	1630	1	0	240
+max	wc_31_60	1165	40	1604	1	0	135
+max	wc_31_60	1178	51	1589	1	0	54
+max	wc_61_100	1201	63	1600	1	0	24
+max	wc_61_100	1214	75	1600	1	0	22
+max	wc_61_100	1227	87	1621	1	0	64
+max	wc_61_100	1240	70	2100	1	0	80
+max	wc_61_100	1253	86	2153	1	0	56
+max	wc_61_100	1266	72	1597	1	0	58
+max	wc_61_100	1279	79	1609	1	0	50
+max	wc_61_100	1292	66	1595	1	0	160
+max	wc_61_100	1305	77	1596	1	0	100
+max	wc_61_100	1318	90	2136	1	0	45
+max	wc_61_100	1331	74	1584	1	1	48
+max	wc_61_100	1344	89	1576	1	0	222
+max	wc_61_100	1357	69	2620	1	0	120
+max	wc_61_100	1370	85	2199	1	0	70
+max	wc_61_100	1383	68	1602	1	0	58
+max	wc_61_100	1396	79	2105	1	0	120
+max	wc_61_100	1409	93	2149	1	0	105
+max	wc_61_100	1422	72	1586	1	0	84
+max	wc_61_100	1435	87	2093	1	0	273
+max	wc_61_100	1448	73	2107	1	0	246
+max	wc_61_100	1461	84	2166	1	0	216
+max	wc_61_100	1474	69	2124	1	0	108
+max	wc_61_100	1487	80	1587	1	0	57
+max	wc_61_100	1500	99	1579	1	0	126
+max	wc_61_100	1513	73	2169	1	0	273
+max	wc_61_100	1526	94	2152	1	0	180
+max	wc_61_100	1539	78	1584	1	0	123
+max	wc_61_100	1552	87	1602	1	0	126
+max	wc_61_100	1565	72	2109	1	0	213
+max	wc_61_100	1578	78	1620	1	0	84
+max	wc_101_200	1601	108	2089	1	0	26
+max	wc_101_200	1614	118	2097	1	0	30
+max	wc_101_200	1627	128	2112	1	0	42
+max	wc_101_200	1640	142	2082	1	0	40
+max	wc_101_200	1653	162	2676	1	0	100
+max	wc_101_200	1666	170	2180	1	0	40
+max	wc_101_200	1679	182	3174	1	0	80
+max	wc_101_200	1692	104	2166	1	1	26
+max	wc_101_200	1705	115	1601	1	0	50
+max	wc_101_200	1718	128	2084	1	0	48
+max	wc_101_200	1731	144	2105	1	0	50
+max	wc_101_200	1744	158	2081	1	0	48
+max	wc_101_200	1757	168	2595	1	0	48
+max	wc_101_200	1770	184	2659	1	0	62
+max	wc_101_200	1783	106	1591	1	0	102
+max	wc_101_200	1796	122	2126	1	0	100
+max	wc_101_200	1809	134	2099	1	0	100
+max	wc_101_200	1822	143	2086	1	0	120
+max	wc_101_200	1835	161	2079	1	0	122
+max	wc_101_200	1848	170	2608	1	0	150
+max	wc_101_200	1861	184	2106	1	0	58
+max	wc_101_200	1874	109	1589	1	0	120
+max	wc_101_200	1887	123	2076	1	0	100
+max	wc_101_200	1900	135	2119	1	0	60
+max	wc_101_200	1913	144	2088	1	0	102
+max	wc_101_200	1926	157	2082	1	0	100
+max	wc_101_200	1939	170	2082	1	0	120
+max	wc_101_200	1952	187	2615	1	0	100
+max	wc_101_200	1965	105	1597	1	0	142
+max	wc_101_200	1978	119	3136	1	1	154

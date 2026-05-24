@@ -1673,3 +1673,95 @@ through the cycle-12 `activation_capture_hf` wrapper (refusal-direction
 probe on the residual stream), which is now the obvious next-cycle
 M2.SAFETY candidate. The substrate side of the row is done; the probe
 side moves to a different sister engine.
+
+---
+
+## 2026-05-24 — cycle-14 · 🔥 M3.SUBSTRATE saturation CLOSED — 4-rung scale ladder
+
+**Verdict:** `.verdicts/sandbox/m3_substrate_saturation_summary.txt`
+composes 4 per-rung Stage 2 verdicts (0.5B cycle-6 · 1.5B cycle-9 · 3B
+cycle-14 · 7B cycle-14). Each rung = 150 tasks × 3 personas × 5 wc
+strata × 30 = 450 rows, scored via the SCORER-FIXED `byte_exact_subset`
+case-insensitive trailer-strip pattern.
+
+**4-rung overall accuracy ladder (nano persona, 32-tok cap):**
+
+```
+scale       overall    nano    mid     max     spread_tasks
+0.5B        34%        33%     34%     36%     4
+1.5B        42%        46%     40%     40%     8
+3B          42%        45%     40%     40%     8
+7B          59%        58%     60%     58%     2
+```
+
+**Per-stratum cliff matrix (nano persona):**
+
+```
+stratum         0.5B    1.5B    3B      7B     cliff_crossed_at
+wc_5_15         73%     96%     96%     96%    0.5B
+wc_16_30        86%     96%     96%    100%    0.5B
+wc_31_60         6%     16%     13%     56%    7B    ← cliff
+wc_61_100        0%     16%      3%     30%    -- (no rung clears 50%)
+wc_101_200       0%      3%      6%     10%    -- (no rung clears 50%)
+```
+
+**Saturation finding.** The `wc_31_60` cliff lands **between 3B and 7B**
+— a step-shaped capability gain (+43 pp single-rung jump at the same
+stratum). Sub-7B rungs are bound below 16% on this stratum; 7B crosses
+50% on all three personas. This is the F-CODEX-1 empirical landing
+target.
+
+**Routing-viability is mid-scale only.**
+
+```
+scale       routing_viable     reason
+0.5B        false              all personas hit the same ceiling
+1.5B        true               spread=8 ranking differs across strata
+3B          true               spread=8 ranking differs across strata
+7B          false              spread=2 — capability convergence
+```
+
+The routing-economics paper's premise (cheap small-persona arbitrage on
+easy tasks) is empirically narrow: it lives in the **1.5B–3B sweet
+spot**. At 0.5B, all personas fail uniformly; at 7B, the cheapest
+persona already saturates the manifest so routing arbitrage vanishes.
+
+**Cost surface.** All 4 rungs ran on the M3 Metal mac mini at $0 each.
+Total wall-clock: cycle-6 ~8 min (0.5B) + cycle-9 ~15 min (1.5B) +
+cycle-14 3B ~15 min + cycle-14 7B ~28 min ≈ **66 min for the full
+4-rung saturation sweep**.
+
+**Matrix change.**
+
+- `SANDBOX.md` M3.SUBSTRATE checkbox flipped `[ ] → [x]` with one-line
+  finding: cliff at `wc_31_60` between 3B and 7B, routing collapses at
+  both ends of the scale ladder.
+- 8/21 → 9/21 milestones closed (43%).
+- `PAPER/substrate-capability-evals/` is now READY-FOR-RECOMPUTE: M3
+  saturation gate cleared, but §formula and §benefit still need the
+  F-CODEX-1 residual closure in
+  `verify/numerics_economics_empirical_landing.hexa` before
+  `cx_paper_gate` opens.
+
+**Honest residuals.**
+
+1. **Cliff bracket is wide.** 3B→7B is a 2.3× param jump; the actual
+   cliver could be 4B, 5B, or 6B. Tightening the bracket needs a Qwen
+   2.5-4B or Qwen 2.5-5B (neither on disk).
+2. **Routing-viability collapse at 7B** narrows the routing-economics
+   paper's claim window. The PAPER/economics-routing-savings finding
+   must condition on "small-enough" substrate.
+3. **F-CODEX-1 residual still PENDING** — the closed-form fit lives in
+   `verify/numerics_economics_empirical_landing.hexa` and needs to
+   ingest the new 3B/7B `STAGE2_ACCURACY` arrays in a follow-up cycle.
+
+**Agent recovery note.** The cycle-14 4-rung saturation agent
+(a796288) wrote the 7B summary at 17:35:02 then hit rate-limit at
+445/450 rows (5 rows remaining). The bench `.hexa` process kept running
+to completion (451 TSV rows, FULL summary). Recovery via main worktree
+artifact-detection per the cycle-9/13 pattern.
+
+**Cumulative tape footer post-cycle-14 (M3.SUBSTRATE close):** 8
+confirmed + 1 BLOCKED_AT_PROJECT + 1 harness_run_partial
+(d_safety_refusal_matrix) + 9th confirmed (M3.SUBSTRATE 4-rung
+saturation, this entry) · 3 dead · 6 candidates remaining.

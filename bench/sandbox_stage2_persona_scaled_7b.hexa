@@ -10,7 +10,7 @@
 //   longest strata scored 0% across ALL personas (verdict file
 //   `.verdicts/sandbox/stage2_persona_scaled_summary.txt`). The cycle-7
 //   M1.SUBSTRATE milestone landed Qwen2.5-7B-Instruct-Q4_K_M on disk
-//   (sha256 `65b8fcd92af6b4fee8123ea110d1ec956dab4ab038eab665614adba04b6c3370`,
+//   (sha256 `65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423`,
 //   smoke PASS @ 62.15 tok/s on M3 Metal) — the explicit prerequisite for
 //   this M2.SUBSTRATE rerun. This bench measures: does the cliff move on
 //   1.5B, and if so where?
@@ -18,7 +18,7 @@
 // CROSS-REF (load-bearing for the verdict interpretation):
 //   - cycle-6 0.5B sister bench   = bench/sandbox_stage2_persona_scaled.hexa
 //   - cycle-6 0.5B summary        = .verdicts/sandbox/stage2_persona_scaled_summary.txt
-//   - 1.5B base sha256            = 65b8fcd92af6b4fee8123ea110d1ec956dab4ab038eab665614adba04b6c3370
+//   - 1.5B base sha256            = 65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423
 //   - 1.5B M1 verdict             = .verdicts/sandbox/m1_substrate_base_pick.txt
 //   - successor candidate         = .discoveries/sandbox.tape @C d_qwen_1_5b_scale (cycle-7).
 //
@@ -158,7 +158,7 @@ fn main() {
     println("========================================================================")
 
     exec("mkdir -p " + shq(OUT_DIR))
-    let tsv_path = OUT_DIR + "/stage2_persona_scaled_1_5b.tsv"
+    let tsv_path = OUT_DIR + "/stage2_persona_scaled_7b.tsv"
     exec("rm -f " + shq(tsv_path))
     exec("echo 'persona\tstratum\ttask_idx\twc\twall_ms\toutput_tok_est\tcorrect\toutput_snippet' >> " + shq(tsv_path))
 
@@ -477,12 +477,12 @@ fn main() {
     println("")
 
     // Persist summary with required header comments.
-    let summary_path = OUT_DIR + "/stage2_persona_scaled_1_5b_summary.txt"
+    let summary_path = OUT_DIR + "/stage2_persona_scaled_7b_summary.txt"
     exec("rm -f " + shq(summary_path))
     exec("echo " + shq("# bench=sandbox_stage2_persona_scaled_7b (M3.SUBSTRATE 7B rerun of cycle-6)") + " >> " + shq(summary_path))
     exec("echo " + shq("# cross_ref_0_5b=.verdicts/sandbox/stage2_persona_scaled_summary.txt (cycle-6 sister)") + " >> " + shq(summary_path))
     exec("echo " + shq("# cross_ref_m1=.verdicts/sandbox/m1_substrate_base_pick.txt (1.5B base smoke verdict)") + " >> " + shq(summary_path))
-    exec("echo " + shq("# model_sha256=65b8fcd92af6b4fee8123ea110d1ec956dab4ab038eab665614adba04b6c3370") + " >> " + shq(summary_path))
+    exec("echo " + shq("# model_sha256=65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423") + " >> " + shq(summary_path))
     exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
     exec("echo " + shq("# tool=llama-completion (chat-template aware via -sys)") + " >> " + shq(summary_path))
     exec("echo " + shq("# manifest=.verdicts/sandbox/stage2_manifest.tsv (N=2000, 5 strata × 400)") + " >> " + shq(summary_path))

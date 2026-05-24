@@ -172,33 +172,49 @@ let STAGE2_ACCURACY_0_5B = [
     0.0000,   // wc_101_200  0/30  all personas
 ]
 
-// 1.5B — PENDING_M2_SUBSTRATE_VERDICT (M2.SUBSTRATE bench rerun is a
-// sibling agent in this same cycle batch; values land when that lane
-// closes.  -1 sentinel keeps the harness honest until then.)
+// 1.5B — cycle-9 verdict (.verdicts/sandbox/stage2_persona_scaled_1_5b_summary.txt).
+// Best-per-stratum max{nano,mid,max}/30:
+//   wc_5_15:    nano=mid=max=29/30 → 0.9667
+//   wc_16_30:   nano=mid=max=29/30 → 0.9667
+//   wc_31_60:   nano=5/30          → 0.1667
+//   wc_61_100:  nano=5/30          → 0.1667
+//   wc_101_200: mid=max=2/30       → 0.0667
 let STAGE2_ACCURACY_1_5B = [
-    PENDING_SENTINEL,   // wc_5_15
-    PENDING_SENTINEL,   // wc_16_30
-    PENDING_SENTINEL,   // wc_31_60
-    PENDING_SENTINEL,   // wc_61_100
-    PENDING_SENTINEL,   // wc_101_200
+    0.9667,   // wc_5_15    29/30  best=nano(tied)
+    0.9667,   // wc_16_30   29/30  best=nano(tied)
+    0.1667,   // wc_31_60    5/30  best=nano
+    0.1667,   // wc_61_100   5/30  best=nano
+    0.0667,   // wc_101_200  2/30  best=mid(tied with max)
 ]
 
-// 3B — PENDING (gated on d_qwen_3b_scale)
+// 3B — cycle-14 verdict (.verdicts/sandbox/stage2_persona_scaled_3b_summary.txt).
+// Best-per-stratum max{nano,mid,max}/30:
+//   wc_5_15:    nano=mid=29/30 → 0.9667
+//   wc_16_30:   nano=max=29/30 → 0.9667
+//   wc_31_60:   nano=4/30      → 0.1333
+//   wc_61_100:  nano=5/30      → 0.1667
+//   wc_101_200: mid=max=2/30   → 0.0667
 let STAGE2_ACCURACY_3B = [
-    PENDING_SENTINEL,   // wc_5_15
-    PENDING_SENTINEL,   // wc_16_30
-    PENDING_SENTINEL,   // wc_31_60
-    PENDING_SENTINEL,   // wc_61_100
-    PENDING_SENTINEL,   // wc_101_200
+    0.9667,   // wc_5_15    29/30  best=nano(tied with mid)
+    0.9667,   // wc_16_30   29/30  best=nano(tied with max)
+    0.1333,   // wc_31_60    4/30  best=nano
+    0.1667,   // wc_61_100   5/30  best=nano
+    0.0667,   // wc_101_200  2/30  best=mid(tied with max)
 ]
 
-// 7B — PENDING (gated on Stage-4 RunPod cloud-bridge)
+// 7B — cycle-14 verdict (.verdicts/sandbox/stage2_persona_scaled_7b_summary.txt).
+// Best-per-stratum max{nano,mid,max}/30 — 7B CLEARED THE CLIFF (cleared_wc_31_60=true):
+//   wc_5_15:    all 3 personas=29/30 → 0.9667
+//   wc_16_30:   all 3 personas=30/30 → 1.0000
+//   wc_31_60:   nano=mid=17/30       → 0.5667
+//   wc_61_100:  mid=10/30            → 0.3333
+//   wc_101_200: mid=max=4/30         → 0.1333
 let STAGE2_ACCURACY_7B = [
-    PENDING_SENTINEL,   // wc_5_15
-    PENDING_SENTINEL,   // wc_16_30
-    PENDING_SENTINEL,   // wc_31_60
-    PENDING_SENTINEL,   // wc_61_100
-    PENDING_SENTINEL,   // wc_101_200
+    0.9667,   // wc_5_15    29/30  best=nano(3-way tied)
+    1.0000,   // wc_16_30   30/30  best=nano(3-way tied)
+    0.5667,   // wc_31_60   17/30  best=nano(tied with mid)
+    0.3333,   // wc_61_100  10/30  best=mid
+    0.1333,   // wc_101_200  4/30  best=mid(tied with max)
 ]
 
 // Stratum count (the 5 wc-bins in the Stage-2 manifest).
@@ -442,12 +458,15 @@ fn check_theoretical_constants() {
            "  exp_drift=" + to_string(exp_drift) + "  tau_drift=" + to_string(tau_drift))
 }
 
-// Check 7: PENDING sentinel detected — k_active < 4 today (only 0.5B live).
+// Check 7: cycle-14 — 4-rung scale ladder fully landed (k_active == 4).
+// Earlier commits used k_active == 1 (only 0.5B live); cycle-14 M3.SUBSTRATE
+// saturation lifted 1.5B/3B/7B PENDING sentinels to real per-stratum data.
+// F-CODEX-2 latency row remains PENDING — overall verdict gated on M3.OPS.
 fn check_pending_sentinel_detected() {
     let k = k_active_scales()
-    _check(k == 1,
-           "k_active scale-points == 1 today (0.5B live; 1.5B/3B/7B PENDING_M2_SUBSTRATE_VERDICT)",
-           "k_active=" + str(k) + "  expected_this_commit=1  fit_status=DEFERRED")
+    _check(k == N_SCALES,
+           "k_active scale-points == 4 (cycle-14: 0.5B/1.5B/3B/7B all LIVE; F-CODEX-1 fit active)",
+           "k_active=" + str(k) + "  expected_this_commit=4  fit_status=LIVE")
 }
 
 // Check 8: F-CODEX-1 residual ≤ ε when k_active ≥ 2; deferred otherwise.
@@ -504,11 +523,14 @@ fn check_verdict_line_consistency() {
     } else {
         "PARTIAL"
     }
-    // Today's expected verdict is INSUFFICIENT (k_active == 1).
-    let ok = (label == "INSUFFICIENT")
+    // Cycle-14: k_active == 4, F-CODEX-1 fit LIVE (residual=0.788 → FALSIFIED
+    // on its own gate), F-CODEX-2 latency still PENDING (r2_nan=true) so the
+    // overall verdict label is PARTIAL until M3.OPS lands the latency grid.
+    // Earlier expectation was 'INSUFFICIENT' (k_active==1) — now flipped.
+    let ok = (label == "PARTIAL")
     _check(ok,
-           "verdict-line consistency — today expected 'INSUFFICIENT' (k_active == 1, both residuals DEFERRED)",
-           "computed_label=" + label + "  expected_today=INSUFFICIENT  k_active=" + str(k))
+           "verdict-line consistency — today expected 'PARTIAL' (k_active == 4, F-CODEX-2 latency still PENDING; F-CODEX-1 alone FALSIFIED on residual)",
+           "computed_label=" + label + "  expected_today=PARTIAL  k_active=" + str(k))
 }
 
 // ── main ─────────────────────────────────────────────────────────────────

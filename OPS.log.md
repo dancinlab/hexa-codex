@@ -6,6 +6,29 @@
 
 ---
 
+## 2026-05-24 — cycle-15c · M2.OPS first SLO measurement RAN (substrate cross-domain)
+
+The OPS group's first empirical SLO landing executed through the SANDBOX
+substrate: `bench/sandbox_stage4_slo_under_load.hexa` (verdict
+`.verdicts/sandbox/stage4_slo_under_load_summary.txt`). Qwen2.5-0.5B on
+M3 Metal, 3 np × 3 rate offered-load grid, 6/9 cells valid.
+
+**Headline OPS finding — latency saturation is an accuracy cliff.**
+Under capacity (rate=5, ~56% util) p99=681ms at 88% accuracy; over
+capacity (rate≥20) p99 explodes to 4434ms+ AND accuracy collapses to
+19.75% — a fixed client timeout (`curl --max-time 30`) converts a
+latency-SLO breach into a correctness-SLO breach. This is the M/M/c knee
+the metered-API surface could never expose (no concurrency knob).
+`best_np=1` for 0.5B on 16GB UMA — extra slots add KV-cache pressure
+without raising the mem-bw-bound service rate (confirms cycle-6's np=4
+ceiling from the opposite direction).
+
+This is exactly the OPS axis the cross-link below predicted SANDBOX
+would unblock. Honest residuals (2 boot-fail port-races, 1
+over-saturation hang killed at ~30min) recorded in the verdict file +
+`SANDBOX.log.md` cycle-15c entry. The F-CODEX-2 context-latency grid
+(`context^τ`, a *different* axis) stays exec-PENDING.
+
 ## 2026-05-24 — SANDBOX server-mode unlocks OPS SLO measurement (substrate cross-link)
 
 SANDBOX (per `SANDBOX.md` §Sibling domains) is now registered as the

@@ -2510,3 +2510,66 @@ figure ≥1) publish-lint은 이 게이트와 무관하고 M5.SAFETY 릴리스 �
 figure 패딩/10-page 강제 없음 (과잉작업 회피).
 
 전체 평가 + 섹션 게이트 표: `.discoveries/m4_safety_paper_gate_blocked.tape`.
+
+## 2026-05-25 — cycle-16 · M3.ECON CLOSE-OUT — F-CODEX-2 latency conjunct LIVE & 🔴 FALSIFIED (τ̂≈0.52 ≠ τ=4)
+
+M3.OPS가 닫히면서(PR #22, full SLO grid) M3.ECON의 마지막 blocker였던
+F-CODEX-2 latency conjunct를 실측으로 메웠다. 핵심 정정: M3.OPS grid는
+latency vs **offered-rate(qps)** 큐잉 곡선이라 F-CODEX-2(`inference_cost ∝
+context^τ`, context-scaling)와 축이 다르다. F-CODEX-2가 진짜 요구하는
+`(context, wall_ms)` 곡선은 전용 `bench/sandbox_stage4_context_scaling.hexa`
+(이전엔 harness-written-not-yet-run)가 source이므로 **그 벤치를 실제로 돌렸다.**
+
+**실측 (real llama-server, $0 local M3 Metal).** Qwen2.5-1.5B-Instruct-Q4_K_M,
+`-np 1 -cb` port 8091, 20 canonical tasks × 4 context rungs {1k,2k,4k,8k}:
+
+| ctx | mean_wall_ms | measured input_tok | n_correct |
+|----:|-------------:|-------------------:|:---------:|
+| 1024 | 569 | 987 | 17/20 |
+| 2048 | 670 | 1947 | 17/20 |
+| 4096 | 1005 | 3867 | 17/20 |
+| 8192 | 1668 | 7647 | 17/20 |
+
+accuracy가 전 rung 17/20로 **평평** — long-context 붕괴 없음(8k도 24GB UMA에서
+정상 boot, UNAVAILABLE row 없이 k=4 full grid). latency claim은 깨끗.
+
+**Closed-form recompute (`hexa verify`, verbatim).** 측정 4점을 M3.ECON
+harness `verify/numerics_economics_empirical_landing.hexa`의 `LATENCY_MS`
+배열에 verbatim 주입 → check 9/10이 PENDING에서 LIVE로 전환. log-log OLS
+slope **측정 τ̂ = 0.523982** (R²≈0.956 — 깨끗한 멱법칙 fit) vs n=6 lattice
+예측 **τ = 4**, residual **|0.524 − 4| = 3.47602 ≫ ε=0.10**. **10/10 structural
+checks PASS, verdict-line 🔴 FALSIFIED, exit 1.**
+
+**왜 — real-limits-first (LATTICE_POLICY §2).** 기판의 wall_ms는 8× context
+sweep에서 ~2.9×만 상승하는 **sub-linear(τ̂≈0.52)** 곡선. 고정 `max_tokens=64`
+decode가 mem-bandwidth-bound(Theorem I-1, context-invariant weight-load/token)로
+per-request wall을 지배 + cached-boilerplate prefill이 선형 — 이게 modern
+paged-attention serving regime(`infer_cost/ai-inference-cost.md` §S7.6 "TTFT
+linear in input length"). Quartic context⁴는 O(n²) attention이 지배하고 prefill이
+decode를 압도해야 성립하는데, 1.5B Q4 / llama.cpp KV-scheduler / ≤8k에선 둘 다
+거짓. τ=4는 8k latency를 ~1400× over-predict.
+
+**F-CODEX-1과 다르게 외부봉투 면제 아님 (왜 게이트 하는가).** F-CODEX-1은
+cycle-15b에서 disclosure-only로 lift됐다 — N^σφ training-cost claim은 외부
+엔티티(Qwen 2.5)에 lattice 수를 강제하는 g25/g26 self-imposed-ceiling이라
+hard gate가 무의미했다. 그러나 F-CODEX-2는 **기판 자신의 내부 latency-vs-context
+법칙**(기판이 곡선을 직접 제공)이므로 τ=4는 이 기판에 대한 진짜 반증가능 예측이고,
+기판 자신의 측정이 그것을 결정적으로 기각한다. 따라서 honest 🔴 FALSIFIED이지
+lattice artifact가 아니다 (harness check-10 rationale L544–548과 일치).
+
+**M3.ECON 체크박스 `[ ]` 유지 (정직-잔여 > 강제-fit).** task directive대로
+fit이 안 되면 honest residual 기록 + `[ ]` 유지. **honest landing: 기판의
+empirical context exponent는 τ̂≈0.52이지 4가 아니다.** M5.ECON v1.3.0 게이트도
+F-CODEX-2 conjunct를 🔴 FALSIFIED로 기록 — v1.3.0은 측정-τ̂ 기반 cost model을
+재유도하거나 이 반증 자체를 finding으로 ship해야 한다.
+
+| 항목 | 값 | anchor |
+|------|----|--------|
+| measured τ̂ | 0.523982 (R²≈0.956) | `.verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt` |
+| lattice τ | 4 (n=6 TAU_INFER) | `verify/numerics_economics_scaling_laws.hexa` |
+| residual | 3.47602 (≫ ε=0.10) | harness check 9/10 verbatim |
+| verdict | 🔴 FALSIFIED (10/10 checks PASS, exit 1) | `.verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt` |
+| bench data | 4 rungs, acc 17/20 flat | `.verdicts/sandbox/stage4_context_scaling.tsv` + `…_summary.txt` |
+
+**M3.ECON 체크박스 `[ ]` 유지** — F-CODEX-2가 기판의 측정 latency 곡선에
+fit하지 않음 (정직 반증).

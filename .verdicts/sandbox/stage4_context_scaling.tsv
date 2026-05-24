@@ -1,0 +1,5 @@
+context_len	n_correct	total	mean_wall_ms	total_wall_ms	mean_input_tokens	throughput_tok_per_s
+1024	17	20	569	11399	987	22.80
+2048	17	20	670	13405	1947	17.60
+4096	17	20	1005	20110	3867	11.98
+8192	17	20	1668	33366	7647	7.31

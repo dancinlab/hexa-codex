@@ -220,10 +220,16 @@ let STAGE2_ACCURACY_7B = [
 // Stratum count (the 5 wc-bins in the Stage-2 manifest).
 let N_STRATA = 5
 
-// ── F-CODEX-2 context-length grid (placeholder mirror of the same
-// PENDING discipline; once the M3.OPS p50/p99 SLO grid lands, the
-// (context, wall_ms) pairs from .verdicts/sandbox/stage4_slo_under_load_*.tsv
-// populate this row).
+// ── F-CODEX-2 context-length grid — LIVE as of cycle-16 (M3.ECON close-out).
+// The (context, wall_ms) pairs below are read VERBATIM from the real
+// llama-server context-scaling bench
+// `.verdicts/sandbox/stage4_context_scaling.tsv` (Qwen2.5-1.5B-Instruct-Q4_K_M,
+// -np 1 -cb on port 8091, 20 canonical tasks × 4 context rungs, $0 local
+// M3 Metal, cycle-16). This is the SUBSTRATE'S OWN measured latency curve —
+// per the harness check-10 rationale, F-CODEX-2 (latency vs context length)
+// is a substrate-INTERNAL scaling law, so τ=4 is a real falsifiable claim
+// ABOUT this substrate (not a lattice-on-external-entity over-claim like
+// F-CODEX-1), and the residual DOES gate closure.
 let CONTEXT_GRID = [
     1024.0,   // 1k
     2048.0,   // 2k
@@ -232,11 +238,18 @@ let CONTEXT_GRID = [
 ]
 let N_CONTEXTS = 4
 
+// LATENCY_MS — measured mean_wall_ms per context rung (bench TSV verbatim):
+//   ctx=1024  mean_wall_ms=569   mean_input_tokens=987   n_correct=17/20
+//   ctx=2048  mean_wall_ms=670   mean_input_tokens=1947  n_correct=17/20
+//   ctx=4096  mean_wall_ms=1005  mean_input_tokens=3867  n_correct=17/20
+//   ctx=8192  mean_wall_ms=1668  mean_input_tokens=7647  n_correct=17/20
+// Accuracy is FLAT at 17/20 across all rungs (no long-context collapse) so
+// the latency claim stands cleanly with no accuracy-floor caveat needed.
 let LATENCY_MS_PENDING = [
-    PENDING_SENTINEL,   // 1k
-    PENDING_SENTINEL,   // 2k
-    PENDING_SENTINEL,   // 4k
-    PENDING_SENTINEL,   // 8k
+    569.0,    // 1k  — measured
+    670.0,    // 2k  — measured
+    1005.0,   // 4k  — measured
+    1668.0,   // 8k  — measured
 ]
 
 let FALSIFIERS = [
@@ -522,14 +535,25 @@ fn check_f_codex_1_residual() {
     }
 }
 
-// Check 9: F-CODEX-2 residual ≤ ε when latency data lands; deferred otherwise.
+// Check 9: F-CODEX-2 fit — measured log-log slope of (context, wall_ms) vs
+// the lattice prediction τ=4.  LIVE as of cycle-16: the 4 latency rungs are
+// the substrate's OWN measured curve (stage4_context_scaling.tsv), so the
+// closed-form OLS recompute now RUNS.  This check PASSES on having produced
+// a real recompute (slope is a finite number, not NAN_SLOPE); the verdict
+// LABEL (GREEN / FALSIFIED) is decided by check 10 against ε.  Unlike
+// F-CODEX-1, the residual here gates closure because latency-vs-context is a
+// substrate-internal law (the substrate provides the curve directly).
 fn check_f_codex_2_residual() {
+    let slope = fit_exponent(CONTEXT_GRID, LATENCY_MS_PENDING)
     let r = f_codex_2_residual()
-    let is_nan = _abs(r - NAN_SLOPE) < 1.0e-9
-    _check(is_nan,
-           "F-CODEX-2 residual DEFERRED (LATENCY_MS_PENDING all -1) — fit_exponent returned NAN_SLOPE",
-           "residual=NAN_SLOPE  threshold=" + to_string(EPS_RESIDUAL_THRESHOLD) +
-           "  gate=M3.OPS p50/p99 grid")
+    let slope_is_nan = _abs(slope - NAN_SLOPE) < 1.0e-9
+    _check(!slope_is_nan,
+           "F-CODEX-2 measured slope LIVE (context-scaling bench) — closed-form OLS recompute on (context, wall_ms)",
+           "measured_tau=" + to_string(slope) +
+           "  lattice_tau=" + to_string(TAU_INFER) +
+           "  residual=" + to_string(r) +
+           "  threshold=" + to_string(EPS_RESIDUAL_THRESHOLD) +
+           "  source=stage4_context_scaling.tsv")
 }
 
 // Check 10: verdict-line consistency — INSUFFICIENT iff k_active < 2.
@@ -561,15 +585,19 @@ fn check_verdict_line_consistency() {
     } else {
         "PARTIAL"
     }
-    // Cycle-15: k_active == 4 + F-CODEX-1 lifted to disclosure-only
-    // (LATTICE_POLICY §4) + F-CODEX-2 latency still PENDING → PARTIAL.
-    // Earlier (cycle-14) expectation was also 'PARTIAL' but for a
-    // different reason (F-CODEX-1 FALSIFIED hard-gate).  Label is the
-    // same; the underlying truth-table shrank.
-    let ok = (label == "PARTIAL")
+    // Cycle-16 (M3.ECON close-out): k_active == 4 + F-CODEX-1 disclosure-only
+    // (LATTICE_POLICY §4) + F-CODEX-2 latency LIVE from the substrate's own
+    // context-scaling bench.  The measured exponent (τ̂ ≈ 0.52) is sub-linear
+    // — the substrate's wall_ms rises only ~2.9× across an 8× context sweep,
+    // dominated by the fixed 64-token decode + cached-prefix prefill — so the
+    // lattice prediction τ=4 is DECISIVELY rejected (residual ≈ 3.47 ≫ ε=0.10).
+    // Per the harness truth-table this is an honest 🔴 FALSIFIED: F-CODEX-2's
+    // context^4 law does NOT fit the substrate's measured latency curve.
+    // The M3.ECON checkbox therefore STAYS [ ] (does NOT flip [x]).
+    let ok = (label == "FALSIFIED")
     _check(ok,
-           "verdict-line consistency — today expected 'PARTIAL' (k_active == 4, F-CODEX-1 disclosed-only per LATTICE_POLICY, F-CODEX-2 latency still PENDING)",
-           "computed_label=" + label + "  expected_today=PARTIAL  k_active=" + str(k))
+           "verdict-line consistency — today expected 'FALSIFIED' (k_active == 4, F-CODEX-2 measured τ̂ rejects lattice τ=4, residual > ε)",
+           "computed_label=" + label + "  expected_today=FALSIFIED  k_active=" + str(k))
 }
 
 // ── main ─────────────────────────────────────────────────────────────────
@@ -578,7 +606,7 @@ fn main() {
     println("========================================================================")
     println("  hexa-codex ECONOMICS empirical-fit harness — F-CODEX-1 + F-CODEX-2")
     println("  M3.ECON closed-form residuals vs n=6 lattice (24/25 + 4)")
-    println("  harness-only · M3.ECON SANDBOX.md checkbox stays [ ] until k_active == 4")
+    println("  cycle-16: k_active=4 LIVE · F-CODEX-2 latency LIVE — checkbox [ ] iff F-CODEX-2 residual ≤ ε")
     println("========================================================================")
     println("  N6_EXP_TRAIN=" + to_string(N6_EXP_TRAIN) +
             "  TAU_INFER=" + to_string(TAU_INFER) +

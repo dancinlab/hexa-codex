@@ -76,3 +76,22 @@
   method = "arithmetic"
   cmd    = "dominance on (cost_usd, correct) across 4 strategies"
   raw    = ".verdicts/economics-routing-savings/pareto.txt"
+
+# ───────────────────────────────────────────────────────────────────────
+# econ-fcodex2-latency-fit — F-CODEX-2 empirical landing (T4 contact)
+# (slug = econ-fcodex2-latency-fit · M3.ECON / M5.ECON v1.3.0 gate)
+#
+# The modeling-level claim binding tau(6)=4 to the substrate's measured
+# inference latency curve — the "separate slug with T4 empirical contact"
+# the economics-n6-ladder header reserves. FALSIFIED: the substrate's own
+# measured context-latency curve has exponent tau_hat~=0.52, not 4.
+
+@C fc2_context_curve := "context-scaling bench: mean_wall_ms = 569/670/1005/1668 ms at ctx {1k,2k,4k,8k}, acc 17/20 flat" :: empirical [slug=econ-fcodex2-latency-fit]
+  method = "run"
+  cmd    = "hexa run bench/sandbox_stage4_context_scaling.hexa (Qwen2.5-1.5B, -np 1 -cb, $0 local)"
+  raw    = ".verdicts/sandbox/stage4_context_scaling.tsv"
+
+@C fc2_residual := "F-CODEX-2 inference_cost ∝ context^4 FALSIFIED: measured log-log OLS tau_hat=0.524 vs lattice tau=4, residual 3.476 >> eps=0.10" :: empirical [slug=econ-fcodex2-latency-fit]
+  method = "run"
+  cmd    = "hexa run verify/numerics_economics_empirical_landing.hexa (LATENCY_MS live; check 9/10 -> FALSIFIED, exit 1)"
+  raw    = ".verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt"

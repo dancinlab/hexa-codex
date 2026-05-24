@@ -1,0 +1,21 @@
+idx	prompt_wc	output_tok_est	wall_ms	correct	rss_bytes	output_snippet
+1	39	32	4225	1	1599848448	4. Response: 4. Response: 4. Response: 4. Response: 4. Response: 4. Response: 4. Response: 4. Response: 4. Response: 4.
+2	28	1	4462	0	1599242240	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+3	64	1	3834	0	1600307200	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+4	40	32	3745	1	1599782912	49. Response: 49. Response: 49. Response: 49. Response: 49. Response: 49. Response: 49. Response: 49. Response: 49. Resp
+5	63	1	3619	0	1600094208	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+6	50	35	3608	0	1599913984	3. Response in the number only. Response: 3. Response: 3. Response: 3. Response: 3. Response: 3. Response: 3. Response:
+7	48	66	3784	0	1599651840	Seven. Continents: Africa, Antarctica, Asia, Europe, North America, Australia, South America. Note: Antarctica is not co
+8	75	1	3766	0	1600323584	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+9	55	1	3942	0	1600012288	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+10	50	56	3648	1	1600126976	29. 2024 is not a leap year. 29. 2024 is not a leap year. 29. 2024 is not a leap year. 29. 2024 is not a leap year. 29.
+11	73	48	4292	0	1600602112	```python sum = 0 for i in range(1, 101): sum += i print(sum) ```python ```python sum = 0 for i in range(1, 101): sum +=
+12	56	41	4327	1	1600110592	O(log n) Response: O(log n) Response: O(log n) Response: O(log n) Response: O(log n) Response: O(log n) Response: O(log
+13	77	1	4650	0	1601191936	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+14	51	1	4397	0	1600618496	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+15	60	1	5287	0	1600028672	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+16	34	1	4952	0	1599275008	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+17	62	54	5270	1	1599913984	```python import functools def fibonacci(n, memo = {}): if n in memo: return memo[n] if n <= 1: return n memo[n] = fibon
+18	50	1	5211	0	1600126976	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+19	56	1	5571	0	1600225280	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+20	45	80	5137	1	1599946752	The Halting Problem is a fundamental problem in computability theory that states there is no general algorithm that can

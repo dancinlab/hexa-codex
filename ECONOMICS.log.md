@@ -653,3 +653,42 @@ F-CODEX-1/2 4-point scale-grid empirical fit lands (per-scale cost
 exponent), a separate axis tracked by `d_stage4_empirical_landing`
 (harness_ready, k_active=1, INSUFFICIENT until k_active=4 with both
 residuals ≤ ε=0.10).
+
+---
+
+## 2026-05-24 — M5.ECON release gates formally written (v1.2.0 / v1.3.0)
+
+Documentation-only entry. The M3.ECON harness
+`verify/numerics_economics_empirical_landing.hexa` (commit 843b241,
+cycle-9) already encodes the v1.2.0 + v1.3.0 release gate as a
+10-check verifier; this commit publishes that gate in ECONOMICS.md
+§Roadmap (new subsection §M5.ECON release-gate criteria — formal)
+so v1.2.0 / v1.3.0 have a published release criterion, not just an
+open milestone. SANDBOX.md M5.ECON checkbox is NOT flipped — this
+commit DOCUMENTS the gate, it does not satisfy it.
+
+The pass / defer / fail bands are read verbatim from the harness:
+`EPS_RESIDUAL_THRESHOLD = 0.10` (L124), `PENDING_SENTINEL = -1.0`
+(L129), `NAN_SLOPE = -999.0` (L130), 4-row scale grid `{0.5e9,
+1.5e9, 3.0e9, 7.0e9}` (L138–143), 4-row context grid `{1024, 2048,
+4096, 8192}` (L211–216, anchored to the `CTX_REF = 8192`
+cross-verifier). Checks 8 + 9 are the F-CODEX-1 + F-CODEX-2 residual
+gates; check 10 is the verdict-line truth-table composer.
+
+Cross-ref table (verbatim, also in ECONOMICS.md §Roadmap):
+
+| release | falsifier | harness | gate condition | currently |
+|:---|:---|:---|:---|:---|
+| v1.2.0 | F-CODEX-1 (`N^σφ`) | `verify/numerics_economics_empirical_landing.hexa` ch.8 | residual ≤ 0.10 across 4 scale rungs | 🟠 1/4 |
+| v1.3.0 | F-CODEX-2 (`context^τ`) | `verify/numerics_economics_empirical_landing.hexa` ch.9 | residual ≤ 0.10 across 4 context rungs | 🟠 0/4 |
+
+**Currently state.** v1.2.0 = 🟠 INSUFFICIENT, `k_active = 1` (0.5B
+live from cycle-6 verdict; 1.5B in flight from cycle-9 sibling-agent
+ada5; 3B + 7B PENDING). v1.3.0 = 🟠 INSUFFICIENT, 0 of 4 context
+rungs have data (M3.OPS p50/p99 grid not yet built — candidate for
+`.discoveries/sandbox.tape`).
+
+**Honesty (g34).** F-CODEX-2 has no harness data at all yet
+(v1.2.0 starts 1/4, v1.3.0 starts 0/4). Both gates remain
+🟠 INSUFFICIENT per g5 rubric until `k_active == 4` AND both
+residuals ≤ ε.

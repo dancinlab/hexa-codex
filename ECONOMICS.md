@@ -95,6 +95,86 @@ Verification surface (recipe §3 ladder — see `docs/closure_status.md`):
 - DoD (`.roadmap.hexa_codex` §0): economics group training-cost /
   inference-cost `n = 6` scaling fit (GPT-4 vs Claude 4.7).
 
+## M5.ECON release-gate criteria — formal
+
+The M3.ECON harness `verify/numerics_economics_empirical_landing.hexa`
+(commit 843b241, cycle-9) is the closed-form recompute that decides
+the v1.2.0 / v1.3.0 release gates. The harness ships the structure
+as a 10-check verifier; this section publishes the explicit pass /
+defer / fail bands so the gates have a release criterion, not just
+an open milestone. Honesty: today both gates are 🟠 INSUFFICIENT
+(1 of 4 scale rungs on v1.2.0 · 0 of 4 context rungs on v1.3.0);
+see `currently` row of the cross-ref table below.
+
+### v1.2.0 — F-CODEX-1 empirical landing gate (`training_cost ∝ N^σφ = N^24`)
+
+- **Data.** Stage-2 manifest accuracy on the `{0.5B, 1.5B, 3B, 7B}`
+  scale grid (4 scale rungs minimum; the M3.SUBSTRATE saturation
+  point is the upstream prereq — the 4 rungs come from that ladder).
+- **Verifier.** `verify/numerics_economics_empirical_landing.hexa`
+  (commit 843b241) check 8 — `check_f_codex_1_residual` invokes
+  `f_codex_1_residual()` which runs the closed-form log-log OLS slope
+  on `(SCALE_GRID_PARAMS, row_mean_live(STAGE2_ACCURACY_*))`.
+- **Pass condition.** `f_codex_1_residual <= EPS_RESIDUAL_THRESHOLD`
+  with `EPS_RESIDUAL_THRESHOLD = 0.10` (harness L124) AND all 4
+  `STAGE2_ACCURACY_*` rows live (no `PENDING_SENTINEL = -1.0` row).
+- **Defer condition.** `k_active_scales() < 2` → `f_codex_1_residual`
+  returns `NAN_SLOPE` (= -999.0) and check 8 records DEFERRED.
+- **Fail condition.** `k_active_scales() == 4` AND
+  `f_codex_1_residual > 0.10` → verdict-line emits 🔴 FALSIFIED
+  (harness L579–585, `exit(1)`).
+- **Verdict tier.** 🟢 SUPPORTED-NUMERICAL minimum, 🔵
+  SUPPORTED-FORMAL preferred (per recipe §3 ladder + g5 rubric).
+- **Currently.** 🟠 INSUFFICIENT — `k_active = 1` (only 0.5B row is
+  live from cycle-6 `.verdicts/sandbox/stage2_persona_scaled_summary.txt`;
+  1.5B in flight from cycle-9 sibling-agent ada5; 3B + 7B PENDING).
+
+### v1.3.0 — F-CODEX-2 empirical landing gate (`inference_cost ∝ context^τ = context^4`)
+
+- **Data.** Per-context latency on the `{1k, 2k, 4k, 8k}` context
+  grid (4 context rungs — harness `CONTEXT_GRID`, L211–216, anchored
+  to the `CTX_REF = 8192` cross-verifier in
+  `verify/numerics_economics_scaling_laws.hexa`).
+- **Verifier.** Same `verify/numerics_economics_empirical_landing.hexa`
+  check 9 — `check_f_codex_2_residual` invokes `f_codex_2_residual()`
+  which runs the closed-form log-log OLS slope on
+  `(CONTEXT_GRID, LATENCY_MS_PENDING)`.
+- **Pass condition.** `f_codex_2_residual <= 0.10` (same
+  `EPS_RESIDUAL_THRESHOLD`) AND `LATENCY_MS_PENDING` fully populated
+  (no `PENDING_SENTINEL`).
+- **Defer condition.** Any `LATENCY_MS_PENDING[i] == -1.0` →
+  `f_codex_2_residual` returns `NAN_SLOPE` and check 9 records
+  DEFERRED.
+- **Fail condition.** All 4 latency rungs live AND
+  `f_codex_2_residual > 0.10` → 🔴 FALSIFIED.
+- **Verdict tier.** 🟢 SUPPORTED-NUMERICAL minimum, 🔵
+  SUPPORTED-FORMAL preferred.
+- **Currently.** 🟠 INSUFFICIENT — 0 of 4 context rungs have data
+  (gate references "M3.OPS p50/p99 grid" per harness L478; the
+  context-grid bench does not exist yet and is a candidate for
+  `.discoveries/sandbox.tape`).
+- **Honesty note (g34).** F-CODEX-2 has no harness data yet, even
+  at 1 of 4 — v1.2.0 starts at 1/4, v1.3.0 starts at 0/4.
+
+### Cross-ref table
+
+| release | falsifier | harness | gate condition | currently |
+|:---|:---|:---|:---|:---|
+| v1.2.0 | F-CODEX-1 (`N^σφ`) | `verify/numerics_economics_empirical_landing.hexa` ch.8 | residual ≤ 0.10 across 4 scale rungs | 🟠 1/4 |
+| v1.3.0 | F-CODEX-2 (`context^τ`) | `verify/numerics_economics_empirical_landing.hexa` ch.9 | residual ≤ 0.10 across 4 context rungs | 🟠 0/4 |
+
+The verdict-line truth-table (harness check 10
+`check_verdict_line_consistency`) is the final gate composer:
+
+- `k_active < 2` → 🟠 INSUFFICIENT (exit 0)
+- `k_active == 4` AND both residuals ≤ ε → 🟢 GREEN (exit 0)
+- `k_active == 4` AND any residual > ε → 🔴 FALSIFIED (exit 1)
+- `k_active ∈ {2, 3}` → 🟠 PARTIAL (exit 0, gap surfaced)
+
+The M3.ECON SANDBOX.md checkbox flips `[ ] → [x]` only on the GREEN
+branch, which is the v1.2.0 + v1.3.0 release-cut signal for the
+ECONOMICS group.
+
 ## Cross-refs
 
 - `.roadmap.hexa_codex` §A.4 — falsifier preregister · §A.2 — release cadence

@@ -1,0 +1,22 @@
+# model=BitNet-b1.58-2B-4T-TQ2_0
+# model_path=/Users/ghost/Models/gguf/bitnet/ggml-model-tq2_0.gguf
+# bin=llama-completion
+# extra_flags=-ngl 0 --jinja  prompt_mode=jinja
+# accuracy=6/20 (30.00%)
+# total_out_tok=1152  (exact, from perf-trailer 'eval time / N runs')
+# total_wall_ms=165416
+# peak_rss_mb=1569
+# power_method=powermetrics_combined
+# pm_interval_ms=200
+# pm_samples=803
+# mean_combined_mW=4353
+# idle_combined_mW=3736  (baseline subtracted for net)
+# energy_gross_mJ=699093  energy_gross_J=699.093
+# energy_net_mJ=99091  energy_net_J=99.091  (idle-subtracted; UNRELIABLE when idle noise >= run mean — see fidelity note)
+# J_per_tok_gross=0.606  (whole-SoC energy / decoded tok — the comparable headline number)
+# J_per_tok_net=0.086  (idle-subtracted lower bound; =0 when inline-idle sample exceeded run mean)
+# energy_formula=E(J)=sum(combined_mW)/1000 * pm_interval_ms/1000 ; J/tok = E / total_out_tok
+# fidelity=FULL — whole-SoC wall energy (CPU+GPU+ANE) on the hardware meter; captures BitNet's CPU path AND Qwen's Metal-GPU path on the same scale
+# host=mac-mini-m3 (Mac15,12, 24 GB UMA)
+# scorer=byte_exact_subset (VERBATIM from bitnet_m1_accuracy_floor.hexa)
+# cost_usd=0  (local serving)

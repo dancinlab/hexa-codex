@@ -1,0 +1,434 @@
+#!hexa strict
+// bench/bitnet_m6_energy_per_token.hexa — BITNET M6 Energy bench.
+//
+// QUESTION (M6 Energy): BitNet b1.58's THIRD marketing headline — after accuracy
+// (M1: FALSIFIED, 30%) and memory (M2: HOLDS, 0.55x) — is ENERGY: "1.58-bit =
+// energy-efficient inference". This claim has NEVER been measured on this
+// substrate. M6 measures it: energy-per-output-token (J/tok) for BitNet 2B4T
+// (i2_s via bitnet.cpp AND TQ2_0 via stock llama.cpp) vs the Qwen2.5-0.5B-Q4
+// SANDBOX stage-0 baseline (16/20), on the IDENTICAL 20-task manifest.
+//
+// THE DECISIVE TWIST: BitNet's energy claim assumes a TERNARY-OPTIMIZED
+// ACCELERATOR. On THIS substrate it runs CPU-only (-ngl 0; no Metal ternary
+// kernel) at ~7.7 tok/s, while Qwen-Q4 runs on the Metal GPU. So the question is
+// whether the theoretical ternary energy advantage SURVIVES the CPU-only
+// constraint, or whether running on the wrong hardware ERASES it. Either way is
+// the real finding — honest measurement on the substrate we actually have.
+//
+// MEASUREMENT METHOD (full-fidelity where available):
+//   - A background `sudo powermetrics` sampler (cpu_power + gpu_power) runs for
+//     the WHOLE 20-task bench run, logging "Combined Power (CPU + GPU + ANE)" in
+//     mW every PM_INTERVAL_MS. Energy (J) = Σ_samples (mW/1000 * interval_s).
+//     This is REAL whole-SoC wall energy: it captures the CPU cost of BitNet's
+//     CPU-only path AND the GPU cost of Qwen's Metal path on the same meter.
+//   - Output tokens come from the llama perf trailer ("eval time = ... / N runs"
+//     = N decoded tokens) — EXACT, not a wc-est. J/tok = energy / Σ output_tok.
+//   - FIDELITY CAVEAT: powermetrics measures the whole machine for the sample
+//     window; an idle-power baseline (PM idle sample, no inference) is captured
+//     and subtracted to isolate the marginal inference energy. The reported J/tok
+//     is given BOTH gross (total SoC energy / tokens) and net (idle-subtracted).
+//     If `sudo -n powermetrics` is unavailable, the harness falls back to
+//     /usr/bin/time -l CPU-seconds (user+sys) as a COARSE proxy (honest: a
+//     CPU-seconds proxy ignores GPU/ANE power and assumes a fixed W/cpu-sec, so
+//     it understates the Metal-GPU baseline's energy — flagged in the summary).
+//
+// SCORER + manifest byte-identical to bench/bitnet_m1_accuracy_floor.hexa so the
+// accuracy column stays comparable; M6 adds the energy column.
+//
+// Parameterized by env (one harness, three roles):
+//   BITNET_BIN          inference binary (default llama-completion; bitnet.cpp = ~/BitNet/build/bin/llama-cli)
+//   BITNET_MODEL_PATH   absolute .gguf path (required)
+//   BITNET_MODEL_NAME   label for the summary (required)
+//   BITNET_OUT_PREFIX   .verdicts/bitnet/<prefix> (default m6_energy_<role>)
+//   BITNET_EXTRA_FLAGS  serving flags ("NONE" = empty; default "-ngl 0 --jinja")
+//   BITNET_PROMPT_MODE  "jinja" (-p <q>, llama.cpp --jinja) | "rawprefix" ("User: <q>\nAssistant:", bitnet.cpp) | "plain" (Qwen -st)
+//   BITNET_PERF_LINE    perf-trailer grep ("common_perf_print" for llama.cpp | "llama_perf_context_print" for bitnet.cpp)
+//   PM_INTERVAL_MS      powermetrics sample interval (default 200)
+//
+// Run (example — Qwen baseline):
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+//     BITNET_BIN=llama-completion \
+//     BITNET_MODEL_PATH="$HOME/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf" \
+//     BITNET_MODEL_NAME="Qwen2.5-0.5B-Instruct-Q4_K_M" \
+//     BITNET_EXTRA_FLAGS=NONE BITNET_PROMPT_MODE=plain \
+//     BITNET_PERF_LINE=common_perf_print BITNET_OUT_PREFIX=m6_energy_qwen \
+//     ~/.hx/packages/hexa/hexa.real run bench/bitnet_m6_energy_per_token.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-completion/bitnet.cpp llama-cli + sudo powermetrics + /usr/bin/time) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/bitnet"
+
+fn _bin() -> str {
+    let b = env("BITNET_BIN")
+    if b.len() > 0 { return b }
+    return "llama-completion"
+}
+fn _model_path() -> str {
+    let p = env("BITNET_MODEL_PATH")
+    if p.len() > 0 { return p }
+    return HOME + "/Models/gguf/bitnet/ggml-model-tq2_0.gguf"
+}
+fn _model_name() -> str {
+    let n = env("BITNET_MODEL_NAME")
+    if n.len() > 0 { return n }
+    return "BitNet-b1.58-2B-4T-TQ2_0"
+}
+fn _out_prefix() -> str {
+    let p = env("BITNET_OUT_PREFIX")
+    if p.len() > 0 { return p }
+    return "m6_energy_tq2_0"
+}
+fn _extra_flags() -> str {
+    let e = env("BITNET_EXTRA_FLAGS")
+    if e.len() > 0 {
+        if e == "NONE" { return "" }
+        return e
+    }
+    return "-ngl 0 --jinja"
+}
+fn _prompt_mode() -> str {
+    let m = env("BITNET_PROMPT_MODE")
+    if m.len() > 0 { return m }
+    return "jinja"
+}
+fn _perf_line() -> str {
+    let p = env("BITNET_PERF_LINE")
+    if p.len() > 0 { return p }
+    return "common_perf_print"
+}
+fn _pm_interval_ms() -> int {
+    let v = env("PM_INTERVAL_MS")
+    if v.len() > 0 { return int(v) }
+    return 200
+}
+
+let BIN          = _bin()
+let MODEL_PATH   = _model_path()
+let MODEL_NAME   = _model_name()
+let OUT_PREFIX   = _out_prefix()
+let EXTRA_FLAGS  = _extra_flags()
+let PROMPT_MODE  = _prompt_mode()
+let PERF_LINE    = _perf_line()
+let PM_INTERVAL  = _pm_interval_ms()
+let MAX_TOK      = 96            // identical headroom to M1/M2/M2+ benches
+let USABLE_THRESHOLD = 15
+
+// 20-task fixed manifest — VERBATIM from bench/bitnet_m1_accuracy_floor.hexa.
+let TASKS = [
+    ["What is 2+2? Reply with the digit only.",                                                    "4"],
+    ["Capital of France? One word.",                                                                "paris"],
+    ["Reverse the string 'hello'. Reply with the reversed string only.",                            "olleh"],
+    ["Square of 7? Reply with the number only.",                                                    "49"],
+    ["First prime number greater than 10? Reply with the number only.",                             "11"],
+    ["Smallest prime number? Reply with the number only.",                                          "2"],
+    ["How many continents? Reply with the number only.",                                            "7"],
+    ["Boiling point of water in Celsius at sea level? Reply with the number only.",                 "100"],
+    ["ASCII decimal code for 'A'? Reply with the number only.",                                     "65"],
+    ["Days in February 2024? Reply with the number only.",                                          "29"],
+    ["Write a Python one-liner that sums integers 1..100. Reply with code only.",                   "sum(range"],
+    ["Time complexity of binary search? Reply with big-O only.",                                    "log n"],
+    ["Python: reverse a list lst in one expression. Reply with the expression only.",               "[::-1]"],
+    ["Sort {3,1,2} ascending. Reply with the result only.",                                         "1, 2, 3"],
+    ["TCP vs UDP in one sentence — which is connection-oriented?",                                  "tcp"],
+    ["Explain BFS vs DFS in 2 sentences.",                                                          "breadth"],
+    ["Write Python Fibonacci with memoization (use functools.cache).",                              "fib"],
+    ["Convert binary 1101 to decimal, show one-line sum.",                                          "13"],
+    ["Why is mergesort O(n log n)? One-sentence justification.",                                    "merge"],
+    ["Halting problem — what is it? One sentence.",                                                  "halt"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Render a fixed-point decimal from an integer scaled by 1000 (e.g. 1039 -> "1.039").
+// Zero-pads the 3-digit fractional part so 1039 reads "1.039" not "1.39".
+fn dec3(scaled: int) -> str {
+    let whole = scaled / 1000
+    let frac = scaled % 1000
+    let mut fs = str(frac)
+    while fs.len() < 3 { fs = "0" + fs }
+    return str(whole) + "." + fs
+}
+// Same, scaled by 100 (e.g. 3000 -> "30.00").
+fn dec2(scaled: int) -> str {
+    let whole = scaled / 100
+    let frac = scaled % 100
+    let mut fs = str(frac)
+    while fs.len() < 2 { fs = "0" + fs }
+    return str(whole) + "." + fs
+}
+
+// Build the prompt argument string for the chosen mode.
+//   jinja     : -p '<q>'                       (llama.cpp --jinja chat template)
+//   rawprefix : -p 'User: <q>\nAssistant:'     (bitnet.cpp official 2B4T format)
+//   plain     : -p '<q>'                       (Qwen -st plain completion)
+fn _prompt_arg(prompt: str) -> str {
+    if PROMPT_MODE == "rawprefix" {
+        let templated = "User: " + prompt + "\nAssistant:"
+        return "-p " + shq(templated)
+    }
+    return "-p " + shq(prompt)
+}
+
+// Per-task runner. Returns tab-separated:
+//   wall_ms \t out_tok \t correct(1|0) \t rss_bytes \t cpu_sec_x1000 \t output_snippet
+//
+// out_tok comes from the perf trailer "eval time = ... / N runs" (N decoded
+// tokens) — EXACT. cpu_sec is the user+sys CPU-seconds from /usr/bin/time -l
+// ("user" + "sys"), captured as a proxy fallback. The model answer is parsed +
+// scored byte-identically to the M1 bench (case-insensitive substring on kw).
+fn run_one(prompt: str, expected_kw: str) -> str {
+    // Parser: collapse to one line. For rawprefix/jinja the answer follows the
+    // last "Assistant:"; for plain (Qwen -st) the SANDBOX baseline marker block.
+    let mut extract = "tr '\\n' ' ' | sed 's/.*Assistant: *//'"
+    if PROMPT_MODE == "plain" {
+        extract = "awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' '"
+    }
+
+    // bitnet.cpp llama-cli needs --no-warmup --no-display-prompt; llama.cpp
+    // completion/Qwen path uses -st. Both honor --temp 0 greedy + -n MAX_TOK.
+    let mut engine_flags = "-st"
+    if PROMPT_MODE == "rawprefix" {
+        engine_flags = "--no-warmup --no-display-prompt"
+    }
+
+    let cmd = "t_start=$(date +%s%N); " +
+              "tmperr=$(mktemp); " +
+              "out=$(/usr/bin/time -l " + shq(BIN) + " -m " + shq(MODEL_PATH) +
+              " " + EXTRA_FLAGS + " " + engine_flags +
+              " " + _prompt_arg(prompt) +
+              " -n " + str(MAX_TOK) + " --temp 0 2>\"$tmperr\"); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "rss=$(grep 'maximum resident set size' \"$tmperr\" | awk '{print $1}' | tail -1); " +
+              // CPU seconds (user + sys) from /usr/bin/time -l, scaled x1000 to keep integer.
+              "ucpu=$(grep -E '[0-9.]+ +real' \"$tmperr\" | awk '{print $3}' | tail -1); " +
+              "scpu=$(grep -E '[0-9.]+ +real' \"$tmperr\" | awk '{print $5}' | tail -1); " +
+              "cpu_ms=$(awk -v u=\"${ucpu:-0}\" -v s=\"${scpu:-0}\" 'BEGIN{printf \"%d\", (u+s)*1000}'); " +
+              // out_tok from the perf trailer "eval time = ... / N runs".
+              "otok=$(grep '" + PERF_LINE + ":.*eval time' \"$tmperr\" | grep -v 'prompt eval' | sed -E 's#.*/ +([0-9]+) +runs.*#\\1#' | tail -1); " +
+              "rm -f \"$tmperr\"; " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | " + extract + " | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "ans=$(printf '%s' \"$ans_raw\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//'); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-100); " +
+              "printf '%s\\t%s\\t%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"${otok:-0}\" \"$correct\" \"${rss:-0}\" \"${cpu_ms:-0}\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+// Probe sudo -n powermetrics availability (passwordless). Returns "1" | "0".
+fn pm_available() -> str {
+    let r = exec("sudo -n powermetrics -n 1 -i 100 --samplers cpu_power >/dev/null 2>&1 && echo 1 || echo 0").trim()
+    return r
+}
+
+// Capture an IDLE baseline: NS samples of combined power with NO inference.
+// Returns mean combined-power in mW (integer). Used to net out the SoC floor.
+fn pm_idle_mw(samples: int) -> int {
+    let cmd = "sudo -n powermetrics -n " + str(samples) + " -i " + str(PM_INTERVAL) +
+              " --samplers cpu_power,gpu_power 2>/dev/null " +
+              "| grep 'Combined Power' | sed -E 's#.*: +([0-9]+) mW#\\1#' " +
+              "| awk '{s+=$1; n++} END{ if(n>0) printf \"%d\", s/n; else printf \"0\" }'"
+    return int(exec(cmd).trim())
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/bitnet_m6_energy_per_token — energy-per-token (J/tok)")
+    println("  model:    " + MODEL_NAME)
+    println("  path:     " + MODEL_PATH)
+    println("  bin:      " + BIN)
+    println("  flags:    " + EXTRA_FLAGS + "  prompt_mode=" + PROMPT_MODE)
+    println("  pm_int:   " + str(PM_INTERVAL) + " ms")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/" + OUT_PREFIX + ".tsv"
+    let pm_log   = OUT_DIR + "/" + OUT_PREFIX + "_pm.log"
+    exec("rm -f " + shq(tsv_path) + " " + shq(pm_log))
+    exec("echo 'idx\tout_tok\twall_ms\tcorrect\trss_bytes\tcpu_ms\toutput_snippet' >> " + shq(tsv_path))
+
+    // --- power-measurement mode selection ---
+    let pm_ok = pm_available()
+    let mut method = "powermetrics_combined"
+    let mut idle_mw = 0
+    if pm_ok == "1" {
+        println("  power method: sudo powermetrics (cpu_power+gpu_power, combined SoC) — full fidelity")
+        // Let the machine settle, then capture an idle baseline (24 samples).
+        // NOTE: this is a best-effort floor; on a busy desktop the idle sample can
+        // exceed a fast run's mean, which is why GROSS J/tok is the headline and
+        // NET is reported only as a fenced lower bound (see summary fidelity note).
+        println("  settling 3s, then capturing idle baseline (24 samples)...")
+        exec("sleep 3")
+        idle_mw = pm_idle_mw(24)
+        println("  idle combined power = " + str(idle_mw) + " mW")
+        // Start the continuous background sampler. Big -n so it outlives the run;
+        // we kill it after the manifest finishes. Each sample line carries a
+        // "Combined Power (CPU + GPU + ANE): NNNN mW" entry.
+        println("  starting background powermetrics sampler -> " + pm_log)
+        exec("sudo -n powermetrics -i " + str(PM_INTERVAL) +
+             " --samplers cpu_power,gpu_power -n 100000 > " + shq(pm_log) +
+             " 2>/dev/null & echo $! > " + shq(pm_log + ".pid"))
+        // brief settle so the first sample lands before task 1.
+        exec("sleep 1")
+    } else {
+        method = "cpu_seconds_proxy"
+        println("  power method: /usr/bin/time -l CPU-seconds PROXY (sudo powermetrics unavailable)")
+        println("  FIDELITY CAVEAT: proxy ignores GPU/ANE power; understates Metal-GPU baseline.")
+    }
+
+    let mut total_ms = 0
+    let mut n_correct = 0
+    let mut peak_rss = 0
+    let mut total_out_tok = 0
+    let mut total_cpu_ms = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let prompt = task[0]
+        let expected = task[1]
+        println("  [" + str(i+1) + "/" + str(len(TASKS)) + "] kw=" + expected + " prompt=" + prompt.substr(0, 46))
+        let line = run_one(prompt, expected)
+        let parts = line.split("\t")
+        if parts.len() < 6 {
+            println("    ! parse error, raw=" + line)
+            let bad = str(i+1) + "\t0\t0\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+            exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+            i = i + 1
+            continue
+        }
+        let wall_ms = int(parts[0])
+        let otok    = int(parts[1])
+        let correct = parts[2]
+        let rss     = int(parts[3])
+        let cpu_ms  = int(parts[4])
+        let snippet = parts[5].replace("\t", " ")
+        total_ms = total_ms + wall_ms
+        total_out_tok = total_out_tok + otok
+        total_cpu_ms = total_cpu_ms + cpu_ms
+        if correct == "1" { n_correct = n_correct + 1 }
+        if rss > peak_rss { peak_rss = rss }
+        let row = str(i+1) + "\t" + str(otok) + "\t" + str(wall_ms) + "\t" + correct + "\t" + str(rss) + "\t" + str(cpu_ms) + "\t" + snippet.substr(0, 100)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("    -> wall_ms=" + str(wall_ms) + " out_tok=" + str(otok) + " correct=" + correct + " cpu_ms=" + str(cpu_ms))
+        i = i + 1
+    }
+
+    // --- stop the sampler + integrate energy ---
+    let mut n_samples = 0
+    let mut sum_mw = 0
+    let mut mean_mw = 0
+    let mut energy_gross_mj = 0   // millijoules (integer); J = mj/1000
+    let mut energy_net_mj = 0
+    if pm_ok == "1" {
+        exec("kill $(cat " + shq(pm_log + ".pid") + ") 2>/dev/null; sleep 1; rm -f " + shq(pm_log + ".pid"))
+        // n_samples + sum of combined-power mW over the run window.
+        n_samples = int(exec("grep -c 'Combined Power' " + shq(pm_log)).trim())
+        sum_mw = int(exec("grep 'Combined Power' " + shq(pm_log) +
+                          " | sed -E 's#.*: +([0-9]+) mW#\\1#' | awk '{s+=$1} END{printf \"%d\", s}'").trim())
+        if n_samples > 0 { mean_mw = sum_mw / n_samples }
+        // Energy(J) = Σ_samples (mW/1000 W) * (PM_INTERVAL/1000 s)
+        //           = sum_mw * PM_INTERVAL / 1_000_000 J  ==> *1000 -> mJ:
+        //   mJ = sum_mw * PM_INTERVAL / 1000
+        energy_gross_mj = (sum_mw * PM_INTERVAL) / 1000
+        // net = subtract idle floor for the same window.
+        let net_mw_sum = sum_mw - (idle_mw * n_samples)
+        let mut net_clamped = net_mw_sum
+        if net_clamped < 0 { net_clamped = 0 }
+        energy_net_mj = (net_clamped * PM_INTERVAL) / 1000
+    }
+
+    let total = len(TASKS)
+    let mut acc_pct_x100 = 0
+    if total > 0 { acc_pct_x100 = (n_correct * 10000) / total }
+    let peak_rss_mb = peak_rss / 1048576
+
+    // J/tok (x1000 = mJ/tok integer) for gross + net + cpu-proxy.
+    let mut jtok_gross_x1000 = 0
+    let mut jtok_net_x1000 = 0
+    if total_out_tok > 0 {
+        jtok_gross_x1000 = energy_gross_mj / total_out_tok
+        jtok_net_x1000 = energy_net_mj / total_out_tok
+    }
+    // CPU-seconds proxy: assume nominal ~5 W/cpu-sec is NOT applied (would be an
+    // arbitrary constant); instead report raw cpu-ms/tok so the caveat is honest.
+    let mut cpums_per_tok = 0
+    if total_out_tok > 0 { cpums_per_tok = total_cpu_ms / total_out_tok }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — BITNET M6 energy-per-token")
+    println("========================================================================")
+    println("  model            : " + MODEL_NAME)
+    println("  accuracy         : " + str(n_correct) + "/" + str(total) + " = " + dec2(acc_pct_x100) + "%")
+    println("  total_out_tok    : " + str(total_out_tok))
+    println("  total_wall_ms    : " + str(total_ms))
+    println("  peak_rss_mb      : " + str(peak_rss_mb))
+    println("  power_method     : " + method)
+    if pm_ok == "1" {
+        println("  pm_samples       : " + str(n_samples) + " @ " + str(PM_INTERVAL) + "ms")
+        println("  mean_combined_mW : " + str(mean_mw))
+        println("  idle_combined_mW : " + str(idle_mw))
+        println("  energy_gross_J   : " + dec3(energy_gross_mj))
+        println("  energy_net_J     : " + dec3(energy_net_mj))
+        println("  J/tok (gross)    : " + dec3(jtok_gross_x1000))
+        println("  J/tok (net)      : " + dec3(jtok_net_x1000))
+    } else {
+        println("  total_cpu_ms     : " + str(total_cpu_ms))
+        println("  cpu_ms / tok     : " + str(cpums_per_tok) + "  (PROXY — no GPU/ANE)")
+    }
+    println("")
+
+    let summary_path = OUT_DIR + "/" + OUT_PREFIX + "_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# model_path=" + MODEL_PATH) + " >> " + shq(summary_path))
+    exec("echo " + shq("# bin=" + BIN) + " >> " + shq(summary_path))
+    exec("echo " + shq("# extra_flags=" + EXTRA_FLAGS + "  prompt_mode=" + PROMPT_MODE) + " >> " + shq(summary_path))
+    exec("echo " + shq("# accuracy=" + str(n_correct) + "/" + str(total) + " (" + dec2(acc_pct_x100) + "%)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_out_tok=" + str(total_out_tok) + "  (exact, from perf-trailer 'eval time / N runs')") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_wall_ms=" + str(total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# peak_rss_mb=" + str(peak_rss_mb)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# power_method=" + method) + " >> " + shq(summary_path))
+    if pm_ok == "1" {
+        exec("echo " + shq("# pm_interval_ms=" + str(PM_INTERVAL)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# pm_samples=" + str(n_samples)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# mean_combined_mW=" + str(mean_mw)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# idle_combined_mW=" + str(idle_mw) + "  (baseline subtracted for net)") + " >> " + shq(summary_path))
+        exec("echo " + shq("# energy_gross_mJ=" + str(energy_gross_mj) + "  energy_gross_J=" + dec3(energy_gross_mj)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# energy_net_mJ=" + str(energy_net_mj) + "  energy_net_J=" + dec3(energy_net_mj) + "  (idle-subtracted; UNRELIABLE when idle noise >= run mean — see fidelity note)") + " >> " + shq(summary_path))
+        exec("echo " + shq("# J_per_tok_gross=" + dec3(jtok_gross_x1000) + "  (whole-SoC energy / decoded tok — the comparable headline number)") + " >> " + shq(summary_path))
+        exec("echo " + shq("# J_per_tok_net=" + dec3(jtok_net_x1000) + "  (idle-subtracted lower bound; =0 when inline-idle sample exceeded run mean)") + " >> " + shq(summary_path))
+        exec("echo " + shq("# energy_formula=E(J)=sum(combined_mW)/1000 * pm_interval_ms/1000 ; J/tok = E / total_out_tok") + " >> " + shq(summary_path))
+        exec("echo " + shq("# fidelity=FULL — whole-SoC wall energy (CPU+GPU+ANE) on the hardware meter; captures BitNet's CPU path AND Qwen's Metal-GPU path on the same scale") + " >> " + shq(summary_path))
+    } else {
+        exec("echo " + shq("# total_cpu_ms=" + str(total_cpu_ms) + "  (user+sys CPU-seconds *1000, from /usr/bin/time -l)") + " >> " + shq(summary_path))
+        exec("echo " + shq("# cpu_ms_per_tok=" + str(cpums_per_tok)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# fidelity=COARSE PROXY — CPU-seconds only; IGNORES GPU/ANE power, so UNDERSTATES the Metal-GPU baseline's true energy. NOT a hardware power meter.") + " >> " + shq(summary_path))
+    }
+    exec("echo " + shq("# host=mac-mini-m3 (Mac15,12, 24 GB UMA)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# scorer=byte_exact_subset (VERBATIM from bitnet_m1_accuracy_floor.hexa)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cost_usd=0  (local serving)") + " >> " + shq(summary_path))
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  pm_log  persisted: " + pm_log)
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_BITNET_M6__ PASS")
+    exit(0)
+}

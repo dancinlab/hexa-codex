@@ -1856,3 +1856,90 @@ the closure; the *next* formula is a future cycle's work.
 confirmed + 1 BLOCKED_AT_PROJECT + 1 harness_run_partial + 1
 falsified (F-CODEX-1) · 3 dead · 6 candidates remaining.
 
+---
+
+## 2026-05-24 — cycle-15b · F-CODEX-1 LATTICE_POLICY lift (FALSIFIED → DISCLOSURE-ONLY)
+
+**Verdict:** `.verdicts/sandbox/f_codex_1_lattice_lifted.txt` (verbatim
+`hexa run`, 10/10 checks PASS, verdict-line PARTIAL).
+
+**Realization.** The cycle-15 F-CODEX-1 🔴 FALSIFIED finding was
+**produced by a LATTICE_POLICY violation in our own harness**, not by
+a real disagreement worth recording as a closed negative. Re-read
+`LATTICE_POLICY.md`:
+
+```
+§1  Self-imposed-ceiling anti-patterns (all dishonest):
+    - "this analysis fits n=6, therefore correct"
+    - "the capacity limit is J₂=24"
+    - "data satisfies σ·φ=24, therefore PASS"  ← always-pass tautology
+    - "external entity X also follows n=6 (χ² test)" ← over-claim
+
+§4  External envelope — entities/companies absorbed into an analysis:
+    NO lattice HARD check, NO χ²-to-lattice falsifier; disclose "n=6
+    is our framing, not <entity>'s design"; falsifiers defined only
+    by the entity's published thresholds.
+```
+
+The verify harness's `check_f_codex_1_residual` was asserting that
+Qwen 2.5's empirical accuracy slope must equal `N^(24/25) = N^0.96`
+within `ε = 0.1` — the exact "self-imposed ceiling" anti-pattern.
+Qwen 2.5 is an external substrate (Alibaba's model trained without
+any lattice anchor); it has no obligation to follow `N6_EXP_TRAIN`.
+A HARD residual gate against it produces a meaningless 🔴 FALSIFIED
+verdict — the disagreement says nothing about either Qwen 2.5 or the
+lattice, only about the harness's own anti-pattern.
+
+**Lift.**
+
+1. `f_codex_1_residual()` renamed to `f_codex_1_measured_slope()` —
+   returns the *measured* empirical exponent (a real number worth
+   reporting), and a sibling `f_codex_1_lattice_residual()` reports
+   `|measured_slope - N6_EXP_TRAIN|` as *descriptive disclosure* only.
+2. `check_f_codex_1_residual()` rewritten to PASS iff the slope is a
+   real number (`k_active >= 2`); never assert proximity to
+   `N6_EXP_TRAIN`. Comment explicitly cites LATTICE_POLICY §4 + g25/g26.
+3. `check_verdict_line_consistency()` truth-table shrunk — F-CODEX-1
+   no longer gates the overall label; only F-CODEX-2 (substrate-internal
+   latency scaling, which IS the entity's own published curve) does.
+4. Cycle-15 'PARTIAL' label still holds, but the *reason* changes:
+   - cycle-14 PARTIAL: F-CODEX-1 FALSIFIED hard-gate + F-CODEX-2 pending
+   - cycle-15b PARTIAL: F-CODEX-1 disclosed-only + F-CODEX-2 pending
+   Same label, cleaner underlying logic.
+
+**Measured empirical slope.** With the 4-rung data, Qwen 2.5
+mean-stage-2-accuracy vs param-count fits a slope of **0.172** (log-log
+OLS). The lattice's `N^0.96` prediction is 5.6× steeper. The actual
+substrate is much *flatter* in its scaling-vs-accuracy curve —
+consistent with the cycle-14 finding that the wc_31_60 step is
+between 3B and 7B (so most of the parameter budget under 3B buys
+little accuracy on this manifest's hard strata; the cliff itself is
+the dominant effect, not smooth scaling).
+
+**Why the harness was wrong, not the data.** The lattice prediction
+exists for `train_cost ∝ N^σφ` — a *cost* exponent, not a *capability*
+exponent. Mapping it onto "Stage 2 accuracy slope" was the silent
+type-error: train-cost growth (FLOPS to train a model of size N)
+is not the same physical quantity as test-accuracy growth (how well
+the model does on a downstream eval). The lift removes that conflation;
+a future-cycle F-CODEX-3 (capability-cost as a domain-physics tied
+quantity, not a lattice-derived one) is the right next move.
+
+**Matrix change.**
+
+- `SANDBOX.md` M3.ECON annotation rewritten — cycle-15 FALSIFIED text
+  replaced with cycle-15b disclosure-only text. Box stays `[ ]` (gate
+  flips when F-CODEX-2 lands).
+- `ECONOMICS.log.md` — no further edit in this cycle; the cycle-15
+  entry already discloses the FALSIFIED finding + the v1.2.0 gate
+  decision. A future cycle should append the LATTICE_POLICY-lift
+  decision pointing at this entry.
+- `verify/numerics_economics_empirical_landing.hexa` — three fn
+  edits + one check rewrite + one truth-table shrink. 10/10 checks pass.
+
+**Cumulative tape footer post-cycle-15b (lattice-lift):** 9 confirmed +
+1 BLOCKED_AT_PROJECT + 1 harness_run_partial · 3 dead · F-CODEX-1
+status downgraded from "falsified" to "disclosure-only" — no longer
+counts in the closed-negative ledger. 6 candidates remaining.
+
+

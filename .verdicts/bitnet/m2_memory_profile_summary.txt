@@ -1,0 +1,25 @@
+# === BITNET M2 — resident-memory profile (RSS via /usr/bin/time -l) ===
+# bitnet_model=BitNet-b1.58-2B-4T-TQ2_0  (~2.0B params, 2.06 bpw ternary)
+# bitnet_gguf_bytes=1203563552  (1148 MB on disk)
+# bitnet_peak_rss_bytes=1645166592  bitnet_peak_rss_mb=1568  (backend=CPU -ngl 0; Metal lacks TQ2_0 kernel)
+#
+# baseline_model=Qwen2.5-1.5B-Instruct-Q4_K_M  (~1.5B params, ~4.5 bpw Q4_K_M)
+# baseline_gguf_bytes=986048768  (940 MB on disk)
+# baseline_peak_rss_metal_bytes=2038956032  baseline_peak_rss_metal_mb=1944  (as-served: Metal/GPU residency)
+# baseline_peak_rss_cpu_bytes=3017932800  baseline_peak_rss_cpu_mb=2878  (same-backend control: CPU -ngl 0)
+#
+# --- ratios (BitNet RSS / baseline RSS) ---
+# ratio_vs_qwen_metal_as_served=0.807  (BitNet-CPU 1568 MB / Qwen-Metal 1944 MB)
+# ratio_vs_qwen_cpu_same_backend=0.545  (BitNet-CPU 1568 MB / Qwen-CPU 2878 MB)
+#
+# --- claim test: '1.58-bit ~= full quality at a fraction of memory' ---
+# memory_below_baseline=true   (BitNet RSS 1568 MB < both baseline RSS measurements; same-backend ratio 0.55 = a real fraction)
+# accuracy_floor_held=false    (M1: BitNet 6/20=30%% vs Qwen-0.5B-Q4 16/20=80%% baseline floor — accuracy gap is LARGE, not ~full quality)
+# verdict=FALSIFIED            (memory IS below the fraction, but the 'near-full quality' half FAILS on this 20-task manifest:
+#                               1.58-bit 2B4T does NOT preserve quality here — it scores BELOW the 4-bit 0.5B baseline. The memory
+#                               win is real but the quality is not, so the joint claim is refuted on this substrate.)
+# falsifier_triggered=accuracy_gap  (the M2 falsifier 'accuracy gap > eps' fired; the 'memory not below fraction' falsifier did NOT)
+#
+# host=mac-mini-m3 (24 GB UMA); tool=llama-completion (brew llama.cpp 9150); cost_usd=0
+# NOTE: BitNet RSS is CPU-mode (no TQ2_0 Metal kernel in this build); the as-served cross-backend ratio compares BitNet-CPU vs Qwen-Metal.
+#       The same-backend (both CPU) control removes the backend confound: BitNet 1568 MB vs Qwen-1.5B 2878 MB = 0.55x.

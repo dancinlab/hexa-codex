@@ -1,0 +1,30 @@
+# model=BitNet-b1.58-2B-4T-TQ2_0
+# model_path=/Users/ghost/Models/gguf/bitnet/ggml-model-tq2_0.gguf
+# total_tasks=20
+# correct=6/20
+# accuracy_pct=30.0
+# total_wall_ms=221772
+# peak_rss_bytes=1645166592
+# peak_rss_mb=1568
+# usable_threshold=15
+# usable_floor_reached=false
+# tool=llama-completion (stock brew llama.cpp 9150, native TQ2_0 ternary)
+# extra_flags=-ngl 0 --jinja  (BitNet TQ2_0: CPU-only -ngl 0 — Metal lacks type-35 kernel; --jinja for 2B4T chat template)
+# parse_mode=assistant_prefix
+# host=mac-mini-m3 (brew llama.cpp, CPU/NEON+ACCELERATE, UMA)
+# scorer=byte_exact_subset (case-insensitive, VERBATIM from sandbox_stage0_baseline.hexa)
+# cost_usd=0  (local serving; wall_ms is the proxy cost surface)
+
+# === hexa verify (verbatim) — empirical T4, no --expr recompute path ===
+# The M1 accuracy floor is a T4 EMPIRICAL serving benchmark (cx_empirical_contact):
+# weights ternary-quantized + served on llama.cpp, scored by byte_exact_subset.
+# Per 'hexa verify rubric' this is 🟠 DEFERRED (external hw/data dep) — there is NO
+# closed-form --expr fn that recomputes a served-accuracy number, so the verifier
+# correctly does not auto-judge it. The recompute path IS this committed bench
+# (bench/bitnet_m1_accuracy_floor.hexa) re-run against the same 20-task manifest.
+# Probe of the seed atom (verbatim, first lines):
+# $ hexa verify BT-77
+#   hexa verify — cross-project tier rubric (TECS-L-aligned, LATTICE_POLICY real-limits-first)
+#   
+#     🔵 SUPPORTED-FORMAL      hexa-native calc reproduces a CLOSED-FORM/symbolic
+#   ... (falls through to rubric: BT-77 is an empirical benchmark atom, not an --expr identity)

@@ -692,3 +692,40 @@ rungs have data (M3.OPS p50/p99 grid not yet built — candidate for
 (v1.2.0 starts 1/4, v1.3.0 starts 0/4). Both gates remain
 🟠 INSUFFICIENT per g5 rubric until `k_active == 4` AND both
 residuals ≤ ε.
+
+---
+
+## 2026-05-24 APPEND — cycle-12 cross-ref: F-CODEX-2 v1.3.0 bench harness shipped (NO EXEC)
+
+Cross-ref from the SANDBOX domain: cycle-12
+`d_context_scaling_bench` shipped the F-CODEX-2 v1.3.0 bench HARNESS at
+`bench/sandbox_stage4_context_scaling.hexa` (mirror of cycle-8
+`d_slo_under_load` harness-only flip pattern `99f3892`).
+
+**v1.3.0 gate state (unchanged in this commit).** Per ECONOMICS.md
+§M5.ECON cross-ref table:
+
+| release | falsifier | harness | gate condition | currently |
+|:---|:---|:---|:---|:---|
+| v1.3.0 | F-CODEX-2 (`context^τ`) | `verify/numerics_economics_empirical_landing.hexa` ch.9 | residual ≤ 0.10 across 4 context rungs | 🟠 0/4 → still 🟠 0/4 |
+
+The bench harness is the **producer**; the M3.ECON consumer harness
+(`verify/numerics_economics_empirical_landing.hexa` cycle-9 `843b241`,
+`LATENCY_MS_PENDING` array L219–224) is the **gate composer**. Wiring:
+
+- `CONTEXT_GRID = {1024, 2048, 4096, 8192}` — verbatim mirror of
+  consumer harness L211–216 (no value drift, no calibration mismatch).
+- Per-rung `mean_wall_ms` from
+  `.verdicts/sandbox/stage4_context_scaling.tsv` populates the 4 entries
+  of `LATENCY_MS_PENDING`.
+- After population, re-run `verify/numerics_economics_empirical_landing.hexa`
+  → check 9 (`check_f_codex_2_residual`) flips DEFERRED → either GREEN
+  (residual ≤ 0.10, v1.3.0 cuts) or FALSIFIED (residual > 0.10, F-CODEX-2
+  honestly refuted per g5).
+
+**THIS commit does NOT change the gate state** — only the producer
+harness ships. The F-CODEX-2 v1.3.0 0/4 gate will close (or be
+refuted) when the bench RUNS in a separate later cycle. Honesty per
+`cx_empirical_contact`: harness-only ships are not empirical contact;
+the v1.3.0 release cut still requires the actual measured `wall_ms`
+numbers.

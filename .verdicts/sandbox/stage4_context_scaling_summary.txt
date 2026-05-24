@@ -1,0 +1,21 @@
+# llama_server_port=8091
+# base_model=Qwen2.5-1.5B-Instruct-Q4_K_M
+# context_grid={1024,2048,4096,8192}
+# cells_total=4
+# rung_ctx=1024  mean_wall_ms=PENDING  mean_input_tokens=PENDING  throughput_tok_per_s=PENDING
+# rung_ctx=2048  mean_wall_ms=PENDING  mean_input_tokens=PENDING  throughput_tok_per_s=PENDING
+# rung_ctx=4096  mean_wall_ms=PENDING  mean_input_tokens=PENDING  throughput_tok_per_s=PENDING
+# rung_ctx=8192  mean_wall_ms=PENDING  mean_input_tokens=PENDING  throughput_tok_per_s=PENDING
+# mean_wall_ms_per_rung=PENDING
+# f_codex_2_exponent_measured=PENDING  (log-log slope of (context_len, mean_wall_ms))
+# f_codex_2_predicted=4  (n=6 lattice tau=4)
+# f_codex_2_residual=PENDING
+# status=harness-written-not-yet-run
+# next_cmd=hexa.real run bench/sandbox_stage4_context_scaling.hexa
+# next_consumer=verify/numerics_economics_empirical_landing.hexa LATENCY_MS_PENDING array (cycle-9 843b241)
+# m5_econ_v1_3_0_gate_state_before=🟠 0/4
+# m5_econ_v1_3_0_gate_state_after_exec=PENDING (flips to 🟢 GREEN iff measured residual ≤ 0.10, else 🔴 FALSIFIED)
+# honest_note_1=harness ships exec-ready; THIS commit does NOT invoke any model — bench file pattern mirrors cycle-8 sandbox_stage4_slo_under_load.hexa (99f3892) harness-only ship.
+# honest_note_2=CONTEXT_GRID values {1024,2048,4096,8192} verbatim mirror verify/numerics_economics_empirical_landing.hexa L211–216 — F-CODEX-2 harness contract.
+# honest_note_3=8k rung may OOM/refuse boot on 16GB UMA mac-mini M3; UNAVAILABLE row → v1.3.0 closes at k=3 PARTIAL not k=4 GREEN.
+# honest_note_4=M3.ECON SANDBOX.md checkbox + M5.ECON v1.3.0 release gate both STAY [ ] / 🟠 until the bench RUNS and the consumer harness flips.

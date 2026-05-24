@@ -1423,3 +1423,52 @@ NOTE on tape file location. The task spec referenced
 `.discoveries/economics-routing-savings.tape` (the ECONOMICS domain
 discovery tape, where it was registered by kick round-3). The flip
 was therefore applied to the file where the row actually exists.
+
+---
+
+## 2026-05-24 APPEND — cycle-12 `d_context_scaling_bench` harness shipped (NO EXEC)
+
+F-CODEX-2 context-grid bench harness landed at
+`bench/sandbox_stage4_context_scaling.hexa`. **THIS commit ships the
+HARNESS ONLY — no inference, no model invocation, no F-CODEX-2 residual
+computed.** The actual data collection (filling the cycle-9 843b241
+`LATENCY_MS_PENDING` array in
+`verify/numerics_economics_empirical_landing.hexa`) is a separate later
+cycle.
+
+**Pattern mirror.** Same harness-only ship pattern as cycle-8
+`d_slo_under_load` (commit `99f3892`, `bench/sandbox_stage4_slo_under_load.hexa`):
+the script is exec-ready (server-spawn-trap-teardown per cycle-6
+`d_continuous_batching_server` `24c8218` — double-fork nohup, port-based
+isolation, sigtrap teardown) but this commit does not invoke any model.
+
+**Wire details.**
+- `CONTEXT_GRID = {1024, 2048, 4096, 8192}` — verbatim mirror of
+  `verify/numerics_economics_empirical_landing.hexa` L211–216 (the
+  F-CODEX-2 harness contract; the closed-form OLS slope expects these
+  exact x-axis values).
+- Port `8091` — distinct from sibling benches at
+  `8081/8082/8083/8088/8090`.
+- Base model `Qwen2.5-1.5B-Instruct-Q4_K_M` (cycle-9 M2.SUBSTRATE base) —
+  smaller model = faster context-grid sweep; F-CODEX-2 isolates the
+  context-axis at fixed N, doesn't need 7B.
+- Per-rung TSV row: `context_len · n_correct · total · mean_wall_ms ·
+  total_wall_ms · mean_input_tokens · throughput_tok_per_s`.
+- `mean_input_tokens` is recorded from the MEASURED `usage.prompt_tokens`
+  in the server response (not the nominal target) — calibration drift
+  surfaces as data, not bias.
+- 8k rung may OOM / refuse boot on 16GB UMA mac-mini M3; UNAVAILABLE row
+  → v1.3.0 closes at `k=3 PARTIAL` not `k=4 GREEN`.
+
+**Checkbox state.** SANDBOX.md `M3.ECON` checkbox **STAYS `[ ]`** — v1.3.0
+needs the actual measured data, not just the harness. (M5.ECON release-gate
+v1.3.0 also STAYS 🟠 0/4 — flips only when the bench RUNS and the M3.ECON
+consumer harness recomputes `f_codex_2_residual ≤ 0.10`.) Same family as
+cycle-8 `d_slo_under_load` (`[ ]` for M2.OPS until exec) and cycle-9
+`d_stage4_empirical_landing` (`[ ]` for M3.ECON until `k_active == 4`).
+
+**Bookkeeping.** `.discoveries/sandbox.tape` row `d_context_scaling_bench`
+flipped `candidate → harness_only` with `harness_path` +
+`verdict_placeholder` + `harness_status` body; ECONOMICS.log.md
+cross-ref appended noting the F-CODEX-2 v1.3.0 0/4 gate will close when
+this bench runs. **F-CODEX-2 v1.3.0 gate exec PENDING.**

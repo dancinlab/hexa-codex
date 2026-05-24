@@ -1,0 +1,21 @@
+idx	prompt_wc	output_tok_est	wall_ms	correct	rss_bytes	output_snippet
+1	39	67	113337	1	5157765120	2+2 is 4. The digit only is 4. The digit only is 4. The digit only is 4. The digit only is 4. The digit only is 4. The d
+2	28	5	19379	0	5141954560	1 word: "Capital of France"
+3	64	4	15012	0	4686102528	Reverse the string 'hello'.
+4	40	75	45106	0	5045911552	7 is not square of 7. The number is not square of 7. The number is not square of 7. The number is not square of 7. The n
+5	63	64	22415	1	5205508096	11. The number is 11. The number is 11. The number is 11. The number is 11. The number is 11. The number is 11. The numb
+6	50	5	6743	0	5210079232	1. The smallest prime number?
+7	48	5	3166	0	5203443712	1. The number of continents?
+8	75	9	4628	0	5162319872	0°C is boiling point of water at sea level?
+9	55	9	4159	0	5203771392	1 The ASCII decimal code for 'A' is 1.
+10	50	1	4135	0	4994465792	2024
+11	73	20	6161	0	4715233280	Sure! Here is a Python one-liner that sums integers 1..100: Sure! Here is a Python one-liner that sums integers 1..100.
+12	56	77	14249	0	5121015808	1. The time complexity of binary search is O(n), where n is the number of elements in the dataset.The time complexity of
+13	77	6	8428	0	5116215296	1. 0 The expression is reversed.
+14	51	6	6759	0	5175148544	1,2,3 The sorted result is 1,2,3.
+15	60	53	18807	1	5036032000	TCP is connection-oriented, whereas UDP is connection-oriented. It is connection-oriented.So, TCP is connection-oriented
+16	34	85	20721	0	5202968576	1. The BFS approach involves exploring the shortest paths to reach the target, whereas DFS explores the longest paths to
+17	62	69	9688	1	5203542016	Sure! Here is a Python code for Fibonacci with memoization (use functools.cache). Sure! Here is a Python code for Fibona
+18	50	65	8179	0	5203787776	1101 is converted to decimal, show one-line sum.The converted binary 1101 is converted to decimal is 11, show one-line s
+19	56	81	9229	1	5204000768	The merge sort algorithm is mergesort O(n log n) because it divides the list into smaller lists, each list is sorted O(n
+20	45	60	11271	1	5203623936	Halting problem — what is it? One sentence.One sentence.One sentence.One sentence.One sentence.One sentence. One sente

@@ -1,5 +1,7 @@
-# Compile main.pdf — DRAFT_PENDING_M3_SUBSTRATE, will not ship until verdict
-# matrix in main.tex §verdict-matrix flips all 4 rows away from 🟠 INSUFFICIENT.
+# Compile main.pdf — SHIPPABLE. All 4 §verdict-matrix rows are 🟢
+# SUPPORTED-NUMERICAL (cx_paper_gate). Expanded to commons g51 (cycle-17):
+# 11 pages + 1 fal.ai figure (figures/fig01_cliff_schematic.png). The TikZ
+# data figure (fig:cliff-data) renders natively — no pgfplots dependency.
 
 DOC = main
 LATEX = pdflatex -interaction=nonstopmode -halt-on-error

@@ -1,9 +1,69 @@
-% references.bib — SUBSTRATE paper bibliography (scaffold, PENDING).
-% Entries land as the paper sections graduate from 🟠 INSUFFICIENT.
+% references.bib — SUBSTRATE paper bibliography.
+% Related-Work entries (emergent abilities · mirage critique · scaling laws)
+% are standard ML-literature references for the scaling-law debate the paper's
+% §Formula contributes to; they are NOT load-bearing numeric claims of this
+% paper (every numeric claim links its own .verdicts/sandbox/*.txt recompute).
 
 @misc{hexa_codex_repo,
   title  = {hexa-codex: AI knowledge substrate (17-verb spec library + lm\_foundry hexa-lang code-LLM)},
   author = {{hexa-codex maintainers}},
   year   = {2026},
   url    = {https://github.com/dancinlab/hexa-codex}
+}
+
+@article{wei2022emergent,
+  title   = {Emergent Abilities of Large Language Models},
+  author  = {Wei, Jason and Tay, Yi and Bommasani, Rishi and Raffel, Colin and
+             Zoph, Barret and Borgeaud, Sebastian and Yogatama, Dani and
+             Bosma, Maarten and Zhou, Denny and Metzler, Donald and others},
+  journal = {Transactions on Machine Learning Research (TMLR)},
+  year    = {2022},
+  note    = {arXiv:2206.07682},
+  url     = {https://arxiv.org/abs/2206.07682}
+}
+
+@inproceedings{schaeffer2023mirage,
+  title     = {Are Emergent Abilities of Large Language Models a Mirage?},
+  author    = {Schaeffer, Rylan and Miranda, Brando and Koyejo, Sanmi},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2023},
+  note      = {arXiv:2304.15004},
+  url       = {https://arxiv.org/abs/2304.15004}
+}
+
+@article{kaplan2020scaling,
+  title   = {Scaling Laws for Neural Language Models},
+  author  = {Kaplan, Jared and McCandlish, Sam and Henighan, Tom and
+             Brown, Tom B. and Chess, Benjamin and Child, Rewon and
+             Gray, Scott and Radford, Alec and Wu, Jeffrey and Amodei, Dario},
+  journal = {arXiv preprint arXiv:2001.08361},
+  year    = {2020},
+  url     = {https://arxiv.org/abs/2001.08361}
+}
+
+@article{hoffmann2022chinchilla,
+  title   = {Training Compute-Optimal Large Language Models},
+  author  = {Hoffmann, Jordan and Borgeaud, Sebastian and Mensch, Arthur and
+             Buchatskaya, Elena and Cai, Trevor and Rutherford, Eliza and
+             de Las Casas, Diego and Hendricks, Lisa Anne and Welbl, Johannes and
+             Clark, Aidan and others},
+  journal = {arXiv preprint arXiv:2203.15556},
+  year    = {2022},
+  note    = {Chinchilla},
+  url     = {https://arxiv.org/abs/2203.15556}
+}
+
+@article{qwen2024,
+  title   = {Qwen2.5 Technical Report},
+  author  = {{Qwen Team}},
+  journal = {arXiv preprint arXiv:2412.15115},
+  year    = {2024},
+  url     = {https://arxiv.org/abs/2412.15115}
+}
+
+@misc{llamacpp,
+  title        = {llama.cpp: LLM inference in C/C++},
+  author       = {Gerganov, Georgi and {llama.cpp contributors}},
+  year         = {2024},
+  howpublished = {\url{https://github.com/ggml-org/llama.cpp}}
 }

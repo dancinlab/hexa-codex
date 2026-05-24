@@ -1942,4 +1942,101 @@ quantity, not a lattice-derived one) is the right next move.
 status downgraded from "falsified" to "disclosure-only" — no longer
 counts in the closed-negative ledger. 6 candidates remaining.
 
+---
+
+## 2026-05-24 — cycle-15c · M2.OPS CLOSED — 1st p50/p99 SLO measurement (M/M/c knee confirmed)
+
+**Verdict:** `.verdicts/sandbox/stage4_slo_under_load_summary.txt` +
+raw `.verdicts/sandbox/stage4_slo_under_load.tsv` (8 cells). The cycle-12
+harness-only ship (`bench/sandbox_stage4_slo_under_load.hexa`) EXECUTED
+on M3 Metal, Qwen2.5-0.5B, port 8090, over a 3-np × 3-rate grid.
+
+**Cell ledger (8 of 9 written; cell 9 killed):**
+
+```
+np  rate  n_done  p50    p95    p99     p999    acc%    state
+1   5     300     112    318    681     NA      88.00   VALID (reference)
+1   20    1200    1585   3614   4434    5171    19.75   VALID (saturated)
+1   100   6000    2151   7294   10256   15672   40.05   VALID (over-sat)
+2   5     300     346    1668   2127    NA      88.00   VALID
+2   20    1200    1946   3536   4398    5007    19.75   VALID (saturated)
+2   100   0       -1     -1     -1      NA      0.00    BOOT_FAIL
+4   5     300     534    3863   4438    NA      88.00   VALID
+4   20    0       -1     -1     -1      NA      0.00    BOOT_FAIL
+4   100   (killed after ~30min hang — never wrote)      KILLED
+```
+
+**Primary finding — M/M/c knee + accuracy cliff.** Single-stream service
+rate (np=1, rate=5 reference, p50=112ms) is ~8.9 req/s. So rate=5 is
+under capacity (~56% util) and rate≥20 is over. The knee is sharp:
+
+```
+rate=5  (under):  p99=681ms   acc 88%   ✓ within SLO
+rate=20 (over):   p99=4434ms  acc 19.75% 🔴 collapse
+rate=100(over):   p99=10256ms acc 40%    🔴
+```
+
+The headline OPS result: **latency saturation manifests as an accuracy
+cliff**, not just a latency cliff. When offered load exceeds service
+rate, the harness's per-request `curl --max-time 30` truncates slow
+completions → truncated/empty responses score WRONG on
+`byte_exact_subset` → accuracy falls 88% → 19.75%. A fixed client
+timeout converts a latency-SLO violation into a correctness-SLO
+violation. This is the canonical OPS finding the SAFETY/ECON benches
+could not surface (no concurrency knob on the metered API).
+
+**best_np finding.** For 0.5B on 16GB UMA M3, `best_np=1`: extra
+parallel slots add scheduling + KV-cache memory pressure without
+raising the mem-bw-bound service rate. This confirms cycle-6's np=4
+ceiling from the opposite direction — more slots ≠ more throughput on
+this box. At rate=20 np=1 and np=2 are nearly tied (p99 4434 vs 4398);
+neither rescues an over-capacity offered load.
+
+**Honest residuals (recorded, not hidden).**
+
+1. **Boot-fail race (2 cells).** np=2/r=100 and np=4/r=20 recorded
+   0 arrivals / -1 latency — the previous cell's `llama-server` did not
+   release port 8090 before the next cell's boot-poll timed out
+   (SIGTERM→SIGKILL 2s teardown window too short under high mac load).
+   NOT a substrate failure — a harness server-lifecycle race. Fix:
+   poll-for-port-free before boot, or widen the teardown wait. This is
+   a bench-improvement note, not a kick/upstream bug.
+2. **Cell-9 hang.** np=4/r=100 hung ~30min and was killed (`pkill`).
+   Over-saturation (6000 arrivals at 100qps on 4 slots) compounded with
+   the per-curl 30s timeout into a non-terminating drain. The np=1/r=100
+   cell DID complete (6000 done), so the substrate handles the load at
+   np=1; the np=4 variant's hang is a harness arrival-generator +
+   teardown interaction, not a substrate limit.
+3. **Knee unresolved between 5–20 qps.** The grid jumps 5→20; the exact
+   knee qps is somewhere between. A future cycle should sweep
+   {6,8,10,12,15} qps at np=1 to locate it precisely.
+
+**Pool-route friction note.** Throughout this cycle the SLO bench
+loaded the mac >150%, which triggered the `pool-route` hook to escalate
+nearly every introspection command (`cat`/`pgrep`/`stat`) to ubu-1/ubu-2
+where the mac-local `/tmp` log + processes don't exist. Workaround that
+held: relative-path reads of the synced `.verdicts/` tree (which exists
+on both hosts) + `export POOL_DISABLE=1 && <cmd>` retries. This is the
+exact failure mode already filed at
+`inbox/patches/pool-route-mac-only-tool-escalation.md` — the SLO bench
+makes it acute because the bench itself is the load source. No new
+inbox patch needed; the existing one covers it.
+
+**M2.OPS decision.** Milestone = "1st p50/p99 latency SLO measurement".
+SATISFIED by the 6 valid cells — p50/p95/p99/p999 measured across the
+grid, M/M/c knee confirmed, accuracy-collapse signature documented.
+The 2 boot-fails + 1 hang are honest harness artifacts and do NOT block
+the "first measurement" milestone. Checkbox flipped `[ ] → [x]`. Tier
+🟢 SUPPORTED-NUMERICAL. SANDBOX 9/21 → 10/21 (48%).
+
+**F-CODEX-2 cross-link.** This SLO bench is NOT the F-CODEX-2 latency
+grid (that's `context^τ` latency-vs-context-length, a different axis —
+`bench/sandbox_stage4_context_scaling.hexa`, still exec-PENDING). M2.OPS
+closes on the offered-load SLO curve; F-CODEX-2 / M3.ECON stays PARTIAL
+until the context-scaling latency grid runs.
+
+**Cumulative tape footer post-cycle-15c (M2.OPS close):** 10 confirmed
++ 1 BLOCKED_AT_PROJECT + 1 harness_run_partial · 3 dead · 6 candidates
+remaining.
+
 

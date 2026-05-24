@@ -7,6 +7,19 @@
 
 ---
 
+## 2026-05-24 — M4.SUBSTRATE paper scaffold (DRAFT_PENDING)
+
+Reserved the canonical SUBSTRATE paper home per
+`cx_paper_one_per_domain` — `PAPER/substrate-capability-evals/`
+with `main.tex` + `references.bib` + `Makefile`, modelled on the
+existing `PAPER/economics-routing-savings/` template. All 4
+`cx_paper_format` sections (formula · method · benchmark · benefit)
+present with explicit 🟠 INSUFFICIENT verdict markers; verdict matrix
+table at the end of `main.tex` enumerates the 4 rows. `main.tex`
+opens with a `DRAFT_PENDING_M3_SUBSTRATE` marker comment so any
+future reader (or `cx_paper_gate` enforcement) sees the gate before
+the body. M4.SUBSTRATE checkbox stays `[ ]` honestly — scaffold ≠ ship.
+
 ## 2026-05-24 — M2.SUBSTRATE done — 1.5B Stage 2 persona `routing_viable=TRUE` ⭐
 
 Recovery commit for cycle-9 ada5 bench (agent thread timed out at

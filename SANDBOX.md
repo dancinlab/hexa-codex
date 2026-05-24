@@ -52,7 +52,7 @@ M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4)       [ ] v?.?.? 
 - [x] M4.ECON — `PAPER/economics-routing-savings/` (already shipped)
 - [ ] M4.SAFETY — safety paper canonical, formula + bench + benefit
 - [ ] M4.OPS — ops paper canonical
-- [ ] M4.SUBSTRATE — substrate paper canonical
+- [ ] M4.SUBSTRATE — DRAFT_PENDING at `PAPER/substrate-capability-evals/` (scaffold landed cycle-11; 4/4 sections 🟠 INSUFFICIENT per `cx_paper_gate` until M3.SUBSTRATE saturation lands)
 
 ### M5 Release — roadmap version landed
 

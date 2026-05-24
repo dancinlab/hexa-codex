@@ -1,0 +1,124 @@
+% DRAFT_PENDING_M3_SUBSTRATE — non-shippable per project.tape cx_paper_gate.
+% This scaffold reserves the canonical SUBSTRATE paper home
+% (cx_paper_one_per_domain) but cannot ship until 100% formal/numerical
+% verification of all 4 sections (cx_paper_sections). Currently 4/4 sections
+% are 🟠 INSUFFICIENT/DEFERRED per the verdict matrix at the end of this file.
+
+\documentclass[11pt,a4paper]{article}
+
+% ---------- arxiv-style preamble ----------
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\title{
+  \textbf{SUBSTRATE Capability Evaluations on a Self-Hosted Measurement Substrate}\\[4pt]
+  \large \textcolor{orange}{\textbf{DRAFT\_PENDING\_M3\_SUBSTRATE}} — scaffold reserves canonical home (cx\_paper\_one\_per\_domain),
+  gated PENDING the SANDBOX Stage 4 scale-ladder data (0.5B / 1.5B / 3B / 7B) per cx\_paper\_gate
+}
+
+\author{hexa-codex maintainers \\ \texttt{github.com/dancinlab/hexa-codex}}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+This paper is a scaffold, not a publication. Per the hexa-codex
+\texttt{cx\_paper\_gate} workflow rule, a paper ships only when all
+section claims reach 100\% formal-blue or numerical-green verdicts;
+this draft is locked at 4/4 \(\bigcirc\) INSUFFICIENT pending the SANDBOX
+Stage 4 multi-scale empirical data. The canonical SUBSTRATE paper
+will report capability-eval results for the dancinlab SUBSTRATE verb
+group (\texttt{multimodal} $\cdot$ \texttt{rlhf} $\cdot$ \texttt{cog\_arch}
+$\cdot$ \texttt{causal}) measured on the self-hosted SANDBOX
+substrate (Qwen2.5 ladder served from \texttt{lm\_foundry/tool/route\_dispatch.hexa}).
+\end{abstract}
+
+\section{Formula}
+\label{sec:formula}
+\textcolor{orange}{\textbf{PENDING}} — closed-form derivation gated on
+Stage 4 empirical-landing data (M3.SUBSTRATE). The expected form is the
+per-verb capability falsifier preregistered in \texttt{SUBSTRATE.md}; see
+\texttt{LATTICE\_POLICY.md} for the n=6 lattice exponents that may apply.
+
+\section{Method}
+\label{sec:method}
+\textcolor{orange}{\textbf{PENDING}} — see SANDBOX.md for the measurement
+substrate: a self-hosted \texttt{llama-server} dispatching open-weights
+GGUF base models through \texttt{lm\_foundry/tool/route\_dispatch.hexa}
+(commit \texttt{b376590}). Scale ladder progress: 0.5B on M3 Metal
+(cycle-8 \texttt{bfd2885}), 1.5B (cycle-8 \texttt{008482e}), 3B (cycle-10
+\texttt{56aae56}). Determinism: cycle-4 \texttt{d\_kv\_prefix\_share} bit-identical
+cache replay at top-k=1 / temp=0 / seed-pinned. Cross-link:
+\texttt{SUBSTRATE.log.md} 2026-05-24 entry (commit \texttt{37f745c}).
+
+\section{Benchmark}
+\label{sec:benchmark}
+\textcolor{orange}{\textbf{PENDING}} — Stage 2 N=2000 stratified manifest
+(cycle-5 \texttt{d\_stage2\_scale\_manifest} confirmed, commit
+\texttt{91ac831}), 5 word-count strata (wc\_5\_15 .. wc\_101\_200,
+deterministic generator, SHA256 bit-identical re-runs). Current data:
+0.5B baseline (cycle-6
+\texttt{stage2\_persona\_scaled\_summary.txt}), 1.5B M2.SUBSTRATE
+(cycle-9 \texttt{stage2\_persona\_scaled\_1\_5b\_summary.txt} — routing
+viable, cliff partially lifted). 3B + 7B PENDING M3.SUBSTRATE
+saturation.
+
+\section{Benefit}
+\label{sec:benefit}
+\textcolor{orange}{\textbf{PENDING}} — benefit delta gated on Stage 4
+multi-scale data (4 scale rungs). Current evidence (1.5B vs 0.5B,
+cycle-9): \texttt{routing\_simulation\_viable} flipped from \texttt{false}
+$\rightarrow$ \texttt{TRUE} (spread\_tasks 4 $\rightarrow$ 8); cliff lift
++10pp on wc\_31\_60, +16pp on wc\_61\_100. Full benefit reporting waits
+on the 3B + 7B rungs that close the F-CODEX-1 fit residual gate per
+\texttt{ECONOMICS.md} \S M5.ECON.
+
+\section{Verdict matrix}
+\label{sec:verdict-matrix}
+Per \texttt{cx\_paper\_sections}, every section claim links to its
+verdict file. This paper is non-shippable while any row reads \(\bigcirc\)
+INSUFFICIENT.
+
+\begin{table}[h]
+\centering
+\caption{SUBSTRATE paper verdict matrix (4 sections \(\times\) g5 rubric tier).}
+\begin{tabular}{lll}
+\toprule
+section & verdict file & tier \\
+\midrule
+\S\ref{sec:formula} formula        & (PENDING) & \textcolor{orange}{$\bigcirc$ INSUFFICIENT/DEFERRED} \\
+\S\ref{sec:method} method          & \texttt{SANDBOX.md} + \texttt{SUBSTRATE.log.md} 2026-05-24 & \textcolor{orange}{$\bigcirc$ INSUFFICIENT/DEFERRED} \\
+\S\ref{sec:benchmark} benchmark    & \texttt{.verdicts/sandbox/stage2\_persona\_scaled\_1\_5b\_summary.txt} (partial) & \textcolor{orange}{$\bigcirc$ INSUFFICIENT/DEFERRED} \\
+\S\ref{sec:benefit} benefit        & (PENDING M3.SUBSTRATE saturation) & \textcolor{orange}{$\bigcirc$ INSUFFICIENT/DEFERRED} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Ship condition.} Every row above must read $\bigcirc$
+SUPPORTED-FORMAL (closed-form) or $\bigcirc$ SUPPORTED-NUMERICAL
+(non-symbolic recompute) before this draft loses the PENDING marker
+and proceeds to compile + submit per \texttt{cx\_paper\_significance}
++ \texttt{cx\_paper\_violation}.
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

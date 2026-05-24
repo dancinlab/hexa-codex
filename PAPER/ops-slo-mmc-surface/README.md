@@ -1,7 +1,13 @@
-# <slug> — paper title placeholder
+# ops-slo-mmc-surface — An M/M/c SLO Surface for Self-Hosted LLM Serving
 
-> One-line framing of the paper. Replace this block with paper-specific
-> notes (status · target length · companion records / data).
+> OPS-domain canonical paper. The measured 18-cell (-np × offered-rate)
+> p50/p95/p99 × accuracy serving surface is the classical M/M/c (Erlang-C)
+> multi-server queue: the throughput ceiling tracks c·μ, the latency knee
+> shifts right with parallel slots, and a single offered-load violation
+> surfaces as an accuracy cliff via two distinct truncation mechanisms.
+> Status: g51-ready (10 pages + 1 fal.ai figure). Every numeric claim links
+> to a 🟢 SUPPORTED-NUMERICAL verdict under `.verdicts/sandbox/`. RELEASE-READY
+> pending a user-gated tag (M5.OPS).
 
 ## Source
 
@@ -19,36 +25,23 @@ make distclean  # also remove PDF
 
 ## Figures
 
-The template ships with one working matplotlib example so `make` produces
-a paper that compiles end-to-end out of the box:
+- `figures/fig01_knee_shift.png` — fal.ai-generated schematic of the M/M/c SLO
+  surface (the knee shifting right with the channel count c, and the accuracy
+  cliff strip). Included by `main.tex` §Benchmark via `\includegraphics`.
+- `figures/_prompts/knee_shift.txt` — the verbatim generation prompt (provenance,
+  per the AI-figure honesty convention). The figure caption marks the tool:
+  `% generated via fal.ai (openai/gpt-image-2)`.
 
-- `figures/_scripts/fig01_example.py` — matplotlib bar chart (3 placeholder
-  data points). Replace the `DATA` rows + y-axis label + caption with your
-  result, then `make figures` to regenerate the PDF.
-- `figures/fig01_example.pdf` — the rendered output, included by `main.tex`.
+The figure is illustrative only — every load-bearing number lives in the
+verbatim 18-cell grid (Appendix A / `.verdicts/sandbox/m3_ops_full_slo_grid.tsv`)
+and the §Formula recompute (Appendix B / `verify/numerics_ops_mmc_knee.hexa`),
+never in the artwork.
 
-Add `fig02`, `fig03`, ... by copying the `_scripts/fig01_example.py` pattern;
-the Makefile picks up `figures/_scripts/*.py` automatically.
-
-Drop other figure sources under `figures/`:
-
-- vector: `.pdf` / `.eps` (preferred for plots)
-- raster: `.png` (cover / teaser / AI-generated schematics only)
-- TikZ: inline in `main.tex`
-
-For AI-generated figures, keep the verbatim prompt under
-`figures/_prompts/<name>.txt` so provenance is reproducible. Mark the
-caption with `% generated via <tool> (prompt: figures/_prompts/<name>.txt)`.
-
-Generate a fal.ai cover via the sidecar plugin:
+Regenerate the figure via the sidecar plugin:
 
 ```bash
-/paper fig square_hd figures/_prompts/cover.txt figures/cover.png
+/paper fig landscape_16_9 figures/_prompts/knee_shift.txt figures/fig01_knee_shift.png
 ```
-
-For a richer reference paper with multiple figures, tables, and 18 real
-bibtex entries, see `/paper sample <slug>` (copies the bundled
-`sample-nb-bcs-absorbed` verbatim).
 
 ## Honest stance
 

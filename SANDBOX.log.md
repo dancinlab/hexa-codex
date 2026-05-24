@@ -23,7 +23,48 @@ M4.OPS 에서 ship 한 OPS canonical paper `PAPER/ops-slo-mmc-surface/` 를 comm
 
 **잔여(정직 기록).** `/paper lint` 자동 verdict 은 exit 1 — sidecar/paper 0.5.3 `_paper.hexa` `_path_exists(main.pdf)` 가 존재하는 10페이지 PDF 에 false 반환(pages 체크 false-negative). byte-identical 복제본은 동일 path+argv 로 true → hexa-runtime `exec_with_status("test -e …")` large-script quirk, **paper 잘못 아님**. `/tmp` 복사본에서도 재현(경로 무관). hexa-only/no-workaround 룰 → 우회·플러그인 패치 없이 **INBOX 등록**(target sidecar/paper, 2026-05-25, `INBOX.md`+`INBOX.log.md`).
 
-**milestone 결정.** M5.OPS = "OPS **release** with empirical SLO landing". empirical SLO landing(M3.OPS 18-cell grid) + paper g51 readiness 는 완료이나, milestone 명의 "release" 를 완성하는 행위(git tag / GitHub release / 외부 publish)는 **user-gated**. 따라서 checkbox 는 `[ ]` 유지하되 **"RELEASE-READY pending user tag"** 로 annotate. 사용자 sign-off + tag 시 flip.
+**milestone 결정.** M5.OPS = "OPS **release** with empirical SLO landing". empirical SLO landing(M3.OPS 18-cell grid) + paper g51 readiness 는 완료이나, milestone 명의 "release" 를 완성하는 행위(git tag / GitHub release / 외부 publish)는 **user-gated**. 따라서 checkbox 는 `[ ]` 유지하되 **"RELEASE-READY pending user tag"** 로 annotate. 사용자 sign-off + tag 시 flip. **[cycle-17 후속: 위 "exec_with_status quirk" 추정의 진짜 원인이 same-name `let` 전역충돌 버그로 격리됨 — INBOX.log 2026-05-25 root-cause entry 참조.]**
+
+## 2026-05-25 — cycle-17 — M5.SUBSTRATE 텍스트 capability-eval 절반 LANDED (substrate 논문 g51), 멀티모달 절반 OPEN
+
+SUBSTRATE canonical 논문 `PAPER/substrate-capability-evals/` 를 commons
+g51 publish-readiness 로 확장. **결과: 3페이지 → 11페이지 (≥10 ✓) + fal.ai
+그림 1개 (≥1 ✓).** 새 수치 주장 추가 없음 — 기존 🟢 4/4 위에 진짜 내용만
+확장 (gold-plating 아님).
+
+| 추가 섹션 | 내용 | 근거 |
+|:---|:---|:---|
+| Intro | 측정 substrate 동기 + 3가지 차별점 (deterministic·gate·정직한 scope) | — |
+| Related Work | emergence (Wei 2022) · mirage 비판 (Schaeffer 2023) · scaling laws (Kaplan 2020 · Chinchilla 2022) | 표준 인용, load-bearing 수치 아님 |
+| §Formula 확장 | why-not-single-exponent (functional-family mismatch, +2.1pp vs +43pp) · g0-Occam 후보집합 · k=8.95/x0=1.973 파라미터 해석 (x0≈3.9B 예측) · pinned-plateau parsimony | `.verdicts/sandbox/m4_substrate_formula_fit.txt` 5/5 🟢 (이번 cycle 재실행) |
+| §Results 확장 | 4-rung ladder · 진단 stratum 논증 · routing-window false→true→false | `m3_substrate_saturation_summary.txt` |
+| Limitations | 4-rung only · single eval family · thresholded metric · N=30 SE · Q4 양자화 | — |
+| Multimodal §residual | M5 멀티모달 절반 = 명시적 next-milestone seed (claim 아님) | `.discoveries/m5_substrate_multimodal_residual.tape` |
+| Appendix | per-rung × per-persona 교차표 4개 (0.5/1.5/3/7B) · rung provenance (sha256) · verifier recompute transcript verbatim | per-rung verdicts |
+
+**그림 2종:** (1) g51-required fal.ai 그림 `figures/fig01_cliff_schematic.png`
+(1088×608 RGB, gpt-image-2, landscape_16_9, provenance
+`figures/_prompts/01_cliff_schematic.txt`, page 5 임베드) — stepwise sigmoid
+vs 단일지수 dashed 대비 schematic. (2) native-TikZ 데이터 그림
+`fig:cliff-data` — 측정점(±binom SE) + fitted logistic + power-law baseline,
+커밋된 fit 파라미터/bench 데이터에서 직접 좌표 계산 (pgfplots 미설치 → 순수
+TikZ 로 작성, hexa-only authoring 준수).
+
+**g51 판정: PASS (실측).** `pdfinfo main.pdf` → Pages: 11; fal PNG page 5
+임베드 + provenance prompt 존재. 단 `/paper lint` 의 페이지 자동체크는
+**hexa 런타임 same-name `let` 전역충돌 버그**로 FAIL (`_cmd_compile` 의
+`let pdf="pdflatex…"` 가 `_cmd_lint` 의 `let pdf=dir+"/main.pdf"` 를 clobber)
+— workaround 금지 원칙(`feedback_kick_failure_inbox`)에 따라 `INBOX.md` +
+`INBOX.log.md` 에 upstream patch 등록 (target hexa-lang, 3-fn 최소재현 포함).
+fal-figure 체크는 정상 PASS.
+
+**M5.SUBSTRATE 체크박스 `[ ]` 유지 (정직).** 텍스트 절반은 done·검증됨;
+멀티모달 절반은 HEAVY NEW SCOPE (multimodal rung serving + 새 eval family +
+deterministic scorer + hexa-native recompute) 로 이번 라운드 미시도. git
+tag·GitHub release·외부 publish 도 컷 (user-gated). 멀티모달 요구사항 +
+4B-rung x0≈3.9B 검증 side-prediction 은 discovery tape 에 seed 로 기록.
+
+## 2026-05-24 — kick round 4 — 5 new cross-cutting candidates (post-cycle-10 closure)
 
 Ran `hexa kick --rounds 1` against the post-cycle-10/11 context
 (M1 row 4/4, M2.SUBSTRATE done, M1.SAFETY+ BLOCKED_AT_PROJECT,

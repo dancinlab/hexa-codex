@@ -1,14 +1,17 @@
 % SHIPPABLE — all 4 sections 🟢 SUPPORTED-NUMERICAL per project.tape
-% cx_paper_gate. Updated cycle-15c (2026-05-25): the sole §Formula
-% residual is closed. A 2-parameter logistic (sigmoid) in log2(params)
-% is fit to the stepwise wc_31_60 capability cliff and recomputed by
+% cx_paper_gate. Expanded to commons g51 publish-readiness (cycle-17,
+% 2026-05-25): >=10 pages + >=1 fal.ai figure (figures/fig01_cliff_schematic.png,
+% provenance figures/_prompts/01_cliff_schematic.txt). The §Formula residual was
+% closed cycle-15c: a 2-parameter logistic (sigmoid) in log2(params) is fit to
+% the stepwise wc_31_60 capability cliff and recomputed by
 % verify/numerics_substrate_cliff_logistic.hexa (verdict
-% .verdicts/sandbox/m4_substrate_formula_fit.txt, 5/5 checks, RMSE
-% 0.0356 within the N=30 binomial sampling-noise band). The
-% single-exponent power law (σ̂=0.172) is shown to be structurally
-% wrong: its 3B→7B increment is +2.1pp vs the observed +43pp step.
-% The verdict matrix is now 4/4 🟢 and the DRAFT_PENDING_FORMULA
-% marker is removed.
+% .verdicts/sandbox/m4_substrate_formula_fit.txt, 5/5 checks, RMSE 0.0356 within
+% the N=30 binomial sampling-noise band). This expansion adds NO new numeric
+% claims — it makes the existing 🟢 findings fuller (derivation, Related Work,
+% extended results, limitations, per-rung appendix, recompute transcript). Every
+% numeric claim still links its 🟢 verdict. The multimodal-eval scope of
+% M5.SUBSTRATE is documented as an EXPLICIT separate residual (§Limitations,
+% §Multimodal), NOT claimed as done.
 
 \documentclass[11pt,a4paper]{article}
 
@@ -32,9 +35,15 @@
   urlcolor=blue!50!black
 }
 
+\newcommand{\green}[1]{\textcolor{green!50!black}{\textbf{#1}}}
+\newcommand{\vfile}[1]{\texttt{.verdicts/sandbox/#1}}
+
 \title{
-  \textbf{SUBSTRATE Capability Evaluations on a Self-Hosted Measurement Substrate}\\[4pt]
-  \large All four sections (\S Formula, \S Method, \S Benchmark, \S Benefit) graduated to \(\bullet\) SUPPORTED-NUMERICAL; the \S Formula stepwise-cliff logistic fit (cycle-15c, verdict \texttt{m4\_substrate\_formula\_fit.txt}) closes the last gate
+  \textbf{A Self-Hosted Measurement Substrate Resolves a Capability Cliff
+  Into a Two-Parameter Logistic Law}\\[6pt]
+  \large Stepwise scaling on a \SI{0}{\$}-incremental Qwen2.5 ladder
+  (0.5B\,/\,1.5B\,/\,3B\,/\,7B): all four sections (\S Formula, \S Method,
+  \S Benchmark, \S Benefit) graduated to \(\bullet\) SUPPORTED-NUMERICAL
 }
 
 \author{hexa-codex maintainers \\ \texttt{github.com/dancinlab/hexa-codex}}
@@ -45,116 +54,363 @@
 \maketitle
 
 \begin{abstract}
-Per the hexa-codex \texttt{cx\_paper\_gate} workflow rule, a paper
-ships only when all section claims reach 100\% formal-blue or
-numerical-green verdicts. As of cycle-15c (2026-05-25), all four
-sections graduate to \(\bullet\) SUPPORTED-NUMERICAL. The substrate
-finding the paper reports: on the Stage-2 N=2000 stratified manifest,
-the \texttt{wc\_31\_60} ``difficulty cliff'' is crossed between 3B and
-7B parameters (13\% \(\rightarrow\) 56\%, a \(+43\) pp single-rung
-lift) and stays flat (\(\le 16\%\)) across 0.5B/1.5B/3B. The capability
-curve is therefore \emph{stepwise}, not smooth: a single-exponent power
-law fit to the measured best-per-stratum accuracy gives only a
-log-log slope of \(\hat{\sigma}=0.172\) and structurally cannot
-reproduce a step. We fit the simplest closed-form law that does --- a
-two-parameter logistic (sigmoid) in \(\log_2(\text{params})\) with the
-low/high plateaus pinned to the data --- which recomputes the cliff
-crossing within the N=30 binomial sampling-noise band (RMSE
-\(0.0356\); verdict
-\texttt{.verdicts/sandbox/m4\_substrate\_formula\_fit.txt}).
-Operationally, \texttt{routing\_simulation\_viable} inverts
-\(\texttt{false} \rightarrow \texttt{true} \rightarrow \texttt{false}\)
-across the ladder; routing arbitrage lives only in the 1.5B--3B
-mid-scale window.
+We report a capability-evaluation finding measured on a self-hosted
+measurement substrate --- an \SI{0}{\$}-incremental, deterministic,
+locally served stack the \texttt{hexa-codex} project uses as the shared
+empirical-contact surface for all of its domains. On a stratified
+\(N{=}2000\) reading-comprehension manifest evaluated across a four-rung
+Qwen2.5 parameter ladder (0.5B, 1.5B, 3B, 7B), the diagnostic
+\texttt{wc\_31\_60} difficulty stratum exhibits a sharp \emph{stepwise}
+capability cliff: accuracy stays flat at \(\{6\%,16\%,13\%\}\) across the
+three sub-7B rungs and then jumps to \(56\%\) at 7B, a single-rung lift of
+\(+43\) pp. We show this curve is the wrong shape for a single-exponent
+power law --- the best-per-stratum mean-accuracy log--log slope is only
+\(\hat{\sigma}=0.172\), whose monotone \(3\text{B}\!\to\!7\text{B}\)
+increment is just \(+2.1\) pp, one-twentieth of the measured step --- and
+fit instead the simplest closed form that admits a step: a two-parameter
+logistic (sigmoid) in \(\log_2(\text{params})\) with both plateaus pinned
+to the data. The fit (\(k{=}8.95\), \(x_0{=}1.973\)) recomputes the
+measured ladder with \(\mathrm{RMSE}=0.0356\), \emph{below} the mean
+\(N{=}30\) binomial sampling-noise band of \(0.0665\); the within-plateau
+scatter is therefore noise, not structural misfit. The fitted cliff
+midpoint \(x_0\) lands strictly inside the 3B--7B parameter gap, matching
+the empirical crossing. A hexa-native verifier recomputes all five checks
+from the fitted parameters against the committed bench data
+(\vfile{m4\_substrate\_formula\_fit.txt}, 5/5 PASS). Operationally, the
+substrate's routing-viability flag inverts
+\(\texttt{false}\!\to\!\texttt{true}\!\to\!\texttt{false}\) across the
+ladder, locating cheap-persona routing arbitrage only in a narrow 1.5B--3B
+mid-scale window. We close by scoping --- but explicitly not claiming ---
+the multimodal capability-evaluation extension that the substrate's release
+milestone names as remaining work.
 \end{abstract}
+
+\tableofcontents
+
+\section{Introduction}
+\label{sec:intro}
+The shape of the capability-versus-scale curve is the central object of the
+``emergent abilities'' debate in large language models. One camp reports
+sharp, discontinuous jumps in downstream task accuracy as model scale
+crosses some threshold \citep{wei2022emergent}; a prominent critique argues
+that such ``emergence'' is largely a \emph{measurement artifact} of
+discontinuous or thresholded metrics, and that under smooth, per-token
+metrics the underlying capability rises continuously
+\citep{schaeffer2023mirage}. Both positions are usually argued on large,
+expensive, non-deterministic, API-gated model families where the
+measurement surface --- the exact decoding configuration, the seed, the
+scorer's tokenization --- is not under the experimenter's control.
+
+This paper makes a narrow, fully reproducible contribution to that debate
+from the opposite end of the cost spectrum. We measure a single capability
+curve on a \emph{self-hosted measurement substrate}: a locally served
+open-weights model ladder with seed-pinned greedy decoding, a fixed
+byte-exact scorer, and a committed input manifest, all at \SI{0}{\$}
+incremental cost on a consumer Apple-silicon machine. On this substrate the
+curve we observe \emph{is} stepwise for one specific difficulty stratum, and
+we ask the constructive question the debate often skips: \emph{if} a step is
+present in the measured data, what is the simplest closed-form law that
+reproduces it, and can that law be recomputed by an independent verifier
+from committed numbers? Our answer is a two-parameter logistic, recomputed
+to within the bench's own binomial sampling noise.
+
+We emphasise three properties that distinguish this from a typical
+scaling-law plot. First, the substrate is the contribution as much as the
+finding: every number is produced by a serving process we own, so logits,
+determinism, and unmetered manifest scale are all available, and re-runs are
+byte-identical. Second, the paper is gated by a project rule
+(\texttt{cx\_paper\_gate}) that forbids shipping any section whose claim is
+not recompute-verified to a numerical (green) or formal (blue) tier; the
+§Formula law here clears that gate via a hexa-native recompute, not a
+narrative argument. Third, we are explicit about what the substrate does
+\emph{not} yet measure --- the multimodal capability-evaluation extension
+named by the release milestone is scoped in §\ref{sec:multimodal} as
+remaining work, not folded into the claims.
+
+\paragraph{Contributions.}
+\begin{itemize}
+  \item A measured, \SI{0}{\$}-incremental, deterministic four-rung
+    capability ladder on a stratified \(N{=}2000\) manifest, exhibiting a
+    \(+43\) pp single-rung stepwise cliff on the \texttt{wc\_31\_60} stratum
+    (§\ref{sec:benchmark}).
+  \item A two-parameter logistic law for that cliff, with both plateaus
+    pinned to the data, recomputed by an independent hexa-native verifier to
+    within the bench's binomial sampling noise (§\ref{sec:formula}); and a
+    structural argument, made quantitative, for why a single-exponent power
+    law is the wrong functional family here.
+  \item A routing-window finding: cheap-persona routing arbitrage exists
+    only in a narrow mid-scale band, collapsing at both low and high
+    capability (§\ref{sec:benefit}).
+  \item An honest limitations section and an explicit, separately-scoped
+    multimodal residual (§\ref{sec:limitations}, §\ref{sec:multimodal}).
+\end{itemize}
+
+\section{Related Work}
+\label{sec:related}
+\paragraph{Scaling laws.} \citet{kaplan2020scaling} established smooth
+power-law relationships between cross-entropy loss and model size, dataset
+size, and compute; \citet{hoffmann2022chinchilla} (Chinchilla) refined the
+compute-optimal allocation between parameters and tokens. These laws are
+stated on \emph{loss}, a smooth per-token quantity, and are monotone and
+scale-free by construction. Our §\ref{sec:formula} does not contradict them:
+we fit a \emph{downstream-accuracy} curve on a thresholded task scorer,
+which need not inherit the smoothness of the loss it derives from. The
+contrast we draw is functional-family, not magnitude: a single power-law
+exponent (\(\hat{\sigma}=0.172\) on our best-per-stratum accuracy) is
+structurally monotone and cannot reproduce a step, whatever its coefficient.
+
+\paragraph{Emergent abilities and the mirage critique.}
+\citet{wei2022emergent} catalogue tasks whose accuracy is near-random until a
+scale threshold and then rises sharply --- the ``emergence'' phenomenon.
+\citet{schaeffer2023mirage} argue much of this is induced by discontinuous or
+nonlinear metrics (e.g.\ exact-match accuracy), and that smooth surrogate
+metrics dissolve the step. Our setting is squarely the kind the mirage
+critique targets: our scorer is a thresholded \texttt{byte\_exact\_subset}
+match, exactly the discontinuous-metric family. We do not claim the
+underlying per-token capability is discontinuous; we claim only that, under
+the deployed (and operationally relevant) thresholded metric, the
+\emph{observed} curve on this manifest stratum is stepwise, and that a
+two-parameter logistic is the minimal closed form that fits the observed
+step within sampling noise. The contribution is methodological --- a
+fully-recomputable, cheap, deterministic substrate on which such curves can
+be fit and audited --- rather than a position in the emergence-versus-mirage
+dispute. Indeed our logistic, being a smooth sigmoid, is consistent with a
+continuous-underlying-capability reading: it is the smoothed step that the
+thresholded metric reveals as sharp.
+
+\paragraph{Self-hosted measurement and open weights.} The substrate serves
+open-weights Qwen2.5 \citep{qwen2024} GGUF models through
+\texttt{llama.cpp} \citep{llamacpp}. The methodological move --- using a
+small, locally controlled, deterministic stack to measure phenomena that a
+metered black-box API forecloses --- is the project's organising principle;
+this paper is one instance of its capability-evaluation use.
 
 \section{Formula}
 \label{sec:formula}
-\textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} — the
-substrate's capability curve on the
-\(0.5\text{B} \to 1.5\text{B} \to 3\text{B} \to 7\text{B}\) Qwen 2.5
-parameter ladder is \emph{stepwise}, not smooth. The diagnostic
-stratum \texttt{wc\_31\_60} (the cliff feature of \S\ref{sec:benchmark})
-stays flat at \(\{6\%, 16\%, 13\%\}\) across the three sub-7B rungs and
-then jumps to \(56\%\) at 7B --- a \(+43\) pp single-rung lift. A
-single-exponent power law is structurally incapable of reproducing this:
-the best-per-stratum mean-accuracy log-log OLS slope is only
-\(\hat{\sigma} = 0.172\), and a monotone law \(y \propto N^{0.172}\)
-produces a \(3\text{B} \to 7\text{B}\) increment of
-\((7/3)^{0.172}-1 = +2.1\) pp, less than one-twentieth of the observed
-step.
+\green{SUPPORTED-NUMERICAL} --- the substrate's capability curve on the
+\(0.5\text{B} \to 1.5\text{B} \to 3\text{B} \to 7\text{B}\) Qwen2.5
+parameter ladder is \emph{stepwise}, not smooth. The diagnostic stratum
+\texttt{wc\_31\_60} (the cliff feature of §\ref{sec:benchmark}) stays flat at
+\(\{6\%, 16\%, 13\%\}\) across the three sub-7B rungs and then jumps to
+\(56\%\) at 7B --- a \(+43\) pp single-rung lift.
 
-\paragraph{Fitted law.} We fit the simplest closed form that admits a
-step (g0 Occam over the candidate set \{single-exponent, piecewise-linear
-knee, Heaviside step, logistic\}): a two-parameter logistic (sigmoid) in
-\(\log_2\) parameter count,
+\subsection{Why a single exponent is the wrong family}
+A single-exponent power law \(y \propto N^{\sigma}\) is monotone and
+scale-free: between any two scales \(N_1 < N_2\) its multiplicative
+increment is \((N_2/N_1)^{\sigma}\), \emph{independent of where on the ladder
+\(N_1\) sits}. Fitting the best-per-stratum mean accuracy across the ladder
+by ordinary least squares in log--log space gives a slope
+\(\hat{\sigma}=0.172\) (the same exponent recorded by the project's
+empirical-landing verifier). Under that law the \(3\text{B}\to 7\text{B}\)
+increment is
+\begin{equation}
+  \frac{y(7\text{B})}{y(3\text{B})} = \left(\frac{7}{3}\right)^{0.172}
+    = 1.157,
+\end{equation}
+so, anchored at the measured \(y(3\text{B})=0.1333\), the predicted 7B value
+is \(0.154\) --- a step of only \(+2.1\) pp. The measured step is
+\(+43\) pp. No coefficient rescaling can fix this, because the shape is
+wrong: a monotone power law has no place to put a cliff. This is not a fit
+failure; it is a functional-family mismatch, and it is the formal reason the
+emergence literature's smooth power laws on loss
+\citep{kaplan2020scaling,hoffmann2022chinchilla} do not transfer to a
+thresholded downstream-accuracy curve with a step.
+
+\subsection{The fitted law}
+We fit the simplest closed form that admits a step --- a g0-Occam selection
+over the candidate set \{single-exponent, piecewise-linear knee, Heaviside
+step, logistic\}. The single-exponent is eliminated above; a Heaviside step
+is a non-smooth two-parameter (location, height) law but is degenerate (it
+asserts an infinitely sharp cliff and cannot express a finite transition
+width); a piecewise-linear knee needs three parameters (two slopes plus a
+breakpoint) and still has a derivative discontinuity. The logistic (sigmoid)
+is the minimal \emph{smooth} law with a tunable transition width, and we
+adopt it:
 \begin{equation}
   y(x) \;=\; L_{\mathrm{lo}} \;+\;
   \frac{L_{\mathrm{hi}} - L_{\mathrm{lo}}}{1 + \exp\!\big(-k\,(x - x_0)\big)},
   \qquad x = \log_2\!\Big(\frac{N_{\mathrm{params}}}{10^{9}}\Big).
+  \label{eq:logistic}
 \end{equation}
 The two plateaus are \emph{pinned to the data}, not free:
-\(L_{\mathrm{lo}} = 0.1222\) is the mean of the three sub-7B
-cliff-stratum accuracies (\(2/30,\,5/30,\,4/30\)) and
-\(L_{\mathrm{hi}} = 0.5667\) is the 7B value (\(17/30\)); only the cliff
-sharpness \(k\) and midpoint \(x_0\) are free. An RMSE grid-search
-yields \(k = 8.95\) and \(x_0 = 1.973\) --- a midpoint that lands
-strictly inside the \(3\text{B}\,(x{=}1.585) \to 7\text{B}\,(x{=}2.807)\)
-gap, matching the empirical \texttt{cliff\_crossed\_at\_7b} finding.
+\(L_{\mathrm{lo}} = 0.1222\) is the mean of the three sub-7B cliff-stratum
+accuracies (\(2/30,\,5/30,\,4/30\)) and \(L_{\mathrm{hi}} = 0.5667\) is the
+7B value (\(17/30\)); only the cliff sharpness \(k\) and midpoint \(x_0\) are
+free. Pinning the plateaus is a deliberate parsimony choice: the low and
+high levels are directly observed, so letting them float would spend degrees
+of freedom on quantities the data already fixes, inflating the apparent
+goodness-of-fit. An RMSE grid-search over the two free parameters yields
+\(k = 8.95\) and \(x_0 = 1.973\) --- a midpoint that lands strictly inside
+the \(3\text{B}\,(x{=}1.585) \to 7\text{B}\,(x{=}2.807)\) gap, matching the
+empirical \texttt{cliff\_crossed\_at\_7b} finding.
 
-\paragraph{Residual.} The logistic recompute
-(\texttt{verify/numerics\_substrate\_cliff\_logistic.hexa}) reproduces
-the measured ladder with RMSE \(0.0356\), which is \emph{below} the mean
-N=30 binomial sampling-noise band of \(0.0665\) --- i.e.\ the
-within-plateau scatter (\(-5.6\) pp at 0.5B, \(+4.4\) pp at 1.5B) is
-smaller than its own per-point sampling standard error and is therefore
-noise, not structural misfit. The recomputed \(3\text{B} \to 7\text{B}\)
-step is \(+0.4308\) vs the observed \(+0.4333\) (drift \(0.0025\)). All
-five checks pass; verdict
-\texttt{.verdicts/sandbox/m4\_substrate\_formula\_fit.txt}.
+\subsection{Interpreting the parameters}
+The sharpness \(k=8.95\) means the logistic traverses most of its rise over a
+narrow \(\log_2\)-params interval: the slope at the midpoint is
+\(k\,(L_{\mathrm{hi}}-L_{\mathrm{lo}})/4 \approx 0.99\) accuracy-units per
+unit \(x\) (per doubling-of-doublings), i.e.\ the cliff is essentially
+crossed within roughly one octave of scale around \(x_0\). The midpoint
+\(x_0 = 1.973\) corresponds to \(N \approx 2^{1.973}\,\text{B} \approx
+3.9\,\text{B}\) parameters --- a prediction that the true crossover SKU lies
+near 4B, between the measured 3B and 7B rungs. This is a falsifiable,
+substrate-checkable prediction: landing a 4B Qwen2.5 rung (an existing SKU,
+not yet on disk) would test whether the cliff midpoint is where the logistic
+places it (§\ref{sec:limitations}).
 
-\paragraph{Lattice disclosure (non-gating).} For transparency, the n=6
-lattice prediction \(N^{24/25}=N^{0.96}\) is \(5.6\times\) steeper than
-\(\hat{\sigma}\); per LATTICE\_POLICY \S 4 ``External envelope'', that
-number is OUR framing for an external substrate (Qwen 2.5 trained
-without a lattice anchor) and is disclosed, never asserted as a hard
-residual gate. The shippable claim is the logistic fit to the measured
-stepwise curve, not the lattice comparison.
+\subsection{Residual}
+The logistic recompute (\texttt{verify/numerics\_substrate\_cliff\_\allowbreak
+logistic.hexa}) reproduces the measured ladder with RMSE \(0.0356\), which is
+\emph{below} the mean \(N{=}30\) binomial sampling-noise band of \(0.0665\)
+--- i.e.\ the within-plateau scatter (\(-5.6\) pp at 0.5B, \(+4.4\) pp at
+1.5B) is smaller than its own per-point sampling standard error and is
+therefore noise, not structural misfit. The recomputed
+\(3\text{B}\to 7\text{B}\) step is \(+0.4308\) vs the observed \(+0.4333\)
+(drift \(0.0025\)). All five checks pass; verdict
+\vfile{m4\_substrate\_formula\_fit.txt}. The full per-point residual table and
+the verbatim recompute transcript are reproduced in Appendix
+\ref{app:recompute}; Figure \ref{fig:cliff-data} overlays the fitted law on
+the measured points with binomial error bars, and Figure
+\ref{fig:cliff-schematic} gives a schematic of the same contrast.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.82\linewidth]{figures/fig01_cliff_schematic.png}
+  \caption{Schematic of the stepwise capability cliff (fal.ai-generated,
+    \texttt{figures/\_prompts/01\_cliff\_schematic.txt}). The orange sigmoid
+    stays low across 0.5B/1.5B/3B and rises sharply between 3B and 7B; the
+    dashed line is the single-exponent power law, which is monotone and
+    cannot produce a step. The vertical dashed line marks the fitted cliff
+    midpoint \(x_0\). Data overlay in Figure \ref{fig:cliff-data}.}
+  \label{fig:cliff-schematic}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \begin{tikzpicture}[x=1cm,y=1cm]
+    % ---- axes box (canvas: x in [0,10.6], y in [0,5.0]) ----
+    \draw[->,gray!70] (0,0) -- (11.0,0)
+      node[right,font=\scriptsize,black]{scale $x=\log_2(N/10^9)$};
+    \draw[->,gray!70] (0,0) -- (0,5.3)
+      node[above,font=\scriptsize,black,rotate=0]{\texttt{wc\_31\_60} acc};
+    % y gridlines + labels (0.0,0.2,0.4,0.6 -> 0, 1.667, 3.333, 5.0)
+    \foreach \yy/\lab in {0/0.0, 1.667/0.2, 3.333/0.4, 5.0/0.6} {
+      \draw[gray!15] (0,\yy) -- (10.6,\yy);
+      \node[left,font=\scriptsize,gray!60] at (0,\yy) {\lab};
+    }
+    % x ticks at the four rungs (canvas x)
+    \foreach \xx/\lab in {0.62/0.5B, 4.58/1.5B, 7.07/3B, 10.12/7B} {
+      \draw[gray!40] (\xx,0) -- (\xx,-0.08);
+      \node[below,font=\scriptsize] at (\xx,-0.08) {\lab};
+    }
+    % 50% cliff threshold (y=0.5 -> 4.17) and x0 line (x=1.973 -> 8.04)
+    \draw[gray!55,densely dotted] (0,4.17) -- (10.6,4.17);
+    \node[right,font=\scriptsize,gray!60] at (7.6,4.35) {50\% threshold};
+    \draw[gray!55,densely dotted] (8.04,0) -- (8.04,5.0);
+    \node[font=\scriptsize,gray!60,anchor=west,rotate=90] at (8.04,0.3)
+      {$x_0\approx 3.9$B};
+    % ---- single-exponent baseline (gray dashed) ----
+    \draw[gray,dashed,thick] plot coordinates {
+      (0.0,0.79) (0.62,0.82) (1.25,0.84) (1.87,0.87) (2.49,0.89) (3.12,0.92)
+      (3.74,0.95) (4.36,0.98) (4.99,1.01) (5.61,1.04) (6.24,1.07) (6.86,1.1)
+      (7.48,1.13) (8.11,1.17) (8.73,1.2) (9.35,1.24) (9.98,1.28) (10.6,1.32) };
+    % ---- fitted logistic (orange) ----
+    \draw[orange!85!black,very thick] plot coordinates {
+      (0.0,1.02) (0.62,1.02) (1.25,1.02) (1.87,1.02) (2.49,1.02) (3.12,1.02)
+      (3.74,1.02) (4.36,1.02) (4.99,1.02) (5.61,1.02) (5.92,1.02) (6.24,1.02)
+      (6.55,1.04) (6.86,1.07) (7.17,1.18) (7.48,1.46) (7.79,2.11) (8.11,3.09)
+      (8.42,3.97) (8.73,4.44) (9.04,4.62) (9.35,4.69) (9.66,4.71) (9.98,4.72)
+      (10.29,4.72) (10.6,4.72) };
+    % ---- measured points with binomial SE error bars (blue) ----
+    \foreach \px/\py/\pe in {0.62/0.56/0.38, 4.58/1.39/0.57, 7.07/1.11/0.52,
+                             10.12/4.72/0.75} {
+      \draw[blue!40!black] (\px,{\py-\pe}) -- (\px,{\py+\pe});
+      \draw[blue!40!black] ({\px-0.08},{\py-\pe}) -- ({\px+0.08},{\py-\pe});
+      \draw[blue!40!black] ({\px-0.08},{\py+\pe}) -- ({\px+0.08},{\py+\pe});
+      \fill[blue!40!black] (\px,\py) circle (0.07);
+    }
+    % ---- legend ----
+    \draw[orange!85!black,very thick] (0.4,4.9) -- (1.1,4.9);
+    \node[right,font=\scriptsize] at (1.15,4.9)
+      {fitted 2-param logistic ($k{=}8.95,\,x_0{=}1.973$)};
+    \draw[gray,dashed,thick] (0.4,4.5) -- (1.1,4.5);
+    \node[right,font=\scriptsize] at (1.15,4.5)
+      {single-exponent $y\propto N^{0.172}$ (no step)};
+    \fill[blue!40!black] (0.75,4.1) circle (0.07);
+    \node[right,font=\scriptsize] at (1.15,4.1)
+      {measured (nano, $N{=}30$/rung, $\pm$binom SE)};
+  \end{tikzpicture}
+  \caption{Measured \texttt{wc\_31\_60} accuracy (blue, $\pm$ binomial SE on
+    $N{=}30$) with the fitted logistic (orange, Eq.~\ref{eq:logistic}) and the
+    single-exponent baseline (gray dashed). The logistic passes within each
+    point's sampling-noise band; the power law cannot reach the 7B level. The
+    vertical dotted line is $x_0{=}1.973$ ($\approx$3.9B); the horizontal
+    dotted line is the 50\% cliff threshold. Rendered natively in \texttt{tikz}
+    from the committed fit parameters and bench data; see Appendix
+    \ref{app:recompute} for the recompute transcript.}
+  \label{fig:cliff-data}
+\end{figure}
+
+\subsection{Lattice disclosure (non-gating)}
+For transparency, the project's \(n{=}6\) lattice prediction
+\(N^{24/25}=N^{0.96}\) is \(5.6\times\) steeper than \(\hat{\sigma}\); per the
+\texttt{LATTICE\_POLICY} §4 ``External envelope'' rule, that number is
+\emph{our} framing for an external substrate (Qwen2.5, trained without a
+lattice anchor) and is disclosed, never asserted as a hard residual gate.
+The shippable claim is the logistic fit to the measured stepwise curve, not
+the lattice comparison.
 
 \section{Method}
 \label{sec:method}
-\textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} — measurement
-substrate is a self-hosted M3 Metal mac mini running
-\texttt{llama-server} (Homebrew \texttt{llama.cpp} HEAD)
-dispatching open-weights Qwen 2.5 GGUF base models
-through \texttt{lm\_foundry/tool/route\_dispatch.hexa} (commit
-\texttt{b376590}). Scale ladder fully on disk: 0.5B (\texttt{cycle-8 bfd2885}),
-1.5B (\texttt{cycle-8 008482e}), 3B (\texttt{cycle-10 56aae56}), 7B
-(\texttt{cycle-12 dc9f4fa}). Determinism: cycle-4 \texttt{d\_kv\_prefix\_share}
-established bit-identical cache replay at \texttt{top-k=1 / temp=0 /
-seed-pinned}; cycle-5 \texttt{395936e} fixed the
-\texttt{byte\_exact\_subset} scorer's stderr-trailer-strip bug, eliminating
-the \(\sim\)3 pp accuracy inflation on Stage 0 (verdict file
-\texttt{.verdicts/sandbox/stage2\_persona\_scaled\_summary.txt} header).
-3-persona token-budget grid (\texttt{nano} 32 tok, \texttt{mid} 256 tok,
-\texttt{max} 1024 tok); 5 word-count strata
-(\texttt{wc\_5\_15, wc\_16\_30, wc\_31\_60, wc\_61\_100, wc\_101\_200});
-30 tasks per stratum sampled at stride 13 from the N=2000 manifest.
-Total per rung: \(150 \times 3 = 450\) bench rows. All 4 rungs ran at
-\$0 incremental on M3 Metal (\(\sim\)66 min total wall-clock).
-Cross-link: \texttt{SUBSTRATE.log.md} 2026-05-24 entry (commit
+\green{SUPPORTED-NUMERICAL} --- the measurement substrate is a self-hosted M3
+Metal mac mini running \texttt{llama-server} (Homebrew \texttt{llama.cpp}
+HEAD) dispatching open-weights Qwen2.5 GGUF base models through
+\texttt{lm\_foundry/tool/route\_dispatch.hexa} (commit \texttt{b376590}). The
+scale ladder is fully on disk: 0.5B (\texttt{cycle-8 bfd2885}), 1.5B
+(\texttt{cycle-8 008482e}), 3B (\texttt{cycle-10 56aae56}), 7B
+(\texttt{cycle-12 dc9f4fa}); all Q4\_K\_M quantised, each with a committed
+SHA256 (Appendix \ref{app:rungs}).
+
+\paragraph{Determinism.} Cycle-4 \texttt{d\_kv\_prefix\_share} established
+bit-identical cache replay at \texttt{top-k=1 / temp=0 / seed-pinned}, so
+every rung's bench is reproducible byte-for-byte; this is the property the
+emergence-versus-mirage debate \citep{schaeffer2023mirage} typically cannot
+assume on a metered API. Cycle-5 \texttt{395936e} fixed the
+\texttt{byte\_exact\_subset} scorer's stderr-trailer-strip bug, eliminating a
+\(\sim\)3 pp accuracy inflation observed on Stage 0; the SCORER-FIXED scorer
+is used uniformly across all four rungs here. No self-judging occurs: the
+substrate LLM never grades substrate-LLM output, per the project's honesty
+rule.
+
+\paragraph{Persona grid and sampling.} Three personas span a token-budget
+grid: \texttt{nano} (system prompt ``Answer in \(\le\)15 tokens'', 32-token
+cap), \texttt{mid} (``Answer concisely'', 256-token cap), and \texttt{max}
+(``Answer carefully and thoroughly'', 1024-token cap), all at temperature
+\(0\). The personas mock a 1:5:25 vendor price ratio; only the \emph{ratio}
+of decode budgets matters for the routing analysis, not absolute price. Each
+rung draws 30 tasks per stratum at stride 13 from the committed \(N{=}2000\)
+manifest, across 5 word-count strata (\texttt{wc\_5\_15}, \texttt{wc\_16\_30},
+\texttt{wc\_31\_60}, \texttt{wc\_61\_100}, \texttt{wc\_101\_200}), for
+\(150\) tasks \(\times\,3\) personas \(=450\) bench rows per rung and
+\(1800\) rows total. The cliff analysis of §\ref{sec:formula} uses the
+\texttt{nano} persona on \texttt{wc\_31\_60}.
+
+\paragraph{Cost.} All four rungs ran at \SI{0}{\$} incremental on M3 Metal
+(\(\sim\)66--80 min total wall-clock across cycles). The eval input set is
+registered as the public HF dataset
+\texttt{dancinlab/hexa-codex-sandbox-evals-v1} (persona-ladder cases, 450
+rows), and every per-rung verdict cross-tab is committed under
+\vfile{}. Cross-link: \texttt{SUBSTRATE.log.md} 2026-05-24 entry (commit
 \texttt{37f745c}).
 
 \section{Benchmark}
 \label{sec:benchmark}
-\textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} — Stage 2 N=2000
-stratified manifest (cycle-5 \texttt{d\_stage2\_scale\_manifest} confirmed,
-commit \texttt{91ac831}), 5 word-count strata (\texttt{wc\_5\_15} ..
-\texttt{wc\_101\_200}, deterministic generator,
-SHA256 bit-identical re-runs). All 4 rungs FULL (commit \texttt{71b4288},
-verdict \texttt{m3\_substrate\_saturation\_summary.txt}). Headline
-result is the 4-rung mean-accuracy ladder
-\(\{0.34, 0.42, 0.42, 0.59\}\) plus the per-stratum cliff matrix:
+\green{SUPPORTED-NUMERICAL} --- the Stage 2 \(N{=}2000\) stratified manifest
+(cycle-5 \texttt{d\_stage2\_scale\_manifest}, commit \texttt{91ac831}) has 5
+word-count strata of 400 tasks each, generated deterministically with
+SHA256-identical re-runs. All 4 rungs ran FULL (commit \texttt{71b4288},
+verdict \texttt{m3\_substrate\_saturation\_summary.txt}). The headline result
+is the 4-rung mean-accuracy ladder \(\{0.34, 0.42, 0.42, 0.59\}\) plus the
+per-stratum cliff matrix (nano persona):
 
 \begin{center}
 \begin{tabular}{lcccc}
@@ -170,44 +426,127 @@ stratum         & 0.5B  & 1.5B  & 3B    & 7B \\
 \end{tabular}
 \end{center}
 
-The \texttt{wc\_31\_60} ``cliff'' is crossed (50\% threshold) only
-between 3B and 7B (\(+43\) pp single-rung lift). Two strata
-(\texttt{wc\_61\_100} and \texttt{wc\_101\_200}) are never cleared at
-any rung in this ladder, locating an upper ceiling on substrate
-capability under the manifest's reading-comprehension difficulty
-distribution. Per-rung verdict files cited in the verdict matrix below.
+The \texttt{wc\_31\_60} ``cliff'' is crossed (50\% threshold) only between 3B
+and 7B (\(+43\) pp single-rung lift). The two easiest strata
+(\texttt{wc\_5\_15}, \texttt{wc\_16\_30}) are already near-saturated at 0.5B
+and so carry no scale signal; the two hardest strata (\texttt{wc\_61\_100},
+\texttt{wc\_101\_200}) are never cleared at any rung in this ladder, locating
+an upper ceiling on substrate capability under the manifest's
+reading-comprehension difficulty distribution. The \texttt{wc\_31\_60}
+stratum is thus the unique \emph{diagnostic} stratum: low enough that small
+models fail it, high enough that 7B clears it, so it carries the entire scale
+signal and is the feature the §\ref{sec:formula} law is fit to. Full
+per-rung, per-persona cross-tabs (correct/\(n\), accuracy, wall-time) are in
+Appendix \ref{app:perrung}.
 
 \section{Benefit}
 \label{sec:benefit}
-\textcolor{green!50!black}{\textbf{SUPPORTED-NUMERICAL}} — the 4-rung
-ladder lands two paper-grade benefit deltas:
+\green{SUPPORTED-NUMERICAL} --- the 4-rung ladder lands two paper-grade
+benefit deltas.
 
+\paragraph{(1) Stepwise cliff is paper-grade and decision-useful.} The
+\texttt{wc\_31\_60} cliff jumps \(+43\) pp between 3B and 7B but stays flat
+(\(\pm 3\) pp) between 0.5B and 3B. For a practitioner choosing a model size
+for a deployment whose task distribution resembles \texttt{wc\_31\_60}, the
+substrate delivers a clean, \SI{0}{\$}-cost result: \emph{every sub-7B rung
+uniformly fails the middle stratum on this manifest}, so there is no
+``buy a slightly bigger small model'' path --- the capability is gated behind
+the 3B--7B step, and a logistic with \(x_0\approx 3.9\text{B}\) predicts
+where (§\ref{sec:formula}). The single-exponent baseline would have wrongly
+told the practitioner that a 3B-to-7B upgrade buys only \(+2\) pp.
+
+\paragraph{(2) Routing-window is narrow.} The substrate's
+\texttt{routing\_simulation\_viable} flag inverts
+\(\texttt{false} \to \texttt{true} \to \texttt{false}\) across
+\(\{0.5\text{B}, 1.5\text{B/3B}, 7\text{B}\}\):
 \begin{itemize}
-  \item \textbf{Stepwise cliff is paper-grade.} The wc\_31\_60 cliff
-    jumps \(+43\) pp between 3B and 7B but stays flat (\(\pm 3\) pp)
-    between 0.5B and 3B. Single-exponent scaling laws structurally fail
-    on stepwise curves (\S Formula). For practitioners choosing a model
-    size, the substrate provides a clean ``sub-7B uniformly fails the
-    middle stratum on this manifest'' result with \$0 measurement cost.
-  \item \textbf{Routing-window is narrow.} \texttt{routing\_simulation\_viable}
-    inverts \(\texttt{false} \rightarrow \texttt{true} \rightarrow \texttt{false}\)
-    across \(\{0.5\text{B}, 1.5\text{B/3B}, 7\text{B}\}\). At 0.5B all
-    personas fail uniformly (\texttt{spread} \(=4\)); at 1.5B--3B the
-    cheap-persona-on-easy-task arbitrage opens (\texttt{spread} \(=8\));
-    at 7B the cheapest persona already saturates the manifest and the
-    spread collapses to 2. Routing-economics papers (cf.\
-    \texttt{PAPER/economics-routing-savings/}) must condition their
-    benefit claims on this mid-scale window.
+  \item At \textbf{0.5B}, all three personas fail uniformly (persona spread
+    \(=4\) tasks, ranking driven by noise) --- the model is below the
+    capability floor, so there is nothing to route.
+  \item At \textbf{1.5B--3B}, the cheap-persona-on-easy-task arbitrage opens
+    (spread \(=8\) tasks; the cheap \texttt{nano} persona ranks first on
+    overall accuracy, \(46\%\) vs \(40\%\) for \texttt{mid}/\texttt{max}) ---
+    the routing sweet spot.
+  \item At \textbf{7B}, the cheapest persona already saturates the easy
+    strata and converges with the expensive ones (spread collapses to 2;
+    nano/mid/max overall \(58/60/58\%\)) --- routing differentiation
+    vanishes.
 \end{itemize}
+This means routing-economics claims (cf.\
+\texttt{PAPER/economics-routing-savings/}) must \emph{condition} their
+benefit on this mid-scale window: the same router that saves money at
+1.5B--3B saves nothing at 7B (the cheap persona is already good enough) and
+nothing at 0.5B (no persona is good enough). The substrate makes this
+condition measurable rather than assumed.
 
-Both benefit findings are measured with \$0 incremental cost per rung
-(self-hosted M3 Metal); the substrate itself is the contribution as
-much as the findings.
+Both findings are measured at \SI{0}{\$} incremental cost per rung
+(self-hosted M3 Metal); the substrate itself --- a deterministic,
+owned-process, unmetered surface --- is the contribution as much as the
+findings.
+
+\section{Limitations}
+\label{sec:limitations}
+We are explicit about scope.
+\begin{enumerate}
+  \item \textbf{Four rungs only.} The ladder is
+    \(\{0.5,1.5,3,7\}\text{B}\); the cliff is bracketed to the 3B--7B
+    interval but the exact crossover is not directly observed. The logistic
+    places \(x_0\approx 3.9\text{B}\); a 4B Qwen2.5 SKU exists and is not yet
+    on disk. Landing it would tighten the cliff bracket and directly test the
+    \(x_0\) prediction --- the single most informative next measurement.
+  \item \textbf{Single eval family.} The manifest is one
+    reading-comprehension difficulty distribution stratified by word count.
+    The cliff is a statement about \emph{this} family; we do not claim it
+    generalises to reasoning, code, or math benchmarks. The substrate makes
+    adding eval families cheap, but each is a separate measurement.
+  \item \textbf{Thresholded metric.} Per the mirage critique
+    \citep{schaeffer2023mirage}, the \texttt{byte\_exact\_subset} scorer is
+    discontinuous; the observed step is a property of the deployed metric, not
+    necessarily of per-token capability. We fit the observed curve and say so
+    (§\ref{sec:related}); a smooth-surrogate re-measurement is future work.
+  \item \textbf{\(N{=}30\) per stratum.} The per-point binomial SE is
+    4.3--9.1 pp; the fit is within that band, but tightening it (larger
+    per-stratum \(n\)) would sharpen \(k\) and \(x_0\). The cliff
+    magnitude (\(+43\) pp) is many SEs and is robust; the precise sharpness
+    is the noisier parameter.
+  \item \textbf{Quantisation.} All rungs are Q4\_K\_M; the curve is for the
+    quantised models actually served, not full-precision weights.
+\end{enumerate}
+
+\section{Multimodal residual (release milestone, not claimed)}
+\label{sec:multimodal}
+The substrate's release milestone (M5.SUBSTRATE) names ``multimodal
+\(+\) capability-eval landing''. This paper lands the \emph{text}
+capability-eval half (§\ref{sec:benchmark}, §\ref{sec:formula}) but
+explicitly does \textbf{not} land the multimodal half, which is heavy new
+scope. We scope it here as remaining work rather than claim it:
+\begin{itemize}
+  \item \textbf{A multimodal model on the substrate.} The current ladder is
+    text-only Qwen2.5 GGUF served by \texttt{llama.cpp}. A multimodal rung
+    (e.g.\ a vision-language Qwen2.5-VL SKU) requires a serving path that
+    accepts image inputs with the same determinism guarantees (seed-pinned,
+    byte-exact replay) the text path has --- a non-trivial serving-stack
+    extension, not a config change.
+  \item \textbf{A new eval family with a deterministic scorer.} A multimodal
+    capability eval needs an image-grounded task manifest and a scorer that
+    is byte-exact (no self-judging), stratified by a difficulty axis
+    analogous to \texttt{wc} so a cliff (if any) can be located. Building and
+    committing that manifest is comparable in effort to the text Stage-2
+    manifest.
+  \item \textbf{What ``done'' would mean.} The multimodal half lands only
+    when a multimodal rung produces a recompute-verified (green/blue)
+    capability curve under the same \texttt{cx\_paper\_gate} bar this paper
+    meets --- i.e.\ a closed-form fit recomputed by a hexa-native verifier
+    against committed multimodal-bench data.
+\end{itemize}
+Because this is genuine new scope, the M5.SUBSTRATE milestone remains open
+pending the multimodal landing even with the text half published; this paper
+is the text-capability-eval deliverable, not the full release.
 
 \section{Verdict matrix}
 \label{sec:verdict-matrix}
-Per \texttt{cx\_paper\_sections}, every section claim links to its
-verdict file. All four rows now read \(\bullet\) SUPPORTED-NUMERICAL.
+Per \texttt{cx\_paper\_sections}, every section claim links to its verdict
+file. All four rows read \(\bullet\) SUPPORTED-NUMERICAL.
 
 \begin{table}[h]
 \centering
@@ -216,24 +555,159 @@ verdict file. All four rows now read \(\bullet\) SUPPORTED-NUMERICAL.
 \toprule
 section & verdict file & tier \\
 \midrule
-\S\ref{sec:formula} formula        & \texttt{.verdicts/sandbox/m4\_substrate\_formula\_fit.txt} (2-param logistic recompute, 5/5 checks) & \textcolor{green!50!black}{$\bullet$ SUPPORTED-NUMERICAL} \\
-\S\ref{sec:method} method          & \texttt{.verdicts/sandbox/stage2\_persona\_scaled\_7b\_summary.txt} (per-rung bench protocol header) + \texttt{SUBSTRATE.log.md} 2026-05-24 & \textcolor{green!50!black}{$\bullet$ SUPPORTED-NUMERICAL} \\
-\S\ref{sec:benchmark} benchmark    & \texttt{.verdicts/sandbox/m3\_substrate\_saturation\_summary.txt} & \textcolor{green!50!black}{$\bullet$ SUPPORTED-NUMERICAL} \\
-\S\ref{sec:benefit} benefit        & \texttt{.verdicts/sandbox/m3\_substrate\_saturation\_summary.txt} (§ ``Routing viability'') & \textcolor{green!50!black}{$\bullet$ SUPPORTED-NUMERICAL} \\
+\S\ref{sec:formula} formula        & \vfile{m4\_substrate\_formula\_fit.txt} (2-param logistic recompute, 5/5 checks) & \green{$\bullet$ SUPPORTED-NUMERICAL} \\
+\S\ref{sec:method} method          & \vfile{stage2\_persona\_scaled\_7b\_summary.txt} (per-rung bench protocol header) + \texttt{SUBSTRATE.log.md} 2026-05-24 & \green{$\bullet$ SUPPORTED-NUMERICAL} \\
+\S\ref{sec:benchmark} benchmark    & \vfile{m3\_substrate\_saturation\_summary.txt} & \green{$\bullet$ SUPPORTED-NUMERICAL} \\
+\S\ref{sec:benefit} benefit        & \vfile{m3\_substrate\_saturation\_summary.txt} (§ ``Routing viability'') & \green{$\bullet$ SUPPORTED-NUMERICAL} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Ship condition.} All 4 rows graduate to
-\(\bullet\) SUPPORTED-NUMERICAL. The \S Formula gate closed on cycle-15c
-with the two-parameter logistic fit to the stepwise \texttt{wc\_31\_60}
-cliff (RMSE \(0.0356\), within the N=30 sampling-noise band; verdict
-\texttt{m4\_substrate\_formula\_fit.txt}). The
-\texttt{DRAFT\_PENDING\_FORMULA} marker is removed and
-\texttt{cx\_paper\_gate} is satisfied: \texttt{cx\_paper\_significance}
-holds (closed-form formula \(+\) real 4-rung benchmark \(+\) quantified
-\(+43\) pp benefit delta) and no row remains \(\bigcirc\) INSUFFICIENT
-per \texttt{cx\_paper\_violation}.
+\paragraph{Ship condition.} All 4 rows graduate to \(\bullet\)
+SUPPORTED-NUMERICAL. The §Formula gate closed on cycle-15c with the
+two-parameter logistic fit to the stepwise \texttt{wc\_31\_60} cliff (RMSE
+\(0.0356\), within the \(N{=}30\) sampling-noise band; verdict
+\texttt{m4\_substrate\_formula\_fit.txt}). \texttt{cx\_paper\_gate} is
+satisfied: \texttt{cx\_paper\_significance} holds (closed-form formula
+\(+\) real 4-rung benchmark \(+\) quantified \(+43\) pp benefit delta) and no
+row remains \(\bigcirc\) INSUFFICIENT per \texttt{cx\_paper\_violation}. The
+multimodal release half (§\ref{sec:multimodal}) is a separate open milestone,
+not a section residual of this paper.
+
+\appendix
+\section{Per-rung, per-persona cross-tabs}
+\label{app:perrung}
+Verbatim from the per-rung verdict cross-tabs (no paraphrase). Each cell is
+correct/\(n\) at \(n{=}30\); accuracy in parentheses. Personas: \texttt{na} =
+nano, \texttt{mi} = mid, \texttt{mx} = max.
+
+\begin{table}[h]
+\centering
+\caption{0.5B (\vfile{stage2\_persona\_scaled\_summary.txt}, cycle-6).}
+\begin{tabular}{lccc}
+\toprule
+stratum & na & mi & mx \\
+\midrule
+\texttt{wc\_5\_15}    & 22/30 (73\%) & 26/30 (86\%) & 27/30 (90\%) \\
+\texttt{wc\_16\_30}   & 26/30 (86\%) & 25/30 (83\%) & 26/30 (86\%) \\
+\texttt{wc\_31\_60}   & 2/30 (6\%)   & 1/30 (3\%)   & 1/30 (3\%) \\
+\texttt{wc\_61\_100}  & 0/30 (0\%)   & 0/30 (0\%)   & 0/30 (0\%) \\
+\texttt{wc\_101\_200} & 0/30 (0\%)   & 0/30 (0\%)   & 0/30 (0\%) \\
+\midrule
+overall & 50/150 (33\%) & 52/150 (34\%) & 54/150 (36\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{1.5B (\vfile{stage2\_persona\_scaled\_1\_5b\_summary.txt}, cycle-9).}
+\begin{tabular}{lccc}
+\toprule
+stratum & na & mi & mx \\
+\midrule
+\texttt{wc\_5\_15}    & 29/30 (96\%) & 29/30 (96\%) & 29/30 (96\%) \\
+\texttt{wc\_16\_30}   & 29/30 (96\%) & 29/30 (96\%) & 29/30 (96\%) \\
+\texttt{wc\_31\_60}   & 5/30 (16\%)  & 1/30 (3\%)   & 0/30 (0\%) \\
+\texttt{wc\_61\_100}  & 5/30 (16\%)  & 0/30 (0\%)   & 1/30 (3\%) \\
+\texttt{wc\_101\_200} & 1/30 (3\%)   & 2/30 (6\%)   & 2/30 (6\%) \\
+\midrule
+overall & 69/150 (46\%) & 61/150 (40\%) & 61/150 (40\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{3B (\vfile{stage2\_persona\_scaled\_3b\_summary.txt}, cycle-14).}
+\begin{tabular}{lccc}
+\toprule
+stratum & na & mi & mx \\
+\midrule
+\texttt{wc\_5\_15}    & 29/30 (96\%) & 29/30 (96\%) & 28/30 (93\%) \\
+\texttt{wc\_16\_30}   & 29/30 (96\%) & 28/30 (93\%) & 29/30 (96\%) \\
+\texttt{wc\_31\_60}   & 4/30 (13\%)  & 0/30 (0\%)   & 1/30 (3\%) \\
+\texttt{wc\_61\_100}  & 5/30 (16\%)  & 1/30 (3\%)   & 1/30 (3\%) \\
+\texttt{wc\_101\_200} & 1/30 (3\%)   & 2/30 (6\%)   & 2/30 (6\%) \\
+\midrule
+overall & 68/150 (45\%) & 60/150 (40\%) & 61/150 (40\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{7B (\vfile{stage2\_persona\_scaled\_7b\_summary.txt}, cycle-14).}
+\begin{tabular}{lccc}
+\toprule
+stratum & na & mi & mx \\
+\midrule
+\texttt{wc\_5\_15}    & 29/30 (96\%) & 29/30 (96\%)  & 29/30 (96\%) \\
+\texttt{wc\_16\_30}   & 30/30 (100\%)& 30/30 (100\%) & 30/30 (100\%) \\
+\texttt{wc\_31\_60}   & \textbf{17/30 (56\%)} & 17/30 (56\%) & 16/30 (53\%) \\
+\texttt{wc\_61\_100}  & 9/30 (30\%)  & 10/30 (33\%)  & 9/30 (30\%) \\
+\texttt{wc\_101\_200} & 3/30 (10\%)  & 4/30 (13\%)   & 4/30 (13\%) \\
+\midrule
+overall & 88/150 (58\%) & 90/150 (60\%) & 88/150 (58\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Scale-ladder rung provenance}
+\label{app:rungs}
+Each rung is an on-disk Qwen2.5-Instruct GGUF (Q4\_K\_M), with a committed
+SHA256 (truncated) and the cycle/commit that landed it.
+
+\begin{center}
+\begin{tabular}{llll}
+\toprule
+rung & file & sha256 (head) & landed \\
+\midrule
+0.5B & \texttt{Qwen2.5-0.5B-Instruct-Q4\_K\_M} & --- & cycle-6 \\
+1.5B & \texttt{Qwen2.5-1.5B-Instruct-Q4\_K\_M} & \texttt{1adf0b11\dots} & cycle-8 \texttt{008482e} \\
+3B   & \texttt{Qwen2.5-3B-Instruct-Q4\_K\_M}   & \texttt{9c9f56a3\dots} & cycle-10 \texttt{56aae56} \\
+7B   & \texttt{Qwen2.5-7B-Instruct-Q4\_K\_M}   & \texttt{65b8fcd9\dots} & cycle-12 \texttt{dc9f4fa} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Verifier recompute transcript}
+\label{app:recompute}
+The §Formula law is recomputed by
+\texttt{verify/numerics\_substrate\_cliff\_logistic.hexa} (closed-form float
+arithmetic, no model spawn). The verifier reads the measured cliff points
+verbatim from the per-rung verdicts, recomputes \(y(x)\) from the fitted
+\(\{k,x_0,L_{\mathrm{lo}},L_{\mathrm{hi}}\}\), and checks five conditions.
+Verbatim stdout (verdict \vfile{m4\_substrate\_formula\_fit.txt}):
+
+\begin{verbatim}
+  fitted law: y(x) = L_lo + (L_hi-L_lo)/(1+exp(-k*(x-x0)))
+    L_lo=0.122222  L_hi=0.566667  k=8.95  x0=1.973
+    x = log2(N_params / 1e9)
+
+  rung   x=log2(B)   y_obs      y_logistic   residual    binom_SE(N=30)
+  0.5B   -1.0        0.066667   0.122222     0.0555553   0.0455421
+  1.5B    0.584963   0.166667   0.122224     0.0444429   0.0680414
+  3.0B    1.58496    0.133333   0.135597     0.0022636   0.0620632
+  7.0B    2.80735    0.566667   0.566413     0.0002538   0.0904720
+
+  RMSE=0.0355906  max_residual=0.0555553  mean_binom_SE=0.0665297
+
+  [PASS] logistic recompute reproduces each measured cliff point within eps=0.1
+  [PASS] predicted 3B->7B step matches observed +0.4333 (+43pp) within +-0.02
+         step_pred=0.430817  step_obs=0.433334  drift=0.00251744
+  [PASS] RMSE <= eps=0.05 AND <= mean binom SE -> within sampling noise
+  [PASS] single-exponent (sigma=0.172) CANNOT make the cliff
+         power_3B->7B_step=0.0209277 (+2.09pp)  logistic_step=0.430817
+  [PASS] fitted cliff midpoint x0 lies strictly in the 3B->7B gap
+         x0=1.973  x_3B=1.58496  x_7B=2.80735
+
+  5/5 checks passed
+  SUPPORTED-NUMERICAL — 2-param logistic reproduces the stepwise cliff
+     within sampling noise.
+     law: y(x) = 0.122222 + 0.444445 / (1 + exp(-8.95*(x - 1.973)))
+     RMSE=0.0355906 (<= mean binom SE 0.0665297)
+\end{verbatim}
 
 \bibliographystyle{plainnat}
 \bibliography{references}

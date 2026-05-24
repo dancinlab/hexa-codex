@@ -1,0 +1,15 @@
+A clean, minimal scientific-paper schematic illustration, white background, flat
+vector style, muted academic color palette (deep blue, slate gray, one accent
+orange). The image depicts a "stepwise capability cliff": a horizontal axis
+labeled "model scale (parameters, log)" with four evenly spaced markers
+0.5B, 1.5B, 3B, 7B; a vertical axis labeled "capability (accuracy)". A smooth
+S-shaped sigmoid (logistic) curve stays low and almost flat across 0.5B, 1.5B,
+3B, then rises sharply between 3B and 7B and plateaus high — drawn as a single
+bold orange curve. Three small flat circular markers sit on the low plateau and
+one high marker sits on the upper plateau, suggesting measured data points. A
+faint dashed gray straight line rising gently from left to right is labeled
+"single-exponent power law (cannot make a step)" to contrast against the sharp
+orange sigmoid. A thin vertical dashed line marks the cliff midpoint between 3B
+and 7B. No photorealism, no people, no logos, no text other than the axis and
+curve labels described; the look should resemble a figure from a machine-learning
+research paper. Composition is wide landscape, generous margins.

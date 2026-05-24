@@ -1,0 +1,46 @@
+# model=RWKV7-Goose-World3-2.9B-q5_k_m
+# model_path=/Users/ghost/Models/gguf/rwkv/RWKV7-Goose-World3-2.9B-HF-q5_k_m.gguf
+# total_tasks=20
+# correct=15/20
+# accuracy_pct=75.0
+# total_wall_ms=158858
+# peak_rss_bytes=2358673408
+# peak_rss_mb=2249
+# usable_threshold=15
+# usable_floor_reached=true
+# tool=llama-completion (stock brew llama.cpp 9150, native rwkv7 arch, 902 tensors)
+# extra_flags=''  (RWKV-7: Metal/UMA GPU; NO --jinja — built-in 'rwkv-world' template broken on this engine, leaks garbage; plain 'User:/Assistant:' frame instead)
+# prompt_frame=User: <prompt> [blank line] Assistant:  (literal newlines in the actual prompt; NO --jinja)
+# parse_mode=assistant_prefix+cut_at_next_User
+# arch=rwkv7 (attention-free RNN, NO KV-cache, ctx_len=1048576, embd=2560, 32 blocks)
+# host=mac-mini-m3 (brew llama.cpp 9150, Metal/UMA)
+# scorer=byte_exact_subset (case-insensitive, VERBATIM from bitnet_m1 / sandbox_stage0_baseline.hexa)
+# comparators=BitNet-2B4T 6/20 (30.0%) · Qwen2.5-0.5B-Q4 16/20 (80.0%) — SAME manifest+scorer
+# cost_usd=0  (local serving; wall_ms is the proxy cost surface)
+
+# === hexa verify (verbatim) — empirical T4, no --expr recompute path ===
+# The M1 accuracy floor is a T4 EMPIRICAL serving benchmark (cx_empirical_contact):
+# RWKV-7 q5_k_m weights served on stock llama.cpp 9150 (native rwkv7 arch), scored
+# by byte_exact_subset. Per 'hexa verify rubric' this is 🟠 DEFERRED (external hw/
+# data dep) — there is NO closed-form --expr fn that recomputes a served-accuracy
+# number, so the verifier correctly does not auto-judge it. The recompute path IS
+# this committed bench (bench/rwkv_m1_accuracy_floor.hexa) re-run against the same
+# 20-task manifest. Rubric excerpt (verbatim):
+# $ hexa verify rubric
+#   🟢 SUPPORTED-NUMERICAL   hexa-native NUMERICAL recompute matches (libm/Newton,
+#                            non-symbolic) — TECS-L n6-rep Tier 2 (~10min suite)
+#   🟠 DEFERRED              external hw/data/API dep — TECS-L Tier 3 (GPU) /
+#                            g_external_calc_forbidden (closure-external)
+#
+# === per-task miss breakdown (5 misses, from .tsv) ===
+# idx7  "How many continents?"            -> "5"            WRONG (factual: gold 7)
+# idx8  "Boiling point of water (C)?"     -> off-topic Python password code   WRONG
+# idx10 "Days in February 2024?"          -> Chinese drift "什么是中国的传统节"  WRONG
+# idx14 "Sort {3,1,2} ascending"          -> Chinese drift "人工智能是一种..."   WRONG
+# idx17 "Python Fibonacci memoization"    -> PARSE_ERROR (tab-laden code answer broke
+#         the 6-field split; counted as WRONG = conservative, NOT a model failure)
+# Note: 2 of 5 misses are World/base-model language drift to Chinese on number-only
+# prompts (the World tokenizer is heavily multilingual); 1 is a harness parse glitch
+# scored conservatively as wrong. The genuine model errors are idx7 (continents) +
+# idx8 (off-topic). A strict-language system prompt would likely recover idx10/idx14
+# — logged as an M1+ next-cycle seed, NOT silently re-scored here (g5/R6 honesty).

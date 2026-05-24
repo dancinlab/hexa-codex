@@ -543,7 +543,56 @@
 # still PENDING M3.SUBSTRATE saturation cycle (Metal lock 30-90 min, deferred
 # until user confirms readiness).
 
-@C d_kick_round_5 := "kick round 5 — post-cycle-12 candidates" :: blocked [reason=kick-route-conflict-not-bug]
-  cmd  = "POOL_DISABLE=1 hexa kick --seed \"<post-cycle-12 frontier shift>\" --rounds 1"
+@C d_kick_round_5 := "kick round 5 — post-cycle-12 candidates" :: resolved [via=cycle-14-retry source=cycle-13-blocked-row-flip]
+  cmd  = "export POOL_DISABLE=1 && hexa kick --seed \"<post-cycle-12 frontier shift>\" --rounds 1"
   hyp  = "kick would surface 3-5 candidates around M2.SAFETY+ HF probes, M4.SAFETY/OPS paper scaffolds, F-CODEX-4 harness, LATTICE_POLICY cliff prediction"
-  note = "NOT a kick bug per feedback_kick_failure_inbox.md — the failure mode is the pool-route hook (load-escalates on `hexa` keyword and re-routes to ubu hosts where hexa.real is not installed). POOL_DISABLE=1 env var works in shell but pool-route hook intercepts before export takes effect on the agent's subshell. Inbox patch goes upstream to SIDECAR (pool-route plugin), not hexa-lang. Tracked separately in inbox/patches/pool-route-mac-only-tool-escalation.md."
+  note = "RESOLVED via cycle-14 retry (2026-05-24). Workaround that worked: SINGLE Bash invocation chaining `export POOL_DISABLE=1 && hexa kick ...` in one shell (vs cycle-13's separate `export` + `hexa` calls where the hook fired between them). Kick ran on mac (no pool-escalation), exit=0, raw at .discoveries/sandbox-kick5.raw — round 1 smash+414 free+211 res+13(σ=0.10) total=638, overlay+517 lines (pool=0), verifier_verdict=skip. Curator distillation of seed's frontier axes → 4 new candidate rows below (d_safety_plus_first_probe · d_paper_scaffold_safety · d_paper_scaffold_ops · d_lattice_policy_cliff_predict). f_codex_4 harness slug deferred — d_safety_plus_first_probe is its prerequisite (probe surface lands before motif harness)."
+
+# ── kick round 5 (cycle-14, 2026-05-24, post-cycle-12 frontier shift) ──
+# seed (cycle-14 retry of cycle-13 blocked, mk9, smash+414 free+211 res+13, 638 total):
+#   "SANDBOX cycle-12 closure: M1 row 4/4 cells DONE (ECON+SAFETY+SAFETY+ HF
+#   backend+OPS harness+SUBSTRATE 1.5B ladder pick) + 4-rung GGUF ladder
+#   (0.5B/1.5B/3B/7B) co-resident + M2.SUBSTRATE routing_simulation_viable=true
+#   + M4.SUBSTRATE paper scaffold landed (4/4 sections INSUFFICIENT pending M3
+#   saturation). Frontier shifts to M2.SAFETY+ (HF backend live but no first
+#   probe), M4.SAFETY/M4.OPS paper scaffolds (mirror M4.SUBSTRATE), F-CODEX-4
+#   SAFETY interp-motifs harness (cycle-9 843b241 only covers F-CODEX-1/2),
+#   LATTICE_POLICY tie-in for difficulty-cliff prediction. What NEW substrate-
+#   instrumentation cross-cuts 2+ consumers post-M1?"
+# raw: .discoveries/sandbox-kick5.raw (engine output is symbolic atlas-atom
+# expansion; the 4 axes below are curator distillation matching round-1/2/3/4
+# methodology — kick surfaces the hypothesis space, curator inventories slugs).
+
+@C d_safety_plus_first_probe := "M2.SAFETY+ first probe — exercise activation_capture_hf.hexa on Qwen2.5-1.5B against the 20-task canonical manifest, land 1st intermediate-tensor (residual/attn/mlp) TSV verdict" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SAFETY+SUBSTRATE source=cycle-14-direct-successor gated_on=d_transformers_hooks_substrate-confirmed]
+  cmd = "build bench/sandbox_stage4_safety_plus_first_probe.hexa: for each task in canonical 20-task manifest, call activation_capture_hf.hexa with layers=[0, mid, last] kinds={residual, attn, mlp, logprobs} n_probs=5; emit per-task TSV; aggregate (mean L2-norm per (layer, kind), top-1 logprob margin); compare hl-class (correct vs incorrect tasks) on residual L2 + logprob margin"
+  hyp = "intermediate-tensor surface exposes a measurable signal: |L2_norm(residual_last_layer) | differs between correct-prediction and incorrect-prediction tasks at |Δ|/σ >= 1.0 OR top-1 logprob margin (already proven in cycle-5) correlates with residual-norm at Spearman ρ >= 0.5 — first M2.SAFETY+ T4 verdict, scope=residual+logprob-only. Falsifier: |Δ|/σ < 0.5 AND ρ < 0.3 → activation_capture_hf surface confirmed but no per-task signal; SAFETY+ unblocking was structural only, M2.SAFETY+ needs a different probe design (e.g. SAE motifs, F-CODEX-4 directly)"
+
+@C d_paper_scaffold_safety := "M4.SAFETY paper scaffold — PAPER/safety-refusal-margin-calibration/ DRAFT_PENDING (mirror M4.SUBSTRATE pattern; 4/4 sections INSUFFICIENT until M3.SAFETY saturation lands)" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SAFETY-only source=cycle-14-direct-successor gated_on=d_safety_refusal_matrix-resolves+M3.SAFETY]
+  cmd = "scaffold PAPER/safety-refusal-margin-calibration/{paper.tex, CLAIMS.tape, README.md} via /paper new safety-refusal-margin-calibration; §formula = refusal margin = logprob[refuse_token]-logprob[answer_token]; §method = adversarial-vs-benign seed harness (cycle-11 d_safety_refusal_matrix); §benchmark = M2.SAFETY first probe verdict + 3+ SAE motifs (M3.SAFETY); §benefit = refusal-rate calibration vs uncalibrated DLG-mk0 routing"
+  hyp = "PAPER scaffold lands at DRAFT_PENDING (mirrors cycle-11 PAPER/substrate-capability-evals/ 4/4 INSUFFICIENT). cx_paper_gate stays violation-free because all 4 sections are honestly INSUFFICIENT-fenced — flips to 🟢 GREEN section-by-section as M2.SAFETY (d_safety_refusal_matrix) + M3.SAFETY (3+ SAE motifs) verdicts land. Falsifier: section ordering can't carry formula→method→bench→benefit chain without empirical M2/M3 SAFETY data → scaffold reorganized to a different M4.SAFETY canonical (e.g. interp-motif paper instead of refusal-calibration)"
+
+@C d_paper_scaffold_ops := "M4.OPS paper scaffold — PAPER/ops-slo-throughput-frontier/ DRAFT_PENDING (mirror M4.SUBSTRATE pattern; 4/4 sections INSUFFICIENT until M3.OPS saturation lands)" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=OPS+ECONOMICS source=cycle-14-direct-successor gated_on=d_slo_under_load-runs+M3.OPS]
+  cmd = "scaffold PAPER/ops-slo-throughput-frontier/{paper.tex, CLAIMS.tape, README.md} via /paper new ops-slo-throughput-frontier; §formula = M/M/c queue p99/p50 ratio at offered ρ; §method = bench/sandbox_stage4_slo_under_load.hexa (cycle-8 harness ships at port 8090, np × rate grid); §benchmark = M2.OPS first p50/p99 + M3.OPS full SLO grid; §benefit = SLO-aware routing $/latency Pareto curve (ECONOMICS cross-cut)"
+  hyp = "PAPER scaffold lands at DRAFT_PENDING. cx_paper_gate stays violation-free (4/4 sections INSUFFICIENT-fenced). Flips section-by-section as M2.OPS (d_slo_under_load harness run) + M3.OPS (full -np × rate grid) verdicts land. Cross-cut bonus: §benefit links back to ECONOMICS routing-savings (the M4.ECON paper's $/latency frontier extends by adding SLO constraint). Falsifier: M3.OPS reveals thermal-throttle dominates over queue dynamics → reorganize §benchmark to thermal-bound rather than queue-bound canonical"
+
+@C d_lattice_policy_cliff_predict := "LATTICE_POLICY tie-in — predict per-stratum difficulty cliff BEFORE running the bench, using lm_foundry/policy lattice estimates" :: candidate [target_tier=BLUE cost_est=$0 cross_cut=SUBSTRATE+ECONOMICS source=cycle-14-direct-successor gated_on=d_qwen_3b_scale-bench+d_qwen_7b_scale-bench]
+  cmd = "build verify/numerics_lattice_policy_cliff_predict.hexa: closed-form predictor mapping (model_scale_B, wc_stratum_min, wc_stratum_max) → predicted_accuracy ∈ [0,1] using a 2-param fit (capability_threshold, sharpness). Calibrate on cycle-6 0.5B + cycle-9 1.5B Stage-2 data (10 (scale, stratum) points). PREDICT 3B + 7B per-stratum accuracy. Then RUN Stage-2 on 3B+7B (M3.SUBSTRATE saturation), compare predicted vs measured per-stratum residual"
+  hyp = "lattice-policy cliff predictor fits 0.5B+1.5B calibration data at residual ε ≤ 0.10 AND predicts 3B+7B per-stratum accuracy at ε ≤ 0.15 (one ε relaxation for held-out scale). BLUE-tier closed-form numerical verdict on a 2-axis (scale, wc) sigmoid. Falsifier: held-out residual ε > 0.25 → cliff position is NOT a smooth function of scale × wc (capability has non-monotone interactions, e.g. instruction-tuning bias), LATTICE_POLICY can't pre-route around M3.SUBSTRATE-bench cost. Cross-cut: ECONOMICS gets a cheap pre-bench routing oracle (don't run the full Stage-2 on 7B if predictor says it'll saturate); SUBSTRATE gets a falsifier on the cliff-position hypothesis itself"
+
+# Cumulative (post cycle-14): 11 confirmed · 3 dead · 1 BLOCKED_AT_PROJECT
+# (llama.cpp fork lane) · round-5 +4 new candidates inventoried
+# (d_safety_plus_first_probe · d_paper_scaffold_safety · d_paper_scaffold_ops ·
+# d_lattice_policy_cliff_predict). d_kick_round_5 row itself flipped
+# blocked → resolved (single-shell `export POOL_DISABLE=1 && hexa kick`
+# workaround landed; cycle-13's separate `export` + `hexa` pattern was
+# the real escalation trigger, hook fires per-Bash-invocation not per-env).
+# Top-2 ROI: d_safety_plus_first_probe (lands 1st M2.SAFETY+ T4 verdict on
+# the newly-confirmed transformers+hooks substrate, unblocks M3.SAFETY SAE
+# motif path) + d_lattice_policy_cliff_predict (BLUE-tier numerical floor
+# that cross-cuts SUBSTRATE+ECONOMICS, the only round-5 candidate that
+# targets a 🔵/🟢 BLUE tier — closed-form predictor against held-out scale).
+# Deferred from seed: f_codex_4_safety_interp_motifs_harness (slug NOT
+# opened — its prerequisite d_safety_plus_first_probe must resolve first;
+# F-CODEX-4 SAE-motif harness depends on a working intermediate-tensor
+# probe surface, which today ships interface-only — cycle-12 PASS on
+# python3+transformers+torch imports, not on any real Qwen forward pass).

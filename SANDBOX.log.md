@@ -1602,3 +1602,77 @@ interface+self-test) · 3 dead · 1 BLOCKED_AT_PROJECT
 candidates remaining (round-4 dropped from 5 to 3 after sibling cycle-12
 `d_context_scaling_bench` flipped to harness_only: `d_qwen_7b_scale`,
 `d_safety_refusal_matrix`, `d_mlx_substrate_alt`).
+
+## 2026-05-24 — cycle-14 — kick round 5 — 4 new candidates after cycle-12 (retry after pool-route block)
+
+Cycle-13 had dispatched `hexa kick --rounds 1` for kick round 5 but
+rate-limited at tool-use 0 with the pool-route hook escalating the
+`hexa` keyword to ubu hosts where `hexa.real` is not installed
+(`inbox/patches/pool-route-mac-only-tool-escalation.md`,
+commit `f932c36`). Cycle-14 retries the kick with the single-shell
+workaround pattern: `export POOL_DISABLE=1 && hexa kick ...` chained
+in ONE Bash invocation (vs cycle-13's separate `export` + `hexa`
+where the hook fired between the two shell calls).
+
+**Workaround that worked:** the pool-route hook evaluates per-Bash-
+invocation, not per-process-env; chaining `export` + `hexa` in a
+single `&&`-joined invocation means the hook sees `POOL_DISABLE=1`
+already in the same shell command and skips escalation. Cycle-13's
+separate-invocation pattern was the real escalation trigger, not the
+env var itself being stripped.
+
+**Kick outcome.** `export POOL_DISABLE=1 && hexa kick --seed "..."
+--rounds 1` ran on mac (no pool-escalation), exit=0, raw at
+`.discoveries/sandbox-kick5.raw`. Round 1: smash+414 free+211
+res+13(σ=0.10) total=638, overlay+517 lines (`pool=0` — no
+escalation), `verifier_verdict=skip`, `verifier_stopped=false`,
+`saturated=false`, engine=mk9. Symbolic atom-expansion graph
+(matching round-1/2/3/4 methodology — kick surfaces the hypothesis
+space, curator distills slugs).
+
+**Curator distillation — 4 new candidate rows.** Aligned with seed's
+declared frontier axes (M2.SAFETY+ first probe · M4.SAFETY/OPS
+paper scaffolds · F-CODEX-4 harness · LATTICE_POLICY cliff prediction):
+
+- `d_safety_plus_first_probe` (GREEN, $0, SAFETY+SUBSTRATE cross-cut) —
+  exercise `activation_capture_hf.hexa` on Qwen2.5-1.5B against the
+  canonical 20-task manifest, emit per-(token, layer, kind) TSV +
+  hypothesis-test residual-norm signal between correct/incorrect tasks.
+  Direct successor to cycle-12 `d_transformers_hooks_substrate` which
+  shipped only the interface+self-test.
+- `d_paper_scaffold_safety` (GREEN, $0, SAFETY-only) — scaffold
+  `PAPER/safety-refusal-margin-calibration/` at DRAFT_PENDING (4/4
+  sections honestly INSUFFICIENT-fenced), mirroring the cycle-11
+  `PAPER/substrate-capability-evals/` pattern. Gated on
+  `d_safety_refusal_matrix` resolution + M3.SAFETY (3+ SAE motifs).
+- `d_paper_scaffold_ops` (GREEN, $0, OPS+ECONOMICS cross-cut) —
+  scaffold `PAPER/ops-slo-throughput-frontier/` at DRAFT_PENDING.
+  §benefit links back to M4.ECON $/latency frontier (the SLO-aware
+  routing Pareto extension). Gated on cycle-8 `d_slo_under_load`
+  harness run + M3.OPS full grid.
+- `d_lattice_policy_cliff_predict` (BLUE, $0, SUBSTRATE+ECONOMICS
+  cross-cut) — closed-form predictor mapping (model_scale_B, wc_stratum)
+  → predicted_accuracy via 2-param sigmoid fit. Calibrate on cycle-6
+  0.5B + cycle-9 1.5B Stage-2 data; predict 3B + 7B per-stratum and
+  hold against M3.SUBSTRATE saturation bench. Only round-5 candidate
+  that targets the BLUE tier (closed-form numerical).
+
+**Deferred from seed.** `f_codex_4_safety_interp_motifs_harness` slug
+NOT opened — its prerequisite is `d_safety_plus_first_probe`
+(F-CODEX-4 SAE-motif harness needs a working intermediate-tensor
+probe surface, which today ships interface-only — cycle-12 PASS on
+import-only self-test, not on any real Qwen forward pass).
+
+**Tape state diff.** `d_kick_round_5` row flipped
+`blocked → resolved [via=cycle-14-retry]` (preserving original
+hypothesis + adding cycle-14 retry note); 4 new `@C` candidate rows
+appended; cumulative footer updated to 11 confirmed · 3 dead · 1
+BLOCKED_AT_PROJECT · round-5 +4 new candidates.
+
+**Files touched.** `.discoveries/sandbox-kick5.raw` (NEW),
+`.discoveries/sandbox.tape` (flip + 4 new rows + cycle-14 header
+comment + footer), `SANDBOX.log.md` (this entry). NOT touched:
+`SANDBOX.md` (matrix state unchanged by inventory-only round),
+`inbox/patches/pool-route-mac-only-tool-escalation.md` (workaround
+SUCCEEDED — no failure to log; the resolved-row note in
+`.discoveries/sandbox.tape` captures the cycle-14 retry outcome).

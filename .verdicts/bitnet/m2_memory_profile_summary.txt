@@ -16,7 +16,9 @@
 # memory_below_baseline=true   (BitNet RSS 1568 MB < both baseline RSS measurements; same-backend ratio 0.55 = a real fraction)
 # accuracy_floor_held=false    (M1: BitNet 6/20=30%% vs Qwen-0.5B-Q4 16/20=80%% baseline floor — accuracy gap is LARGE, not ~full quality)
 # verdict=FALSIFIED            (memory IS below the fraction, but the 'near-full quality' half FAILS on this 20-task manifest:
-#                               1.58-bit 2B4T does NOT preserve quality here — it scores BELOW the 4-bit 0.5B baseline. The memory
+#                               the served TQ2_0 2.06-bpw 2B4T does NOT preserve quality here — it scores BELOW the 4-bit 0.5B baseline.
+#                               HONEST RELABEL: this measures TQ2_0 (2.06 bpw), NOT the marketed i2_s 1.58-bit (which does not load in
+#                               stock llama.cpp); the quality FAIL is at 2.06 bpw, and a true 1.58-bit rung would be no better. The memory
 #                               win is real but the quality is not, so the joint claim is refuted on this substrate.)
 # falsifier_triggered=accuracy_gap  (the M2 falsifier 'accuracy gap > eps' fired; the 'memory not below fraction' falsifier did NOT)
 #

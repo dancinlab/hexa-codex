@@ -1,0 +1,206 @@
+#!hexa strict
+// bench/bitnet_m1_scorer_ablation.hexa — INSTRUCT-FAIR scorer ablation.
+//
+// QUESTION (the /gap ROOT-A confound): BITNET M1 scored BitNet b1.58 2B4T at
+// 6/20 = 30% on the canonical 20-task manifest using `byte_exact_subset` — a
+// scorer authored for the 0.5B BASE model (sandbox_stage0_baseline.hexa). The
+// 2B4T INSTRUCT model emits verbose/repetitive prose ("The digit only is 4. The
+// digit only is 4. ..."), so a literal substring can miss the keyword even when
+// the fact is present. Is 30% a TRUE ternary floor or a SCORER ARTIFACT?
+//
+// METHOD: RE-SCORE the EXISTING saved completions (do NOT re-serve — the
+// completions live in .verdicts/bitnet/m1_accuracy_floor.tsv, column 7) under
+// THREE deterministic scorers (NO LLM-judge, per g5/R6):
+//   (1) byte_exact_subset   — reproduce the original: case-fold + literal
+//                             substring of gold in the WHOLE answer.
+//   (2) lenient_normalized  — case-fold + strip ALL whitespace from BOTH the
+//                             answer and the gold, then substring. Catches pure
+//                             whitespace artifacts (e.g. "1,2,3" vs gold "1, 2, 3").
+//   (3) answer_extraction   — pull the ANSWER SPAN from verbose prose first
+//                             (text after "Answer:" if present, else the first
+//                             sentence up to the first '.', else the first line),
+//                             THEN case-fold + literal substring of gold in that
+//                             span only. Rewards a correct lead answer; does NOT
+//                             reward a wrong fact buried in a ramble.
+//
+// The DELTA (lenient - byte_exact, extract - byte_exact) quantifies how much of
+// the 30% -> ? gap is scorer artifact vs genuine ternary weakness.
+//
+// Scorers (1)/(2)/(3) all case-fold via shell `tr 'A-Z' 'a-z'` + match via
+// `grep -qF`, BYTE-IDENTICAL to the case-folding in sandbox_stage0_baseline.hexa,
+// so the byte_exact column here reproduces the original verdict by construction.
+//
+// Input:
+//   .verdicts/bitnet/m1_accuracy_floor.tsv  (saved completions; col 7 = answer)
+// Output:
+//   .verdicts/bitnet/m1_scorer_ablation.txt (per-task 3-scorer grid + aggregate)
+//   NOTE: this run OVERWRITES m1_scorer_ablation.txt with the auto-generated grid +
+//   aggregate. The committed artifact ALSO carries two manually-appended verbatim
+//   blocks (the `hexa verify --fence` probe + the Task-3 template/prompting ablation);
+//   re-running regenerates the grid but DROPS those appends — re-append if re-run.
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/bitnet_m1_scorer_ablation.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure re-score of a saved TSV via shell text ops + filesystem write — no atlas atoms touched, no model served.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/bitnet"
+let TSV_PATH = OUT_DIR + "/m1_accuracy_floor.tsv"
+let OUT_PATH = OUT_DIR + "/m1_scorer_ablation.txt"
+
+// Gold keywords — VERBATIM order from bench/bitnet_m1_accuracy_floor.hexa TASKS
+// (itself verbatim from sandbox_stage0_baseline.hexa). Index i maps to TSV idx i+1.
+let GOLD = [
+    "4",          // 1  2+2
+    "paris",      // 2  capital of France
+    "olleh",      // 3  reverse 'hello'
+    "49",         // 4  square of 7
+    "11",         // 5  first prime > 10
+    "2",          // 6  smallest prime
+    "7",          // 7  continents
+    "100",        // 8  boiling point C
+    "65",         // 9  ASCII 'A'
+    "29",         // 10 days Feb 2024
+    "sum(range",  // 11 python sum 1..100
+    "log n",      // 12 binary search big-O
+    "[::-1]",     // 13 reverse a list
+    "1, 2, 3",    // 14 sort {3,1,2}
+    "tcp",        // 15 TCP vs UDP
+    "breadth",    // 16 BFS vs DFS
+    "fib",        // 17 fibonacci memo
+    "13",         // 18 binary 1101 -> decimal
+    "merge",      // 19 mergesort O(n log n)
+    "halt",       // 20 halting problem
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Score one (answer, gold) pair under one scorer. Returns "1" | "0".
+// All case-folding via shell `tr 'A-Z' 'a-z'`, matching via `grep -qF`,
+// byte-identical to sandbox_stage0_baseline.hexa's run_one scorer.
+fn score(ans: str, gold: str, mode: str) -> str {
+    let qa = shq(ans)
+    let qg = shq(gold)
+    let mut cmd = ""
+    if mode == "byte_exact" {
+        // Original scorer: case-fold both, literal substring over the WHOLE answer.
+        cmd = "low=$(printf '%s' " + qa + " | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + qg + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then echo 1; else echo 0; fi"
+    } else if mode == "lenient" {
+        // Case-fold + strip ALL whitespace from BOTH sides, then substring.
+        cmd = "low=$(printf '%s' " + qa + " | tr 'A-Z' 'a-z' | tr -d ' \\t'); " +
+              "kw=$(printf '%s' " + qg + " | tr 'A-Z' 'a-z' | tr -d ' \\t'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then echo 1; else echo 0; fi"
+    } else {
+        // answer_extraction: isolate the answer SPAN first, then substring gold.
+        //   span = text after "Answer:" (case-insensitive) if present,
+        //          else the first sentence (up to the first '.'),
+        //          else the first line.
+        // Then case-fold the SPAN + literal substring of the (case-folded) gold.
+        cmd = "raw=$(printf '%s' " + qa + "); " +
+              // after "Answer:" (case-insensitive) if present
+              "if printf '%s' \"$raw\" | grep -qiE 'answer:'; then " +
+              "  span=$(printf '%s' \"$raw\" | sed -E 's/.*[Aa][Nn][Ss][Ww][Ee][Rr]: *//'); " +
+              "else " +
+              "  span=$(printf '%s' \"$raw\"); " +
+              "fi; " +
+              // first sentence: cut at the first '.', if any remains
+              "span=$(printf '%s' \"$span\" | sed 's/\\..*$//'); " +
+              // first line: cut at the first newline (snippets are 1 line, defensive)
+              "span=$(printf '%s' \"$span\" | head -1); " +
+              "low=$(printf '%s' \"$span\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + qg + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then echo 1; else echo 0; fi"
+    }
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/bitnet_m1_scorer_ablation — INSTRUCT-FAIR re-score of saved M1")
+    println("  input:  " + TSV_PATH)
+    println("  scorers: byte_exact_subset · lenient_normalized · answer_extraction")
+    println("  note:   re-score ONLY (no model served); completions are saved")
+    println("========================================================================")
+
+    // Pull the answer column (col 7) for each of the 20 data rows, in order.
+    // Use a NUL-free tab-stripped read: awk emits one answer per line.
+    let raw = exec("awk -F'\\t' 'NR>1{print $7}' " + shq(TSV_PATH))
+    let lines = raw.split("\n")
+
+    exec("rm -f " + shq(OUT_PATH))
+    exec("echo '# bench/bitnet_m1_scorer_ablation.hexa — 3-scorer re-score of saved M1 completions' >> " + shq(OUT_PATH))
+    exec("echo '# input=.verdicts/bitnet/m1_accuracy_floor.tsv (col 7 = saved answer; NO re-serve)' >> " + shq(OUT_PATH))
+    exec("echo '# model=BitNet-b1.58-2B-4T-TQ2_0 (TQ2_0 2.06bpw — NOT the claimed i2_s 1.58-bit; served value is the 2.06bpw ternarization)' >> " + shq(OUT_PATH))
+    exec("echo '# scorers: byte_exact_subset | lenient_normalized (strip ws) | answer_extraction (first span)' >> " + shq(OUT_PATH))
+    exec("echo '#' >> " + shq(OUT_PATH))
+    exec("echo 'idx\tgold\tbyte_exact\tlenient\textract\tanswer_snippet' >> " + shq(OUT_PATH))
+
+    let mut n_be = 0
+    let mut n_le = 0
+    let mut n_ex = 0
+    let mut i = 0
+    while i < len(GOLD) {
+        let gold = GOLD[i]
+        let mut ans = ""
+        if i < len(lines) { ans = lines[i] }
+        let be = score(ans, gold, "byte_exact")
+        let le = score(ans, gold, "lenient")
+        let ex = score(ans, gold, "extract")
+        if be == "1" { n_be = n_be + 1 }
+        if le == "1" { n_le = n_le + 1 }
+        if ex == "1" { n_ex = n_ex + 1 }
+        let snip = ans.substr(0, 60).replace("\t", " ")
+        let row = str(i+1) + "\t" + gold + "\t" + be + "\t" + le + "\t" + ex + "\t" + snip
+        exec("echo " + shq(row) + " >> " + shq(OUT_PATH))
+        println("  [" + str(i+1) + "] gold=" + gold + " be=" + be + " le=" + le + " ex=" + ex)
+        i = i + 1
+    }
+
+    let total = len(GOLD)
+    let be_x100 = (n_be * 10000) / total
+    let le_x100 = (n_le * 10000) / total
+    let ex_x100 = (n_ex * 10000) / total
+    let d_le = n_le - n_be
+    let d_ex = n_ex - n_be
+
+    println("")
+    println("========================================================================")
+    println("  SCORER ABLATION SUMMARY — BitNet-b1.58-2B-4T-TQ2_0, saved M1 completions")
+    println("========================================================================")
+    println("  byte_exact_subset : " + str(n_be) + "/" + str(total) + " = " + str(be_x100/100) + "." + str(be_x100%100) + "%")
+    println("  lenient_normalized: " + str(n_le) + "/" + str(total) + " = " + str(le_x100/100) + "." + str(le_x100%100) + "%  (delta +" + str(d_le) + ")")
+    println("  answer_extraction : " + str(n_ex) + "/" + str(total) + " = " + str(ex_x100/100) + "." + str(ex_x100%100) + "%  (delta +" + str(d_ex) + ")")
+    println("")
+
+    exec("echo '#' >> " + shq(OUT_PATH))
+    exec("echo '# === AGGREGATE ===' >> " + shq(OUT_PATH))
+    exec("echo " + shq("# byte_exact_subset  = " + str(n_be) + "/" + str(total) + " = " + str(be_x100/100) + "." + str(be_x100%100) + "%") + " >> " + shq(OUT_PATH))
+    exec("echo " + shq("# lenient_normalized = " + str(n_le) + "/" + str(total) + " = " + str(le_x100/100) + "." + str(le_x100%100) + "%  (delta vs byte_exact = +" + str(d_le) + " tasks)") + " >> " + shq(OUT_PATH))
+    exec("echo " + shq("# answer_extraction  = " + str(n_ex) + "/" + str(total) + " = " + str(ex_x100/100) + "." + str(ex_x100%100) + "%  (delta vs byte_exact = +" + str(d_ex) + " tasks)") + " >> " + shq(OUT_PATH))
+    exec("echo '#' >> " + shq(OUT_PATH))
+    exec("echo '# VERDICT: the artifact component is (max_fair - byte_exact); the residual below 100%' >> " + shq(OUT_PATH))
+    exec("echo '#          is genuine ternary weakness at TQ2_0 2.06bpw on this 20-task manifest.' >> " + shq(OUT_PATH))
+
+    println("  ablation persisted: " + OUT_PATH)
+    println("")
+    println("__HEXA_CODEX_BENCH_BITNET_M1_SCORER_ABLATION__ PASS")
+    exit(0)
+}

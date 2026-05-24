@@ -2117,6 +2117,71 @@ residual/attn/mlp-norm refusal-direction probe via the UNBLOCKED
 M1.SAFETY+ HF backend (`lm_foundry/tool/activation_capture_hf.hexa`,
 cycle-12), NOT another logprob-margin variant. SANDBOX 10/21 unchanged.
 
-**Cumulative tape footer post-cycle-15d:** 11 confirmed (+
-d_safety_bimodality_tighter, T4 honest negative) + 1 BLOCKED_AT_PROJECT
-+ 1 harness_run_partial · 3 dead · candidates carry over.
+**Cumulative tape footer post-cycle-15d (M2.SAFETY route(a) close):** 11
+confirmed (= the 10-confirmed M4.SUBSTRATE-eval snapshot below + the new
+`d_safety_bimodality_tighter` T4 honest negative) + 1 BLOCKED_AT_PROJECT
++ 1 harness_run_partial · 3 dead · candidates carry over. (This SAFETY
+entry and the M4.SUBSTRATE-eval entry below are two same-day cycle-15d
+work items merged from parallel branches; SUBSTRATE landed first at
+state=10, SAFETY adds the +1.)
+
+---
+
+## 2026-05-25 — cycle-15d · M4.SUBSTRATE 졸업 평가 — 3/4 졸업 확인, §Formula 단독 잔여 게이트로 NOT-SHIP
+
+**Verdict 근거:** `.verdicts/sandbox/m3_substrate_saturation_summary.txt`
+(M3.SUBSTRATE 4-rung saturation) · `.verdicts/sandbox/f_codex_1_lattice_lifted.txt`
+(F-CODEX-1 LATTICE_POLICY-lift, 10/10 PASS · verdict-line PARTIAL ·
+`measured_slope=0.17207`).
+
+**평가 결론 — 졸업 불가 (정직한 잔여 유지).** M3.SUBSTRATE saturation이
+랜딩하여 §Method·§Benchmark·§Benefit 3개 섹션은 이미 cycle-15b(commit
+`98210ba`)에서 🟠→🟢 SUPPORTED-NUMERICAL로 졸업한 상태를 재확인했다.
+그러나 §Formula는 여전히 🟠 INSUFFICIENT — `cx_paper_gate`(4/4 green AND
+significance) + `cx_paper_format`(§formula 필수) 미충족이므로 paper는
+SHIP 불가. `DRAFT_PENDING_FORMULA` 마커 유지, M4.SUBSTRATE 체크박스
+`[ ]` 유지.
+
+**§Formula가 막힌 정확한 이유.**
+
+1. `f_codex_1_lattice_lifted.txt`는 측정 slope `0.172`(log-log OLS)를
+   *공개*만 할 뿐, 어떤 closed-form 법칙도 그 slope에 **fit하지 않는다**.
+   verdict-line은 PARTIAL이고 §Formula의 claim은 "no closed-form law
+   currently fits this substrate's accuracy slope".
+2. saturation verdict가 곡선이 **stepwise**(0.5B→3B flat, 3B→7B에서
+   wc_31_60이 +43pp 점프)임을 보였으므로 single-exponent fit은
+   구조적으로 틀렸다. 올바른 다음 함수형은 piecewise 또는 sigmoid.
+3. `.verdicts/sandbox/`에 formula/sigmoid/piecewise/fit 류 verdict 파일
+   **부재** — recompute로 뒷받침되는 §Formula green이 존재하지 않음을
+   확인.
+
+**섹션 → verdict 매트릭스 (재확인 + 1건 강화).**
+
+| 섹션 | tier | verdict 파일 |
+|------|------|--------------|
+| §Formula  | 🟠 INSUFFICIENT | `.verdicts/sandbox/f_codex_1_lattice_lifted.txt` (PARTIAL — slope 공개만, fit 없음) |
+| §Method   | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/stage2_persona_scaled_7b_summary.txt` (per-rung bench protocol header) + `SUBSTRATE.log.md` |
+| §Benchmark | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m3_substrate_saturation_summary.txt` |
+| §Benefit  | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m3_substrate_saturation_summary.txt` (§ Routing viability) |
+
+**이 cycle의 매트릭스 강화.** §Method row가 기존에 `SANDBOX.md`(narrative)를
+primary anchor로 인용 — `cx_paper_sections`(모든 섹션 claim은
+`.verdicts/<slug>/<id>` verdict에 링크)를 더 엄격히 만족시키기 위해
+실제 method protocol(150×3=450 rows/rung, stride-13 sampling, SCORER-FIXED)이
+기록된 per-rung verdict 파일 헤더로 anchor 교체. paper 매트릭스의 모든
+green row가 이제 `.verdicts/` recompute 파일에 직접 링크된다.
+
+**lint/compile 미실행 — 의도적.** paper는 설계상 non-shippable draft이고
+(0 figure · <10 page → commons g51 `/paper lint` 어차피 실패), §Formula
+게이트가 열리기 전 compile은 premature. `cx_paper_violation`은 게이트
+실패 paper의 즉시 revocation을 요구하지만, 이 paper는 SHIP 주장을 하지
+않는 DRAFT_PENDING 상태이므로 revocation 대상이 아니라 잔여-유지 대상이다.
+
+**남은 게이트 (one-line).** §Formula에 측정 slope `0.172`(stepwise)에
+맞는 piecewise/sigmoid closed-form 법칙을 fit하고 그 fit을 `hexa verify`
+recompute verdict로 남기면 4/4 🟢 → `cx_paper_gate` 개방 → M4.SUBSTRATE
+flip.
+
+**Cumulative tape footer post-cycle-15d (M4.SUBSTRATE eval):** 10 confirmed
++ 1 BLOCKED_AT_PROJECT + 1 harness_run_partial · 3 dead · 6 candidates
+remaining. M4.SUBSTRATE 체크박스 `[ ]` 유지 (3/4 졸업, §Formula 단독 잔여).

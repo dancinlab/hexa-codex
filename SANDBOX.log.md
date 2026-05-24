@@ -2320,3 +2320,51 @@ flip.
 **Cumulative tape footer post-cycle-15d (M4.SUBSTRATE eval):** 10 confirmed
 + 1 BLOCKED_AT_PROJECT + 1 harness_run_partial · 3 dead · 6 candidates
 remaining. M4.SUBSTRATE 체크박스 `[ ]` 유지 (3/4 졸업, §Formula 단독 잔여).
+
+---
+
+## cycle-15c · 2026-05-25 — M4.SUBSTRATE §Formula 졸업 → 캐노니컬 paper CLOSED
+
+**§Formula 단독 잔여 게이트 닫음.** M3.SUBSTRATE 4-rung saturation 데이터의
+capability 곡선은 *stepwise* — wc_31_60 stratum이 0.5B/1.5B/3B에서
+6/16/13% 로 평탄(≤16%)하다가 7B에서 56% 로 +43pp 급등(cliff_crossed_at_7b).
+단일지수 멱법칙(log-log OLS slope `σ̂=0.172`)은 단조-평활이라 step을
+구조적으로 만들 수 없음 — 3B→7B 증분이 (7/3)^0.172-1 = +2.1pp 에 불과.
+
+**Fit한 법칙 (g0 Occam).** 후보 {단일지수 · piecewise-linear knee ·
+Heaviside step · logistic} 중 step을 허용하는 가장 단순한 닫힌형:
+log2(params) 축의 2-파라미터 logistic(sigmoid)
+`y(x) = L_lo + (L_hi-L_lo)/(1+exp(-k·(x-x0)))`. 두 plateau는 자유롭지
+않고 데이터에 고정 — `L_lo=0.1222`(sub-7B 3개 평균 2/30,5/30,4/30),
+`L_hi=0.5667`(7B 17/30); 자유 파라미터는 cliff 날카로움 `k` 와 중점 `x0`
+둘뿐. RMSE grid-search → `k=8.95`, `x0=1.973`(3B x=1.585 ~ 7B x=2.807
+gap 안에 정확히 안착, cliff_crossed_at_7b와 일치).
+
+**Residual — 표본잡음 이내.** recompute `verify/numerics_substrate_cliff_logistic.hexa`
+5/5 checks PASS. RMSE `0.0356` 가 N=30 이항 표본 SE 평균 `0.0665`
+**미만** → plateau 내 산포(0.5B −5.6pp · 1.5B +4.4pp)는 각 점의 표본
+표준오차보다 작아 구조적 misfit이 아니라 잡음. 3B→7B step recompute
+`+0.4308` vs 관측 `+0.4333`(drift 0.0025). lattice 예측 N^(24/25)는
+5.6× 더 가파름 — LATTICE_POLICY §4 disclosure-only(게이트 아님).
+
+**Paper 매트릭스 4/4 🟢.** §Formula 🟠→🟢, verdict 링크를
+`.verdicts/sandbox/m4_substrate_formula_fit.txt`(2-param logistic recompute,
+5/5)로 교체. abstract·title·ship-condition에서 `DRAFT_PENDING_FORMULA`
+마커 제거. `cx_paper_gate` 만족(formula + 실측 4-rung bench + +43pp 정량
+benefit delta → `cx_paper_significance` 충족), 잔여 🟠 row 없음
+(`cx_paper_violation` clean). `/paper compile` → main.pdf 3 pages 생성.
+
+**g51 publish-lint은 별개 잔여.** commons g51(≥10 page + fal.ai figure ≥1)은
+섹션-verdict 게이트(cx_paper_gate)와 무관한 출판-길이 조건으로, 3-page
+figureless draft는 아직 미충족. §Formula 잔여를 닫는 작업 범위 밖이므로
+figure 패딩/10-page 강제는 하지 않음(정직-잔여 우선, 과잉작업 회피).
+
+| 섹션 | tier | verdict anchor |
+|------|------|----------------|
+| §Formula  | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m4_substrate_formula_fit.txt` (2-param logistic, 5/5) |
+| §Method   | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/stage2_persona_scaled_7b_summary.txt` + `SUBSTRATE.log.md` |
+| §Benchmark | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m3_substrate_saturation_summary.txt` |
+| §Benefit  | 🟢 SUPPORTED-NUMERICAL | `.verdicts/sandbox/m3_substrate_saturation_summary.txt` (§ Routing viability) |
+
+**M4.SUBSTRATE 체크박스 `[ ]`→`[x]`** — SUBSTRATE 도메인 캐노니컬 paper
+4/4 🟢 졸업.

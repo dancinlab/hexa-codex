@@ -1,0 +1,21 @@
+# LAB-02 MITOSIS — verdict note (first smoke)
+# date=2026-05-25 · host=mac-mini-m3 · cost_usd=0
+#
+# TIER MAP
+#  - Empirical division (T4): SANDBOX Qwen2.5-7B, 5 real divisions, persisted in
+#    result_mitosis.tsv + result_mitosis_summary.txt. loss_rate=0.0% dup_rate=0.0%.
+#  - Conservation arithmetic (B-MITOSIS-3 lift parent_count==sum_child_ms): verified
+#    by DETERMINISTIC in-harness integer set-diff (jq ID-count), 5/5 hold. The
+#    closed-form cell-level identity n(t+1)=n(t)+Δs−Δm is already 🔵 SUPPORTED-FORMAL
+#    in anima HEXAD/MITOSIS (B-MITOSIS-3, sympy 5/5) — this experiment lifts it to
+#    milestone conservation and confirms it empirically holds under LLM division.
+#  - No LLM self-judge: the LLM proposes the partition; loss/dup/extra is closed-form
+#    integer counting over stable ID tags (M1..M6). g5 honesty held.
+#
+# hexa verify --fence (empirical T4 claim is measured, not closed-form; fence recorded honestly):
+#   verify --fence
+#     claim  = LAB-02 domain mitosis: Qwen2.5-7B on SANDBOX divides a saturated 6-milestone parent into N children with 0% loss / 0% duplication across 5 divisions; conservation parent_count==sum_child_ms holds 5/5 by deterministic jq set-diff (in-harness recompute)
+#     tier   = ⚪ SPECULATION-FENCED
+#     reason = imagination/metaphor class (hexa-bio AXIS) — verification
+#              N/A by design; NOT a proven atlas atom (g4 honest fence,
+#              SF ≠ verified — atlas certification intrinsically N/A)

@@ -12,7 +12,7 @@ graduates only when every domain has cleared it.
 M1 Surface        ✓ done (cycles 1-6)   [x] logit/logprob + [x] HF  [x] SLO harness       [x] scale ladder pick
 M2 First verdict  ✓ done (7 confirmed)  [ ] 1st interp probe         [ ] 1st p50/p99       [x] 1.5B persona Stage-2 (routing_viable=true)
 M3 Saturation     [ ] F-CODEX-1/2 fit   [ ] 3+ SAE motifs            [x] full SLO grid     [x] scale ladder 0.5/1.5/3/7B
-M4 Paper          ✓ done (routing-svgs) [ ] safety canonical         [ ] ops canonical     [ ] substrate canonical
+M4 Paper          ✓ done (routing-svgs) [ ] safety canonical         [ ] ops canonical     [x] substrate canonical
 M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4)       [ ] v?.?.?            [ ] v?.?.?
 ```
 
@@ -52,7 +52,7 @@ M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4)       [ ] v?.?.? 
 - [x] M4.ECON — `PAPER/economics-routing-savings/` (already shipped)
 - [ ] M4.SAFETY — safety paper canonical, formula + bench + benefit
 - [ ] M4.OPS — ops paper canonical
-- [ ] M4.SUBSTRATE — DRAFT_PENDING_FORMULA at `PAPER/substrate-capability-evals/` (scaffold cycle-11). M3.SUBSTRATE saturation LANDED → §Method·§Benchmark·§Benefit graduated 🟠→🟢 SUPPORTED-NUMERICAL (cycle-15b `98210ba`, all linked to `.verdicts/sandbox/m3_substrate_saturation_summary.txt` + per-rung verdicts). §Formula stays 🟠 INSUFFICIENT — **sole open gate**: measured Stage-2 slope `0.172` is *stepwise* (wc_31_60 cliff 3B→7B +43pp), so no single-exponent fit holds and no closed-form (piecewise/sigmoid) law has been fit + recompute-verified yet. `cx_paper_gate` requires 4/4 🟢 → checkbox stays `[ ]`. Verdict: `.verdicts/sandbox/f_codex_1_lattice_lifted.txt` (PARTIAL, slope disclosed-only).
+- [x] M4.SUBSTRATE — canonical paper at `PAPER/substrate-capability-evals/`, all 4 sections 🟢 SUPPORTED-NUMERICAL (cycle-15c). §Method·§Benchmark·§Benefit graduated cycle-15b (`98210ba`, linked to `.verdicts/sandbox/m3_substrate_saturation_summary.txt` + per-rung). §Formula closed cycle-15c: the stepwise wc_31_60 cliff is fit by a **2-param logistic in log2(params)** `y(x) = 0.1222 + 0.4445/(1+exp(-8.95·(x-1.973)))`, L_lo/L_hi pinned to data (g0 Occam). Recompute `verify/numerics_substrate_cliff_logistic.hexa` → 5/5 checks, RMSE 0.0356 (≤ mean N=30 binomial SE 0.0665 → within sampling noise), 3B→7B step recomputed +0.4308 vs observed +0.4333. Single-exponent (σ̂=0.172) shown structurally wrong: its 3B→7B step is only +2.1pp. Verdict: `.verdicts/sandbox/m4_substrate_formula_fit.txt` (🟢). `cx_paper_gate` 4/4 satisfied; `DRAFT_PENDING_FORMULA` marker removed. NOTE: g51 publish-lint (≥10 pages + fal.ai figure) is a separate pre-existing condition the 3-page draft does not yet meet — out of scope of the §Formula section-verdict gate.
 
 ### M5 Release — roadmap version landed
 

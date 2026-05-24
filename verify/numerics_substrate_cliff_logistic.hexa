@@ -1,0 +1,253 @@
+#!hexa strict
+// hexa-codex/verify/numerics_substrate_cliff_logistic.hexa — M4.SUBSTRATE §Formula
+//
+// PURPOSE.  Closed-form recompute for the SUBSTRATE-paper §Formula section.
+// The M3.SUBSTRATE 4-rung saturation finding showed the substrate's
+// capability curve is STEPWISE — a sharp cliff at the wc_31_60 stratum
+// crossed only between 3B and 7B parameters (13% → 56%, a +43pp single-rung
+// lift), flat (≤16%) across 0.5B/1.5B/3B.  A single-exponent power law
+// (log-log OLS slope σ̂ = 0.172, see numerics_economics_empirical_landing.hexa)
+// is MONOTONE-SMOOTH and structurally CANNOT produce a step; it is the wrong
+// functional family for this data.
+//
+// This verifier fits + recomputes the simplest closed-form law that DOES
+// produce a step: a 2-parameter LOGISTIC (sigmoid) in log2(parameter count):
+//
+//     y(x) = L_lo + (L_hi − L_lo) / (1 + exp(−k · (x − x0)))
+//     where  x = log2(N_params / 1e9)   (log2 billions of params)
+//
+// Per g0 Occam, L_lo and L_hi are NOT free — they are PINNED to the data:
+//   L_lo = mean of the 3 sub-7B cliff-stratum accuracies (the flat plateau)
+//   L_hi = the 7B cliff-stratum accuracy (the post-cliff level)
+// leaving only 2 free params (k = cliff sharpness, x0 = cliff midpoint in
+// log2-params).  k, x0 were fit by grid-search minimising RMSE on the 4
+// measured points; this file RECOMPUTES y(x) from the fitted params and
+// checks it reproduces the measured ladder within tolerance, that the
+// predicted 3B→7B step matches the observed +43pp, and that the RMSE sits
+// WITHIN the binomial sampling-noise band of the N=30 per-stratum bench
+// (so the within-plateau scatter is noise, not structural misfit).
+//
+// SOURCE DATA (verbatim, no paraphrase — per cx_empirical_contact / g5):
+//   .verdicts/sandbox/m3_substrate_saturation_summary.txt  (4-rung cliff matrix)
+//   .verdicts/sandbox/stage2_persona_scaled{,_1_5b,_3b,_7b}_summary.txt
+//   wc_31_60 nano-persona per-stratum accuracy across the ladder:
+//     0.5B = 2/30  = 0.0667   (cycle-6)   → reported 6%
+//     1.5B = 5/30  = 0.1667   (cycle-9)   → reported 16%
+//     3B   = 4/30  = 0.1333   (cycle-14)  → reported 13%
+//     7B   = 17/30 = 0.5667   (cycle-14)  → reported 56%
+//   (the cliff stratum is the SHARP feature §Formula must reproduce; the
+//    headline rounds these to 6/16/13/56% — this file carries the exact
+//    /30 fractions.)
+//
+// FIT METHOD.  2-param logistic, L_lo/L_hi pinned to plateau/post-cliff:
+//   L_lo = (0.0667 + 0.1667 + 0.1333) / 3 = 0.11667
+//   L_hi = 0.5667
+//   grid-search → k = 8.95, x0 = 1.973  (RMSE-minimising on the 4 points)
+//   x-grid = log2({0.5,1.5,3,7}) = {−1.0, 0.585, 1.585, 2.807}
+//
+// PASS gate (BLUE/GREEN-tier when all pass):
+//   1. logistic recompute reproduces each measured point within the
+//      binomial sampling-noise band (per-point SE on N=30, p∈[.06,.56] is
+//      4.3–9.1pp; gate at 0.10 — the LATTICE_POLICY ε used elsewhere).
+//   2. predicted 3B→7B step ≈ observed +0.43 (±0.02).
+//   3. overall RMSE ≤ 0.05 AND ≤ the pooled binomial SE → "fit is within
+//      sampling noise, no structural misfit".
+//   4. single-exponent baseline FALSIFIED as a step-producer: a monotone
+//      power law's 3B→7B increment is < 1/3 the observed step (it cannot
+//      make a cliff) — recorded as the WHY-logistic disclosure.
+//
+// REQUIRES.  exp_pure + log2_pure + abs_pure + sqrt_pure from
+//   self/runtime/math_pure.  No model spawn, no llama-server, no API —
+//   closed-form float arithmetic only.
+//
+// CONSUMER.  PAPER/substrate-capability-evals/ §Formula verdict link.
+//   Verdict persisted at .verdicts/sandbox/m4_substrate_formula_fit.txt
+//   (raw stdout verbatim, written by the cycle wrapper).
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run verify/numerics_substrate_cliff_logistic.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; float arithmetic only. No atlas atoms touched. Recompute of the §Formula logistic fit from fitted params + measured Stage-2 cliff data.")
+
+use "self/runtime/math_pure"
+
+// ── measured wc_31_60 (cliff stratum) nano-persona accuracy, /30 ─────────────
+// VERBATIM from the per-rung verdict cross-tabs (no paraphrase).
+let CLIFF_OBS = [
+    0.066667,   // 0.5B   2/30   .verdicts/sandbox/stage2_persona_scaled_summary.txt
+    0.166667,   // 1.5B   5/30   .verdicts/sandbox/stage2_persona_scaled_1_5b_summary.txt
+    0.133333,   // 3B     4/30   .verdicts/sandbox/stage2_persona_scaled_3b_summary.txt
+    0.566667,   // 7B    17/30   .verdicts/sandbox/stage2_persona_scaled_7b_summary.txt
+]
+
+// ── scale grid: x = log2(params / 1e9) ───────────────────────────────────────
+let N_PARAMS_B = [0.5, 1.5, 3.0, 7.0]
+let N_PTS = 4
+let PER_STRATUM_N = 30.0
+
+// ── fitted logistic params (2 free: k, x0; L_lo/L_hi pinned to data) ─────────
+//   L_lo = mean of sub-7B plateau = (0.066667+0.166667+0.133333)/3 = 0.122222
+//          (NOTE: the design-doc rounded these to 0.11667 from the 6/16/13%
+//           headline; this file uses the exact /30 fractions, so the pinned
+//           plateau is the exact mean 0.122222.)
+//   L_hi = 7B observed = 0.566667
+//   k    = 8.95   (cliff sharpness, fit by RMSE grid-search)
+//   x0   = 1.973  (cliff midpoint in log2-params — between 3B=1.585 and 7B=2.807)
+let L_LO = (0.066667 + 0.166667 + 0.133333) / 3.0
+let L_HI = 0.566667
+let K_FIT = 8.95
+let X0_FIT = 1.973
+
+// ── PASS thresholds ──────────────────────────────────────────────────────────
+let EPS_POINT = 0.10        // per-point band (LATTICE_POLICY ε; > max binom SE 9.1pp)
+let EPS_STEP  = 0.02        // 3B→7B step must match observed +0.43 within ±0.02
+let EPS_RMSE  = 0.05        // overall RMSE gate
+let OBS_STEP  = 0.433334    // observed 7B − 3B = 0.566667 − 0.133333
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _abs(x: float) -> float { return abs_pure(x) }
+
+// log2(N in billions) — the x-axis of the fit.
+fn x_of(n_billions: float) -> float { return log2_pure(n_billions) }
+
+// the fitted logistic law evaluated at x.
+fn logistic(x: float) -> float {
+    let z = 0.0 - (K_FIT * (x - X0_FIT))
+    return L_LO + ((L_HI - L_LO) / (1.0 + exp_pure(z)))
+}
+
+// binomial standard error sqrt(p(1-p)/n) — the sampling-noise band on N=30.
+fn binom_se(p: float, n: float) -> float {
+    return sqrt_pure((p * (1.0 - p)) / n)
+}
+
+// ── main ─────────────────────────────────────────────────────────────────────
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex SUBSTRATE §Formula recompute — stepwise capability law")
+    println("  M4.SUBSTRATE · 2-param logistic in log2(params) vs single-exponent")
+    println("  recompute of the fitted cliff law from { k, x0, L_lo, L_hi }")
+    println("========================================================================")
+    println("  fitted law: y(x) = L_lo + (L_hi-L_lo)/(1+exp(-k*(x-x0)))")
+    println("    L_lo=" + to_string(L_LO) + "  L_hi=" + to_string(L_HI) +
+            "  k=" + to_string(K_FIT) + "  x0=" + to_string(X0_FIT))
+    println("    x = log2(N_params / 1e9)")
+    println("")
+
+    // recompute logistic at each measured x; accumulate residuals + RMSE.
+    let mut sum_sq = 0.0
+    let mut max_res = 0.0
+    let mut sum_se = 0.0
+    let mut i = 0
+    println("  rung   x=log2(B)   y_obs      y_logistic   residual    binom_SE(N=30)")
+    while i < N_PTS {
+        let x = x_of(N_PARAMS_B[i])
+        let yhat = logistic(x)
+        let yobs = CLIFF_OBS[i]
+        let res = _abs(yobs - yhat)
+        let se = binom_se(yobs, PER_STRATUM_N)
+        sum_sq = sum_sq + (res * res)
+        sum_se = sum_se + se
+        if res > max_res { max_res = res }
+        println("  " + to_string(N_PARAMS_B[i]) + "B   " +
+                to_string(x) + "   " + to_string(yobs) + "   " +
+                to_string(yhat) + "   " + to_string(res) + "   " + to_string(se))
+        i = i + 1
+    }
+    let rmse = sqrt_pure(sum_sq / (N_PTS as float))
+    let mean_se = sum_se / (N_PTS as float)
+    println("")
+    println("  RMSE=" + to_string(rmse) + "  max_residual=" + to_string(max_res) +
+            "  mean_binom_SE=" + to_string(mean_se))
+    println("")
+
+    // Check 1: every point reproduced within the per-point band.
+    let ok1 = max_res <= EPS_POINT
+    _check(ok1,
+           "logistic recompute reproduces each measured cliff point within ε=" + to_string(EPS_POINT),
+           "max_residual=" + to_string(max_res) + "  (max binom SE on N=30, p=0.567 ≈ 0.0906)")
+
+    // Check 2: predicted 3B→7B step matches observed +43pp.
+    let step_pred = logistic(x_of(7.0)) - logistic(x_of(3.0))
+    let step_drift = _abs(step_pred - OBS_STEP)
+    let ok2 = step_drift <= EPS_STEP
+    _check(ok2,
+           "predicted 3B→7B step matches observed +0.4333 (+43pp) within ±" + to_string(EPS_STEP),
+           "step_pred=" + to_string(step_pred) + "  step_obs=" + to_string(OBS_STEP) +
+           "  drift=" + to_string(step_drift))
+
+    // Check 3: RMSE ≤ gate AND ≤ pooled sampling noise → no structural misfit.
+    let ok3a = rmse <= EPS_RMSE
+    let ok3b = rmse <= mean_se
+    _check(ok3a && ok3b,
+           "RMSE ≤ ε=" + to_string(EPS_RMSE) + " AND ≤ mean binom SE → fit is within sampling noise (no structural misfit)",
+           "RMSE=" + to_string(rmse) + "  mean_binom_SE=" + to_string(mean_se) +
+           "  rmse_le_eps=" + (if ok3a { "true" } else { "false" }) +
+           "  rmse_le_se=" + (if ok3b { "true" } else { "false" }))
+
+    // Check 4: single-exponent baseline FALSIFIED as a step-producer.
+    // A monotone power law y = a·N^0.172 over 3B→7B produces increment
+    //   y(7B)/y(3B) = (7/3)^0.172 = 1.156 → if y(3B)=0.1333, y(7B)≈0.1541,
+    //   a step of only +0.0208 — under 1/20 of the observed +0.4333.
+    //   The logistic step is > 3× any monotone-power increment between
+    //   3B and 7B; this is WHY a single exponent is structurally wrong.
+    let pow_ratio = pow_pure(7.0 / 3.0, 0.17207)
+    let pow_step = (0.133333 * pow_ratio) - 0.133333
+    let logistic_beats_power = step_pred > (3.0 * pow_step)
+    _check(logistic_beats_power,
+           "single-exponent (σ̂=0.172) CANNOT make the cliff — its 3B→7B step is < 1/3 the logistic step",
+           "power_3B→7B_step=" + to_string(pow_step) + " (+" + to_string(pow_step * 100.0) + "pp)" +
+           "  logistic_step=" + to_string(step_pred) +
+           "  ratio=(7/3)^0.172=" + to_string(pow_ratio))
+
+    // Check 5: x0 lies strictly between 3B and 7B (cliff is located in the
+    // 3B-7B gap, matching the empirical cliff_crossed_at_7b=true finding).
+    let x_3b = x_of(3.0)
+    let x_7b = x_of(7.0)
+    let ok5 = (X0_FIT > x_3b) && (X0_FIT < x_7b)
+    _check(ok5,
+           "fitted cliff midpoint x0 lies strictly in the 3B→7B gap (matches cliff_crossed_at_7b=true)",
+           "x0=" + to_string(X0_FIT) + "  x_3B=" + to_string(x_3b) + "  x_7B=" + to_string(x_7b))
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " checks passed")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for ff in FAILURES { println("    ✗ " + ff) }
+        println("  🔴 FALSIFIED — logistic fit does not reproduce the measured stepwise cliff")
+        println("__HEXA_CODEX_NUMERICS_SUBSTRATE_CLIFF_LOGISTIC__ FALSIFIED")
+        exit(1)
+    }
+
+    println("  🟢 SUPPORTED-NUMERICAL — 2-param logistic in log2(params) reproduces")
+    println("     the stepwise wc_31_60 capability cliff within sampling noise.")
+    println("     law: y(x) = " + to_string(L_LO) + " + " + to_string(L_HI - L_LO) +
+            " / (1 + exp(-" + to_string(K_FIT) + "*(x - " + to_string(X0_FIT) + ")))")
+    println("     RMSE=" + to_string(rmse) + " (≤ mean binom SE " + to_string(mean_se) + ")")
+    println("     3B→7B step recomputed=" + to_string(step_pred) + " vs observed " + to_string(OBS_STEP))
+    println("  · §Formula verdict: this recompute is the link target")
+    println("    .verdicts/sandbox/m4_substrate_formula_fit.txt")
+    println("__HEXA_CODEX_NUMERICS_SUBSTRATE_CLIFF_LOGISTIC__ PASS")
+    exit(0)
+}

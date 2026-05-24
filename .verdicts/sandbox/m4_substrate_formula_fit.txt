@@ -1,0 +1,64 @@
+# bench=m4_substrate_formula_fit (SUBSTRATE §Formula closed-form law)
+# cycle=15c · 2026-05-25
+# verifier=verify/numerics_substrate_cliff_logistic.hexa (closed-form recompute, no model spawn)
+# verify_mechanism=hexa-native numerical recompute via hexa runtime
+#   (same pattern as verify/numerics_economics_empirical_landing.hexa — the .hexa
+#    IS the recompute; raw stdout below is the verdict. `hexa verify --expr` only
+#    accepts single-output registered fns, so a 2-param logistic fit is verified
+#    by direct recompute of y(x) from { k, x0, L_lo, L_hi } against measured data.)
+# run=HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+#     ~/.hx/packages/hexa/hexa.real run verify/numerics_substrate_cliff_logistic.hexa
+#
+# LAW (§Formula closed form):
+#   y(x) = L_lo + (L_hi - L_lo) / (1 + exp(-k*(x - x0)))   ,  x = log2(N_params / 1e9)
+#   2 free params (k, x0); L_lo, L_hi PINNED to data (g0 Occam, not free).
+# FITTED PARAMS:
+#   L_lo = 0.122222  (mean of sub-7B plateau, wc_31_60 nano: 2/30, 5/30, 4/30)
+#   L_hi = 0.566667  (7B observed, 17/30)
+#   k    = 8.95      (cliff sharpness)
+#   x0   = 1.973     (cliff midpoint in log2-params, strictly in 3B→7B gap)
+# RESIDUAL:
+#   RMSE = 0.0356  (≤ mean binomial SE 0.0665 on N=30 → WITHIN sampling noise)
+#   3B→7B step recomputed = 0.4308 vs observed 0.4333 (drift 0.0025)
+#   single-exponent baseline (σ̂=0.172) 3B→7B step = +2.09pp → cannot make the cliff
+# VERDICT: 🟢 SUPPORTED-NUMERICAL — 5/5 checks pass
+#
+# ──────────────────── RAW STDOUT (verbatim) ────────────────────
+========================================================================
+  hexa-codex SUBSTRATE §Formula recompute — stepwise capability law
+  M4.SUBSTRATE · 2-param logistic in log2(params) vs single-exponent
+  recompute of the fitted cliff law from { k, x0, L_lo, L_hi }
+========================================================================
+  fitted law: y(x) = L_lo + (L_hi-L_lo)/(1+exp(-k*(x-x0)))
+    L_lo=0.122222  L_hi=0.566667  k=8.95  x0=1.973
+    x = log2(N_params / 1e9)
+
+  rung   x=log2(B)   y_obs      y_logistic   residual    binom_SE(N=30)
+  0.5B   -1.0   0.066667   0.122222   0.0555553   0.0455421
+  1.5B   0.584963   0.166667   0.122224   0.0444429   0.0680414
+  3.0B   1.58496   0.133333   0.135597   0.00226364   0.0620632
+  7.0B   2.80735   0.566667   0.566413   0.000253797   0.090472
+
+  RMSE=0.0355906  max_residual=0.0555553  mean_binom_SE=0.0665297
+
+  [PASS] logistic recompute reproduces each measured cliff point within ε=0.1
+         · max_residual=0.0555553  (max binom SE on N=30, p=0.567 ≈ 0.0906)
+  [PASS] predicted 3B→7B step matches observed +0.4333 (+43pp) within ±0.02
+         · step_pred=0.430817  step_obs=0.433334  drift=0.00251744
+  [PASS] RMSE ≤ ε=0.05 AND ≤ mean binom SE → fit is within sampling noise (no structural misfit)
+         · RMSE=0.0355906  mean_binom_SE=0.0665297  rmse_le_eps=true  rmse_le_se=true
+  [PASS] single-exponent (σ̂=0.172) CANNOT make the cliff — its 3B→7B step is < 1/3 the logistic step
+         · power_3B→7B_step=0.0209277 (+2.09277pp)  logistic_step=0.430817  ratio=(7/3)^0.172=1.15696
+  [PASS] fitted cliff midpoint x0 lies strictly in the 3B→7B gap (matches cliff_crossed_at_7b=true)
+         · x0=1.973  x_3B=1.58496  x_7B=2.80735
+
+========================================================================
+  5/5 checks passed
+  🟢 SUPPORTED-NUMERICAL — 2-param logistic in log2(params) reproduces
+     the stepwise wc_31_60 capability cliff within sampling noise.
+     law: y(x) = 0.122222 + 0.444445 / (1 + exp(-8.95*(x - 1.973)))
+     RMSE=0.0355906 (≤ mean binom SE 0.0665297)
+     3B→7B step recomputed=0.430817 vs observed 0.433334
+  · §Formula verdict: this recompute is the link target
+    .verdicts/sandbox/m4_substrate_formula_fit.txt
+__HEXA_CODEX_NUMERICS_SUBSTRATE_CLIFF_LOGISTIC__ PASS

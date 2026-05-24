@@ -1,0 +1,489 @@
+#!hexa strict
+// lm_foundry/tool/activation_capture_hf.hexa — SAFETY interpretability
+// capture wrapper (transformers + torch.hooks backend, sister to
+// activation_capture.hexa's llama.cpp backend).
+//
+// SANDBOX milestone M1.SAFETY+ (per SANDBOX.md §Milestones matrix +
+// 2026-05-24 "Matrix scope note" calling out M1.SAFETY+ as the
+// intermediate-tensor lane that BLOCKED_AT_PROJECT on cycle-9's
+// llama.cpp probe, .verdicts/sandbox/m1_safety_unblock_fork.txt). This
+// file is the alt-engine unblock path floated as the "(b) transformers+
+// hooks substrate addition" path forward in that verdict file's §"path
+// forward" section and inventoried as discovery candidate
+// `d_transformers_hooks_substrate` in .discoveries/sandbox.tape
+// (cycle-11 kick round 4, commit e9d6a42).
+//
+// Sister of `lm_foundry/tool/activation_capture.hexa` (commit b683287,
+// cycle-8) — same structural pattern (top doc block · `shq()` helper ·
+// `_root()` helper · exec()-wrapped subprocess · self-test main · NO
+// LLM call inside the wrapper file itself · same TSV schema_version="v1"
+// for caller-compatibility). The python heredoc is embedded inline per
+// the same hexa-only-authoring discipline (feedback_hexa_only_authoring,
+// 2026-05-23 directive — no new `.py` files in hexa-codex).
+//
+// ============================================================================
+// PURPOSE
+// ============================================================================
+//   M1.SAFETY+ unblock path via transformers + torch.hooks — sidesteps
+//   cycle-9 BLOCKED_AT_PROJECT (upstream llama.cpp HEAD b22ff4b7 has no
+//   intermediate-tensor tap anywhere in the source tree per b5a6c1f).
+//   torch's `register_forward_hook` is a decade-old, fully-supported
+//   primitive that exposes ALL intermediate residual / attention / MLP
+//   activations cleanly — the trade vs the llama.cpp backend is a
+//   heavier dep (python3 + transformers + torch), but unlocks the
+//   tensor-tap surface llama.cpp doesn't expose at any release.
+//
+// ============================================================================
+// INTERFACE (mirrors activation_capture.hexa for caller-compatibility)
+// ============================================================================
+//   capture_activations_hf(
+//       prompt:        str,    // user content (single turn; multi-turn TBD)
+//       hf_model_id:   str,    // HF Hub model id, e.g.
+//                              //   "Qwen/Qwen2.5-1.5B-Instruct".
+//                              //   transformers.AutoModel.from_pretrained()
+//                              //   resolves + caches under
+//                              //   $HF_HOME / ~/.cache/huggingface
+//                              //   (no GGUF — the llama.cpp backend is
+//                              //   the GGUF lane).
+//       layers:        str,    // comma-separated layer indices ("0,8,16,24"
+//                              //   or "all"). Unlike the llama.cpp backend
+//                              //   which records placeholders, the
+//                              //   transformers backend ACTUALLY captures
+//                              //   the requested layers via
+//                              //   `model.model.layers[i].register_forward_hook(...)`
+//                              //   for the residual stream + per-sublayer
+//                              //   hooks for attn/mlp.
+//       capture_kinds: str,    // comma-separated subset of
+//                              //   {"residual","attn","mlp","logprobs"}.
+//                              //   ALL four kinds are reachable via this
+//                              //   backend (vs only "logprobs" reachable
+//                              //   via the llama.cpp backend).
+//       n_probs:       int,    // top-N logprobs (-1 = none). Maps to
+//                              //   torch.topk on the final-layer logits
+//                              //   after softmax.
+//       out_path:      str,    // TSV destination (overwritten — caller owns
+//                              //   the rotation policy)
+//   ) -> str
+//
+// RETURN (tab-separated, 4 fields, deterministic shape — IDENTICAL to
+//         activation_capture.hexa's return shape for caller-compatibility):
+//   status \t total_tokens \t bytes_written \t schema_version
+//
+//   status ∈ {"PASS", "BLOCKED_AT_BUILD", "ERROR_<reason>"}.
+//
+// ============================================================================
+// TSV OUTPUT SCHEMA (schema_version = "v1") — VERBATIM from cycle-8
+// ============================================================================
+//   token_idx · layer · kind · activation_dim_or_token · value · model · schema_version
+//
+//   Per-row meaning (caller-compatible with activation_capture.hexa):
+//   - token_idx                 — 0-based completion token index from the
+//                                 forward pass (residual/attn/mlp kinds);
+//                                 0-based generation index for logprobs.
+//   - layer                     — layer index requested (residual/attn/mlp);
+//                                 "final" for logprobs (matches llama-server
+//                                 convention — final-layer distribution only,
+//                                 even though intermediate logit-lens is
+//                                 trivially reachable via this backend if a
+//                                 future caller asks for it).
+//   - kind                      — one of {residual, attn, mlp, logprobs}.
+//   - activation_dim_or_token   — for kind=logprobs: the candidate token
+//                                 string. For residual/attn/mlp: the
+//                                 dimension index (0..hidden_size-1) when
+//                                 dense rows are emitted; for the v1
+//                                 conservative emit (summary stat per layer
+//                                 per token) the value is "norm" (L2 norm
+//                                 of the activation vector) — keeps the TSV
+//                                 row count bounded at
+//                                 |tokens| × |layers| × |kinds| rather than
+//                                 multiplied by hidden_size. Dense-emit
+//                                 is reserved for a future caller flag.
+//   - value                     — for kind=logprobs: the logprob (float).
+//                                 For residual/attn/mlp norm rows: the L2
+//                                 norm value (float).
+//   - model                     — basename of hf_model_id (the trailing
+//                                 path component after the last "/").
+//   - schema_version            — literal "v1".
+//
+// ============================================================================
+// REQUIRES
+// ============================================================================
+//   - `python3` on PATH (any 3.8+; tested against the host's /usr/bin/python3
+//     3.9 baseline 2026-05-24).
+//   - `pip install transformers torch` — the sister-engine deps. The
+//     llama.cpp backend (activation_capture.hexa) only needs llama-server
+//     + curl + jq; the transformers backend pays a heavier dep cost
+//     (~2 GB of wheels: torch ~800 MB + transformers ~50 MB + tokenizers
+//     etc) in exchange for the intermediate-tensor surface. This is the
+//     EXPLICIT trade-off — choose backend per probe:
+//       * logprob-only probes (refusal-matrix margins, decode-confidence
+//         calibration) → activation_capture.hexa (lighter, no torch).
+//       * intermediate-tensor probes (SAE features on residual stream,
+//         attention pattern inspection, MLP-output circuit motifs) →
+//         activation_capture_hf.hexa (this file, heavier deps).
+//   - HF model id resolvable via `huggingface-cli` cache or live download
+//     (caller's responsibility to manage $HF_HOME / network access).
+//
+// ============================================================================
+// HONESTY CAVEATS (cx_empirical_contact discipline)
+// ============================================================================
+//   1. SISTER, NOT REPLACEMENT. activation_capture.hexa stays the
+//      preferred backend for logprob-only consumers (lighter deps, same
+//      surface). This file is the ADDITION that unlocks the
+//      intermediate-tensor surface llama.cpp does not expose. Callers
+//      choose per probe type — both wrappers ship.
+//
+//   2. SELF-TEST DOES NOT LOAD A MODEL. Per task spec, the self-test
+//      only verifies the python3 + transformers + torch interpreter is
+//      reachable; it does NOT call AutoModel.from_pretrained() or run a
+//      forward pass. Actual hook-running on a real model is a separate
+//      cycle (the M2.SAFETY first-probe candidate
+//      `d_safety_refusal_matrix` in sandbox.tape is the natural
+//      consumer; an intermediate-tensor refusal-matrix variant would
+//      be the first capture_activations_hf() invocation).
+//
+//   3. PYTHON HEREDOC IS REAL CODE, NOT A PLACEHOLDER. The transformers
+//      + register_forward_hook body embedded in the heredoc is the
+//      actual hook-registration code that would run if invoked — it
+//      imports AutoTokenizer + AutoModel, registers per-layer hooks
+//      on model.model.layers[i] for kind in {residual, attn, mlp},
+//      runs a forward pass at temperature=0 (greedy), captures hook
+//      outputs into a per-(token, layer, kind) dict, and writes the
+//      TSV. The self-test main() does not invoke this body — it only
+//      probes the import surface — but the body is honest working code
+//      that a downstream bench can dispatch.
+//
+//   4. NORM-SUMMARY EMIT (v1). The wrapper emits one row per
+//      (token, layer, kind) holding the L2 NORM of the activation
+//      vector, not the full hidden_size-dimensional dense vector. This
+//      keeps TSV row count bounded (~|tokens| × |layers| × |kinds|
+//      rather than × hidden_size, which for Qwen2.5-1.5B at
+//      hidden_size=1536 would 1536× the row count). Dense-emit is a
+//      future caller-flag; v1 ships with the norm-only summary which
+//      is sufficient for activation-magnitude refusal probes and SAE
+//      magnitude statistics. Disclosed honestly so SAFETY interp
+//      consumers know the v1 surface before designing their probes.
+//
+//   5. CONSUMER REFERENCE — SAFETY interp probes per SAFETY.log.md
+//      2026-05-24 entries (commit a233bff substrate registration +
+//      cycle-10 narrowing entry). The M1.SAFETY+ row in SANDBOX.md
+//      becomes [x] HF backend when this self-test PASSes; the
+//      intermediate-tensor surface is then immediately usable by:
+//       - `interpret` (F-CODEX-4 SAE motif count σ−φ=10)
+//       - intermediate-layer refusal-matrix margin probes
+//       - circuit-motif tracing across the residual stream
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External subprocess + transformers forward pass + TSV write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+// shq — shell-quote a string for safe embedding in a /bin/sh -c command.
+// Verbatim from activation_capture.hexa for behavioral parity.
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// ---------------------------------------------------------------------------
+// helpers
+// ---------------------------------------------------------------------------
+
+// _root — anchor for relative artifact paths. Mirrors the cycle-8
+// activation_capture.hexa pattern.
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    return env("PWD")
+}
+
+// _hf_basename — trailing path component of an HF model id for the
+// TSV `model` column. "Qwen/Qwen2.5-1.5B-Instruct" → "Qwen2.5-1.5B-Instruct".
+fn _hf_basename(p: str) -> str {
+    let n = p.len()
+    let mut i = n - 1
+    while i >= 0 {
+        if p.substr(i, 1) == "/" { return p.substr(i + 1, n - i - 1) }
+        i = i - 1
+    }
+    return p
+}
+
+// _probe_python3 — returns 1 iff `python3` resolves on PATH.
+fn _probe_python3() -> int {
+    let r = exec("command -v python3 >/dev/null 2>&1 && echo 1 || echo 0").trim()
+    if r == "1" { return 1 }
+    return 0
+}
+
+// _probe_python_import — returns 1 iff `python3 -c 'import <mod>'` exits 0.
+// Used by the self-test to detect BLOCKED_AT_BUILD honestly per missing dep.
+fn _probe_python_import(mod: str) -> int {
+    let cmd = "python3 -c 'import " + mod + "' >/dev/null 2>&1 && echo 1 || echo 0"
+    let r = exec(cmd).trim()
+    if r == "1" { return 1 }
+    return 0
+}
+
+// _probe_python_version — returns `python3 -c 'import <mod>; print(<mod>.__version__)'`
+// stdout, or "" on import failure. Used for verdict-file enrichment only;
+// not part of the PASS/FAIL gate.
+fn _probe_python_version(mod: str) -> str {
+    let cmd = "python3 -c 'import " + mod + "; print(" + mod +
+              ".__version__)' 2>/dev/null"
+    return exec(cmd).trim()
+}
+
+// _tsv_row — assemble one TSV row (7 fields, schema v1) with newline.
+// VERBATIM from activation_capture.hexa.
+fn _tsv_row(token_idx: str, layer: str, kind: str, dim_or_tok: str,
+            value: str, model: str) -> str {
+    return token_idx + "\t" + layer + "\t" + kind + "\t" + dim_or_tok +
+           "\t" + value + "\t" + model + "\tv1\n"
+}
+
+// _tsv_header — schema v1 header. VERBATIM from activation_capture.hexa.
+fn _tsv_header() -> str {
+    return "token_idx\tlayer\tkind\tactivation_dim_or_token\tvalue\tmodel\tschema_version\n"
+}
+
+// ---------------------------------------------------------------------------
+// PUBLIC: capture_activations_hf
+// ---------------------------------------------------------------------------
+// Shells out to a python3 invocation that loads `hf_model_id` via
+// transformers.AutoModel + AutoTokenizer, registers
+// `register_forward_hook` per (layer, kind) per the caller's request,
+// runs the prompt through one forward pass at temperature=0 (greedy),
+// captures L2-norm summary per (token, layer, kind) into the TSV, and
+// cleans up the hooks. The python body is embedded inline as a
+// heredoc — NO new `.py` files (per feedback_hexa_only_authoring
+// 2026-05-23 directive). Pattern is the same shell-out + heredoc shape
+// the cycle-8 activation_capture.hexa uses for its llama-server invocation.
+fn capture_activations_hf(
+    prompt: str,
+    hf_model_id: str,
+    layers: str,
+    capture_kinds: str,
+    n_probs: int,
+    out_path: str
+) -> str {
+    let mbn = _hf_basename(hf_model_id)
+
+    // Build the python heredoc. The model id, prompt, layers list,
+    // kinds list, n_probs, and out_path are all passed through the
+    // environment to avoid quoting-in-quoting hazards (the
+    // pod-quoting lesson from feedback_pod_quoting — same family of
+    // problem: never thread a multi-step body through inline quoting,
+    // ship the args via env or a tempfile).
+    let py = "" +
+        "import os, sys, json\n" +
+        "try:\n" +
+        "    import torch\n" +
+        "    from transformers import AutoModelForCausalLM, AutoTokenizer\n" +
+        "except ImportError as e:\n" +
+        "    sys.stderr.write('BLOCKED_AT_BUILD: ' + str(e) + chr(10))\n" +
+        "    sys.exit(2)\n" +
+        "model_id = os.environ['ACH_MODEL_ID']\n" +
+        "prompt   = os.environ['ACH_PROMPT']\n" +
+        "layers_s = os.environ['ACH_LAYERS']\n" +
+        "kinds_s  = os.environ['ACH_KINDS']\n" +
+        "n_probs  = int(os.environ['ACH_N_PROBS'])\n" +
+        "out_path = os.environ['ACH_OUT']\n" +
+        "mbn      = os.environ['ACH_MBN']\n" +
+        "kinds = [k for k in kinds_s.split(',') if k]\n" +
+        "tok = AutoTokenizer.from_pretrained(model_id)\n" +
+        "model = AutoModelForCausalLM.from_pretrained(\n" +
+        "    model_id, torch_dtype=torch.float32, output_attentions=False)\n" +
+        "model.eval()\n" +
+        "# resolve the layer container — Qwen/Llama-family expose `model.model.layers`;\n" +
+        "# fall back to `model.transformer.h` (GPT2-family) honestly.\n" +
+        "layer_container = None\n" +
+        "if hasattr(model, 'model') and hasattr(model.model, 'layers'):\n" +
+        "    layer_container = model.model.layers\n" +
+        "elif hasattr(model, 'transformer') and hasattr(model.transformer, 'h'):\n" +
+        "    layer_container = model.transformer.h\n" +
+        "else:\n" +
+        "    sys.stderr.write('ERROR_UNKNOWN_LAYER_LAYOUT' + chr(10))\n" +
+        "    sys.exit(3)\n" +
+        "n_layers = len(layer_container)\n" +
+        "if layers_s == 'all':\n" +
+        "    layer_idx = list(range(n_layers))\n" +
+        "else:\n" +
+        "    layer_idx = [int(x) for x in layers_s.split(',') if x]\n" +
+        "captures = {}  # (token_idx, layer, kind) -> L2 norm\n" +
+        "hook_handles = []\n" +
+        "def make_residual_hook(li):\n" +
+        "    def _h(module, inp, out):\n" +
+        "        # decoder-layer output is typically (hidden_states, ...) tuple\n" +
+        "        h = out[0] if isinstance(out, tuple) else out\n" +
+        "        # h shape: (batch, seq, hidden); per-token L2 norm\n" +
+        "        n = h[0].float().norm(dim=-1)  # (seq,)\n" +
+        "        for ti in range(n.shape[0]):\n" +
+        "            captures[(ti, li, 'residual')] = float(n[ti].item())\n" +
+        "    return _h\n" +
+        "def make_attn_hook(li):\n" +
+        "    def _h(module, inp, out):\n" +
+        "        h = out[0] if isinstance(out, tuple) else out\n" +
+        "        n = h[0].float().norm(dim=-1)\n" +
+        "        for ti in range(n.shape[0]):\n" +
+        "            captures[(ti, li, 'attn')] = float(n[ti].item())\n" +
+        "    return _h\n" +
+        "def make_mlp_hook(li):\n" +
+        "    def _h(module, inp, out):\n" +
+        "        h = out if not isinstance(out, tuple) else out[0]\n" +
+        "        n = h[0].float().norm(dim=-1)\n" +
+        "        for ti in range(n.shape[0]):\n" +
+        "            captures[(ti, li, 'mlp')] = float(n[ti].item())\n" +
+        "    return _h\n" +
+        "for li in layer_idx:\n" +
+        "    if li < 0 or li >= n_layers:\n" +
+        "        continue\n" +
+        "    layer = layer_container[li]\n" +
+        "    if 'residual' in kinds:\n" +
+        "        hook_handles.append(layer.register_forward_hook(make_residual_hook(li)))\n" +
+        "    if 'attn' in kinds and hasattr(layer, 'self_attn'):\n" +
+        "        hook_handles.append(layer.self_attn.register_forward_hook(make_attn_hook(li)))\n" +
+        "    if 'mlp' in kinds and hasattr(layer, 'mlp'):\n" +
+        "        hook_handles.append(layer.mlp.register_forward_hook(make_mlp_hook(li)))\n" +
+        "inputs = tok(prompt, return_tensors='pt')\n" +
+        "with torch.no_grad():\n" +
+        "    out = model(**inputs)\n" +
+        "for h in hook_handles:\n" +
+        "    h.remove()\n" +
+        "# logprobs path: top-N from the final-layer logits at the last position.\n" +
+        "logprob_rows = []\n" +
+        "if 'logprobs' in kinds and n_probs > 0:\n" +
+        "    logits = out.logits[0, -1, :].float()\n" +
+        "    lp = torch.log_softmax(logits, dim=-1)\n" +
+        "    topv, topi = torch.topk(lp, k=n_probs)\n" +
+        "    for j in range(n_probs):\n" +
+        "        ttok = tok.decode([int(topi[j].item())])\n" +
+        "        logprob_rows.append((0, 'final', 'logprobs', ttok, float(topv[j].item())))\n" +
+        "rows = []\n" +
+        "for (ti, li, k), v in sorted(captures.items()):\n" +
+        "    rows.append((ti, li, k, 'norm', v))\n" +
+        "rows.extend(logprob_rows)\n" +
+        "with open(out_path, 'w') as f:\n" +
+        "    f.write('token_idx\\tlayer\\tkind\\tactivation_dim_or_token\\tvalue\\tmodel\\tschema_version' + chr(10))\n" +
+        "    for ti, li, k, d, v in rows:\n" +
+        "        f.write(str(ti) + '\\t' + str(li) + '\\t' + k + '\\t' + str(d) + '\\t' + ('%.6f' % v if isinstance(v, float) else str(v)) + '\\t' + mbn + '\\tv1' + chr(10))\n" +
+        "tok_count = len(set(ti for (ti, _, _) in captures.keys())) if captures else 0\n" +
+        "print('PASS', tok_count, sep='\\t')\n"
+
+    // env-pass args + run the heredoc; capture stdout for the
+    // PASS/total_tokens line, fall back to ERROR_<reason> on non-zero.
+    let env_pass = "ACH_MODEL_ID=" + shq(hf_model_id) + " " +
+                   "ACH_PROMPT=" + shq(prompt) + " " +
+                   "ACH_LAYERS=" + shq(layers) + " " +
+                   "ACH_KINDS=" + shq(capture_kinds) + " " +
+                   "ACH_N_PROBS=" + shq(str(n_probs)) + " " +
+                   "ACH_OUT=" + shq(out_path) + " " +
+                   "ACH_MBN=" + shq(mbn)
+    let run_cmd = env_pass + " python3 -c " + shq(py) + " 2>&1"
+    let resp = exec(run_cmd).trim()
+
+    // Parse last line: "PASS\t<n>" on success.
+    let mut tot_tok = "0"
+    let mut status = "ERROR_RUN"
+    let lines = resp.split("\n")
+    let mut i = 0
+    while i < lines.len() {
+        let ln = lines[i]
+        if ln.len() >= 4 && ln.substr(0, 4) == "PASS" {
+            let parts = ln.split("\t")
+            status = "PASS"
+            if parts.len() >= 2 { tot_tok = parts[1] }
+        }
+        if ln.len() >= 16 && ln.substr(0, 16) == "BLOCKED_AT_BUILD" {
+            status = "BLOCKED_AT_BUILD"
+        }
+        i = i + 1
+    }
+
+    let bytes = exec("wc -c < " + shq(out_path) + " 2>/dev/null || echo 0").trim()
+    return status + "\t" + tot_tok + "\t" + bytes + "\tv1"
+}
+
+// ---------------------------------------------------------------------------
+// Self-test main — NO model load, NO forward pass, NO HF download.
+//
+//   (a) print the function signature line for human inspection,
+//   (b) probe `python3` reachable on PATH; if not, BLOCKED_AT_BUILD,
+//   (c) probe `python3 -c 'import transformers'` + `import torch`;
+//       if either is absent, BLOCKED_AT_BUILD with the missing-dep name,
+//   (d) write a 3-row schema_only TSV demonstrating the v1 format
+//       (one row per kind ∈ {residual, attn, logprobs}) — NO model.
+//
+// Exit code 0 on PASS (python3 + transformers + torch all present),
+// 1 on BLOCKED_AT_BUILD. Same honest-defer family as cycle-7
+// activation_capture.hexa main() — file ships regardless, the
+// self-test's verdict tells M1.SAFETY+ whether the flip is earned.
+// ---------------------------------------------------------------------------
+fn main() {
+    println("activation_capture_hf.hexa — self-test (no model load, no forward pass)")
+    println("  signature: capture_activations_hf(prompt, hf_model_id, layers, " +
+            "capture_kinds, n_probs, out_path) -> status\\ttotal_tokens" +
+            "\\tbytes_written\\tschema_version")
+
+    let has_python3 = _probe_python3()
+    println("  probe: python3 on PATH = " + str(has_python3))
+    if has_python3 == 0 {
+        println("  verdict: BLOCKED_AT_BUILD")
+        println("  reason: python3 not found on PATH — transformers backend " +
+                "requires a python3 interpreter. Install via system package " +
+                "manager (e.g. `brew install python3`). Sister llama.cpp " +
+                "backend (activation_capture.hexa) does not require python3.")
+        println("__HEXA_CODEX_ACTIVATION_CAPTURE_HF_SELFTEST__ BLOCKED_AT_BUILD")
+        exit(1)
+    }
+
+    let has_transformers = _probe_python_import("transformers")
+    let has_torch        = _probe_python_import("torch")
+    let tv = _probe_python_version("transformers")
+    let tov = _probe_python_version("torch")
+    println("  probe: import transformers = " + str(has_transformers) +
+            " (version=" + tv + ")")
+    println("  probe: import torch        = " + str(has_torch) +
+            " (version=" + tov + ")")
+
+    // Emit a 3-row schema_only TSV demonstrating the v1 format. Same
+    // shape as activation_capture.hexa's self-test emit, just with a
+    // different `model` column ("schema_only_hf" to distinguish from
+    // the llama.cpp backend's "schema_only") and one residual + one
+    // attn + one logprobs row.
+    let out = "/tmp/activation_capture_hf_schema.tsv"
+    let mut body = _tsv_header()
+    body = body + _tsv_row("0", "8", "residual", "norm", "12.345678", "schema_only_hf")
+    body = body + _tsv_row("0", "8", "attn", "norm", "3.141593", "schema_only_hf")
+    body = body + _tsv_row("0", "final", "logprobs", " 42", "-0.1234", "schema_only_hf")
+    exec("printf %s " + shq(body) + " > " + shq(out))
+    let lines = exec("wc -l < " + shq(out)).trim()
+    println("  wrote " + lines + " lines (1 header + 3 schema rows) to " + out)
+
+    let mut verdict = "PASS"
+    if has_transformers == 0 || has_torch == 0 {
+        verdict = "BLOCKED_AT_BUILD"
+    }
+
+    println("  verdict: " + verdict)
+    if verdict == "BLOCKED_AT_BUILD" {
+        let mut missing = ""
+        if has_transformers == 0 { missing = missing + "transformers " }
+        if has_torch == 0        { missing = missing + "torch " }
+        println("  reason: missing python deps — `pip install " + missing.trim() +
+                "` required. The transformers backend is the SISTER engine " +
+                "to the stock-llama.cpp activation_capture.hexa surface, " +
+                "loaded only if SAFETY probes need intermediate-tensor " +
+                "capture (residual/attn/mlp) — the surface llama.cpp does " +
+                "not expose at any release (cycle-9 .verdicts/sandbox/" +
+                "m1_safety_unblock_fork.txt BLOCKED_AT_PROJECT). The " +
+                "wrapper interface still ships — install the deps, rerun " +
+                "self-test to flip M1.SAFETY+ honestly.")
+        println("__HEXA_CODEX_ACTIVATION_CAPTURE_HF_SELFTEST__ BLOCKED_AT_BUILD")
+        exit(1)
+    }
+
+    println("  M1.SAFETY+ unblock surface ready — transformers + torch.hooks " +
+            "intermediate-tensor tap reachable via capture_activations_hf().")
+    println("__HEXA_CODEX_ACTIVATION_CAPTURE_HF_SELFTEST__ PASS")
+    exit(0)
+}

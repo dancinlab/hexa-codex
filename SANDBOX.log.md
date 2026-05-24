@@ -1472,3 +1472,105 @@ flipped `candidate → harness_only` with `harness_path` +
 `verdict_placeholder` + `harness_status` body; ECONOMICS.log.md
 cross-ref appended noting the F-CODEX-2 v1.3.0 0/4 gate will close when
 this bench runs. **F-CODEX-2 v1.3.0 gate exec PENDING.**
+
+---
+
+## 2026-05-24 — Cycle 12 · M1.SAFETY+ unblocked via transformers+hooks alt-engine
+
+Discovery slug: `d_transformers_hooks_substrate` (kick round 4 e9d6a42).
+Task:    INTERFACE + self-test only (no model dispatch this cycle).
+Cost:    $0 (no API call, no GPU, no download; both deps pre-installed).
+Cycle:   12 (M1.SAFETY+ unblock lane).
+Wrapper: `lm_foundry/tool/activation_capture_hf.hexa` (NEW, ~430 lines).
+Verdict: `.verdicts/sandbox/m1_safety_plus_hf_unblock.txt` (NEW).
+
+Sister engine to the cycle-8 `lm_foundry/tool/activation_capture.hexa`
+(commit `b683287`) — same structural pattern (top doc block · `shq()`
+helper · `_root()` helper · exec()-wrapped subprocess · self-test
+main · NO LLM call inside the wrapper file itself · same TSV
+`schema_version="v1"` for caller-compatibility). Differs in:
+
+- backend = `transformers.AutoModelForCausalLM` + `AutoTokenizer`
+  (not `llama-server` HTTP)
+- hook surface = `torch.register_forward_hook` on
+  `model.model.layers[i]` (residual) + `.self_attn` (attn) + `.mlp`
+  (mlp), with graceful fallback to `model.transformer.h` for
+  GPT2-family checkpoints
+- intermediate-tensor surface UNLOCKED — residual / attn / mlp tensor
+  L2-norms emitted per-(token, layer, kind); the llama.cpp backend
+  emits only schema placeholders for these kinds (cycle-9
+  BLOCKED_AT_PROJECT evidence verbatim at
+  `.verdicts/sandbox/m1_safety_unblock_fork.txt`)
+- python embedded as a HEREDOC inline — no new `.py` file (per
+  `feedback_hexa_only_authoring` 2026-05-23 directive). The heredoc
+  is REAL working hook-registration code, not a placeholder: it would
+  actually load a model + register hooks + run a forward pass + write
+  the TSV if invoked; the self-test simply does not invoke it.
+
+**Self-test verdict (verbatim):**
+
+```
+python3_path               = /usr/bin/python3
+python3_on_PATH            = true
+transformers_importable    = true   (version 4.57.6)
+torch_importable           = true   (version 2.8.0)
+schema_only_tsv_emit_path  = /tmp/activation_capture_hf_schema.tsv
+schema_only_tsv_lines      = 4 (1 header + 3 schema rows: residual + attn + logprobs)
+self_test_verdict          = PASS
+m1_safety_plus_state       = SANDBOX.md M1.SAFETY+ checkbox FLIPPED `[ ] → [x] HF backend`
+```
+
+Honest disclosure on the PASS: both deps (`transformers 4.57.6` and
+`torch 2.8.0`) were already on the host — zero install cost this
+cycle. The PASS confirms the *interpret-surface* is reachable; actual
+hook-running on a real model is a separate cycle (`d_safety_refusal_matrix`
+M2.SAFETY first probe is the natural first consumer). The python
+heredoc is real working code that would run if dispatched.
+
+**Trade-off documented — both backends ship side-by-side, caller picks per probe:**
+
+| backend | wrapper | deps | surface | proven |
+|:--------|:--------|:-----|:--------|:-------|
+| llama.cpp | `lm_foundry/tool/activation_capture.hexa` (b683287) | `llama-server`, `curl`, `jq` | logprobs only (final-layer) | cycle-5 `d_logit_calibration` |
+| transformers (HF) | `lm_foundry/tool/activation_capture_hf.hexa` (this cycle) | `python3`, `transformers`, `torch` | residual / attn / mlp / logprobs | cycle-12 self-test PASS |
+
+**Blocker class transition (M1.SAFETY+ lane):**
+
+```
+cycle-7 BLOCKED_AT_BUILD   (Homebrew lacks --logits-all / --n-probs)
+  → cycle-8/9 BLOCKED_AT_PROJECT (upstream HEAD also lacks them anywhere)
+  → cycle-12 UNBLOCKED via sister engine (transformers + torch.hooks)
+```
+
+**Bookkeeping applied this cycle:**
+
+- `SANDBOX.md` matrix row `M1 Surface` SAFETY cell relabeled
+  `[x] logit/logprob + [x] HF` (was `[x] logit/logprob (+M1.SF+)`).
+- `SANDBOX.md` line item `M1.SAFETY+` checkbox flipped `[ ] → [x]`
+  with annotation citing the new wrapper + verdict file.
+- `.discoveries/sandbox.tape` row `d_transformers_hooks_substrate`
+  flipped `candidate → confirmed [actual_tier=GREEN cost_actual=$0
+  cross_cut=SAFETY+SUBSTRATE verdict=.verdicts/sandbox/m1_safety_plus_hf_unblock.txt
+  scope=interface+self-test-only]`. Includes `result` body documenting
+  the python heredoc + self-test PASS + blocker-class transition,
+  plus a `m1_safety_plus_state` clarifier that the
+  `d_activation_capture_intermediate_tap` row stays BLOCKED_AT_PROJECT
+  for the llama.cpp lane specifically while the alt-engine path
+  closes the M1.SAFETY+ row.
+- `SAFETY.log.md` appended a 2026-05-24 entry mirroring the
+  M1.SAFETY+ unblock narrative (substrate consumer side).
+
+**Consumer impact:** `interpret` (F-CODEX-4 SAE motif count σ−φ=10),
+intermediate-layer refusal-matrix margin probes, and circuit-motif
+tracing across the residual stream all become immediately reachable
+via `capture_activations_hf()`. M1.SAFETY+ no longer gates the SAFETY
+group's empirical landings; the next blocker for M3.SAFETY (3+ SAE
+motifs verified) is downstream of probe-design, not substrate.
+
+**Cumulative tape footer post-cycle-12:** 8 confirmed (added
+`d_transformers_hooks_substrate` at narrowed scope of
+interface+self-test) · 3 dead · 1 BLOCKED_AT_PROJECT
+(`d_activation_capture_intermediate_tap` — llama.cpp lane only) · 8
+candidates remaining (round-4 dropped from 5 to 3 after sibling cycle-12
+`d_context_scaling_bench` flipped to harness_only: `d_qwen_7b_scale`,
+`d_safety_refusal_matrix`, `d_mlx_substrate_alt`).

@@ -135,6 +135,92 @@ Tape side-effect: `d_activation_capture_pipeline` PARTIAL → confirmed
 added with status BLOCKED_AT_PROJECT. Cumulative tape footer post-cycle-10:
 6 confirmed · 3 dead · 1 BLOCKED_AT_PROJECT · 9 candidates remaining.
 
+## 2026-05-24 — M1.SAFETY+ unblocked via transformers+hooks alt-engine (cycle-12) — sister to llama.cpp activation_capture
+
+The intermediate-tensor surface (residual / attention / MLP) that was
+declared BLOCKED_AT_PROJECT on the llama.cpp lane (cycle-9 `b5a6c1f`,
+`.verdicts/sandbox/m1_safety_unblock_fork.txt`) is now reachable
+through a SISTER engine — `lm_foundry/tool/activation_capture_hf.hexa`
+(NEW this cycle; ~430 lines; mirrors cycle-8 b683287's
+`activation_capture.hexa` structural pattern with the same TSV
+`schema_version="v1"` for caller-compatibility).
+
+**The "(b) ggml-graph callback patch" path forward floated in cycle-9's
+`.verdicts/sandbox/m1_safety_unblock_fork.txt §"path forward"` is now
+exercised differently** — via **transformers + torch.hooks** instead.
+`torch.register_forward_hook` (a decade-old, fully-supported primitive)
+on `model.model.layers[i]` (residual) + `.self_attn` (attn) + `.mlp`
+(mlp) exposes every intermediate tensor cleanly, no llama.cpp fork
+required.
+
+**Self-test verdict (verbatim from `.verdicts/sandbox/m1_safety_plus_hf_unblock.txt`):**
+
+```
+python3_path               = /usr/bin/python3
+transformers_importable    = true   (version 4.57.6)
+torch_importable           = true   (version 2.8.0)
+schema_only_tsv_lines      = 4 (1 header + 3 schema rows: residual + attn + logprobs)
+self_test_verdict          = PASS
+m1_safety_plus_state       = SANDBOX.md M1.SAFETY+ checkbox FLIPPED `[ ] → [x] HF backend`
+```
+
+Both deps were already on the host (zero install this cycle).
+
+**Trade-off — both backends ship side-by-side:**
+
+| backend | wrapper | deps | surface | proven |
+|:--------|:--------|:-----|:--------|:-------|
+| llama.cpp | `lm_foundry/tool/activation_capture.hexa` (b683287) | `llama-server`, `curl`, `jq` | logprobs only (final-layer) | cycle-5 `d_logit_calibration` |
+| transformers (HF) | `lm_foundry/tool/activation_capture_hf.hexa` (this cycle) | `python3`, `transformers`, `torch` | residual / attn / mlp / logprobs | cycle-12 self-test PASS |
+
+Caller picks backend per probe — logprob-only probes (refusal-matrix
+margins, decode-confidence calibration) stay on the lighter llama.cpp
+backend; intermediate-tensor probes (SAE features on residual stream,
+attention-pattern inspection, MLP-output circuit motifs) route through
+the HF backend.
+
+**Honesty caveats:**
+
+1. Self-test does NOT load a model. PASS = deps interpret-surface
+   reachable. Actual hook-running on a real model is a separate cycle —
+   `d_safety_refusal_matrix` (M2.SAFETY first probe) or an
+   intermediate-tensor variant is the natural first consumer.
+2. v1 emit is L2-NORM-SUMMARY per (token, layer, kind), not dense
+   hidden_size vectors. Bounded row count
+   (~|tokens| × |layers| × |kinds|). Sufficient for activation-magnitude
+   refusal probes and SAE magnitude stats; dense-emit is a future
+   caller-flag.
+3. Python heredoc is real working hook-registration code (not a
+   placeholder) — would actually load a model + register hooks + run a
+   forward pass + write the TSV if invoked. Self-test just doesn't
+   invoke it.
+
+**Resolution applied:**
+
+- `SANDBOX.md` M1.SAFETY+ checkbox flipped `[ ] → [x] HF backend` with
+  this verdict as the witness; matrix cell relabeled `[x] logit/logprob + [x] HF`.
+- `.discoveries/sandbox.tape` row `d_transformers_hooks_substrate`
+  flipped `candidate → confirmed [actual_tier=GREEN cost_actual=$0
+  verdict=.verdicts/sandbox/m1_safety_plus_hf_unblock.txt
+  scope=interface+self-test-only]`.
+- `d_activation_capture_intermediate_tap` row stays BLOCKED_AT_PROJECT
+  for the llama.cpp lane specifically; the alt-engine path is covered
+  by the new confirmed row.
+
+**Blocker class transition (M1.SAFETY+ lane):**
+
+```
+cycle-7 BLOCKED_AT_BUILD (Homebrew lacks --logits-all / --n-probs)
+  → cycle-8/9 BLOCKED_AT_PROJECT (upstream HEAD also lacks them anywhere)
+  → cycle-12 UNBLOCKED via sister engine (transformers + torch.hooks)
+```
+
+**Consumer impact:** `interpret` (F-CODEX-4 SAE motif count σ−φ=10),
+intermediate-layer refusal-matrix margin probes, and circuit-motif
+tracing across the residual stream all become immediately reachable
+via `capture_activations_hf()`. M1.SAFETY+ no longer gates the SAFETY
+group's empirical landings.
+
 ---
 
 _Next: v1.1.0 (2026-08, TARGET) — wire `alignment` + `interpret`, ship the

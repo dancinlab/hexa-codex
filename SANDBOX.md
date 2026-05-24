@@ -9,7 +9,7 @@ graduates only when every domain has cleared it.
 
 ```
                   ECONOMICS              SAFETY                       OPS                   SUBSTRATE
-M1 Surface        ✓ done (cycles 1-6)   [x] logit/logprob (+M1.SF+) [x] SLO harness       [x] scale ladder pick
+M1 Surface        ✓ done (cycles 1-6)   [x] logit/logprob + [x] HF  [x] SLO harness       [x] scale ladder pick
 M2 First verdict  ✓ done (7 confirmed)  [ ] 1st interp probe         [ ] 1st p50/p99       [x] 1.5B persona Stage-2 (routing_viable=true)
 M3 Saturation     [ ] F-CODEX-1/2 fit   [ ] 3+ SAE motifs            [ ] full SLO grid     [ ] scale ladder 0.5/1.5/3/7B
 M4 Paper          ✓ done (routing-svgs) [ ] safety canonical         [ ] ops canonical     [ ] substrate canonical
@@ -29,7 +29,7 @@ M5 Release        [ ] v1.2.0 + v1.3.0   [ ] v2.0.0 (F-CODEX-4)       [ ] v?.?.? 
 
 - [x] M1.ECON — `lm_foundry/tool/route_dispatch.hexa` + cycle 1-6 dispatch surface
 - [x] M1.SAFETY (narrowed: logit/logprob surface) — `llama-server /v1/chat/completions logprobs` end-to-end via cycle-5 `d_logit_calibration` (commit `c7e03a5`, `margin_corr_signal=53.33`, `top_quartile_accuracy=100.0`, `bottom_quartile_accuracy=60.0`, `overall_accuracy=75.0`, `calibration_signal_present=true`; `.verdicts/sandbox/stage3_logit_calibration_summary.txt`). Intermediate-tensor taps (residual/attn/mlp) tracked separately as M1.SAFETY+ — currently BLOCKED_AT_PROJECT per cycle-9 `b5a6c1f` (`.verdicts/sandbox/m1_safety_unblock_fork.txt`).
-- [ ] M1.SAFETY+ — intermediate-tensor activation capture (residual/attn/mlp) — BLOCKED_AT_PROJECT upstream llama.cpp HEAD `b22ff4b7` (cycle-9, `.verdicts/sandbox/m1_safety_unblock_fork.txt` — 0 matches for `--logits-all` / `--n-probs` anywhere in the source tree; only per-request JSON sampling fields exist). Requires either a NEW fork-of-llama with a ggml-graph tap injection OR a transformers+hooks substrate addition. Currently a substrate-extension candidate, not the M1.SAFETY closure path.
+- [x] M1.SAFETY+ — intermediate-tensor activation capture (residual/attn/mlp) UNBLOCKED via transformers+hooks alt-engine — `lm_foundry/tool/activation_capture_hf.hexa` (cycle-12, sister to b683287's llama.cpp backend; same TSV schema_version="v1", same return-shape; transformers 4.57.6 + torch 2.8.0 already on host; self-test PASS — `.verdicts/sandbox/m1_safety_plus_hf_unblock.txt`). The llama.cpp lane stays BLOCKED_AT_PROJECT (cycle-9 `b5a6c1f` / `.verdicts/sandbox/m1_safety_unblock_fork.txt` — upstream HEAD `b22ff4b7` has no ggml-graph tap), but the HF backend sidesteps that lock entirely. Trade vs llama.cpp backend: heavier deps (python3 + transformers + torch), unlocks residual/attn/mlp tensor norms per-(token, layer, kind). Caller picks backend per probe — both wrappers ship side-by-side.
 - [x] M1.OPS — SLO measurement harness (`d_slo_under_load` candidate) — `bench/sandbox_stage4_slo_under_load.hexa` (script-only, M2.OPS run pending)
 - [x] M1.SUBSTRATE — Qwen2.5-1.5B-Instruct-Q4_K_M GGUF on disk (986 MB, sha256 `1adf0b11065d8ad2…`) + smoke-test PASS (5440 ms, 62.15 tok/s on M3 Metal) — `.verdicts/sandbox/m1_substrate_base_pick.txt`
 

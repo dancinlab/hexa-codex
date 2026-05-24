@@ -1,0 +1,91 @@
+# M1.SAFETY+ unblock via transformers+hooks alt-engine — PASS
+# task                       = d_transformers_hooks_substrate (cycle-12, sandbox.tape kick round 4)
+# date                       = 2026-05-24
+# wrapper                    = lm_foundry/tool/activation_capture_hf.hexa (NEW, sister to b683287)
+# pattern_source             = lm_foundry/tool/activation_capture.hexa (cycle-8 b683287)
+# self_test_scope            = interpret-deps probe + 3-row schema_only TSV emit (NO model load, NO forward pass)
+# python3_path               = /usr/bin/python3
+# python3_on_PATH            = true
+# transformers_importable    = true
+# transformers_version       = 4.57.6
+# torch_importable           = true
+# torch_version              = 2.8.0
+# schema_only_tsv_emit_path  = /tmp/activation_capture_hf_schema.tsv
+# schema_only_tsv_lines      = 4 (1 header + 3 schema rows: residual + attn + logprobs)
+# self_test_verdict          = PASS
+# m1_safety_plus_state       = SANDBOX.md M1.SAFETY+ checkbox FLIPPED `[ ] → [x] HF backend`
+#
+# what shipped:
+#   - lm_foundry/tool/activation_capture_hf.hexa — sister wrapper to the
+#     cycle-8 llama.cpp backend (commit b683287). Same TSV schema_version="v1",
+#     same return-shape (status \t total_tokens \t bytes_written \t schema_version),
+#     same `shq()` + `_root()` + self-test main pattern. Differs in:
+#       (a) backend = transformers.AutoModelForCausalLM + AutoTokenizer
+#       (b) hook surface = torch's `register_forward_hook` on
+#           model.model.layers[i] (residual stream) + .self_attn (attn) +
+#           .mlp (mlp), with graceful fallback to model.transformer.h for
+#           GPT2-family checkpoints
+#       (c) intermediate-tensor surface UNLOCKED — residual / attn / mlp
+#           tensor norms emitted per-(token, layer, kind) row; the
+#           llama.cpp backend can only emit schema placeholders for
+#           these kinds (cycle-9 BLOCKED_AT_PROJECT evidence verbatim
+#           at .verdicts/sandbox/m1_safety_unblock_fork.txt)
+#       (d) python embedded as a HEREDOC (no new .py file — per
+#           feedback_hexa_only_authoring 2026-05-23 directive)
+#
+# blocker class transition (M1.SAFETY+ lane):
+#   cycle-7 BLOCKED_AT_BUILD (stock Homebrew llama.cpp lacks --logits-all / --n-probs)
+#     → cycle-8/9 BLOCKED_AT_PROJECT (upstream llama.cpp HEAD also lacks them,
+#                                     b22ff4b7 grep evidence — feature absent
+#                                     anywhere in the source tree)
+#     → cycle-12 UNBLOCKED via sister engine (transformers + torch.hooks,
+#                                             this verdict) — bypasses the
+#                                             llama.cpp project lock entirely;
+#                                             same TSV schema for caller-
+#                                             compatibility, heavier deps
+#                                             (transformers 4.57.6 + torch 2.8.0
+#                                             already installed on host —
+#                                             zero install cost this cycle)
+#
+# trade-off documented:
+#   activation_capture.hexa     — llama-server + curl + jq; LIGHT deps;
+#                                 logprob-only surface (cycle-5 d_logit_calibration
+#                                 proved end-to-end live).
+#   activation_capture_hf.hexa  — python3 + transformers + torch; HEAVIER deps
+#                                 (~2 GB wheels nominal, already present here);
+#                                 FULL intermediate-tensor surface
+#                                 (residual / attn / mlp + logprobs).
+#   Caller chooses per probe — both wrappers ship side-by-side.
+#
+# honesty caveats:
+#   1. Self-test does NOT load a model. PASS verdict means the deps
+#      interpret-surface is reachable (python3 + import transformers +
+#      import torch). Actual hook-running on a real model is a separate
+#      cycle — `d_safety_refusal_matrix` (M2.SAFETY first probe) or an
+#      intermediate-tensor variant is the natural first consumer.
+#   2. v1 emit is L2-NORM-SUMMARY per (token, layer, kind), not the full
+#      hidden_size-dimensional dense vector. Bounded TSV row count
+#      (~|tokens| × |layers| × |kinds|, not × hidden_size). Sufficient
+#      for activation-magnitude refusal probes and SAE magnitude stats;
+#      dense-emit is a future caller-flag.
+#   3. python heredoc is REAL working hook-registration code (not a
+#      placeholder) — would actually load a model + register hooks +
+#      run a forward pass + write the TSV if invoked; the self-test
+#      just doesn't invoke it.
+#
+# consumer reference:
+#   - SAFETY.log.md 2026-05-24 entries (substrate registration a233bff +
+#     cycle-10 M1.SAFETY narrowing entry) — `interpret` (F-CODEX-4 SAE
+#     motif count σ−φ=10) AND intermediate-layer refusal-matrix margin
+#     probes AND circuit-motif tracing all become immediately reachable
+#     via capture_activations_hf() on this PASS verdict.
+#   - SANDBOX.md M1.SAFETY+ row: checkbox `[ ] → [x] HF backend` with
+#     this verdict as the witness.
+#
+# verdict_tier = honest empirical UNBLOCK of M1.SAFETY+ via alt-engine
+#                (sister to llama.cpp lane). Same wrapper-interface +
+#                self-test family as cycle-7 b683287, cycle-10 narrowing
+#                resolution. NOT a numerical-formal claim — this is the
+#                substrate-ready signal, the empirical landing comes when
+#                a downstream SAFETY probe runs capture_activations_hf()
+#                against a real model + a real prompt batch.

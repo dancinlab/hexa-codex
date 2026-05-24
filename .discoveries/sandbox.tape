@@ -459,3 +459,39 @@
 # scale-ladder candidate row once authored). M3.SUBSTRATE saturation closes
 # when all 4 rungs are on disk AND each has been run through Stage-2 +
 # per-stratum cliff position is located.
+
+# ── kick round 4 (cycle-11, 2026-05-24, post-M1-row-closed + post-M2.SUBSTRATE) ──
+# seed: "M1 row 4/4 done (M1.SAFETY narrowed, +M1.SAFETY+ BLOCKED_AT_PROJECT
+# — upstream llama.cpp lacks flags AND ggml-graph tap). M2.SUBSTRATE done:
+# 1.5B routing_viable=TRUE, cliff partially lifted. Unexplored: SAFETY+ via
+# transformers+hooks alt-engine; M2.SAFETY logprob-only probe; 7B step;
+# F-CODEX-2 context-grid bench (0/4)."
+# raw: .discoveries/sandbox-kick4.raw (mk9, smash+414 free+211 res+16(σ=0.10), 641 total)
+
+@C d_qwen_7b_scale := "Qwen2.5-7B-Instruct GGUF on disk + smoke (4th ladder rung)" :: candidate [target_tier=GREEN cost_est=$0 source=cycle-11-direct-successor]
+  cmd = "curl -L bartowski/Qwen2.5-7B-Instruct-GGUF Q4_K_M (~4.5GB; fits mac mini M3 16GB UMA); shasum -a 256; smoke-test 'What is 2+2?'; verdict .verdicts/sandbox/m3_substrate_7b_pick.txt mirroring cycle-8/10 schema"
+  hyp = "7B Q4_K_M loads + serves on M3 Metal at >=10 tok/s decode; smoke PASS; M3.SUBSTRATE 4-rung saturation prereq met; nano on wc_31_60 lifts to >=50% (would close cliff_shifted_vs_0_5b=true honestly per cycle-9 ada5 cliff annotation)"
+
+@C d_transformers_hooks_substrate := "M1.SAFETY+ via transformers+hooks alt-engine — sidestep cycle-9 llama.cpp BLOCKED_AT_PROJECT" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SAFETY+SUBSTRATE source=cycle-11-direct-successor]
+  cmd = "add lm_foundry/tool/activation_capture_hf.hexa wrapping `transformers.AutoModel + register_forward_hook` on residual/attn/mlp; same TSV schema as activation_capture.hexa (cycle-8 b683287); pull HF .safetensors of same Qwen2.5 checkpoint"
+  hyp = "transformers exposes intermediate residual/attention/mlp tensors via forward-hooks (decade-old feature). Sidesteps cycle-9 BLOCKED_AT_PROJECT entirely without forking llama.cpp. Trade: heavier dep (torch), but unlocks M1.SAFETY+ AND gives SUBSTRATE richer eval surface."
+
+@C d_safety_refusal_matrix := "M2.SAFETY first probe — refusal-matrix on logprob surface (cycle-5 d_logit_calibration extension)" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SAFETY-only source=cycle-11-direct-successor]
+  cmd = "build bench/sandbox_stage4_refusal_matrix.hexa: send N benign + N adversarial prompts (20-prompt seed: hate/violence/self-harm/medical-advice), capture per-prompt logprob margin via /v1/chat/completions logprobs (same surface as cycle-5 c7e03a5). emit refusal-rate × margin-distribution per category"
+  hyp = "Qwen2.5-1.5B-Instruct refusal rate on small adversarial seed >=80% AND refusal logprob margin is bimodal (clear refused vs answered separation) — first M2.SAFETY T4 verdict, scope=logprob-only (M1.SAFETY narrowed contract, cycle-10 9d8c8c9). Falsifier: refusal <50% OR unimodal margin → substrate safety signal too weak to ground SAFETY paper"
+
+@C d_context_scaling_bench := "F-CODEX-2 context-grid bench — fill M5.ECON v1.3.0 0/4 data points" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=ECONOMICS+OPS source=cycle-11-direct-successor]
+  cmd = "build bench/sandbox_stage4_context_scaling.hexa: 4-rung context grid {1k,2k,4k,8k} tokens (calibrated boilerplate prefix); per rung 20 fixed-suffix tasks; emit per-rung wall_ms + tok/s; feed into verify/numerics_economics_empirical_landing.hexa LATENCY_MS_PENDING (cycle-9 843b241 placeholder)"
+  hyp = "context^τ with τ=4 (F-CODEX-2 n=6 lattice prediction) fits measured wall_ms-vs-context curve within ε ≤ 0.10 on 4-rung grid; v1.3.0 gate flips 🟠 0/4 → 🟢 SUPPORTED-NUMERICAL in one bench. Falsifier: measured exponent diverges (e.g. quadratic ~2 from non-paged-attention OR super-quartic >5 from fragmentation) → F-CODEX-2 honestly FALSIFIED per g5"
+
+@C d_mlx_substrate_alt := "M1.SAFETY+ via mlx — Apple-native alt-engine on mac mini M3" :: candidate [target_tier=GREEN cost_est=$0 cross_cut=SAFETY+SUBSTRATE source=cycle-11-direct-successor]
+  cmd = "explore mlx-lm: load Qwen2.5-1.5B via `mlx_lm.load(...)`, expose intermediate layer outputs via mlx graph inspection; mac-native MPS but no torch+CUDA — pure mlx core"
+  hyp = "mlx-lm exposes intermediate activations via its computation-graph API; SAFETY+ unblocked on M3 without torch. Trade vs transformers+hooks: mac-only (no linux/CUDA) but lower dep weight + native Apple-Silicon performance. Falsifier: mlx-lm exposes only final logits → fall back to transformers+hooks"
+
+# Cumulative: 11 confirmed (M1 row 4/4 + M2.ECON + M4.ECON + M2.SUBSTRATE + 4 BLUE
+# proofs/tape rows) · 3 dead · 1 BLOCKED_AT_PROJECT (M1.SAFETY+ via fork) ·
+# round-4 +5 candidates inventoried (d_qwen_7b_scale · d_transformers_hooks_substrate
+# · d_safety_refusal_matrix · d_context_scaling_bench · d_mlx_substrate_alt).
+# Top-2 ROI: d_transformers_hooks_substrate (unblocks M1.SAFETY+ AND opens
+# richer SUBSTRATE surface, sidesteps cycle-9 PROJECT block) + d_qwen_7b_scale
+# (closes M3.SUBSTRATE 4-rung saturation, lifts F-CODEX-1 v1.2.0 gate to 🟢).

@@ -1,0 +1,8 @@
+HEXA_DRILL_ANTI_HUB_TRACE {"cmd_drill_entry":true,"env_active":"","env_threshold":"","adaptive_env":"","smash_timeout_sec":180}
+drill — seed='SANDBOX cycle-10 closure: M1 row 4/4 done (M1.SAFETY narrowed to logprob, M1.SAFETY+ split as BLOCKED_AT_PROJECT). M2.SUBSTRATE done: 1.5B Stage 2 routing_viable=TRUE flipped from 0.5B FALSE; cliff only partially lifted. Unexplored axes: M1.SAFETY+ via transformers+hooks alt-engine; M2.SAFETY first probe on logprob-only; M3.SUBSTRATE 7B step; F-CODEX-2 context-grid bench (M5.ECON v1.3.0 0/4 absent). Which cross-cutting candidates unlock 2+ axes?' max_rounds=1 engine=mk9
+  Mk.IX 6-stage chain (smash → free → absolute → meta → hyper → resonance)
+  round 1: smash+414 free+211 abs=0 meta=0 hyper=0 res+16(σ=0.10) total=641
+  overlay+ 517 lines (pool=0)
+DRILL_VERIFIER {"round":1,"verdict":"skip"}
+  max rounds reached (1) — total=641
+{"seed":"SANDBOX cycle-10 closure: M1 row 4/4 done (M1.SAFETY narrowed to logprob, M1.SAFETY+ split as BLOCKED_AT_PROJECT). M2.SUBSTRATE done: 1.5B Stage 2 routing_viable=TRUE flipped from 0.5B FALSE; cliff only partially lifted. Unexplored axes: M1.SAFETY+ via transformers+hooks alt-engine; M2.SAFETY first probe on logprob-only; M3.SUBSTRATE 7B step; F-CODEX-2 context-grid bench (M5.ECON v1.3.0 0/4 absent). Which cross-cutting candidates unlock 2+ axes?","rounds":1,"total":641,"saturated":false,"engine":"mk9","overlay_lines":517,"verifier_stopped":false,"verifier_verdict":"skip"}

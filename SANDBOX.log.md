@@ -7,6 +7,26 @@
 
 ---
 
+## 2026-05-24 — kick round 4 — 5 new cross-cutting candidates (post-cycle-10 closure)
+
+Ran `hexa kick --rounds 1` against the post-cycle-10/11 context
+(M1 row 4/4, M2.SUBSTRATE done, M1.SAFETY+ BLOCKED_AT_PROJECT,
+F-CODEX-2 0/4). mk9 641 atoms, 517 overlay lines; raw at
+`.discoveries/sandbox-kick4.raw`. Five candidates appended to
+`.discoveries/sandbox.tape`:
+
+| slug | tier | $est | cross-cuts | unlocks |
+|:---|:-:|:-:|:---|:---|
+| `d_qwen_7b_scale` | GREEN | $0 | SUBSTRATE | M3.SUBSTRATE 4-rung saturation + F-CODEX-1 v1.2.0 |
+| `d_transformers_hooks_substrate` | GREEN | $0 | **SAFETY+ + SUBSTRATE** | M1.SAFETY+ (sidesteps cycle-9 PROJECT block) |
+| `d_safety_refusal_matrix` | GREEN | $0 | SAFETY | M2.SAFETY 1st probe (logprob-only narrowed scope) |
+| `d_context_scaling_bench` | GREEN | $0 | **ECONOMICS + OPS** | F-CODEX-2 v1.3.0 (0/4 → 4/4 in one bench) |
+| `d_mlx_substrate_alt` | GREEN | $0 | SAFETY+ + SUBSTRATE | M1.SAFETY+ via Apple-native mlx |
+
+Top-2 ROI: `d_transformers_hooks_substrate` (unblocks 2 domains via
+known-good library, no fork required) + `d_qwen_7b_scale` (the 4th
+ladder rung directly closes the F-CODEX-1 release gate).
+
 ## 2026-05-24 — M4.SUBSTRATE paper scaffold (DRAFT_PENDING)
 
 Reserved the canonical SUBSTRATE paper home per

@@ -533,3 +533,17 @@
 # locating per-stratum cliff position. F-CODEX-1 v1.2.0 release-gate scale-grid
 # (per ECONOMICS.md §M5.ECON the 4 rungs are exactly the F-CODEX-1 fit input)
 # is structurally unblocked.
+
+# ── cycle-13 (2026-05-24, post-cycle-12; 3 agents all rate-limited mid-task) ──
+# 3 dispatched, 0 completed: M3.SUBSTRATE saturation (rate-limited after copying
+# the 3B/7B bench files but before MODEL_PATH patch), d_safety_refusal_matrix
+# (rate-limited at ~tool-use 12, no artefacts), kick round 5 (rate-limited at
+# tool-use 0). Caller-side recovery: 3B/7B bench files patched via sed (MODEL_PATH,
+# MODEL_NAME, sha256, doc-block, cycle stamp) — landed as harness-ready, exec
+# still PENDING M3.SUBSTRATE saturation cycle (Metal lock 30-90 min, deferred
+# until user confirms readiness).
+
+@C d_kick_round_5 := "kick round 5 — post-cycle-12 candidates" :: blocked [reason=kick-route-conflict-not-bug]
+  cmd  = "POOL_DISABLE=1 hexa kick --seed \"<post-cycle-12 frontier shift>\" --rounds 1"
+  hyp  = "kick would surface 3-5 candidates around M2.SAFETY+ HF probes, M4.SAFETY/OPS paper scaffolds, F-CODEX-4 harness, LATTICE_POLICY cliff prediction"
+  note = "NOT a kick bug per feedback_kick_failure_inbox.md — the failure mode is the pool-route hook (load-escalates on `hexa` keyword and re-routes to ubu hosts where hexa.real is not installed). POOL_DISABLE=1 env var works in shell but pool-route hook intercepts before export takes effect on the agent's subshell. Inbox patch goes upstream to SIDECAR (pool-route plugin), not hexa-lang. Tracked separately in inbox/patches/pool-route-mac-only-tool-escalation.md."

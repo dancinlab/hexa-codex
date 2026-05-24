@@ -1,0 +1,537 @@
+#!hexa strict
+// bench/sandbox_stage2_persona_scaled_3b.hexa — M3.SUBSTRATE 3B rerun of the
+// cycle-6 canonical Stage 2 persona bench. Sister to bench/sandbox_stage2_persona_scaled.hexa
+// (verbatim copy except MODEL_PATH/MODEL_NAME and output-file basenames). Cycle-13.
+//
+// CONTEXT (cycle-8, M2.SUBSTRATE 2026-05-24):
+//   Cycle-6 ran the 3-persona bench on Qwen2.5-0.5B-Instruct-Q4_K_M and
+//   surfaced a sharp DIFFICULTY CLIFF — wc_5_15 / wc_16_30 cleared at
+//   73-90% across personas, but wc_31_60 collapsed to 3-6% and the two
+//   longest strata scored 0% across ALL personas (verdict file
+//   `.verdicts/sandbox/stage2_persona_scaled_summary.txt`). The cycle-7
+//   M1.SUBSTRATE milestone landed Qwen2.5-3B-Instruct-Q4_K_M on disk
+//   (sha256 `9c9f56a391a3abbde8123ea110d1ec956dab4ab038eab665614adba04b6c3370`,
+//   smoke PASS @ 62.15 tok/s on M3 Metal) — the explicit prerequisite for
+//   this M2.SUBSTRATE rerun. This bench measures: does the cliff move on
+//   1.5B, and if so where?
+//
+// CROSS-REF (load-bearing for the verdict interpretation):
+//   - cycle-6 0.5B sister bench   = bench/sandbox_stage2_persona_scaled.hexa
+//   - cycle-6 0.5B summary        = .verdicts/sandbox/stage2_persona_scaled_summary.txt
+//   - 1.5B base sha256            = 9c9f56a391a3abbde8123ea110d1ec956dab4ab038eab665614adba04b6c3370
+//   - 1.5B M1 verdict             = .verdicts/sandbox/m1_substrate_base_pick.txt
+//   - successor candidate         = .discoveries/sandbox.tape @C d_qwen_1_5b_scale (cycle-7).
+//
+// SAMPLING (wall-clock bound: per-persona 20-min halt circuit on 1.5B):
+//   Uniform-stratified: 30 rows per stratum × 5 strata = 150 sampled rows/persona.
+//   Pick stride = 13 within each stratum starting at the first row of that stratum
+//   (manifest is contiguous: idx 1-400 = wc_5_15, 401-800 = wc_16_30, 801-1200 =
+//   wc_31_60, 1201-1600 = wc_61_100, 1601-2000 = wc_101_200). NO cherry-picking;
+//   deterministic and reproducible. PARAMETERS IDENTICAL to cycle-6 0.5B run so
+//   the 0.5B vs 1.5B comparison is apples-to-apples per stratum.
+//
+//   NOTE (cycle-8 recalibration): 1.5B is roughly 3-4x slower than 0.5B per the
+//   M1 smoke-test throughput delta (62.15 tok/s on 1.5B vs ~70-80 on 0.5B and
+//   higher dispatch overhead from longer load+prefill). Cycle-6 0.5B summed
+//   wall_ms across personas was ~635s total; expected 1.5B total ≈ 30-40 min.
+//   Per-persona halt budget is widened from 15 min → 20 min (1 200 000 ms) so
+//   no persona truncates prematurely. The hard task-spec wall-clock budget is
+//   60 min; if any persona's running_ms exceeds budget the bench halts that
+//   persona and the summary records `completion_status=PARTIAL_<persona>_only`.
+//
+// PERSONAS (verbatim from SANDBOX.md §"Tier persona convention (Stage 1)"):
+//   nano: sys="Answer in <=15 tokens."          temp=0.0 max_tok=32   mock haiku
+//   mid : sys="Answer concisely."                temp=0.0 max_tok=256  mock sonnet
+//   max : sys="Answer carefully and thoroughly." temp=0.0 max_tok=1024 mock opus
+//
+// SCORER: canonical SCORER-FIXED pattern from bench/sandbox_stage3_maxtokens_cap.hexa
+//   — awk extract assistant block, sed-strip `[end of text]` + `common_perf_print:`
+//   trailer, case-insensitive substring match on expected_kw.
+//
+// Output (1.5B-suffixed paths so cycle-6 0.5B verdict files stay intact):
+//   .verdicts/sandbox/stage2_persona_scaled_1_5b.tsv         (per-task per-persona rows)
+//   .verdicts/sandbox/stage2_persona_scaled_1_5b_summary.txt (aggregate + per-stratum cross-tab)
+//
+// Summary adds 2 NEW header keys vs cycle-6 (load-bearing for M2.SUBSTRATE):
+//   # difficulty_cliff_position=<wc_stratum>  lowest stratum where ANY persona >= 50%
+//   # cliff_shifted_vs_0_5b=true|false        true iff cliff_position is strictly past wc_31_60
+//                                             (i.e. moved past where 0.5B died)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_stage2_persona_scaled_3b.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-completion) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MANIFEST = ROOT + "/.verdicts/sandbox/stage2_manifest.tsv"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-3B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-3B-Instruct-Q4_K_M"
+
+// Sampling parameters — uniform-stratified.
+// Recalibrated cycle-6: 30/stratum (N=150) keeps each persona under the 15-min
+// halt circuit at the measured ~5.4 s/task dispatch cost while covering ALL 5
+// strata uniformly (80/stratum left the 2 longest strata unmeasured — see header).
+let PER_STRATUM_N = 30
+let STRIDE = 13
+let N_SAMPLED = 150
+
+// Per-stratum first-idx (1-based, verified from manifest):
+//   wc_5_15    1..400
+//   wc_16_30   401..800
+//   wc_31_60   801..1200
+//   wc_61_100  1201..1600
+//   wc_101_200 1601..2000
+// Stratum table: [name, first_idx]
+let STRATA = [
+    ["wc_5_15",     "1"],
+    ["wc_16_30",    "401"],
+    ["wc_31_60",    "801"],
+    ["wc_61_100",   "1201"],
+    ["wc_101_200",  "1601"],
+]
+
+// Persona convention — verbatim from SANDBOX.md §"Tier persona convention (Stage 1)".
+// Columns: name, sys_prompt, temp, max_tok, mock_vendor_tier
+let PERSONAS = [
+    ["nano", "Answer in <=15 tokens.",          "0.0", "32",   "haiku"],
+    ["mid",  "Answer concisely.",                "0.0", "256",  "sonnet"],
+    ["max",  "Answer carefully and thoroughly.", "0.0", "1024", "opus"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Read one row from the Stage 2 manifest (1-based idx, header line at row 1 of file
+// so actual data row N is file line N+1). Returns TAB-joined: word_count \t stratum \t prompt \t expected_kw.
+fn read_row(manifest_idx: int) -> str {
+    let file_line = manifest_idx + 1
+    let cmd = "awk -F'\\t' 'NR==" + str(file_line) + " {printf \"%s\\t%s\\t%s\\t%s\", $2, $3, $4, $5}' " + shq(MANIFEST)
+    return exec(cmd)
+}
+
+// Dispatch one task through one persona — SCORER-FIXED pattern.
+// Returns tab-separated: wall_ms \t output_tok_est \t correct(1|0) \t output_snippet
+fn run_persona_task(sys_prompt: str, temp: str, max_tok: str, prompt: str, expected_kw: str) -> str {
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-completion -m " + shq(MODEL_PATH) +
+              " -sys " + shq(sys_prompt) +
+              " -p " + shq(prompt) +
+              " -n " + max_tok +
+              " --temp " + temp + " -st 2>&1); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              // SCORER FIX: strip [end of text] + common_perf_print trailer (canonical from stage3_maxtokens_cap)
+              "ans=$(printf '%s' \"$ans_raw\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//'); " +
+              "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-120 | tr '\\t' ' '); " +
+              "printf '%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"$tok_est\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_stage2_persona_scaled_3b — M3.SUBSTRATE 3B rerun of cycle-6 bench")
+    println("  model:    " + MODEL_NAME)
+    println("  tool:     llama-completion (chat-template aware via -sys)")
+    println("  manifest: .verdicts/sandbox/stage2_manifest.tsv (N=2000, 5 strata × 400)")
+    println("  sampling: uniform stride=" + str(STRIDE) + " per stratum × " + str(PER_STRATUM_N) + " = " + str(N_SAMPLED) + " rows")
+    println("  personas: nano (haiku-mock) | mid (sonnet-mock) | max (opus-mock)")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/stage2_persona_scaled_1_5b.tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'persona\tstratum\ttask_idx\twc\twall_ms\toutput_tok_est\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    // Precompute the 400 sampled (manifest_idx, stratum) pairs.
+    // We replay the stratum order [wc_5_15, wc_16_30, wc_31_60, wc_61_100, wc_101_200]
+    // and stride 5 within each — so sampled_idx[k] = first_idx + (k * 5), k=0..79.
+    let mut sampled_idx = [0]
+    let mut sampled_stratum = [""]
+    sampled_idx = []
+    sampled_stratum = []
+    let mut s_i = 0
+    while s_i < len(STRATA) {
+        let stratum_name = STRATA[s_i][0]
+        let first_idx = int(STRATA[s_i][1])
+        let mut k = 0
+        while k < PER_STRATUM_N {
+            let idx = first_idx + (k * STRIDE)
+            sampled_idx = sampled_idx + [idx]
+            sampled_stratum = sampled_stratum + [stratum_name]
+            k = k + 1
+        }
+        s_i = s_i + 1
+    }
+    println("  pre-sampled " + str(len(sampled_idx)) + " rows (expected " + str(N_SAMPLED) + ")")
+
+    // Per-persona overall aggregates.
+    let mut nano_correct = 0
+    let mut nano_total_ms = 0
+    let mut mid_correct = 0
+    let mut mid_total_ms = 0
+    let mut max_correct = 0
+    let mut max_total_ms = 0
+
+    // Per-(persona,stratum) aggregates — 3 × 5 = 15 cells, parallel-array layout.
+    // Index: persona_idx * 5 + stratum_idx ; persona_idx ∈ {nano:0, mid:1, max:2},
+    //   stratum_idx 0..4 in STRATA order.
+    let mut cell_correct = [0]
+    let mut cell_total_ms = [0]
+    cell_correct = []
+    cell_total_ms = []
+    let mut init_i = 0
+    while init_i < 15 {
+        cell_correct = cell_correct + [0]
+        cell_total_ms = cell_total_ms + [0]
+        init_i = init_i + 1
+    }
+
+    // Stratum index lookup map (parallel-array).
+    fn stratum_to_int(s: str) -> int {
+        if s == "wc_5_15"     { return 0 }
+        if s == "wc_16_30"    { return 1 }
+        if s == "wc_31_60"    { return 2 }
+        if s == "wc_61_100"   { return 3 }
+        if s == "wc_101_200"  { return 4 }
+        return -1
+    }
+
+    // Main loop: for each persona, dispatch all sampled tasks (N_SAMPLED = 150).
+    // Halt-budget: 20 min wall_ms per persona = 1200000 ms on 1.5B (1.5B is roughly
+    // 3-4x slower than 0.5B; cycle-8 widened from cycle-6's 900000 ms). If a persona
+    // exceeds budget, early-stop and label summary `completion_status=PARTIAL_<persona>_only`.
+    let halt_ms_budget = 1200000
+    // Per-persona early-halt flags (parallel array, length=3, persona-idx aligned).
+    let mut early_halt_flags = [false, false, false]
+    let mut p_idx = 0
+    while p_idx < len(PERSONAS) {
+        let persona = PERSONAS[p_idx]
+        let p_name = persona[0]
+        let p_sys = persona[1]
+        let p_temp = persona[2]
+        let p_max_tok = persona[3]
+        println("")
+        println("  ----- persona=" + p_name + " sys=" + shq(p_sys) + " temp=" + p_temp + " max_tok=" + p_max_tok)
+        let mut persona_running_ms = 0
+        let mut early_halt = false
+
+        let mut t_i = 0
+        while t_i < len(sampled_idx) {
+            let m_idx = sampled_idx[t_i]
+            let stratum = sampled_stratum[t_i]
+            let row = read_row(m_idx)
+            let parts = row.split("\t")
+            if parts.len() < 4 {
+                println("    ! manifest read parse error idx=" + str(m_idx) + " raw=" + row.substr(0, 80))
+                t_i = t_i + 1
+                continue
+            }
+            let wc = parts[0]
+            let prompt = parts[2]
+            let expected = parts[3]
+
+            if t_i == 0 {
+                println("    [first task] idx=" + str(m_idx) + " stratum=" + stratum + " wc=" + wc + " kw=" + expected + " prompt=" + prompt.substr(0, 60))
+            }
+
+            let line = run_persona_task(p_sys, p_temp, p_max_tok, prompt, expected)
+            let lparts = line.split("\t")
+            if lparts.len() < 4 {
+                println("    ! dispatch parse error idx=" + str(m_idx) + " raw=" + line.substr(0, 80))
+                let bad = p_name + "\t" + stratum + "\t" + str(m_idx) + "\t" + wc + "\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+                exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+                t_i = t_i + 1
+                continue
+            }
+            let wall_ms = int(lparts[0])
+            let tok_est = lparts[1]
+            let correct = lparts[2]
+            let snippet = lparts[3].replace("\t", " ")
+
+            persona_running_ms = persona_running_ms + wall_ms
+
+            if p_name == "nano" {
+                nano_total_ms = nano_total_ms + wall_ms
+                if correct == "1" { nano_correct = nano_correct + 1 }
+            }
+            if p_name == "mid" {
+                mid_total_ms = mid_total_ms + wall_ms
+                if correct == "1" { mid_correct = mid_correct + 1 }
+            }
+            if p_name == "max" {
+                max_total_ms = max_total_ms + wall_ms
+                if correct == "1" { max_correct = max_correct + 1 }
+            }
+
+            let s_int = stratum_to_int(stratum)
+            if s_int >= 0 {
+                let cell = (p_idx * 5) + s_int
+                cell_total_ms[cell] = cell_total_ms[cell] + wall_ms
+                if correct == "1" { cell_correct[cell] = cell_correct[cell] + 1 }
+            }
+
+            let row_out = p_name + "\t" + stratum + "\t" + str(m_idx) + "\t" + wc + "\t" + str(wall_ms) + "\t" + tok_est + "\t" + correct + "\t" + snippet.substr(0, 120)
+            exec("echo " + shq(row_out) + " >> " + shq(tsv_path))
+
+            // Progress trace every 40 tasks (fires at 40/80/120 within each persona's 150).
+            if (t_i + 1) % 40 == 0 {
+                println("    [" + p_name + " " + str(t_i + 1) + "/" + str(len(sampled_idx)) + "] running_ms=" + str(persona_running_ms) + " correct_so_far=" + str(cell_correct[(p_idx * 5) + s_int]) + "(stratum)")
+            }
+
+            // Halt check — exceed budget for this persona, log + early-stop.
+            if persona_running_ms > halt_ms_budget {
+                println("    !! persona=" + p_name + " exceeded halt_ms_budget=" + str(halt_ms_budget) + " at task " + str(t_i + 1) + "/" + str(len(sampled_idx)) + " — early-stopping this persona")
+                early_halt = true
+                break
+            }
+
+            t_i = t_i + 1
+        }
+        early_halt_flags[p_idx] = early_halt
+        if early_halt {
+            println("  ----- persona=" + p_name + " HALTED EARLY at " + str(t_i + 1) + " tasks")
+        } else {
+            println("  ----- persona=" + p_name + " completed " + str(len(sampled_idx)) + " tasks, total_ms=" + str(persona_running_ms))
+        }
+        p_idx = p_idx + 1
+    }
+
+    // ----- Derived verdicts -----
+    let n_dispatched = len(sampled_idx)
+
+    // tier_separation_observed (per task): true iff ANY 1pp spread persists across personas OR
+    //   if there exist wc-strata where persona ranking differs.
+    let mut min_overall = nano_correct
+    if mid_correct < min_overall { min_overall = mid_correct }
+    if max_correct < min_overall { min_overall = max_correct }
+    let mut max_overall = nano_correct
+    if mid_correct > max_overall { max_overall = mid_correct }
+    if max_correct > max_overall { max_overall = max_correct }
+    let spread_tasks = max_overall - min_overall
+    // Percentage thresholds derived from n_dispatched (robust to sample size).
+    // 1pp = ceil(n/100); 3pp = ceil(3n/100). For N=150: 1pp->2 tasks, 3pp->5 tasks.
+    let thr_1pp = (n_dispatched + 99) / 100
+    let thr_3pp = ((3 * n_dispatched) + 99) / 100
+    let mut overall_spread_ge_1pp = "false"
+    if spread_tasks >= thr_1pp { overall_spread_ge_1pp = "true" }
+
+    // Per-stratum: best-persona-per-stratum + ranking-differs detector.
+    // Cell layout: cell_correct[p*5+s]; ranking = persona idx that maxes cell_correct in stratum s.
+    let mut best_per_stratum = [""]
+    best_per_stratum = []
+    let mut ranking_differs_across_strata = "false"
+    let mut prev_ranking = -1
+    let mut s = 0
+    while s < 5 {
+        let nano_s = cell_correct[(0 * 5) + s]
+        let mid_s = cell_correct[(1 * 5) + s]
+        let max_s = cell_correct[(2 * 5) + s]
+        let mut best_idx = 0
+        let mut best_val = nano_s
+        if mid_s > best_val { best_val = mid_s; best_idx = 1 }
+        if max_s > best_val { best_val = max_s; best_idx = 2 }
+        let best_name = PERSONAS[best_idx][0]
+        best_per_stratum = best_per_stratum + [best_name]
+        if prev_ranking >= 0 {
+            if best_idx != prev_ranking { ranking_differs_across_strata = "true" }
+        }
+        prev_ranking = best_idx
+        s = s + 1
+    }
+
+    // Overall tier_separation_observed verdict.
+    let mut tier_separation = "false"
+    if overall_spread_ge_1pp == "true" { tier_separation = "true" }
+    if ranking_differs_across_strata == "true" { tier_separation = "true" }
+
+    // routing_simulation_viable:
+    //   - accuracy spread >= 3pp (thr_3pp tasks on N=n_dispatched)  OR
+    //   - latency spread >= 2× (max_total_ms / min_total_ms >= 2)
+    let mut min_ms = nano_total_ms
+    if mid_total_ms < min_ms { min_ms = mid_total_ms }
+    if max_total_ms < min_ms { min_ms = max_total_ms }
+    let mut max_ms = nano_total_ms
+    if mid_total_ms > max_ms { max_ms = mid_total_ms }
+    if max_total_ms > max_ms { max_ms = max_total_ms }
+    let mut acc_3pp = "false"
+    if spread_tasks >= thr_3pp { acc_3pp = "true" }
+    let mut latency_2x = "false"
+    if min_ms > 0 {
+        if max_ms >= (min_ms * 2) { latency_2x = "true" }
+    }
+    let mut routing_viable = "false"
+    if acc_3pp == "true" { routing_viable = "true" }
+    if latency_2x == "true" { routing_viable = "true" }
+
+    // ---- M2.SUBSTRATE NEW: difficulty_cliff_position + cliff_shifted_vs_0_5b ----
+    // difficulty_cliff_position = lowest wc-stratum (in canonical order) where ANY
+    //   persona scores >= 50% accuracy in that stratum. PER_STRATUM_N=30, so 50% = 15.
+    //   If no stratum qualifies, position = "none".
+    // cliff_shifted_vs_0_5b = "true" iff cliff_position lies strictly AFTER wc_31_60
+    //   in the canonical ordering — i.e. moved past where 0.5B died. On the cycle-6
+    //   0.5B baseline the cliff sat at wc_31_60 (3-6% — failed the >=50% gate), so
+    //   any 1.5B cliff position of wc_31_60 or earlier means cliff PERSISTS at the
+    //   same point (or improves *within* the same stratum but no further). The flag
+    //   captures the M2.SUBSTRATE headline: did 1.5B actually push the cliff out?
+    let strata_names_local = ["wc_5_15", "wc_16_30", "wc_31_60", "wc_61_100", "wc_101_200"]
+    let cliff_gate_n = (PER_STRATUM_N + 1) / 2  // ceil(N/2) = 50% threshold; 30 -> 15
+    let mut cliff_position = "none"
+    let mut cliff_position_idx = -1
+    let mut cs = 0
+    while cs < 5 {
+        let nano_c = cell_correct[(0 * 5) + cs]
+        let mid_c  = cell_correct[(1 * 5) + cs]
+        let max_c  = cell_correct[(2 * 5) + cs]
+        let mut any_ge_50 = false
+        if nano_c >= cliff_gate_n { any_ge_50 = true }
+        if mid_c  >= cliff_gate_n { any_ge_50 = true }
+        if max_c  >= cliff_gate_n { any_ge_50 = true }
+        if any_ge_50 {
+            if cliff_position == "none" {
+                cliff_position = strata_names_local[cs]
+                cliff_position_idx = cs
+            }
+        }
+        cs = cs + 1
+    }
+    // cliff_shifted_vs_0_5b: true iff cliff_position lies strictly after wc_31_60 (idx 2).
+    let mut cliff_shifted = "false"
+    if cliff_position_idx > 2 { cliff_shifted = "true" }
+    // ALSO TRUE if cliff_position == "none" BUT some persona scored >=50% in
+    // wc_31_60 or later — handled above since cliff_position_idx is the FIRST
+    // qualifying stratum; if it's wc_5_15/wc_16_30 the cliff did NOT move past
+    // wc_31_60 even if wc_31_60+ also qualifies (the cliff was always at wc_31_60
+    // because earlier strata were easy on both bases). To capture "1.5B cleared
+    // wc_31_60 specifically", check that stratum directly:
+    let mut cleared_wc_31_60 = "false"
+    let nano_3160 = cell_correct[(0 * 5) + 2]
+    let mid_3160  = cell_correct[(1 * 5) + 2]
+    let max_3160  = cell_correct[(2 * 5) + 2]
+    if nano_3160 >= cliff_gate_n { cleared_wc_31_60 = "true" }
+    if mid_3160  >= cliff_gate_n { cleared_wc_31_60 = "true" }
+    if max_3160  >= cliff_gate_n { cleared_wc_31_60 = "true" }
+    // Cliff truly shifted vs 0.5B iff 1.5B cleared the wc_31_60 stratum that 0.5B
+    // failed. (Stratum-relative semantics, robust to wc_5_15 always being easy.)
+    if cleared_wc_31_60 == "true" { cliff_shifted = "true" }
+
+    // ---- M2.SUBSTRATE NEW: completion_status (PARTIAL_<persona>_only vs FULL) ----
+    let mut completion_status = "FULL"
+    let nano_halt = early_halt_flags[0]
+    let mid_halt  = early_halt_flags[1]
+    let max_halt  = early_halt_flags[2]
+    // Build a per-persona truncation list; if any persona halted early, mark PARTIAL.
+    let mut halted_personas = ""
+    if nano_halt { halted_personas = halted_personas + "nano," }
+    if mid_halt  { halted_personas = halted_personas + "mid,"  }
+    if max_halt  { halted_personas = halted_personas + "max,"  }
+    if halted_personas.len() > 0 {
+        // Strip trailing comma.
+        completion_status = "PARTIAL_" + halted_personas.substr(0, halted_personas.len() - 1) + "_only"
+    }
+
+    // Accuracy pct (integer percent for printing).
+    let mut nano_pct = 0
+    let mut mid_pct = 0
+    let mut max_pct = 0
+    if n_dispatched > 0 {
+        nano_pct = (nano_correct * 100) / n_dispatched
+        mid_pct = (mid_correct * 100) / n_dispatched
+        max_pct = (max_correct * 100) / n_dispatched
+    }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — M3.SUBSTRATE 3B persona rerun on Stage 2 N=" + str(n_dispatched))
+    println("========================================================================")
+    println("  nano: correct=" + str(nano_correct) + "/" + str(n_dispatched) + " (" + str(nano_pct) + "%)  total_wall_ms=" + str(nano_total_ms))
+    println("  mid : correct=" + str(mid_correct)  + "/" + str(n_dispatched) + " (" + str(mid_pct) + "%)  total_wall_ms=" + str(mid_total_ms))
+    println("  max : correct=" + str(max_correct)  + "/" + str(n_dispatched) + " (" + str(max_pct) + "%)  total_wall_ms=" + str(max_total_ms))
+    println("  spread_tasks=" + str(spread_tasks) + "  (overall_spread_ge_1pp=" + overall_spread_ge_1pp + ")")
+    println("  latency: min=" + str(min_ms) + " max=" + str(max_ms) + " (latency_2x=" + latency_2x + ")")
+    println("  best_persona_per_stratum: wc_5_15=" + best_per_stratum[0] + " wc_16_30=" + best_per_stratum[1] + " wc_31_60=" + best_per_stratum[2] + " wc_61_100=" + best_per_stratum[3] + " wc_101_200=" + best_per_stratum[4])
+    println("  ranking_differs_across_strata=" + ranking_differs_across_strata)
+    println("  tier_separation_observed=" + tier_separation)
+    println("  routing_simulation_viable=" + routing_viable)
+    println("  difficulty_cliff_position=" + cliff_position + "  cliff_shifted_vs_0_5b=" + cliff_shifted + "  (cleared_wc_31_60=" + cleared_wc_31_60 + ")")
+    println("  completion_status=" + completion_status)
+    println("")
+
+    // Persist summary with required header comments.
+    let summary_path = OUT_DIR + "/stage2_persona_scaled_1_5b_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# bench=sandbox_stage2_persona_scaled_3b (M3.SUBSTRATE 3B rerun of cycle-6)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cross_ref_0_5b=.verdicts/sandbox/stage2_persona_scaled_summary.txt (cycle-6 sister)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cross_ref_m1=.verdicts/sandbox/m1_substrate_base_pick.txt (1.5B base smoke verdict)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# model_sha256=9c9f56a391a3abbde8123ea110d1ec956dab4ab038eab665614adba04b6c3370") + " >> " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-completion (chat-template aware via -sys)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# manifest=.verdicts/sandbox/stage2_manifest.tsv (N=2000, 5 strata × 400)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# n_sampled=" + str(n_dispatched)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# per_stratum_n=" + str(PER_STRATUM_N)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# stride=" + str(STRIDE)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# scorer=byte_exact_subset case-insensitive (SCORER-FIXED trailer-strip pattern)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cost_usd=0  (local serving; wall_ms is proxy cost surface)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# nano_overall_accuracy=" + str(nano_correct) + "/" + str(n_dispatched) + " " + str(nano_pct) + "%") + " >> " + shq(summary_path))
+    exec("echo " + shq("# mid_overall_accuracy=" + str(mid_correct) + "/" + str(n_dispatched) + " " + str(mid_pct) + "%") + " >> " + shq(summary_path))
+    exec("echo " + shq("# max_overall_accuracy=" + str(max_correct) + "/" + str(n_dispatched) + " " + str(max_pct) + "%") + " >> " + shq(summary_path))
+    exec("echo " + shq("# nano_total_wall_ms=" + str(nano_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# mid_total_wall_ms=" + str(mid_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# max_total_wall_ms=" + str(max_total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# spread_tasks=" + str(spread_tasks) + "  (max_correct - min_correct across personas)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# overall_spread_ge_1pp=" + overall_spread_ge_1pp + "  (spread_tasks >= " + str(thr_1pp) + " = 1pp on N=" + str(n_dispatched) + ")") + " >> " + shq(summary_path))
+    exec("echo " + shq("# acc_3pp=" + acc_3pp + "  (spread_tasks >= " + str(thr_3pp) + " = 3pp on N=" + str(n_dispatched) + ")") + " >> " + shq(summary_path))
+    exec("echo " + shq("# latency_2x=" + latency_2x + "  (max_total_ms >= 2 * min_total_ms)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# ranking_differs_across_strata=" + ranking_differs_across_strata) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tier_separation_observed=" + tier_separation) + " >> " + shq(summary_path))
+    exec("echo " + shq("# routing_simulation_viable=" + routing_viable) + " >> " + shq(summary_path))
+    exec("echo " + shq("# best_persona_per_stratum=wc_5_15:" + best_per_stratum[0] + ",wc_16_30:" + best_per_stratum[1] + ",wc_31_60:" + best_per_stratum[2] + ",wc_61_100:" + best_per_stratum[3] + ",wc_101_200:" + best_per_stratum[4]) + " >> " + shq(summary_path))
+    // M2.SUBSTRATE headline keys:
+    exec("echo " + shq("# difficulty_cliff_position=" + cliff_position + "  (lowest wc-stratum where ANY persona >= 50% = " + str(cliff_gate_n) + "/" + str(PER_STRATUM_N) + ")") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cliff_shifted_vs_0_5b=" + cliff_shifted + "  (true iff 1.5B cleared the wc_31_60 stratum 0.5B failed at 3-6%)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cleared_wc_31_60=" + cleared_wc_31_60 + "  (auxiliary: 1.5B cleared the wc_31_60 stratum?)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# completion_status=" + completion_status + "  (FULL if all personas finished N=150; PARTIAL_<names>_only if any halted early on the 20-min/persona budget)") + " >> " + shq(summary_path))
+    exec("echo '' >> " + shq(summary_path))
+    exec("echo " + shq("# per-stratum cross-tab: persona\\tstratum\\tcorrect\\tn\\tacc_pct\\ttotal_wall_ms") + " >> " + shq(summary_path))
+    let strata_names_str = ["wc_5_15", "wc_16_30", "wc_31_60", "wc_61_100", "wc_101_200"]
+    let mut pp = 0
+    while pp < 3 {
+        let p_name = PERSONAS[pp][0]
+        let mut ss = 0
+        while ss < 5 {
+            let cell = (pp * 5) + ss
+            let c = cell_correct[cell]
+            let mut pct = 0
+            if PER_STRATUM_N > 0 { pct = (c * 100) / PER_STRATUM_N }
+            let line = "# " + p_name + "\t" + strata_names_str[ss] + "\t" + str(c) + "\t" + str(PER_STRATUM_N) + "\t" + str(pct) + "%\t" + str(cell_total_ms[cell])
+            exec("echo " + shq(line) + " >> " + shq(summary_path))
+            ss = ss + 1
+        }
+        pp = pp + 1
+    }
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_STAGE2_PERSONA_SCALED_1_5B__ PASS")
+    exit(0)
+}

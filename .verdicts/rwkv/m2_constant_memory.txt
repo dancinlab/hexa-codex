@@ -1,0 +1,73 @@
+# === RWKV M2 Constant-memory — verdict (T4 empirical + 🟢 closed-form recompute) ===
+# milestone=M2 Constant-memory
+# claim=RWKV-7 resident/state memory is FLAT vs a Transformer KV-cache that grows O(n) with context
+# falsifier=RWKV resident memory grows with context length beyond a flat band
+# falsifier_triggered=false  (RWKV state slope = 0.0 MiB/tok over 512→65536, a 128x ctx range)
+# verdict=SUPPORTED — M2 closed (constant-memory confirmed, NOT falsified)
+#
+# rwkv_model=RWKV7-Goose-World3-2.9B-HF-q5_k_m.gguf (arch rwkv7, attention-free RNN, NO KV-cache)
+# qwen_model=Qwen2.5-0.5B-Instruct-Q4_K_M.gguf (arch qwen2, KV-cache Transformer baseline)
+# host=mac-mini-m3 (stock brew llama.cpp 9150, Metal/UMA)
+# tool=llama-completion context-construction log (KV/recurrent buffer MiB) + /usr/bin/time -l (peak RSS)
+# cost_usd=0  (local serving)
+#
+# --- MEMORY table: cache buffer (MiB) at context construction ---
+#   ctx     QWEN_KV_MiB   RWKV_state_MiB
+#   512     6.00          20.62
+#   1024    12.00         20.62
+#   2048    24.00         20.62
+#   4096    48.00         20.62
+#   8192    96.00         20.62
+#   16384   192.00        20.62
+#   65536   (not probed)  20.62      <- RWKV state STILL 20.62 MiB at 128x the smallest ctx
+#
+# Qwen KV-cache: doubles EXACTLY when ctx doubles. Line in log:
+#   "llama_kv_cache:  MTL0 KV buffer size = N MiB"
+# RWKV recurrent state: a single fixed-size cell, context-independent. Line in log:
+#   "llama_memory_recurrent: size = 20.62 MiB (1 cells, 32 layers, 1 seqs),
+#                                    R (f32): 0.62 MiB, S (f32): 20.00 MiB"
+#
+# --- peak-RSS corroboration (/usr/bin/time -l "maximum resident set size") ---
+#   RWKV: 2356 MB @ ctx 512  ->  2353 MB @ ctx 16384   (FLAT within noise; slightly LOWER)
+#   Qwen:  512 MB @ ctx 512  ->   706 MB @ ctx 16384   (+194 MB ~= the 192 MiB KV-cache growth)
+#
+# --- CLOSED-FORM LAWS (g0, recomputed deterministically) ---
+#   L1  Qwen KV(ctx) = ctx * 12 KiB/tok = ctx * 0.01171875 MiB/tok, intercept=0, R²=1
+#       (12288 B/tok = 24 layers * 2 KV-heads * 64 head-dim * 2(K+V) * 2 bytes, EXACT)
+#   L2  RWKV state(ctx) = 20.62 MiB = const (slope 0, span 0 over 512→65536)
+#   Memory crossover: RWKV's flat 20.62 MiB equals Qwen's KV at ctx ~= 1760; beyond that
+#   RWKV uses LESS total cache memory, and the gap diverges (4.66x at ctx 8192).
+#
+# === hexa verify (verbatim) — verify/numerics_rwkv_m2m3_laws.hexa ===
+========================================================================
+  hexa-codex RWKV M2/M3 closed-form laws (math_pure recompute)
+  M2 constant-memory + M3 linear-time, vs Qwen2.5-0.5B-Q4 baseline
+========================================================================
+
+  [M2 memory]
+  [PASS] L1 Qwen KV-cache EXACT linear: slope = 12 KiB/tok, intercept = 0, R² = 1 [M2]
+         · slope=0.0117188 (analytic 0.0117188) intercept=0.0 R²=1.0
+  [PASS] L2 RWKV recurrent state FLAT over 512→65536 (128× ctx): span=0, slope=0 [M2]
+         · span=0.0 MiB  slope=0.0 MiB/tok  const=20.62 MiB
+  [PASS] L3 M2 falsifier (RWKV memory grows) NOT triggered [M2]
+         · RWKV state slope=0.0 MiB/tok ≈ 0 → flat, falsifier rejected
+
+  [M3 prefill]
+  [PASS] L4 RWKV prefill LINEAR: power-law exponent p≈1, linear R²>0.99 [M3]
+         · p=0.962172 (|p−1|<0.05)  slope=7.22626 ms/tok  R²=0.995701
+  [PASS] L5 Qwen prefill SUPERLINEAR: p_qwen>1 and p_qwen−p_rwkv>0.3 [M3]
+         · p_qwen=1.36548 p_rwkv=0.962172 Δp=0.403305 (attention O(n^>1) penalty visible)
+
+  [M3 decode]
+  [PASS] L6 RWKV decode FLAT: ms/tok max/min<1.3× and slope≈0 over 0→8192 [M3]
+         · ms/tok 98.6193→122.549  ratio=1.24265  slope=-0.00105132 per ctx-tok
+  [PASS] L7 Qwen decode GROWS linearly: slope>0, R²>0.95, 3.5× @8192 [M3]
+         · slope=0.00363425 ms/tok per ctx-tok  R²=0.985097  growth@8192=3.54789×
+
+  [falsifiers]
+  [PASS] L8 M3 falsifier (RWKV latency superlinear) NOT triggered [M3]
+         · prefill p=0.962172 (<1.1)  decode slope=-0.00105132 (≈0) → linear-time, falsifier rejected
+========================================================================
+  8/8 laws hold
+  RWKV M2 (constant-memory) + M3 (linear-time) laws: closed.
+__HEXA_CODEX_NUMERICS_RWKV_M2M3__ PASS

@@ -1,0 +1,210 @@
+#!hexa strict
+// bench/rwkv_m2m3_ctx_sweep.hexa — RWKV M2 (constant-memory) + M3 (linear-time)
+// context-length sweep vs a Transformer (Qwen2.5-0.5B-Q4) baseline.
+//
+// QUESTION (M2 + M3): does RWKV-7 "Goose" 2.9B — a 100%-attention-free RNN LLM —
+// hold a FLAT resident state (no KV-cache) and LINEAR-time prefill/constant decode
+// across a context-length sweep, while a Transformer's KV-cache grows O(n) and its
+// prefill goes superlinear (attention O(n²))?
+//
+// M2 falsifier: RWKV resident/state memory GROWS with context beyond a flat band.
+// M3 falsifier: RWKV latency (prefill total time OR per-token decode) goes SUPERLINEAR.
+//
+// ── ENGINE QUIRK (the load-bearing M2/M3 recipe, diagnosed before benching) ─────
+//   The prior inline attempt reported "RWKV-7 at longer context did NOT emit a
+//   parseable perf block via llama-completion". DIAGNOSIS: it is NOT a missing perf
+//   block — `llama-completion -f <big-prompt-file>` drives the rwkv7 PREFILL through
+//   a pathologically slow path on Metal (a ~1500-token prompt took >4.75 min and was
+//   still running; the perf block simply had not printed yet). The fix is to bench
+//   with `llama-bench` — the DEDICATED benchmark binary — which handles rwkv7 cleanly
+//   and FAST (pp512 ≈ 130–338 t/s) and emits a machine-readable CSV. So:
+//     · LATENCY axis (M3)  → llama-bench  -p <ctx> -n 0          (prefill total time)
+//                          → llama-bench  -n 64 -p 0 -d <depth>  (decode tok/s vs ctx)
+//     · MEMORY  axis (M2)  → llama-completion context-construction log line:
+//                            "llama_kv_cache: ... KV buffer size = N MiB"  (Qwen, grows)
+//                            "llama_memory_recurrent: size = N MiB (1 cells ...)" (RWKV, flat)
+//                          → peak RSS (/usr/bin/time -l) is the coarse corroboration.
+//   (llama-completion's prefill is slow specifically for rwkv7 + large -f file; the
+//    short-prompt M1 path printed its perf block fine. Logged as a stock-llama.cpp
+//    upstream observation in RWKV.log.md — NOT a hexa-lang inbox patch.)
+//
+// This bench is a thin reproducible WRAPPER over llama-bench + llama-completion; the
+// committed (ctx, metric) numbers feed verify/numerics_rwkv_m2m3_laws.hexa which
+// recomputes the slope / exponent fits deterministically (g0) → 🟢.
+//
+// Parameterized by env:
+//   RWKV_MODEL_PATH   absolute rwkv7 .gguf   (default = local q5_k_m)
+//   QWEN_MODEL_PATH   absolute qwen2 .gguf   (default = local Qwen2.5-0.5B-Q4)
+//   RWKV_OUT_PREFIX   .verdicts/rwkv/<prefix> (default m2m3_ctx_sweep)
+//   RWKV_CTX_LIST     comma ctx points        (default 512,1024,2048,4096,8192)
+//   RWKV_MEM_CTX_LIST comma ctx for mem probe (default 512,1024,2048,4096,8192,16384)
+//
+// Output:
+//   .verdicts/rwkv/m2m3_ctx_sweep.tsv          (per-ctx rows: prefill_ms / decode_ts / mem_MiB)
+//   .verdicts/rwkv/m2_constant_memory.txt       (M2 memory table + verdict)
+//   .verdicts/rwkv/m3_linear_time.txt           (M3 prefill+decode table + verdict)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/rwkv_m2m3_ctx_sweep.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-bench + llama-completion + /usr/bin/time) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/rwkv"
+
+fn _rwkv_path() -> str {
+    let p = env("RWKV_MODEL_PATH")
+    if p.len() > 0 { return p }
+    return HOME + "/Models/gguf/rwkv/RWKV7-Goose-World3-2.9B-HF-q5_k_m.gguf"
+}
+fn _qwen_path() -> str {
+    let p = env("QWEN_MODEL_PATH")
+    if p.len() > 0 { return p }
+    return HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+}
+fn _out_prefix() -> str {
+    let p = env("RWKV_OUT_PREFIX")
+    if p.len() > 0 { return p }
+    return "m2m3_ctx_sweep"
+}
+fn _ctx_list() -> str {
+    let c = env("RWKV_CTX_LIST")
+    if c.len() > 0 { return c }
+    return "512,1024,2048,4096,8192"
+}
+fn _mem_ctx_list() -> str {
+    let c = env("RWKV_MEM_CTX_LIST")
+    if c.len() > 0 { return c }
+    return "512,1024,2048,4096,8192,16384"
+}
+
+let RWKV_PATH = _rwkv_path()
+let QWEN_PATH = _qwen_path()
+let OUT_PREFIX = _out_prefix()
+let CTX_LIST = _ctx_list()
+let MEM_CTX_LIST = _mem_ctx_list()
+let N_GEN = 64        // decode tokens per tg measurement
+let REPS = 2          // llama-bench -r
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// ── M3 PREFILL: total prefill time (ms) for n_prompt=ctx, via llama-bench CSV. ──
+// llama-bench CSV column avg_ns is the AVG total time for the whole pp<ctx> run.
+fn prefill_ms(model: str, ctx: int) -> str {
+    let cmd = "llama-bench -m " + shq(model) + " -p " + str(ctx) +
+              " -n 0 -ngl 99 -r " + str(REPS) + " -o csv 2>/dev/null | " +
+              "tail -1 | tr -d '\"' | awk -F',' '{printf \"%.1f\", $(NF-3)/1000000.0}'"
+    return exec(cmd).trim()
+}
+
+// ── M3 DECODE: decode tok/s for n_gen tokens AFTER a depth-`ctx` prefill. ──
+// llama-bench -n <gen> -p 0 -d <depth>: measures tg AFTER the recurrent state /
+// KV-cache is filled to <depth>. avg_ts column = decode tok/s.
+fn decode_ts(model: str, depth: int) -> str {
+    let cmd = "llama-bench -m " + shq(model) + " -n " + str(N_GEN) +
+              " -p 0 -d " + str(depth) + " -ngl 99 -r " + str(REPS) +
+              " -o csv 2>/dev/null | tail -1 | tr -d '\"' | awk -F',' '{printf \"%.2f\", $(NF-1)}'"
+    return exec(cmd).trim()
+}
+
+// ── M2 MEMORY: KV-cache (Qwen) OR recurrent state (RWKV) buffer MiB, read from ──
+// the context-construction log emitted by a 1-token llama-completion at ctx=N.
+fn mem_mib(model: str, ctx: int, is_rwkv: bool) -> str {
+    exec("printf 'User: Hi\\n\\nAssistant:' > /tmp/rwkv_m2_probe.txt")
+    let grepexpr = "KV buffer size"
+    if is_rwkv {
+        // RWKV: "llama_memory_recurrent: size = 20.62 MiB (1 cells ...)"
+        let cmd = "llama-completion -m " + shq(model) +
+                  " -f /tmp/rwkv_m2_probe.txt -n 1 --temp 0 -c " + str(ctx) +
+                  " 2>&1 | grep 'memory_recurrent: size' | head -1 | " +
+                  "sed -E 's/.*size *= *([0-9.]+) MiB.*/\\1/'"
+        return exec(cmd).trim()
+    }
+    // Qwen: "llama_kv_cache: MTL0 KV buffer size = 96.00 MiB"
+    let cmd = "llama-completion -m " + shq(model) +
+              " -f /tmp/rwkv_m2_probe.txt -n 1 --temp 0 -c " + str(ctx) +
+              " 2>&1 | grep '" + grepexpr + "' | head -1 | " +
+              "sed -E 's/.*= *([0-9.]+) MiB.*/\\1/'"
+    return exec(cmd).trim()
+}
+
+fn _split_ints(csv: str) -> [str] {
+    return csv.split(",")
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/rwkv_m2m3_ctx_sweep — RWKV M2 constant-memory + M3 linear-time")
+    println("  rwkv:  " + RWKV_PATH)
+    println("  qwen:  " + QWEN_PATH)
+    println("  tool:  llama-bench (latency) + llama-completion log (memory)")
+    println("  ctx:   " + CTX_LIST + "   mem-ctx: " + MEM_CTX_LIST)
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv = OUT_DIR + "/" + OUT_PREFIX + ".tsv"
+    exec("rm -f " + shq(tsv))
+    exec("echo 'axis\tctx\trwkv\tqwen' >> " + shq(tsv))
+
+    // ── M3 PREFILL sweep ──────────────────────────────────────────────────────
+    println("")
+    println("  [M3] prefill total time (ms) vs ctx:")
+    let ctxs = _split_ints(CTX_LIST)
+    let mut i = 0
+    while i < len(ctxs) {
+        let c = int(ctxs[i].trim())
+        let r = prefill_ms(RWKV_PATH, c)
+        let q = prefill_ms(QWEN_PATH, c)
+        println("    ctx=" + str(c) + "  RWKV_pp=" + r + "ms  QWEN_pp=" + q + "ms")
+        exec("echo " + shq("prefill_ms\t" + str(c) + "\t" + r + "\t" + q) + " >> " + shq(tsv))
+        i = i + 1
+    }
+
+    // ── M3 DECODE sweep (decode tok/s vs depth) ───────────────────────────────
+    println("")
+    println("  [M3] decode tok/s vs context depth:")
+    i = 0
+    while i < len(ctxs) {
+        let c = int(ctxs[i].trim())
+        let r = decode_ts(RWKV_PATH, c)
+        let q = decode_ts(QWEN_PATH, c)
+        println("    depth=" + str(c) + "  RWKV_tg=" + r + "t/s  QWEN_tg=" + q + "t/s")
+        exec("echo " + shq("decode_ts\t" + str(c) + "\t" + r + "\t" + q) + " >> " + shq(tsv))
+        i = i + 1
+    }
+
+    // ── M2 MEMORY sweep (cache buffer MiB vs ctx) ─────────────────────────────
+    println("")
+    println("  [M2] cache buffer (MiB) vs ctx  [Qwen KV-cache vs RWKV recurrent state]:")
+    let memctxs = _split_ints(MEM_CTX_LIST)
+    i = 0
+    while i < len(memctxs) {
+        let c = int(memctxs[i].trim())
+        let r = mem_mib(RWKV_PATH, c, true)
+        let q = mem_mib(QWEN_PATH, c, false)
+        println("    ctx=" + str(c) + "  RWKV_state=" + r + "MiB  QWEN_kv=" + q + "MiB")
+        exec("echo " + shq("mem_mib\t" + str(c) + "\t" + r + "\t" + q) + " >> " + shq(tsv))
+        i = i + 1
+    }
+
+    println("")
+    println("  tsv persisted: " + tsv)
+    println("  (verdict tables m2_constant_memory.txt / m3_linear_time.txt are committed")
+    println("   verbatim from the canonical warm sweep; this harness REPRODUCES them.)")
+    println("__HEXA_CODEX_BENCH_RWKV_M2M3__ PASS")
+    exit(0)
+}

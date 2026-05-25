@@ -1,0 +1,301 @@
+#!hexa strict
+// hexa-codex/verify/numerics_rwkv_m2m3_laws.hexa — RWKV M2/M3 closed-form laws.
+//
+// Recomputes — DETERMINISTICALLY, from the committed (ctx, metric) sweep data in
+// .verdicts/rwkv/m2m3_ctx_sweep.tsv (measured by bench/rwkv_m2m3_ctx_sweep.hexa) —
+// the slope / power-law-exponent fits that constitute the M2 (constant-memory) and
+// M3 (linear-time) laws. These laws are what M4 (the RWKV canonical paper, §formula)
+// needs. Pure math_pure arithmetic; NO LLM, NO subprocess — the data is hard-coded
+// here so the fit is a closed-form RECOMPUTE (g0), not a re-measurement.
+//
+// DATA (verbatim from the warm/steady-state llama-bench sweep, mac-mini-m3,
+//       stock brew llama.cpp 9150, Metal/UMA; q5_k_m RWKV-7 vs Qwen2.5-0.5B-Q4):
+//
+//   M2 memory (cache buffer MiB at ctx):
+//     ctx     512  1024  2048  4096  8192  16384
+//     Qwen-KV 6.00 12.00 24.00 48.00 96.00 192.00     (O(n): exactly doubles)
+//     RWKV-RS 20.62 ...  20.62 ...  20.62 20.62        (FLAT; also 20.62 @ 65536)
+//
+//   M3 prefill total time ms vs ctx (warm r2):
+//     ctx     512    1024   2048    3072   4096    6144    8192
+//     RWKV-pp 4004.81 7693.19 15137.6 19806.0 27174.8 44253.6 59760.4
+//     Qwen-pp 273.321 1072.84 1845.77 3004.45 5129.67 9752.57 14174.2
+//
+//   M3 decode tok/s vs context depth (r2):
+//     depth   0     512   1024  2048  4096  8192
+//     RWKV-tg 8.16  8.77  10.09 9.97  10.14 9.32      (FLAT decode)
+//     Qwen-tg 80.75 57.01 52.76 42.20 33.24 22.76     (degrades 3.5x)
+//
+// LAWS recomputed + asserted:
+//   L1  Qwen KV-cache is EXACT linear: slope = 12 KiB/tok = 0.01171875 MiB/tok,
+//       intercept = 0, R² = 1  → KV(ctx) = ctx · (12/1024) MiB                  [M2]
+//   L2  RWKV recurrent state is FLAT: max-min span = 0 over a 128× ctx range
+//       (512 → 65536); slope ≈ 0  → state(ctx) = const = 20.62 MiB              [M2]
+//   L3  M2 falsifier check: RWKV memory does NOT grow → falsifier NOT triggered  [M2]
+//   L4  RWKV prefill is LINEAR-time: log-log power-law exponent p ≈ 1
+//       (p = 0.962, |p−1| < 0.05), R² > 0.99  → prefill ∝ ctx^1                 [M3]
+//   L5  Qwen prefill is SUPERLINEAR: exponent p > 1 (p = 1.366), and
+//       p_qwen − p_rwkv > 0.3  → attention O(n^>1) penalty visible              [M3]
+//   L6  RWKV decode is FLAT in depth: ms/tok span ratio < 1.3× over 0→8192
+//       (max/min ≈ 1.24) and best-fit slope ≈ 0                                 [M3]
+//   L7  Qwen decode GROWS linearly in depth: ms/tok slope > 0, R² > 0.95,
+//       and ms/tok@8192 / ms/tok@0 ≈ 3.5×                                       [M3]
+//   L8  M3 falsifier check: RWKV latency is NOT superlinear (prefill p<1.1,
+//       decode slope≈0) → falsifier NOT triggered                              [M3]
+//
+// PASS: 8 laws hold at the stated tolerances.
+//
+// Run:
+//   hexa run verify/numerics_rwkv_m2m3_laws.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; least-squares + power-law arithmetic over committed data only.")
+
+use "self/runtime/math_pure"
+
+let HOME = env("HOME")
+
+// ── committed data ─────────────────────────────────────────────────────────
+let KV_CTX  = [512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0]
+let QWEN_KV = [6.0, 12.0, 24.0, 48.0, 96.0, 192.0]
+let RS_CTX  = [512.0, 1024.0, 2048.0, 4096.0, 8192.0, 16384.0, 65536.0]
+let RWKV_RS = [20.62, 20.62, 20.62, 20.62, 20.62, 20.62, 20.62]
+
+let PP_CTX  = [512.0, 1024.0, 2048.0, 3072.0, 4096.0, 6144.0, 8192.0]
+let RWKV_PP = [4004.81, 7693.19, 15137.6, 19806.0, 27174.8, 44253.6, 59760.4]
+let QWEN_PP = [273.321, 1072.84, 1845.77, 3004.45, 5129.67, 9752.57, 14174.2]
+
+let DEP     = [0.0, 512.0, 1024.0, 2048.0, 4096.0, 8192.0]
+let RWKV_TG = [8.16, 8.77, 10.09, 9.97, 10.14, 9.32]
+let QWEN_TG = [80.75, 57.01, 52.76, 42.20, 33.24, 22.76]
+
+// ── harness ────────────────────────────────────────────────────────────────
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _abs(x: float) -> float { return abs_pure(x) }
+
+// least-squares slope of y vs x
+fn _slope(xs: [float], ys: [float]) -> float {
+    let n = float(len(xs))
+    let mut sx = 0.0
+    let mut sy = 0.0
+    let mut sxx = 0.0
+    let mut sxy = 0.0
+    let mut i = 0
+    while i < len(xs) {
+        sx = sx + xs[i]
+        sy = sy + ys[i]
+        sxx = sxx + xs[i] * xs[i]
+        sxy = sxy + xs[i] * ys[i]
+        i = i + 1
+    }
+    return (n * sxy - sx * sy) / (n * sxx - sx * sx)
+}
+
+fn _intercept(xs: [float], ys: [float], slope: float) -> float {
+    let n = float(len(xs))
+    let mut sx = 0.0
+    let mut sy = 0.0
+    let mut i = 0
+    while i < len(xs) {
+        sx = sx + xs[i]
+        sy = sy + ys[i]
+        i = i + 1
+    }
+    return (sy - slope * sx) / n
+}
+
+// R² of a linear fit y = slope*x + intercept
+fn _r2(xs: [float], ys: [float], slope: float, intercept: float) -> float {
+    let n = float(len(ys))
+    let mut sy = 0.0
+    let mut i = 0
+    while i < len(ys) { sy = sy + ys[i]; i = i + 1 }
+    let ybar = sy / n
+    let mut ss_tot = 0.0
+    let mut ss_res = 0.0
+    i = 0
+    while i < len(ys) {
+        let d = ys[i] - ybar
+        ss_tot = ss_tot + d * d
+        let r = ys[i] - (slope * xs[i] + intercept)
+        ss_res = ss_res + r * r
+        i = i + 1
+    }
+    if ss_tot == 0.0 { return 1.0 }
+    return 1.0 - ss_res / ss_tot
+}
+
+// log-log power-law exponent: log(y) = p*log(x) + c  →  p = slope of log–log
+fn _powerlaw_exp(xs: [float], ys: [float]) -> float {
+    let mut lx = []
+    let mut ly = []
+    let mut i = 0
+    while i < len(xs) {
+        lx.push(log_pure(xs[i]))
+        ly.push(log_pure(ys[i]))
+        i = i + 1
+    }
+    return _slope(lx, ly)
+}
+
+fn _max(xs: [float]) -> float {
+    let mut m = xs[0]
+    let mut i = 1
+    while i < len(xs) { if xs[i] > m { m = xs[i] } ; i = i + 1 }
+    return m
+}
+fn _min(xs: [float]) -> float {
+    let mut m = xs[0]
+    let mut i = 1
+    while i < len(xs) { if xs[i] < m { m = xs[i] } ; i = i + 1 }
+    return m
+}
+
+// ── L1: Qwen KV-cache exact linear = 12 KiB/tok ──────────────────────────────
+fn check_L1_qwen_kv_linear() {
+    let slope = _slope(KV_CTX, QWEN_KV)
+    let icpt  = _intercept(KV_CTX, QWEN_KV, slope)
+    let r2    = _r2(KV_CTX, QWEN_KV, slope, icpt)
+    let analytic = 12.0 / 1024.0                       // 12 KiB/tok = 0.01171875 MiB/tok
+    // tol 1e-6: slope is architecturally EXACT (12288 B/tok); residual ~5e-8 is FP
+    // ULP noise from the ~3e6-magnitude dot-product sums. intercept=0 & R²=1 are exact.
+    let ok = (_abs(slope - analytic) < 1.0e-6) && (_abs(icpt) < 1.0e-4) && (r2 > 0.999999)
+    _check(ok, "L1 Qwen KV-cache EXACT linear: slope = 12 KiB/tok, intercept = 0, R² = 1 [M2]",
+           "slope=" + to_string(slope) + " (analytic " + to_string(analytic) +
+           ") intercept=" + to_string(icpt) + " R²=" + to_string(r2))
+}
+
+// ── L2: RWKV recurrent state FLAT (constant) ─────────────────────────────────
+fn check_L2_rwkv_state_flat() {
+    let span = _max(RWKV_RS) - _min(RWKV_RS)
+    let slope = _slope(RS_CTX, RWKV_RS)
+    let ok = (span < 1.0e-9) && (_abs(slope) < 1.0e-9)
+    _check(ok, "L2 RWKV recurrent state FLAT over 512→65536 (128× ctx): span=0, slope=0 [M2]",
+           "span=" + to_string(span) + " MiB  slope=" + to_string(slope) +
+           " MiB/tok  const=" + to_string(RWKV_RS[0]) + " MiB")
+}
+
+// ── L3: M2 falsifier (RWKV memory grows) NOT triggered ───────────────────────
+fn check_L3_m2_falsifier() {
+    let slope = _slope(RS_CTX, RWKV_RS)
+    // falsifier = "RWKV resident memory grows with context beyond a flat band"
+    let triggered = _abs(slope) > 1.0e-6
+    _check(!triggered, "L3 M2 falsifier (RWKV memory grows) NOT triggered [M2]",
+           "RWKV state slope=" + to_string(slope) + " MiB/tok ≈ 0 → flat, falsifier rejected")
+}
+
+// ── L4: RWKV prefill LINEAR-time (power-law exponent p ≈ 1) ───────────────────
+fn check_L4_rwkv_prefill_linear() {
+    let p = _powerlaw_exp(PP_CTX, RWKV_PP)
+    let slope = _slope(PP_CTX, RWKV_PP)
+    let icpt  = _intercept(PP_CTX, RWKV_PP, slope)
+    let r2    = _r2(PP_CTX, RWKV_PP, slope, icpt)
+    let ok = (_abs(p - 1.0) < 0.05) && (r2 > 0.99)
+    _check(ok, "L4 RWKV prefill LINEAR: power-law exponent p≈1, linear R²>0.99 [M3]",
+           "p=" + to_string(p) + " (|p−1|<0.05)  slope=" + to_string(slope) +
+           " ms/tok  R²=" + to_string(r2))
+}
+
+// ── L5: Qwen prefill SUPERLINEAR (p > 1, well above RWKV) ─────────────────────
+fn check_L5_qwen_prefill_superlinear() {
+    let pq = _powerlaw_exp(PP_CTX, QWEN_PP)
+    let pr = _powerlaw_exp(PP_CTX, RWKV_PP)
+    let ok = (pq > 1.0) && ((pq - pr) > 0.3)
+    _check(ok, "L5 Qwen prefill SUPERLINEAR: p_qwen>1 and p_qwen−p_rwkv>0.3 [M3]",
+           "p_qwen=" + to_string(pq) + " p_rwkv=" + to_string(pr) +
+           " Δp=" + to_string(pq - pr) + " (attention O(n^>1) penalty visible)")
+}
+
+// ── L6: RWKV decode FLAT in depth (ms/tok span ratio < 1.3×, slope ≈ 0) ───────
+fn check_L6_rwkv_decode_flat() {
+    let mut mspt = []
+    let mut i = 0
+    while i < len(RWKV_TG) { mspt.push(1000.0 / RWKV_TG[i]); i = i + 1 }
+    let ratio = _max(mspt) / _min(mspt)
+    let slope = _slope(DEP, mspt)                        // ms/tok per ctx-token
+    let ok = (ratio < 1.3) && (_abs(slope) < 0.01)
+    _check(ok, "L6 RWKV decode FLAT: ms/tok max/min<1.3× and slope≈0 over 0→8192 [M3]",
+           "ms/tok " + to_string(_min(mspt)) + "→" + to_string(_max(mspt)) +
+           "  ratio=" + to_string(ratio) + "  slope=" + to_string(slope) + " per ctx-tok")
+}
+
+// ── L7: Qwen decode GROWS linearly in depth (slope>0, R²>0.95, 3.5× @8192) ────
+fn check_L7_qwen_decode_grows() {
+    let mut mspt = []
+    let mut i = 0
+    while i < len(QWEN_TG) { mspt.push(1000.0 / QWEN_TG[i]); i = i + 1 }
+    let slope = _slope(DEP, mspt)
+    let icpt  = _intercept(DEP, mspt, slope)
+    let r2    = _r2(DEP, mspt, slope, icpt)
+    let growth = mspt[len(mspt) - 1] / mspt[0]
+    let ok = (slope > 0.0) && (r2 > 0.95) && (growth > 3.0) && (growth < 4.0)
+    _check(ok, "L7 Qwen decode GROWS linearly: slope>0, R²>0.95, 3.5× @8192 [M3]",
+           "slope=" + to_string(slope) + " ms/tok per ctx-tok  R²=" + to_string(r2) +
+           "  growth@8192=" + to_string(growth) + "×")
+}
+
+// ── L8: M3 falsifier (RWKV latency superlinear) NOT triggered ────────────────
+fn check_L8_m3_falsifier() {
+    let pp_exp = _powerlaw_exp(PP_CTX, RWKV_PP)
+    let mut mspt = []
+    let mut i = 0
+    while i < len(RWKV_TG) { mspt.push(1000.0 / RWKV_TG[i]); i = i + 1 }
+    let dec_slope = _slope(DEP, mspt)
+    // falsifier = "RWKV latency superlinear in context" (prefill p>1.1 OR decode slope>0.01)
+    let triggered = (pp_exp > 1.1) || (dec_slope > 0.01)
+    _check(!triggered, "L8 M3 falsifier (RWKV latency superlinear) NOT triggered [M3]",
+           "prefill p=" + to_string(pp_exp) + " (<1.1)  decode slope=" +
+           to_string(dec_slope) + " (≈0) → linear-time, falsifier rejected")
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex RWKV M2/M3 closed-form laws (math_pure recompute)")
+    println("  M2 constant-memory + M3 linear-time, vs Qwen2.5-0.5B-Q4 baseline")
+    println("========================================================================")
+    println("")
+    println("  [M2 memory]")
+    check_L1_qwen_kv_linear()
+    check_L2_rwkv_state_flat()
+    check_L3_m2_falsifier()
+    println("")
+    println("  [M3 prefill]")
+    check_L4_rwkv_prefill_linear()
+    check_L5_qwen_prefill_superlinear()
+    println("")
+    println("  [M3 decode]")
+    check_L6_rwkv_decode_flat()
+    check_L7_qwen_decode_grows()
+    println("")
+    println("  [falsifiers]")
+    check_L8_m3_falsifier()
+
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " laws hold")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for f in FAILURES { println("    ✗ " + f) }
+        println("__HEXA_CODEX_NUMERICS_RWKV_M2M3__ FAIL")
+        exit(1)
+    }
+    println("  RWKV M2 (constant-memory) + M3 (linear-time) laws: closed.")
+    println("__HEXA_CODEX_NUMERICS_RWKV_M2M3__ PASS")
+    exit(0)
+}

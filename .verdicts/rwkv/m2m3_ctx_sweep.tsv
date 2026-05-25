@@ -1,0 +1,27 @@
+# RWKV M2/M3 ctx-sweep — canonical warm/steady-state data (stock brew llama.cpp 9150, Metal/UMA, mac-mini-m3)
+# rwkv: RWKV7-Goose-World3-2.9B-HF-q5_k_m.gguf (arch rwkv7, attention-free RNN, NO KV-cache)
+# qwen: Qwen2.5-0.5B-Instruct-Q4_K_M.gguf (arch qwen2, KV-cache Transformer baseline)
+# tool: llama-bench (latency, -o csv) + llama-completion context-construction log (memory MiB)
+axis	ctx	rwkv	qwen	unit	note
+mem_mib	512	20.62	6.00	MiB	Qwen KV-cache vs RWKV recurrent state buffer
+mem_mib	1024	20.62	12.00	MiB
+mem_mib	2048	20.62	24.00	MiB
+mem_mib	4096	20.62	48.00	MiB
+mem_mib	8192	20.62	96.00	MiB
+mem_mib	16384	20.62	192.00	MiB
+mem_mib	65536	20.62	-	MiB	RWKV state still 20.62 @ 65536 (128x ctx); Qwen not probed this high
+prefill_ms	512	4004.81	273.321	ms	total prefill time, llama-bench -p N -n 0 -r 2 (warm)
+prefill_ms	1024	7693.19	1072.84	ms
+prefill_ms	2048	15137.6	1845.77	ms
+prefill_ms	3072	19806.0	3004.45	ms
+prefill_ms	4096	27174.8	5129.67	ms
+prefill_ms	6144	44253.6	9752.57	ms
+prefill_ms	8192	59760.4	14174.2	ms
+decode_ts	0	8.16	80.75	tok/s	decode after depth-D prefill, llama-bench -n 64 -p 0 -d D -r 2
+decode_ts	512	8.77	57.01	tok/s
+decode_ts	1024	10.09	52.76	tok/s
+decode_ts	2048	9.97	42.20	tok/s
+decode_ts	4096	10.14	33.24	tok/s
+decode_ts	8192	9.32	22.76	tok/s
+peak_rss_mb	512	2356	512	MB	/usr/bin/time -l maximum resident set size (coarse corroboration)
+peak_rss_mb	16384	2353	706	MB	RWKV flat; Qwen +194MB ~= KV-cache growth (192 MiB)

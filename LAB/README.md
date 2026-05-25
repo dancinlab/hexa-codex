@@ -1,9 +1,12 @@
 # LAB — 실험실
 
-> hexa-codex 의 자잘한 실험 폴더. 큰 도메인 연구는 루트 도메인 SSOT
-> (`SANDBOX.md` · `BITNET.md` · `RWKV.md` 등)로 가고, 빠르게 던져보는
-> 가설 검증·놀이성 실험은 여기로 모은다. 실험이 충분히 커지면 도메인으로
-> **졸업**(`/domain init`)하고 LAB 인덱스엔 포인터만 남긴다.
+> hexa-codex 의 실험 폴더. 빠르게 던져보는 가설 검증·놀이성 실험을 여기 모은다.
+> 실험이 도메인 규모로 커지면 `/domain init` 으로 **졸업**해 자체 SSOT
+> (`<NAME>.md` + `<NAME>.log.md`)를 갖되, 그 도메인 SSOT 도 **LAB 하위
+> 폴더**(`lab-NN-<slug>/`)에 둬 실험 계보를 한곳에 모은다 — 예: LAB-03 BitNet →
+> [`lab-03-bitnet/BITNET.md`](lab-03-bitnet/BITNET.md), LAB-04 RWKV →
+> [`lab-04-rwkv/RWKV.md`](lab-04-rwkv/RWKV.md). (측정 substrate 같은 상시 인프라
+> SSOT 만 루트에 둔다 — 예: `../SANDBOX.md`.)
 >
 > **규칙** — 실험 1개 = 아래 표 1행 + (필요하면) `LAB/<id-slug>/` 하위 폴더.
 > 가설은 반드시 **반증 가능(falsifiable)** 하게 적는다 (`cx_lab_falsifiable`).
@@ -13,12 +16,12 @@
 
 | ID | 실험 | 가설 / 질문 | 상태 | 결과 · 작업물 |
 |------|------|------------|------|--------------|
-| LAB-01 | LLM 중간 끼어들기 · 유실 없음 | 응답 생성 중 들어온 추가 입력을 큐에 쌓지 않고 라이브로 이어붙여도 메시지가 유실되지 않는 방법이 존재한다 | 🔵 진행중 | 측정 하니스 설계 단계 |
+| LAB-01 | LLM 중간 끼어들기 · 유실 없음 | 응답 생성 중 들어온 추가 입력을 큐에 쌓지 않고 라이브로 이어붙여도 메시지가 유실되지 않는 방법이 존재한다 | ✅ 확인 (1st smoke) | **append-only+seq loss 0/12** (순차·동시 O_APPEND 모두) · 단일슬롯 대조군 11/12 손실 · model echo 12/12 vs 환각 — [`lab-01-interrupt-no-loss/`](lab-01-interrupt-no-loss/) |
 | LAB-02 | MITOSIS · 도메인 유사분열 | 도메인 생성 LLM이 포화 도메인을 자식 N개로 자율 분열시킬 때 부모 milestone을 유실·중복 0%로 MECE 분배할 수 있다 | ✅ 확인 (1st smoke) | **5분열 · loss 0.0% · dup 0.0% · 보존 5/5** — [`lab-02-mitosis/`](lab-02-mitosis/) |
-| LAB-03 | BitNet 1.58-bit (삼진) 평가 | 1.58-bit 삼진 가중치가 정밀모델급 품질을 메모리·에너지 분수로 달성한다 | 🎓 도메인 졸업 → [`BITNET.md`](../BITNET.md) | **memory만 생존** (0.55×) · accuracy(30%)·energy(1.7× 손해) 🔴 falsified |
-| LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 졸업 → [`RWKV.md`](../RWKV.md) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
+| LAB-03 | BitNet 1.58-bit (삼진) 평가 | 1.58-bit 삼진 가중치가 정밀모델급 품질을 메모리·에너지 분수로 달성한다 | 🎓 도메인 (LAB 내) → [`lab-03-bitnet/`](lab-03-bitnet/) | **memory만 생존** (0.55×) · accuracy(30%)·energy(1.7× 손해) 🔴 falsified |
+| LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 (LAB 내) → [`lab-04-rwkv/`](lab-04-rwkv/) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
 
-**상태 범례** — ⬜ 대기 · 🔵 진행중 · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT는 도메인 파일)
+**상태 범례** — ⬜ 대기 · 🔵 진행중 · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT가 LAB 하위 `lab-NN-*/<NAME>.md`)
 
 ## 실험 백로그 (⬜ 대기 · 제안)
 
@@ -27,6 +30,7 @@
 | LAB-05 | Mamba / SSM 평가 | selective state-space(Mamba2)가 RWKV처럼 linear-time+const-mem 이면서 75% floor를 넘는다 | LAB-04(RWKV)의 다음 대안 아키텍처 — 동일 20-task manifest로 직접 비교 |
 | LAB-06 | cross-arch frontier | BitNet(ternary)·RWKV(RNN)·Transformer를 동일 manifest에서 bits/capability/memory frontier로 묶는 closed-form 법칙이 있다 | `.discoveries/sandbox-cross-arch-frontier-paper.tape` seed (BITNET M4가 SANDBOX로 승격) |
 | LAB-07 | MITOSIS 스트레스 | 큰 부모(SANDBOX 20-셀)·작은 모델(0.5B)·고-N 분열에서 LAB-02의 loss/dup 0%가 깨지는 지점은 어디인가 | LAB-02 honest 단서 (N=5 소표본 한계) |
+| LAB-08 | INTERRUPT 스트레스 | 진짜 mid-token-stream **reader-vs-writer** OS-thread 경합(턴 경계가 아닌 토큰 스트림 중간 주입)·고-N·고-rate 에서 LAB-01의 loss 0 이 깨지는 지점은 어디인가 | LAB-01 honest 단서 (턴 경계 모델링 · writer 경합만 · N=12 단일 시행) |
 
 ---
 
@@ -52,10 +56,38 @@
 
 **substrate.** SANDBOX (self-hosted local llama-server) — `cx_lab_sandbox`.
 
-**진행.** 🔵 설계 단계 — 측정 하니스(끼어들기 N회 주입 → 컨텍스트
-도달 여부 카운트)부터.
+**진행.** ✅ 확인 (1st smoke, 2026-05-25) — 측정 하니스
+[`lab-01-interrupt-no-loss/interrupt_harness.hexa`](lab-01-interrupt-no-loss/interrupt_harness.hexa)
+가 N=12 끼어들기를 **세 메커니즘**으로 주입하고, 재구성된 컨텍스트에 각
+코드(`IRQ-<salt>-NNN`)가 도달했는지 **결정론적 `grep|sort` distinct-count**
+로 센다 (모델은 echo 만, 채점은 정수 카운팅 — self-judge 아님). substrate =
+SANDBOX (Qwen2.5-1.5B-Instruct-Q4_K_M · port 8099 · $0 local Metal).
 
-**작업물.** `LAB/lab-01-interrupt-no-loss/` (예정)
+**1차 스모크 결과** (`result_interrupt_summary.txt`):
+
+| 메커니즘 | 주입 | 컨텍스트 도달 | loss | 비고 |
+|---|---|---|---|---|
+| A_sequential (append-only + seq) | 12 | 12 | **0** | 순서대로 append, 전부 보존 |
+| A_concurrent (동시 O_APPEND race) | 12 | 12 | **0** | 12개 append 동시 발사(`&`+`wait`) — interleave/유실 0 |
+| B_singleslot (대조군, 1-슬롯 덮어쓰기) | 12 | 1 | **11** | 마지막만 생존 — 하니스가 손실을 **실제로 탐지**함을 증명 |
+
+→ **"유실 없음" 가설 1차 SUPPORTED** — append-only+seq 메커니즘은 순차에서도
+동시 O_APPEND 경합에서도 12/12 전부 컨텍스트에 도달(loss 0). falsifier
+(어느 한 끼어들기라도 미도달) 미발동. 대조군 B가 11/12를 잃어 **테스트가
+비-자명**함을 보장(lab-02엔 없던 대조군). 부차적 end-to-end: 모델이 A
+컨텍스트에서 12/12 echo, B에선 "3" echo — 그 중 **1개만 진짜**, 나머지
+`IRQ-3149-013/-014`는 패턴 따라 **환각**. 이게 model-echo 를 falsifier 로
+쓰지 않는 이유(형식 맞는 코드 날조 가능) — load-bearing 지표는 결정론적
+컨텍스트-도달 카운트. honest 단서: generation-step 경계를 **턴 경계**로 모델링
+(request/response 서버는 단일 프로세스로 토큰 스트림 중간 주입 불가) · 동시
+테스트는 writer 경합만(O_APPEND), reader-vs-writer 경합·N=12 단일 시행은
+**LAB-01-stress** 후속(LAB-07↔LAB-02 관계와 동일).
+
+**작업물.** [`lab-01-interrupt-no-loss/`](lab-01-interrupt-no-loss/) —
+`interrupt_harness.hexa` · `result_interrupt.tsv` · `result_interrupt_summary.txt`
+· `verdict_interrupt.txt` · 로그 아티팩트(`irq_appendonly.log` ·
+`irq_concurrent.log` · `irq_singleslot.slot` · `echo_appendonly.txt` ·
+`echo_singleslot.txt`).
 
 ---
 
@@ -138,8 +170,9 @@ milestone 이 정확히 1개 자식에 들어갔다 (유실 0 자식, 중복 2+ 
 
 ## LAB-03 — BitNet 1.58-bit (삼진) 평가 🎓
 
-> **도메인 졸업.** 실험이 커져 [`BITNET.md`](../BITNET.md) 도메인으로 승격.
-> SSOT·전체 verdict 는 그쪽. 아래는 LAB 인덱스 요약.
+> **도메인 졸업 (LAB 내).** 실험이 커져 도메인 SSOT
+> [`lab-03-bitnet/BITNET.md`](lab-03-bitnet/BITNET.md) 로 승격 — SSOT·전체
+> verdict·milestone 은 그쪽 (LAB 하위에 위치). 아래는 LAB 인덱스 요약.
 
 Microsoft BitNet b1.58 2B4T(가중치 ∈ {−1,0,+1})를 SANDBOX 동일 20-task
 manifest 로 측정. **마케팅 3대 주장 중 메모리만 생존:**
@@ -157,7 +190,8 @@ manifest 로 측정. **마케팅 3대 주장 중 메모리만 생존:**
 
 ## LAB-04 — RWKV attention-free RNN 평가 🎓
 
-> **도메인 졸업.** [`RWKV.md`](../RWKV.md) 도메인으로 승격 (5/5 완주, 논문 shipped).
+> **도메인 졸업 (LAB 내).** 도메인 SSOT [`lab-04-rwkv/RWKV.md`](lab-04-rwkv/RWKV.md)
+> 로 승격 (5/5 완주, 논문 shipped · LAB 하위에 위치).
 
 RWKV-7 "Goose" 2.9B 를 동일 manifest 로 측정. **두 핵심 아키텍처 주장이
 substrate 에서 직접 확인:**

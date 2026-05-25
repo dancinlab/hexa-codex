@@ -4,6 +4,13 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — LAB 재편 + 끼어들기 무손실 실험 + 음성 결과 게재 (2026-05-25)
+
+- **BITNET·RWKV 도메인 → LAB 하위 이동** — 두 도메인 SSOT(`BITNET.md`/`.log.md` · `RWKV.md`/`.log.md`)를 루트에서 `LAB/lab-03-bitnet/` · `LAB/lab-04-rwkv/` 로 `git mv`(히스토리 보존). `LAB/README.md` 인덱스를 "🎓 도메인 졸업(루트)" → "🎓 도메인(LAB 내, SSOT가 `lab-NN-*/<NAME>.md`)" 로 재프레이밍. sibling 링크 `../../` 보정 · `bench/rwkv_m2m3_ctx_sweep.hexa` 주석 경로 갱신. `.verdicts/`·`.discoveries/` 불변 기록은 미수정.
+- **LAB-01 끼어들기 무손실 실험 1차 스모크 (✅ SUPPORTED)** — `LAB/lab-01-interrupt-no-loss/interrupt_harness.hexa`. N=12 끼어들기를 세 메커니즘으로 주입: append-only+seq(순차) loss **0/12** · 동시 O_APPEND race loss **0/12** · 단일슬롯 대조군 **11/12** 손실(하니스가 손실을 실제로 탐지함을 증명). SANDBOX Qwen2.5-1.5B echo 12/12(대조군은 환각 노출). 결정론적 `grep|sort` distinct-count 채점(LLM self-judge 아님). LAB-08 stress 후속 백로그 추가.
+- **논문 생성 규칙 — 음성 결과(🔴 closed-negative) 게재 허용** — `project.tape` 5개 규칙 개정(sign-gate, user 서명): `cx_paper_gate`(falsified 차단 제거 → CLOSED 티어 🔵🟢🔴 허용, OPEN ⚪🟠🟡만 차단) · `cx_paper_significance`(benefit OR closed refutation) · `cx_paper_format`(§benefit OR §refutation) · `cx_paper_sections`(CLOSED-recompute verdict +falsified) · `cx_paper_one_per_domain`(그룹당 양성1 + 음성1 허용으로 확장). 🔴(결정론적 불일치=닫힌 음성)는 게재, 🟠 INSUFFICIENT/DEFERRED는 여전히 차단.
+- **첫 음성 논문 (ECONOMICS)** — `PAPER/economics-lattice-falsified/` (11p, fal.ai 그림 1, pdflatex×3 clean·undefined refs 0). n=6 격자가 예측한 추론-지연 지수 τ=4를 자가호스팅 substrate 실측 **τ̂=0.524(R²≈0.956)** 가 결정적으로 반증(residual 3.476 ≫ ε=0.10, 8k에서 ~1400× 과대예측); F-CODEX-1 train 지수(0.96→0.172)는 disclosure-grade 보조. `CLAIMS.tape` 에 slug 색인 5건(`el_*`). ECONOMICS 그룹 = 양성 `economics-routing-savings` + 음성 `economics-lattice-falsified`.
+
 ## [Unreleased] — inbox/ → INBOX 도메인 이관 (2026-05-24)
 
 - **inbox/ → `INBOX` 도메인 이관** — cross-project handoff 를 `inbox/<kind>/<slug>.md` 폴더에서 repo 루트의 `INBOX` 도메인 1쌍(`INBOX.md` 스냅샷 + `INBOX.log.md` append-only 로그)으로 전환 (pool · sidecar 의 inbox→INBOX 폐기와 정합 · `cd <repo> && /domain set INBOX` 로 관리). 기존 2건 이관 — 열린 1건(sidecar/pool-route mac-only tool escalation, cycle-13)은 `INBOX.md` 에 `- [ ]`, 해소된 1건(hexa-lang runtime_core.c clang forward-decl, VERIFIED-RESOLVED)은 `INBOX.log.md` 에 `- [x]`. `inbox/` 폴더 삭제.

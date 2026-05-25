@@ -204,3 +204,50 @@
   method = "recompute"
   cmd    = "hexa run verify/numerics_rwkv_m2m3_laws.hexa (crossover + Δ-deltas from L1/L2/L6/L7)"
   raw    = ".verdicts/rwkv/m3_linear_time.txt"
+
+# ───────────────────────────────────────────────────────────────────────
+# economics-lattice-falsified — CLOSED-NEGATIVE (🔴 FALSIFIED) refutation paper
+# (slug = economics-lattice-falsified · paper-track · ECONOMICS canonical)
+#
+# The n=6 lattice PREDICTS two LLM cost exponents — inference latency
+# τ=4 (wall_ms ∝ context^τ) and training-compute σφ≈0.96 (train_cost ∝
+# N^σφ). Both DECISIVELY REFUTED on the self-hosted SANDBOX substrate.
+# F-CODEX-2 (latency, substrate's OWN curve) is the load-bearing
+# refutation; F-CODEX-1 (training, EXTERNAL Qwen2.5 ladder) is
+# disclosure-grade supporting context. The FALSIFICATION itself is
+# 🟢 SUPPORTED-NUMERICAL (real bench + closed-form recompute) — a CLOSED
+# negative (≠ INSUFFICIENT/DEFERRED). This is the first closed-negative
+# paper (project rule widened to allow publishing closed refutations).
+#
+# Method legend (cx_claim_verify):
+#   run       — real llama-server context-scaling bench (cx_empirical_contact,
+#               $0 local, mac-mini-m3 Metal/UMA, Qwen2.5-1.5B, -np 1 -cb, port 8091)
+#   recompute — hexa-native deterministic log-log OLS slope + residual-vs-ε gate
+#               over the committed (context, wall_ms) grid (.hexa IS the verify;
+#               raw stdout is the verdict — multi-output fit recomputed directly;
+#               10/10 structural checks PASS, verdict 🔴 FALSIFIED, exit 1)
+
+@C el_sweep := "context-scaling bench: mean_wall_ms = 569/670/1005/1668 ms at ctx {1k,2k,4k,8k}, acc 17/20 FLAT (no long-ctx collapse), throughput 22.80→7.31 tok/s, $0 local" :: empirical [slug=economics-lattice-falsified]
+  method = "run"
+  cmd    = "hexa run bench/sandbox_stage4_context_scaling.hexa (Qwen2.5-1.5B-Q4, -np 1 -cb on port 8091, mac-mini-m3 Metal)"
+  raw    = ".verdicts/sandbox/stage4_context_scaling.tsv"
+
+@C el_formula := "n=6 lattice forms: F-CODEX-2 wall_ms ∝ context^τ (τ=4) + F-CODEX-1 train_cost ∝ N^σφ (σφ=24/25=0.96); estimator = log-log OLS slope, gate = |slope − exponent| ≤ ε=0.10" :: formula [slug=economics-lattice-falsified]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_economics_empirical_landing.hexa (checks 9+10, closed-form OLS + residual gate)"
+  raw    = ".verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt"
+
+@C el_fcodex2_falsified := "F-CODEX-2 inference_cost ∝ context^4 FALSIFIED: measured log-log OLS τ̂=0.524 (R²≈0.956 sub-linear) vs lattice τ=4, residual 3.476 ≫ ε=0.10; τ=4 over-predicts 8k latency by ~1400×. LOAD-BEARING (substrate's OWN curve)" :: empirical [slug=economics-lattice-falsified]
+  method = "run"
+  cmd    = "hexa run verify/numerics_economics_empirical_landing.hexa (LATENCY_MS live; check 9/10 → FALSIFIED, exit 1)"
+  raw    = ".verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt"
+
+@C el_fcodex1_disclosure := "F-CODEX-1 train_cost ∝ N^0.96 measured slope=0.172 on external {0.5B,1.5B,3B,7B} ladder, lattice residual 0.788. SUPPORTING context only — disclosure-grade (lattice number vs EXTERNAL Qwen2.5, not substrate-internal), NOT load-bearing" :: empirical [slug=economics-lattice-falsified]
+  method = "run"
+  cmd    = "hexa run verify/numerics_economics_empirical_landing.hexa (check 8 disclosure; LATTICE_POLICY §4 external-envelope)"
+  raw    = ".verdicts/sandbox/f_codex_1_falsified_4rung.txt"
+
+@C el_refutation := "closed-negative VALUE: retires the context^4 latency prior + substitutes the substrate's true exponent τ̂≈0.52 (doubling context costs ~1.4× wall, not 16×). Mechanism: fixed 64-tok decode (mem-bandwidth wall) + cached-prefix paged-attention prefill — sub-linear, NOT quartic" :: derived [slug=economics-lattice-falsified]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_economics_empirical_landing.hexa (point-by-point over-prediction table, anchored A=569ms @1k)"
+  raw    = ".verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt"

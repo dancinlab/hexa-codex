@@ -7,8 +7,12 @@
 > §Benefit) link 🟢 SUPPORTED-NUMERICAL verdicts; §Formula recompute is
 > `verify/numerics_safety_refusal_direction.hexa` against the committed
 > numbers-only matrix `.verdicts/sandbox/m2_safety_refusal_norms.tsv`
-> (adversarial prompt text redacted per cx_hf_safety_private). g51 publish-lint
-> (≥10p + fal.ai figure) is the separate M5.SAFETY-release residual.
+> (adversarial prompt text redacted per cx_hf_safety_private). M5.SAFETY
+> residual (1) RESOLVED (cycle-18): expanded to 11pp + 1 fal.ai figure for g51
+> publish-readiness (Background · Related Work · fuller LDA derivation ·
+> Discussion · Limitations · Appendix), every numeric claim still on its
+> existing 🟢 verdict. Residual (2) — a causal single-direction ablation +
+> SAE decomposition (GPU-heavy) — and the release tag remain open.
 
 ## Source
 

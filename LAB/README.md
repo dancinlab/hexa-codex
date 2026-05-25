@@ -1,20 +1,32 @@
 # LAB — 실험실
 
 > hexa-codex 의 자잘한 실험 폴더. 큰 도메인 연구는 루트 도메인 SSOT
-> (`LEARNING_PROGRAMMING.md` · `ORCHESTRATION.md` 등)로 가고, 빠르게
-> 던져보는 가설 검증·놀이성 실험은 여기로 모은다.
+> (`SANDBOX.md` · `BITNET.md` · `RWKV.md` 등)로 가고, 빠르게 던져보는
+> 가설 검증·놀이성 실험은 여기로 모은다. 실험이 충분히 커지면 도메인으로
+> **졸업**(`/domain init`)하고 LAB 인덱스엔 포인터만 남긴다.
 >
 > **규칙** — 실험 1개 = 아래 표 1행 + (필요하면) `LAB/<id-slug>/` 하위 폴더.
-> 가설은 반드시 **반증 가능(falsifiable)** 하게 적는다.
+> 가설은 반드시 **반증 가능(falsifiable)** 하게 적는다 (`cx_lab_falsifiable`).
+> LLM 호출은 SANDBOX substrate 로 라우팅 (`cx_lab_sandbox`).
 
 ## 실험 목록
 
 | ID | 실험 | 가설 / 질문 | 상태 | 결과 · 작업물 |
 |------|------|------------|------|--------------|
-| LAB-01 | LLM 중간 끼어들기 · 유실 없음 | 응답 생성 중 들어온 추가 입력을 큐에 쌓지 않고 라이브로 이어붙여도 메시지가 유실되지 않는 방법이 존재한다 | 🔵 진행중 | — |
-| LAB-02 | MITOSIS · 도메인 유사분열 | 도메인 생성 LLM이 포화된 도메인을 자식 N개로 자율 분열시킬 때, 부모 milestone을 유실·중복 0%로 MECE 분배할 수 있다 | ✅ 확인 (1st smoke) | **5분열 · loss 0.0% · dup 0.0% · 보존 5/5** — [`LAB/lab-02-mitosis/`](lab-02-mitosis/) |
+| LAB-01 | LLM 중간 끼어들기 · 유실 없음 | 응답 생성 중 들어온 추가 입력을 큐에 쌓지 않고 라이브로 이어붙여도 메시지가 유실되지 않는 방법이 존재한다 | 🔵 진행중 | 측정 하니스 설계 단계 |
+| LAB-02 | MITOSIS · 도메인 유사분열 | 도메인 생성 LLM이 포화 도메인을 자식 N개로 자율 분열시킬 때 부모 milestone을 유실·중복 0%로 MECE 분배할 수 있다 | ✅ 확인 (1st smoke) | **5분열 · loss 0.0% · dup 0.0% · 보존 5/5** — [`lab-02-mitosis/`](lab-02-mitosis/) |
+| LAB-03 | BitNet 1.58-bit (삼진) 평가 | 1.58-bit 삼진 가중치가 정밀모델급 품질을 메모리·에너지 분수로 달성한다 | 🎓 도메인 졸업 → [`BITNET.md`](../BITNET.md) | **memory만 생존** (0.55×) · accuracy(30%)·energy(1.7× 손해) 🔴 falsified |
+| LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 졸업 → [`RWKV.md`](../RWKV.md) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
 
-**상태 범례** — ⬜ 대기 · 🔵 진행중 · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류
+**상태 범례** — ⬜ 대기 · 🔵 진행중 · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT는 도메인 파일)
+
+## 실험 백로그 (⬜ 대기 · 제안)
+
+| ID | 실험 | 가설 / 질문 | 근거 |
+|------|------|------------|------|
+| LAB-05 | Mamba / SSM 평가 | selective state-space(Mamba2)가 RWKV처럼 linear-time+const-mem 이면서 75% floor를 넘는다 | LAB-04(RWKV)의 다음 대안 아키텍처 — 동일 20-task manifest로 직접 비교 |
+| LAB-06 | cross-arch frontier | BitNet(ternary)·RWKV(RNN)·Transformer를 동일 manifest에서 bits/capability/memory frontier로 묶는 closed-form 법칙이 있다 | `.discoveries/sandbox-cross-arch-frontier-paper.tape` seed (BITNET M4가 SANDBOX로 승격) |
+| LAB-07 | MITOSIS 스트레스 | 큰 부모(SANDBOX 20-셀)·작은 모델(0.5B)·고-N 분열에서 LAB-02의 loss/dup 0%가 깨지는 지점은 어디인가 | LAB-02 honest 단서 (N=5 소표본 한계) |
 
 ---
 
@@ -37,6 +49,8 @@
 
 **falsifier.** N회 끼어들기 중 단 1건이라도 모델 컨텍스트에 도달하지
 못하면 "유실 없음" 가설은 **거짓**.
+
+**substrate.** SANDBOX (self-hosted local llama-server) — `cx_lab_sandbox`.
 
 **진행.** 🔵 설계 단계 — 측정 하니스(끼어들기 N회 주입 → 컨텍스트
 도달 여부 카운트)부터.
@@ -91,13 +105,12 @@ conservation 은 이미 closed-form 증명됐으니, 도메인 mitosis 의 "유�
 도메인이 균등 분배가 아니라 "core 유지 + spin-off" 패턴이 될 수 있다.
 
 **진행.** ✅ 확인 (1st smoke, 2026-05-25) — 측정 하니스
-[`LAB/lab-02-mitosis/mitosis_harness.hexa`](lab-02-mitosis/mitosis_harness.hexa)
+[`lab-02-mitosis/mitosis_harness.hexa`](lab-02-mitosis/mitosis_harness.hexa)
 가 포화 도메인(6 milestone, 안정 ID tag M1..M6)을 SANDBOX substrate
 (self-hosted llama-server · Qwen2.5-7B-Instruct-Q4_K_M · port 8097)에
 던져 **N=2/3/4 혼합 5회 분열**시키고, 자식들이 청구한 milestone ID 를
 **결정론적 jq set-diff** 로 부모 집합과 대조해 유실·중복·extra 를
-카운트한다 (LLM 은 분할만 제안 · 채점은 정수 counting, **self-judge
-아님**).
+카운트한다 (LLM 은 분할만 제안 · 채점은 정수 counting, **self-judge 아님**).
 
 **1차 스모크 결과** (`result_mitosis_summary.txt`):
 
@@ -113,14 +126,48 @@ conservation 은 이미 closed-form 증명됐으니, 도메인 mitosis 의 "유�
 
 → **"clean mitosis" 가설 1차 SUPPORTED** — 5회 분열 모두 부모 6
 milestone 이 정확히 1개 자식에 들어갔다 (유실 0 자식, 중복 2+ 자식
-없음). falsifier(0 자식 ∨ 2+ 자식) 미발동. anima 세포 mitosis 의
-B-MITOSIS-3 conservation (🔵 SUPPORTED-FORMAL, sympy 5/5)이 도메인
-milestone conservation 으로 들어올려 **경험적으로** 성립함을 확인.
-honest 단서: N=5 작은 표본 · 단일 합성 부모 도메인 · 7B 모델 — 더
-큰 부모(SANDBOX.md 20-셀 등)·작은 모델(0.5B)·고-N 분열로 확장하면
-유실/중복이 나타날 수 있다 (그때가 진짜 반증 지점).
+없음). falsifier(0 자식 ∨ 2+ 자식) 미발동. honest 단서: N=5 작은 표본 ·
+단일 합성 부모 · 7B 모델 — 더 큰 부모·작은 모델·고-N 분열로 확장하면
+유실/중복이 나타날 수 있다 (LAB-07 스트레스 실험에서 본격 반증 시도).
 
-**작업물.** [`LAB/lab-02-mitosis/`](lab-02-mitosis/) —
-`mitosis_harness.hexa` (하니스) · `result_mitosis.tsv` (per-run) ·
-`result_mitosis_summary.txt` (집계 verdict) · `verdict_mitosis.txt`
-(tier 매핑 note).
+**작업물.** [`lab-02-mitosis/`](lab-02-mitosis/) —
+`mitosis_harness.hexa` · `result_mitosis.tsv` · `result_mitosis_summary.txt`
+· `verdict_mitosis.txt`.
+
+---
+
+## LAB-03 — BitNet 1.58-bit (삼진) 평가 🎓
+
+> **도메인 졸업.** 실험이 커져 [`BITNET.md`](../BITNET.md) 도메인으로 승격.
+> SSOT·전체 verdict 는 그쪽. 아래는 LAB 인덱스 요약.
+
+Microsoft BitNet b1.58 2B4T(가중치 ∈ {−1,0,+1})를 SANDBOX 동일 20-task
+manifest 로 측정. **마케팅 3대 주장 중 메모리만 생존:**
+
+| 주장 | 판정 | 측정 |
+|---|---|---|
+| accuracy ≈ 정밀모델급 | 🔴 FALSIFIED | 6/20 = 30% (Qwen-0.5B-Q4 16/20, RWKV 15/20) · 작을수록 더 붕괴(15/15/20/30%) |
+| memory = 분수 | 🟢 HOLDS | 0.55× (Q4 baseline 대비) — 유일 생존 |
+| energy 효율 | 🔴 FALSIFIED | 1.6–1.8× **더** 씀 (삼진 가속기 부재 → CPU-only throughput 격차) |
+
+부수: atlas BT-77 "2B4T 25/26 EXACT" recompute 🟢 (delta 0); "40/41 total"은
+26-param 균일 기준에서 0.894로 부분 반증.
+
+---
+
+## LAB-04 — RWKV attention-free RNN 평가 🎓
+
+> **도메인 졸업.** [`RWKV.md`](../RWKV.md) 도메인으로 승격 (5/5 완주, 논문 shipped).
+
+RWKV-7 "Goose" 2.9B 를 동일 manifest 로 측정. **두 핵심 아키텍처 주장이
+substrate 에서 직접 확인:**
+
+| 축 | RWKV-7 | Transformer (Qwen) |
+|---|---|---|
+| accuracy floor | 15/20 = 75% (첫 non-Transformer 통과) | 0.5B-Q4 80% |
+| memory (M2) | state **20.62 MiB FLAT** (128× ctx 불변) | KV ctx·12KiB/tok O(n) · crossover ctx≈1760 |
+| time (M3) | prefill p≈0.96 (선형) · decode O(1) | prefill p=1.366 · decode O(n)(3.55×@8192) |
+
+정직 단서: 절대 prefill 은 6× 큰 RWKV 가 더 느림 — 승부는 exponent(Δp 0.40)
++ decode O(1) + const memory. canonical 논문 `PAPER/rwkv-linear-attention-laws/`
+(4/4 🟢, 11p) shipped.

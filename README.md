@@ -178,6 +178,8 @@ both anchor on the n=6 lattice declared in
 `verify/n6_arithmetic.py` proves all 11 cross-checks at runtime — no
 external input, the algebraic identity is self-proving.
 
+> **Reuse lattice SSOT:** [`NEXUS.tape`](NEXUS.tape) — the intra-project reuse graph (which group reuses the n=6 atoms · the `lattice_check` closure floor · the SANDBOX substrate), per commons @D g67.
+
 ---
 
 ## Falsifier preregister

@@ -1,0 +1,300 @@
+#!hexa strict
+// bench/sandbox_multimodal_smoke.hexa — M5.SUBSTRATE multimodal FIRST RUNG (cycle-19).
+//
+// QUESTION (M5.SUBSTRATE multimodal half, FEASIBILITY-FIRST):
+//   Can the substrate's STOCK brew llama.cpp build serve a vision-language (VL)
+//   model with byte-exact image-input replay, and does a small VL rung clear a
+//   deterministic image-grounded smoke eval scored byte-exact (NO LLM self-judge)?
+//
+// This is the BOUNDED FIRST RUNG / serving-stack feasibility probe — NOT the full
+// multimodal capability fit (which needs >=3 rungs + a closed-form law; STILL OPEN).
+//
+// FEASIBILITY (verified before benching — the load-bearing finding):
+//   - Stock brew llama.cpp 9150 (ggml 0.11.1) DOES support multimodal: `llama-server`
+//     exposes -mm/--mmproj + --mmproj-url + --image-{min,max}-tokens + a
+//     --vision-gemma-{4b,12b}-default convenience flag; `llama-mtmd-cli` is the
+//     shipped multimodal CLI (-m model + --mmproj projector + --image FILE -p prompt).
+//   - mac-mini-m3 is a PRE-M5 Metal device: ggml logs "tensor API disabled for
+//     pre-M5/pre-A19" but the CLIP vision encoder + LLM both run on the MTL0 Metal
+//     (UMA) backend — "has vision encoder; clip_ctx: CLIP using MTL0 backend;
+//     image slice encoded in ~275 ms". So vision IS served locally at $0 (cx_lab_sandbox
+//     spirit / cx_empirical_contact T4: real serve, not a simulator).
+//
+// MODEL (fits 24 GB UMA with huge headroom):
+//   ggml-org/SmolVLM-500M-Instruct-GGUF  (SigLIP-Base-Patch16-512 vision + 500M llama
+//   text, idefics3 projector). Q8_0: 437 MB model + 109 MB mmproj = ~546 MB on disk.
+//   Auto-downloads via `llama-mtmd-cli -hf ...`; we copy a stable pair to
+//   ~/Models/gguf/smolvlm/ so the bench is reproducible without HF-cache layout deps.
+//
+// MANIFEST (10 images, 4 difficulty tiers, DETERMINISTIC synthetic ground truth):
+//   The bench GENERATES its own images via PIL (full-bleed solid colors / filled
+//   black circles / a single large digit / a single uppercase word) so ground truth
+//   is unambiguous + bit-reproducible — no external dataset, no human label.
+//     tier color (3): dominant color of a solid image  -> red|blue|green
+//     tier count (3): how many black circles            -> 2|3|4
+//     tier digit (2): which single digit is shown       -> 7|5
+//     tier word  (2): which uppercase word is written   -> cat|dog
+//
+// SCORER is the SAME non-self-judging family as the text floor
+// (bench/rwkv_m1_accuracy_floor.hexa / sandbox_stage0_baseline.hexa): lowercase the
+// answer, strip the model's trailing punctuation/period, case-insensitive SUBSTRING
+// match against the expected keyword. NO LLM judges correctness — pure byte compare.
+//
+// Output:
+//   .verdicts/sandbox/m5_substrate_multimodal_smoke.tsv          (per-item rows)
+//   .verdicts/sandbox/m5_substrate_multimodal_smoke_summary.txt  (aggregate + per-tier)
+//
+// Run:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_multimodal_smoke.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-mtmd-cli + python3 PIL image-gen) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let IMG_DIR = "/tmp/vl_smoke_imgs"          // generated each run, deterministic
+
+fn _model_path() -> str {
+    let p = env("VL_MODEL_PATH")
+    if p.len() > 0 { return p }
+    return HOME + "/Models/gguf/smolvlm/SmolVLM-500M-Instruct-Q8_0.gguf"
+}
+fn _mmproj_path() -> str {
+    let p = env("VL_MMPROJ_PATH")
+    if p.len() > 0 { return p }
+    return HOME + "/Models/gguf/smolvlm/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf"
+}
+fn _model_name() -> str {
+    let n = env("VL_MODEL_NAME")
+    if n.len() > 0 { return n }
+    return "SmolVLM-500M-Instruct-Q8_0"
+}
+
+let MODEL_PATH = _model_path()
+let MMPROJ_PATH = _mmproj_path()
+let MODEL_NAME = _model_name()
+let OUT_PREFIX = "m5_substrate_multimodal_smoke"
+let MAX_TOK = 24                  // short factual answers; deterministic greedy
+let SEED = 42                     // pinned RNG seed for byte-exact replay
+let USABLE_THRESHOLD = 8          // >= 8/10 = VL smoke floor reached
+
+// 10-image manifest: [img_basename, prompt, expected_kw, tier]
+let TASKS = [
+    ["color_red",   "What color is this image? Answer with one word.",                          "red",   "color"],
+    ["color_blue",  "What color is this image? Answer with one word.",                          "blue",  "color"],
+    ["color_green", "What color is this image? Answer with one word.",                          "green", "color"],
+    ["count_2",     "How many black circles are in this image? Answer with the number only.",   "2",     "count"],
+    ["count_3",     "How many black circles are in this image? Answer with the number only.",   "3",     "count"],
+    ["count_4",     "How many black circles are in this image? Answer with the number only.",   "4",     "count"],
+    ["digit_7",     "What digit is shown in this image? Answer with the digit only.",           "7",     "digit"],
+    ["digit_5",     "What digit is shown in this image? Answer with the digit only.",           "5",     "digit"],
+    ["word_cat",    "What word is written in this image? Answer with the word only.",           "cat",   "word"],
+    ["word_dog",    "What word is written in this image? Answer with the word only.",           "dog",   "word"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Generate the deterministic synthetic manifest images via PIL (idempotent).
+// Solid colors, filled black circles, a single large digit, a single uppercase word
+// — ground truth is unambiguous + bit-reproducible. Returns "OK" or an error string.
+fn gen_images() -> str {
+    let py = "from PIL import Image, ImageDraw, ImageFont\n" +
+        "import os\n" +
+        "D='" + IMG_DIR + "'\n" +
+        "os.makedirs(D, exist_ok=True)\n" +
+        "def font(sz):\n" +
+        "    for p in ['/System/Library/Fonts/Supplemental/Arial Bold.ttf','/System/Library/Fonts/Helvetica.ttc','/Library/Fonts/Arial.ttf']:\n" +
+        "        if os.path.exists(p):\n" +
+        "            try: return ImageFont.truetype(p, sz)\n" +
+        "            except: pass\n" +
+        "    return ImageFont.load_default()\n" +
+        "for name,col in [('color_red','red'),('color_blue','blue'),('color_green','green')]:\n" +
+        "    Image.new('RGB',(256,256),col).save(f'{D}/{name}.png')\n" +
+        "def count_img(name,n):\n" +
+        "    im=Image.new('RGB',(256,256),'white'); d=ImageDraw.Draw(im)\n" +
+        "    pos=[(50,50),(160,50),(50,160),(160,160),(105,105)]\n" +
+        "    for i in range(n):\n" +
+        "        x,y=pos[i]; d.ellipse([x,y,x+46,y+46],fill='black')\n" +
+        "    im.save(f'{D}/{name}.png')\n" +
+        "count_img('count_2',2); count_img('count_3',3); count_img('count_4',4)\n" +
+        "for name,ch in [('digit_7','7'),('digit_5','5')]:\n" +
+        "    im=Image.new('RGB',(256,256),'white'); d=ImageDraw.Draw(im)\n" +
+        "    f=font(200); bb=d.textbbox((0,0),ch,font=f); w=bb[2]-bb[0]; h=bb[3]-bb[1]\n" +
+        "    d.text(((256-w)/2-bb[0],(256-h)/2-bb[1]),ch,fill='black',font=f); im.save(f'{D}/{name}.png')\n" +
+        "for name,word in [('word_cat','CAT'),('word_dog','DOG')]:\n" +
+        "    im=Image.new('RGB',(256,256),'white'); d=ImageDraw.Draw(im)\n" +
+        "    f=font(70); bb=d.textbbox((0,0),word,font=f); w=bb[2]-bb[0]; h=bb[3]-bb[1]\n" +
+        "    d.text(((256-w)/2-bb[0],(256-h)/2-bb[1]),word,fill='black',font=f); im.save(f'{D}/{name}.png')\n" +
+        "print('OK')\n"
+    let cmd = "python3 - <<'__PYEOF__'\n" + py + "__PYEOF__"
+    return exec(cmd).trim()
+}
+
+// Run one VL task via llama-mtmd-cli (-m model + --mmproj projector + --image FILE).
+// Greedy (--temp 0) + pinned -s SEED for byte-exact replay. Returns tab-separated:
+//   wall_ms \t correct(1|0) \t output_snippet
+//
+// PARSE: collapse newlines -> trim. SCORER (same family as rwkv_m1 / stage0):
+// lowercase, strip a trailing period/punctuation, case-insensitive SUBSTRING match
+// on expected_kw. NO LLM self-judge — pure byte compare on the keyword.
+fn run_one(img_base: str, prompt: str, expected_kw: str) -> str {
+    let img = IMG_DIR + "/" + img_base + ".png"
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-mtmd-cli -m " + shq(MODEL_PATH) +
+              " --mmproj " + shq(MMPROJ_PATH) +
+              " --image " + shq(img) +
+              " -p " + shq(prompt) +
+              " -n " + str(MAX_TOK) + " --temp 0 -s " + str(SEED) + " 2>/dev/null); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              // collapse newlines -> squeeze spaces -> trim
+              "ans=$(printf '%s' \"$out\" | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-100); " +
+              "printf '%s\\t%s\\t%s' \"$wall_ms\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_multimodal_smoke — M5.SUBSTRATE multimodal FIRST RUNG")
+    println("  model:    " + MODEL_NAME)
+    println("  path:     " + MODEL_PATH)
+    println("  mmproj:   " + MMPROJ_PATH)
+    println("  tool:     llama-mtmd-cli (stock brew llama.cpp 9150, ggml 0.11.1, MTL0)")
+    println("  manifest: 10 synthetic images (color x3 / count x3 / digit x2 / word x2)")
+    println("  scorer:   byte_exact_subset (NO LLM self-judge; same family as text floor)")
+    println("  threshold: >= " + str(USABLE_THRESHOLD) + "/10 = VL smoke floor reached")
+    println("========================================================================")
+
+    println("  generating deterministic synthetic manifest images via PIL ...")
+    let gen = gen_images()
+    if gen != "OK" {
+        println("  ! image generation FAILED: " + gen)
+        println("__HEXA_CODEX_BENCH_MM_SMOKE__ FAIL_IMG_GEN")
+        exit(1)
+    }
+    println("  images OK in " + IMG_DIR)
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/" + OUT_PREFIX + ".tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'idx\timg\ttier\texpected\twall_ms\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    let mut total_ms = 0
+    let mut n_correct = 0
+    // per-tier tallies (correct/total): color, count, digit, word
+    let mut c_color = 0
+    let mut c_count = 0
+    let mut c_digit = 0
+    let mut c_word = 0
+    let mut i = 0
+    while i < len(TASKS) {
+        let task = TASKS[i]
+        let img_base = task[0]
+        let prompt = task[1]
+        let expected = task[2]
+        let tier = task[3]
+        println("  [" + str(i+1) + "/" + str(len(TASKS)) + "] tier=" + tier + " img=" + img_base + " expect=" + expected)
+        let line = run_one(img_base, prompt, expected)
+        let parts = line.split("\t")
+        if parts.len() < 3 {
+            println("    ! parse error, raw=" + line)
+            let bad = str(i+1) + "\t" + img_base + "\t" + tier + "\t" + expected + "\t0\t0\tPARSE_ERROR:" + line.substr(0, 60)
+            exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+            i = i + 1
+            continue
+        }
+        let wall_ms = int(parts[0])
+        let correct = parts[1]
+        let snippet = parts[2].replace("\t", " ")
+        total_ms = total_ms + wall_ms
+        if correct == "1" {
+            n_correct = n_correct + 1
+            if tier == "color" { c_color = c_color + 1 }
+            if tier == "count" { c_count = c_count + 1 }
+            if tier == "digit" { c_digit = c_digit + 1 }
+            if tier == "word"  { c_word = c_word + 1 }
+        }
+        let row = str(i+1) + "\t" + img_base + "\t" + tier + "\t" + expected + "\t" + str(wall_ms) + "\t" + correct + "\t" + snippet.substr(0, 100)
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+        println("    -> wall_ms=" + str(wall_ms) + " correct=" + correct + " ans=" + snippet.substr(0, 40))
+        i = i + 1
+    }
+
+    let total = len(TASKS)
+    let mut acc_pct_x100 = 0
+    if total > 0 { acc_pct_x100 = (n_correct * 10000) / total }
+    let mut floor_ok = "false"
+    if n_correct >= USABLE_THRESHOLD { floor_ok = "true" }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — M5.SUBSTRATE multimodal FIRST RUNG (serving feasibility + smoke)")
+    println("========================================================================")
+    println("  serving_feasibility : POSITIVE (stock brew llama.cpp 9150 serves VL on MTL0)")
+    println("  model               : " + MODEL_NAME)
+    println("  total_tasks         : " + str(total))
+    println("  correct             : " + str(n_correct) + "/" + str(total))
+    println("  accuracy_pct        : " + str(acc_pct_x100 / 100) + "." + str(acc_pct_x100 % 100) + "%")
+    println("  per_tier            : color " + str(c_color) + "/3  count " + str(c_count) + "/3  digit " + str(c_digit) + "/2  word " + str(c_word) + "/2")
+    println("  total_wall_ms       : " + str(total_ms))
+    println("  threshold           : >= " + str(USABLE_THRESHOLD) + "/10")
+    println("  smoke_floor_reached : " + floor_ok)
+    println("")
+
+    let summary_path = OUT_DIR + "/" + OUT_PREFIX + "_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# bench=sandbox_multimodal_smoke (M5.SUBSTRATE multimodal FIRST RUNG, cycle-19)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# serving_feasibility=POSITIVE  (stock brew llama.cpp 9150 / ggml 0.11.1 serves VL)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(summary_path))
+    exec("echo " + shq("# model_path=" + MODEL_PATH) + " >> " + shq(summary_path))
+    exec("echo " + shq("# mmproj_path=" + MMPROJ_PATH) + " >> " + shq(summary_path))
+    exec("echo " + shq("# model_source=ggml-org/SmolVLM-500M-Instruct-GGUF (HF; auto via llama-mtmd-cli -hf)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# model_disk_bytes=545590272  (437MB model + 109MB mmproj, Q8_0)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# vision_encoder=SigLIP-Base-Patch16-512 (idefics3 projector); text=500M llama") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_tasks=" + str(total)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# correct=" + str(n_correct) + "/" + str(total)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# accuracy_pct=" + str(acc_pct_x100 / 100) + "." + str(acc_pct_x100 % 100)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# per_tier_color=" + str(c_color) + "/3") + " >> " + shq(summary_path))
+    exec("echo " + shq("# per_tier_count=" + str(c_count) + "/3") + " >> " + shq(summary_path))
+    exec("echo " + shq("# per_tier_digit=" + str(c_digit) + "/2") + " >> " + shq(summary_path))
+    exec("echo " + shq("# per_tier_word=" + str(c_word) + "/2") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_wall_ms=" + str(total_ms)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# usable_threshold=" + str(USABLE_THRESHOLD) + "/10") + " >> " + shq(summary_path))
+    exec("echo " + shq("# smoke_floor_reached=" + floor_ok) + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-mtmd-cli (stock brew llama.cpp 9150, ggml 0.11.1, CLIP on MTL0 Metal/UMA)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# decode=greedy --temp 0 -s " + str(SEED) + " -n " + str(MAX_TOK) + " (seed-pinned byte-exact replay)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# manifest=10 synthetic PIL images, deterministic ground truth (color x3 / count x3 / digit x2 / word x2)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# img_dir=" + IMG_DIR + " (regenerated each run; bit-reproducible)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# scorer=byte_exact_subset (case-insensitive substring on expected_kw; NO LLM self-judge; same family as rwkv_m1 / sandbox_stage0_baseline.hexa)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (Apple M3, 24GB UMA; PRE-M5 Metal: tensor API disabled, MTL0 backend active)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# cost_usd=0  (local serving; wall_ms is the proxy cost surface)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# scope=FIRST RUNG / serving feasibility ONLY — full multimodal capability fit (>=3 rungs + closed-form law) STILL OPEN") + " >> " + shq(summary_path))
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("")
+    if floor_ok == "true" {
+        println("__HEXA_CODEX_BENCH_MM_SMOKE__ PASS")
+        exit(0)
+    }
+    println("__HEXA_CODEX_BENCH_MM_SMOKE__ BELOW_FLOOR")
+    exit(0)
+}

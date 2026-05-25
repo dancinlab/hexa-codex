@@ -1,0 +1,11 @@
+idx	img	tier	expected	wall_ms	correct	output_snippet
+1	color_red	color	red	2390	1	Red.
+2	color_blue	color	blue	2782	1	Blue.
+3	color_green	color	green	1746	1	Green.
+4	count_2	count	2	1730	1	2.
+5	count_3	count	3	2265	1	3.
+6	count_4	count	4	2857	1	4.
+7	digit_7	digit	7	2262	1	7.
+8	digit_5	digit	5	1712	1	5.
+9	word_cat	word	cat	2289	1	CAT.
+10	word_dog	word	dog	1748	1	DOG.

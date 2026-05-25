@@ -1,14 +1,17 @@
 #!hexa strict
 // hexa-codex/verify/numerics_economics_measured_cost_model.hexa — M3.ECON
-// POSITIVE measured-latency cost model — companion to the F-CODEX-2
-// falsification (PAPER/economics-lattice-falsified).
+// POSITIVE measured-latency cost model — the substrate's REAL latency law,
+// independent of the n=6 lattice (which is irrelevant here).
 //
 // PURPOSE.  M3.ECON's M5-release OR-branch reads (SANDBOX.md M5.ECON):
 // "v1.3.0 must EITHER re-derive a measured-τ̂ cost model OR ship the
-// falsification."  The falsification (n=6 lattice τ=4, measured τ̂=0.524,
-// residual 3.476 ≫ ε) is shipped at PAPER/economics-lattice-falsified
-// and recomputed by `verify/numerics_economics_empirical_landing.hexa`
-// (10/10, 🔴 FALSIFIED).  THIS verifier supplies the OTHER half — the
+// falsification."  The self-generated n=6 lattice number τ=4 does NOT fit
+// the substrate (measured τ̂=0.524, residual 3.476 ≫ ε) — recorded as an
+// INTERNAL verdict `.verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt`
+// (recomputed by `verify/numerics_economics_empirical_landing.hexa`, 10/10
+// 🔴).  NOTE: no paper — refuting a self-generated pre-LATTICE_POLICY
+// number is not paper-worthy (the `economics-lattice-falsified` paper was
+// REVOKED, cx_paper_violation).  THIS verifier supplies the OTHER half — the
 // POSITIVE measured cost model — so the OR-branch is satisfied with a
 // REAL law (not merely a negative).
 //

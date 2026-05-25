@@ -1,0 +1,7 @@
+A clean, minimal, publication-quality scientific figure with two side-by-side line-chart panels on a white background, flat vector style, thin axes, no 3D, no photorealism, muted academic color palette (one orange line, one teal line).
+
+LEFT PANEL titled "Cache memory vs context length". X-axis labeled "context length (tokens)" from 512 to 65536. Y-axis labeled "cache buffer (MiB)". A rising straight orange line labeled "Transformer KV-cache  O(n)" climbing from low-left to high-right. A perfectly flat horizontal teal line labeled "RWKV recurrent state  20.62 MiB (constant)". The two lines cross near the left third; a thin dashed vertical gray line at the crossing labeled "crossover ~1760 tokens". Beyond the crossing the orange line rises far above the flat teal line.
+
+RIGHT PANEL titled "Decode latency vs context depth". X-axis labeled "context depth (tokens)" from 0 to 8192. Y-axis labeled "latency per token (ms/tok)". A rising orange line labeled "Transformer decode  O(n)" going from about 12 up to about 44 (3.55x). A flat teal line labeled "RWKV decode  O(1)  (~constant)" hovering around a steady level.
+
+Overall: two contrasting motifs — a flat constant line beating a rising line. Crisp, legible sans-serif labels, lots of whitespace, the feel of a matplotlib figure in an arxiv paper. No title text at the very top, no logos, no people, no clutter.

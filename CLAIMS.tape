@@ -171,3 +171,36 @@
   method = "run"
   cmd    = "hexa run bench/sandbox_stage4_refusal_bimodal_tighter.hexa (Qwen2.5-1.5B, $0 local)"
   raw    = ".verdicts/sandbox/m2_safety_bimodality_tighter.txt"
+
+# ───────────────────────────────────────────────────────────────────────
+# rwkv-linear-attention-laws — RWKV-7 vs Transformer context-scaling laws
+# (slug = rwkv-linear-attention-laws · paper-track · SUBSTRATE canonical)
+#
+# Method legend (cx_claim_verify):
+#   run       — real llama-bench / llama-completion ctx-sweep (cx_empirical_contact,
+#               $0 local, mac-mini-m3 stock llama.cpp 9150 Metal/UMA)
+#   recompute — hexa-native deterministic least-squares + log-log power-law fit
+#               over the committed (ctx, metric) sweep (.hexa IS the verify;
+#               raw stdout is the verdict — `hexa verify --expr` only accepts
+#               single-output registered fns, so the 8-law fit is recomputed
+#               directly; 8/8 PASS)
+
+@C rwkv_sweep := "RWKV-7 2.9B vs Qwen2.5-0.5B-Q4 ctx sweep 512→65536 (128×): mem buffer MiB + prefill ms + decode tok/s, 27-row warm/steady-state grid, $0 local" :: empirical [slug=rwkv-linear-attention-laws]
+  method = "run"
+  cmd    = "hexa run bench/rwkv_m2m3_ctx_sweep.hexa (llama-bench latency + llama-completion memory log)"
+  raw    = ".verdicts/rwkv/m2m3_ctx_sweep.tsv"
+
+@C rwkv_formula := "4 closed-form context-scaling laws: RWKV state FLAT 20.62 MiB (slope 0) + Qwen KV=n·12 KiB/tok (R²=1) ; RWKV prefill p=0.962≈1 + Qwen prefill p=1.366>1 ; RWKV decode O(1) + Qwen decode O(n) — 8/8 recompute, both falsifiers NOT triggered" :: formula [slug=rwkv-linear-attention-laws]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_rwkv_m2m3_laws.hexa (8/8 laws PASS)"
+  raw    = ".verdicts/rwkv/m2_constant_memory.txt"
+
+@C rwkv_method := "ctx-sweep protocol: llama-bench (-p N -n 0 prefill ; -n 64 -p 0 -d D decode) + context-construction memory log ; pre-registered L1–L8 fits/tolerances ; engine quirk (llama-completion slow rwkv7 prefill → llama-bench)" :: derived [slug=rwkv-linear-attention-laws]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_rwkv_m2m3_laws.hexa (pre-registered thresholds, math_pure recompute over committed grid)"
+  raw    = ".verdicts/rwkv/m3_linear_time.txt"
+
+@C rwkv_benefit := "quantified deltas: memory crossover ctx≈1760, 4.66× less cache memory @8192 (diverges linearly) + decode O(1) vs O(n) 3.55× slower @8192 + linear vs superlinear prefill (Δp=0.40). HONEST NEGATIVE: RWKV absolute prefill SLOWER here (59760 vs 14174 ms @8192) — win is exponent+decode+memory, not prefill constant" :: derived [slug=rwkv-linear-attention-laws]
+  method = "recompute"
+  cmd    = "hexa run verify/numerics_rwkv_m2m3_laws.hexa (crossover + Δ-deltas from L1/L2/L6/L7)"
+  raw    = ".verdicts/rwkv/m3_linear_time.txt"

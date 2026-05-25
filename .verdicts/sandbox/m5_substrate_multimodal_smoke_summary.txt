@@ -1,0 +1,26 @@
+# bench=sandbox_multimodal_smoke (M5.SUBSTRATE multimodal FIRST RUNG, cycle-19)
+# serving_feasibility=POSITIVE  (stock brew llama.cpp 9150 / ggml 0.11.1 serves VL)
+# model=SmolVLM-500M-Instruct-Q8_0
+# model_path=/Users/ghost/Models/gguf/smolvlm/SmolVLM-500M-Instruct-Q8_0.gguf
+# mmproj_path=/Users/ghost/Models/gguf/smolvlm/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf
+# model_source=ggml-org/SmolVLM-500M-Instruct-GGUF (HF; auto via llama-mtmd-cli -hf)
+# model_disk_bytes=545590272  (437MB model + 109MB mmproj, Q8_0)
+# vision_encoder=SigLIP-Base-Patch16-512 (idefics3 projector); text=500M llama
+# total_tasks=10
+# correct=10/10
+# accuracy_pct=100.0
+# per_tier_color=3/3
+# per_tier_count=3/3
+# per_tier_digit=2/2
+# per_tier_word=2/2
+# total_wall_ms=21781
+# usable_threshold=8/10
+# smoke_floor_reached=true
+# tool=llama-mtmd-cli (stock brew llama.cpp 9150, ggml 0.11.1, CLIP on MTL0 Metal/UMA)
+# decode=greedy --temp 0 -s 42 -n 24 (seed-pinned byte-exact replay)
+# manifest=10 synthetic PIL images, deterministic ground truth (color x3 / count x3 / digit x2 / word x2)
+# img_dir=/tmp/vl_smoke_imgs (regenerated each run; bit-reproducible)
+# scorer=byte_exact_subset (case-insensitive substring on expected_kw; NO LLM self-judge; same family as rwkv_m1 / sandbox_stage0_baseline.hexa)
+# host=mac-mini-m3 (Apple M3, 24GB UMA; PRE-M5 Metal: tensor API disabled, MTL0 backend active)
+# cost_usd=0  (local serving; wall_ms is the proxy cost surface)
+# scope=FIRST RUNG / serving feasibility ONLY — full multimodal capability fit (>=3 rungs + closed-form law) STILL OPEN

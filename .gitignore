@@ -23,6 +23,8 @@ state/
 build/out/
 build/artifacts/
 *.pdf
+# EXCEPTION (cx_paper_pdf_committed): shipped paper PDFs ARE tracked — viewable on GitHub
+!PAPER/**/*.pdf
 
 # LaTeX paper build cruft (PAPER/*/main.{aux,bbl,blg,log,out} + legacy papers/)
 PAPER/**/*.aux

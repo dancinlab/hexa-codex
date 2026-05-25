@@ -1,0 +1,235 @@
+# ════════════════════════════════════════════════════════════════════
+# RWKV M5 — RELEASE / CONSOLIDATION VERDICT
+# ════════════════════════════════════════════════════════════════════
+# milestone   = M5 Verdict/release — register the measured RWKV memory + latency
+#               laws vs the Transformer baseline (consolidation release-verdict)
+# scope       = CONSOLIDATION of the domain's 4 closed milestones into one
+#               registered release-verdict artifact. NOT new measurement.
+# verdict      = RELEASE-READY — RWKV-7 2.9B characterization vs the Transformer
+#               baseline is COMPLETE + recompute-verified across M1–M4.
+# release_act = git tag / GitHub release / external publish is USER-GATED.
+#               NO TAG CUT autonomously. Closes as "release verdict registered,
+#               RELEASE-READY pending user tag" — same posture as M5.OPS /
+#               M5.SUBSTRATE in SANDBOX.md.
+# host        = mac-mini-m3 (stock brew llama.cpp 9150, Metal/UMA)
+# date        = 2026-05-25
+# cost_usd    = 0  (consolidation of existing $0-local verdicts; no new run)
+#
+# ════════════════════════════════════════════════════════════════════
+# 1) THE CHARACTERIZATION — RWKV-7 2.9B vs Transformer baseline, 4 milestones
+# ════════════════════════════════════════════════════════════════════
+# subject  = RWKV7-Goose-World3-2.9B-HF q5_k_m (arch rwkv7, attention-free RNN,
+#            NO KV-cache, ctx_len=1048576, embd=2560, 32 blocks)
+# baseline = Qwen2.5-0.5B-Instruct-Q4_K_M (arch qwen2, KV-cache Transformer)
+#            [M2/M3 latency+memory] ; BitNet-2B4T + Qwen2.5-0.5B-Q4 [M1 accuracy]
+# engine   = stock brew llama.cpp 9150 — RWKV-7 NATIVELY supported, no rwkv.cpp
+#            build, no conversion (the M1 load-bearing unblock)
+#
+# ─── M1 · ACCURACY FLOOR (T4 empirical · 🟠 DEFERRED, recompute = re-run bench) ─
+#   RWKV-7 2.9B = 15/20 = 75.0% on the canonical 20-task SANDBOX manifest
+#   (byte_exact_subset scorer, VERBATIM from bitnet_m1 / sandbox_stage0_baseline).
+#   Same manifest+scorer comparators: BitNet-2B4T 6/20 (30.0%) ·
+#   Qwen2.5-0.5B-Q4 16/20 (80.0%). RWKV HITS the usable floor (≥15/20) —
+#   far above BitNet, just 1 task below the 4-bit 0.5B Transformer baseline.
+#   5 misses honestly classified: 2 World-tokenizer Chinese drift, 1 harness
+#   PARSE_ERROR (scored WRONG conservatively, not a model failure), 2 genuine
+#   factual (idx7 continents, idx8 boiling point). Peak RSS 2249 MB, flat
+#   ~2353–2358 MB across all 20 tasks (the M2 constant-memory baseline, directly
+#   visible: RNN, no KV-cache).
+#   CITES: .verdicts/rwkv/m1_accuracy_floor_summary.txt  (+ .tsv)
+#   TIER : 🟠 DEFERRED — served-accuracy has no closed-form --expr; the recompute
+#          PATH is the committed bench/rwkv_m1_accuracy_floor.hexa re-run.
+#
+# ─── M2 · CONSTANT-MEMORY LAW (T4 empirical + 🟢 closed-form recompute) ────────
+#   RWKV recurrent state = 20.62 MiB CONSTANT across ctx 512→65536 (a 128× span,
+#   slope 0). Qwen KV-cache grows EXACTLY O(n): 6→12→24→48→96→192 MiB at
+#   ctx 512→16384 (doubles precisely with ctx). peak-RSS corroborates: RWKV
+#   2356→2353 MB (flat), Qwen 512→706 MB (+194 MB ≈ the 192 MiB KV growth).
+#   CLOSED-FORM LAWS (g0, recompute 🟢):
+#     L1  Qwen KV(ctx) = ctx · 12 KiB/tok = ctx · 0.01171875 MiB/tok,
+#         intercept 0, R²=1  (12288 B/tok = 24L·2kvh·64d·2·2B, EXACT)
+#     L2  RWKV state(ctx) = 20.62 MiB = const (slope 0)
+#   Memory crossover ctx ≈ 1760 — beyond that RWKV uses LESS total cache memory;
+#   the gap diverges (4.66× at ctx 8192). Falsifier ("RWKV memory grows beyond a
+#   flat band") NOT triggered (slope=0).
+#   CITES: .verdicts/rwkv/m2_constant_memory.txt  (laws L1–L3)
+#          .verdicts/rwkv/m2m3_ctx_sweep.tsv  (27-row warm sweep)
+#   TIER : 🟢 SUPPORTED-NUMERICAL (verify/numerics_rwkv_m2m3_laws.hexa, L1–L3)
+#
+# ─── M3 · LINEAR-TIME LAW (T4 empirical + 🟢 closed-form recompute) ────────────
+#   PREFILL (total ms vs ctx, warm): RWKV 4005→59760 ms over ctx 512→8192
+#   (16× ctx → 14.9× time = LINEAR, t/s flat ~128–155); Qwen 273→14174 ms
+#   (16× ctx → 51.9× time = SUPERLINEAR, t/s degrades 1880→578).
+#   DECODE (tok/s vs context depth): RWKV FLAT ~10 t/s, depth-independent
+#   (ms/tok max/min 1.24×); Qwen degrades linearly 80.75→22.76 t/s
+#   (ms/tok 12.4→43.9 = 3.55× slower @8192).
+#   CLOSED-FORM LAWS (g0, recompute 🟢):
+#     L4  RWKV prefill: power-law exponent p = 0.962 ≈ 1 (R²=0.996), O(n)
+#     L5  Qwen prefill: p = 1.366 > 1 (Δp = 0.40), attention O(n^>1)
+#     L6  RWKV decode:  ms/tok slope ≈ −0.001 per ctx-tok (no trend), O(1)
+#     L7  Qwen decode:  ms/tok slope = +0.00363, R²=0.985, O(n)
+#   Falsifier ("RWKV latency superlinear") NOT triggered (prefill p<1.1,
+#   decode slope≈0).
+#   CITES: .verdicts/rwkv/m3_linear_time.txt  (laws L4–L8)
+#          .verdicts/rwkv/m2m3_ctx_sweep.tsv  (shared 27-row sweep)
+#   TIER : 🟢 SUPPORTED-NUMERICAL (verify/numerics_rwkv_m2m3_laws.hexa, L4–L8)
+#
+# ─── M4 · PAPER (shipped, gate satisfied) ─────────────────────────────────────
+#   SUBSTRATE-group canonical paper "Constant Memory, Linear Time: Measured
+#   Context-Scaling Laws for an Attention-Free RNN Language Model" — all 4
+#   canonical sections link a 🟢 SUPPORTED-NUMERICAL verdict (cx_paper_sections).
+#   §Formula = the 4 fitted laws ; §Method = the llama-bench ctx-sweep protocol ;
+#   §Benchmark = the real 27-row sweep ; §Benefit = crossover ctx≈1760 + 4.66×
+#   less cache @8192 + 3.55× faster decode @8192 + linear-vs-superlinear prefill.
+#   Compiles clean (pdflatex×3 + bibtex, 0 undefined refs/cites) to 11 pages with
+#   1 fal.ai figure — commons g51 publish-lint PASS (verified at M4 merge, PR #52).
+#   CITES: PAPER/rwkv-linear-attention-laws/{main.tex, README.md, references.bib,
+#          figures/fig01_memory_latency_laws.png}
+#          CLAIMS.tape (slug rwkv-linear-attention-laws): @C rwkv_sweep /
+#          rwkv_formula / rwkv_method / rwkv_benefit
+#   TIER : SHIPPED — cx_paper_gate + cx_paper_significance + cx_paper_format met.
+#
+# ════════════════════════════════════════════════════════════════════
+# 2) THE TWO CLOSED-FORM LAWS — the release deliverable, recompute-verified
+# ════════════════════════════════════════════════════════════════════
+#   LAW A  RWKV-const-memory : state(ctx) = 20.62 MiB = const (slope 0 over a
+#          128× ctx range) vs Qwen KV(ctx) = ctx · 12 KiB/tok (O(n), R²=1).
+#          → constant-memory; crossover ctx≈1760; 4.66× less cache @8192.
+#   LAW B  RWKV-linear-prefill : prefill ∝ ctx^p, p = 0.962 ≈ 1 (O(n), R²=0.996)
+#          vs Qwen p = 1.366 > 1 (superlinear, Δp=0.40); RWKV decode O(1)
+#          (slope≈0) vs Qwen decode O(n) (slope +0.00363, 3.55× @8192).
+#   Both laws are recomputed DETERMINISTICALLY (math_pure, NO LLM, NO subprocess)
+#   from the committed sweep data by verify/numerics_rwkv_m2m3_laws.hexa — the
+#   in-repo recompute witness for the entire release (cx_claim_verify). 8/8 🟢.
+#
+# ════════════════════════════════════════════════════════════════════
+# 3) THE HONEST NEGATIVE (carried verbatim from M3/M4 §Limitations)
+# ════════════════════════════════════════════════════════════════════
+#   Over the MEASURED ctx range on THIS substrate, RWKV-7 2.9B absolute PREFILL
+#   is SLOWER than the tiny quantized Transformer baseline (59760 ms vs 14174 ms
+#   @ ctx 8192). The RWKV WIN is NOT the prefill constant — it is:
+#     (a) the EXPONENT: prefill p=0.962 (O(n)) vs Qwen p=1.366 (Δp=0.40), so
+#         RWKV's gap shrinks and eventually inverts as ctx grows;
+#     (b) DECODE O(1): RWKV ms/tok flat (depth-independent) vs Qwen O(n)
+#         (3.55× slower @8192) — the dominant cost at long generation;
+#     (c) CONSTANT MEMORY: 20.62 MiB flat vs KV O(n) (4.66× less @8192,
+#         diverging) — crossover at ctx≈1760.
+#   The 2.9B RWKV is also ~6× larger than the 0.5B Q4 baseline, so the prefill
+#   constant comparison is doubly conservative. Scope is single-pair · single-
+#   substrate · q5_k_m — the LAWS (exponents/slopes), not the absolute constants,
+#   are the transferable result.
+#
+# ════════════════════════════════════════════════════════════════════
+# 4) ATLAS REGISTRATION — DEFERRED to hexa-lang-side (honest, BITNET-M5 posture)
+# ════════════════════════════════════════════════════════════════════
+# DECISION: the two closed-form laws are NOT atlas-registered from this worktree.
+#           Recorded as a deferred hexa-lang-side follow-up with the exact atom
+#           template below — exactly the posture BITNET M5 took.
+#
+# WHY (3 independent blockers, each verified in this worktree):
+#   (1) The atlas SSOT (n6/atlas.n6 + compiler/atlas/embedded.gen.hexa) lives in
+#       the SIBLING hexa-lang repo (/Users/ghost/core/hexa-lang/), OUTSIDE this
+#       isolated hexa-codex worktree. Verified:
+#         $ ls n6/atlas.n6 compiler/atlas/embedded.gen.hexa   → No such file
+#         $ ls /Users/ghost/core/hexa-lang/n6/atlas.n6        → 3.5 MB (present)
+#       Writing the atom from here would mutate the sibling repo out of scope.
+#   (2) The atlas write path `hexa atlas register --from-verify <fn> <args> <v>`
+#       only carries BUILT-IN calc fns (sigma|phi|tau|welch_t_crit|wilson_
+#       hilferty_p|ldl_pct|…) recomputed in-process. The RWKV laws are slope /
+#       power-law REGRESSION fits over committed (ctx, metric) sweep data — there
+#       is NO built-in fn(n)=v that recomputes "state = 20.62 MiB const" or
+#       "prefill p = 0.962". Verified:
+#         $ hexa verify --expr rwkv_const_mem 65536 20.62  → no such fn
+#         $ hexa verify --expr ldl_pct 0 0 0   → 🟠 INSUFFICIENT (no float path)
+#       Manufacturing a bespoke built-in to force the register is out of scope
+#       and would not be the same as the committed recompute already in place.
+#   (3) RWKV is not yet in the atlas:
+#         $ hexa atlas lookup --prefix=rwkv  → no nodes match prefix: rwkv
+#
+# The cx_claim_verify witness is therefore the IN-REPO recompute artifact
+# (verify/numerics_rwkv_m2m3_laws.hexa, 8/8 🟢) + the committed sweep .tsv +
+# these verdict files — NOT an atlas atom. The atlas fold is a hexa-lang-side
+# follow-up, recorded here with the exact template (mirroring BT-71/72/73
+# sub-row shape `@R n6-atlas-<domain>-—-table-bt-XX-⭐⭐-<identity> = <value>`):
+#
+#   # headline atom (next free BT id; hexa-lang-side):
+#   @R n6-atlas-breakthrough-theorems-tecs-l-cross-domain-**bt-NN**
+#        = RWKV Linear-Attention Scaling Laws n6 :: n6atlas [10]
+#     "**BT-NN** — RWKV-7 2.9B: state FLAT 20.62 MiB (slope 0, 128× ctx) +
+#      prefill p=0.962≈1 (O(n)) vs Qwen KV O(n) + prefill p=1.366>1; 8/8 recompute"
+#   # sub-row witnesses (one per recomputed law, value = the fitted number):
+#   @R n6-atlas-rwkv-linear-attention-—-table-bt-NN-⭐⭐-rwkv-state-MiB     = 20.62
+#   @R n6-atlas-rwkv-linear-attention-—-table-bt-NN-⭐⭐-qwen-kv-KiB-per-tok = 12
+#   @R n6-atlas-rwkv-linear-attention-—-table-bt-NN-⭐⭐-rwkv-prefill-p      = 0.962
+#   @R n6-atlas-rwkv-linear-attention-—-table-bt-NN-⭐⭐-qwen-prefill-p      = 1.366
+#   @R n6-atlas-rwkv-linear-attention-—-table-bt-NN-⭐⭐-rwkv-decode-slope   = 0.0
+#   @R n6-atlas-rwkv-linear-attention-—-table-bt-NN-⭐⭐-qwen-decode-slope   = 0.00363
+#   @R n6-atlas-rwkv-linear-attention-—-table-bt-NN-⭐⭐-mem-crossover-ctx    = 1760
+#   provenance: hexa-codex .verdicts/rwkv/{m2_constant_memory,m3_linear_time}.txt
+#               + verify/numerics_rwkv_m2m3_laws.hexa (8/8 🟢 recompute)
+#
+# ════════════════════════════════════════════════════════════════════
+# 5) RELEASE GATE — what is done vs what is user-gated
+# ════════════════════════════════════════════════════════════════════
+#   DONE (this M5):
+#     ✓ 4-milestone characterization consolidated into one release verdict
+#     ✓ both closed-form laws stated, each citing its 🟢 recompute verdict
+#     ✓ honest negative carried (absolute prefill slower; win = exponent +
+#       decode O(1) + constant memory)
+#     ✓ atlas registration resolved (deferred to hexa-lang-side w/ exact template)
+#     ✓ in-repo recompute witness re-run verbatim (8/8 🟢, §6 below)
+#   USER-GATED (NOT done here, by directive):
+#     ✗ git tag / GitHub release / external publish — NO TAG CUT autonomously.
+#       Flip happens on user sign-off + tag. Same posture as M5.OPS / M5.SUBSTRATE.
+#   STATUS: RELEASE-READY pending user tag.
+#
+# ════════════════════════════════════════════════════════════════════
+# 6) RECOMPUTE WITNESS — hexa run verify/numerics_rwkv_m2m3_laws.hexa (VERBATIM)
+# ════════════════════════════════════════════════════════════════════
+========================================================================
+  hexa-codex RWKV M2/M3 closed-form laws (math_pure recompute)
+  M2 constant-memory + M3 linear-time, vs Qwen2.5-0.5B-Q4 baseline
+========================================================================
+
+  [M2 memory]
+  [PASS] L1 Qwen KV-cache EXACT linear: slope = 12 KiB/tok, intercept = 0, R² = 1 [M2]
+         · slope=0.0117188 (analytic 0.0117188) intercept=0.0 R²=1.0
+  [PASS] L2 RWKV recurrent state FLAT over 512→65536 (128× ctx): span=0, slope=0 [M2]
+         · span=0.0 MiB  slope=0.0 MiB/tok  const=20.62 MiB
+  [PASS] L3 M2 falsifier (RWKV memory grows) NOT triggered [M2]
+         · RWKV state slope=0.0 MiB/tok ≈ 0 → flat, falsifier rejected
+
+  [M3 prefill]
+  [PASS] L4 RWKV prefill LINEAR: power-law exponent p≈1, linear R²>0.99 [M3]
+         · p=0.962172 (|p−1|<0.05)  slope=7.22626 ms/tok  R²=0.995701
+  [PASS] L5 Qwen prefill SUPERLINEAR: p_qwen>1 and p_qwen−p_rwkv>0.3 [M3]
+         · p_qwen=1.36548 p_rwkv=0.962172 Δp=0.403305 (attention O(n^>1) penalty visible)
+
+  [M3 decode]
+  [PASS] L6 RWKV decode FLAT: ms/tok max/min<1.3× and slope≈0 over 0→8192 [M3]
+         · ms/tok 98.6193→122.549  ratio=1.24265  slope=-0.00105132 per ctx-tok
+  [PASS] L7 Qwen decode GROWS linearly: slope>0, R²>0.95, 3.5× @8192 [M3]
+         · slope=0.00363425 ms/tok per ctx-tok  R²=0.985097  growth@8192=3.54789×
+
+  [falsifiers]
+  [PASS] L8 M3 falsifier (RWKV latency superlinear) NOT triggered [M3]
+         · prefill p=0.962172 (<1.1)  decode slope=-0.00105132 (≈0) → linear-time, falsifier rejected
+========================================================================
+  8/8 laws hold
+  RWKV M2 (constant-memory) + M3 (linear-time) laws: closed.
+__HEXA_CODEX_NUMERICS_RWKV_M2M3__ PASS
+#   exit=0
+#
+# ════════════════════════════════════════════════════════════════════
+# REPRODUCE
+# ════════════════════════════════════════════════════════════════════
+#   cd <hexa-codex>
+#   hexa run verify/numerics_rwkv_m2m3_laws.hexa     # 8/8 🟢 (laws A+B)
+#   cat .verdicts/rwkv/m1_accuracy_floor_summary.txt  # M1 floor 15/20
+#   cat .verdicts/rwkv/m2_constant_memory.txt         # M2 law A
+#   cat .verdicts/rwkv/m3_linear_time.txt             # M3 law B
+#   cat .verdicts/rwkv/m2m3_ctx_sweep.tsv             # 27-row sweep
+#   ls  PAPER/rwkv-linear-attention-laws/             # M4 paper (11p, g51 PASS)
+#   hexa atlas lookup --prefix=rwkv                   # → not registered (deferred)
+# RWKV domain: M1·M2·M3·M4 closed + M5 release verdict registered = 5/5 (complete).
+# Release tag remains user-gated — no tag cut.

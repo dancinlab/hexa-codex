@@ -2,6 +2,13 @@
 
 Append-only history sister of `INBOX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-25 — `llama-mtmd-cli` SmolVLM-Instruct(2.2B v1) GGUF 로드 실패 (target upstream llama.cpp / ggml-org)
+- [ ] **버그:** stock brew `llama-mtmd-cli` (llama.cpp 9150, ggml 0.11.1) 가 `ggml-org/SmolVLM-Instruct-GGUF` 의 `SmolVLM-Instruct-Q8_0.gguf` + `mmproj-SmolVLM-Instruct-Q8_0.gguf` 쌍을 로드하면 모델·mmproj·CLIP warmup 까지는 정상 통과 후 첫 텍스트 batch 에서 죽음: `init: invalid token[6] = -1` → `decode: failed to initialize batch` → `llama_decode: failed to decode, ret = -1` → `failed to eval prompt` (exit 1).
+- [ ] **재현:** `llama-mtmd-cli -m SmolVLM-Instruct-Q8_0.gguf --mmproj mmproj-SmolVLM-Instruct-Q8_0.gguf --image <any.png> -p "..." -n 12 --temp 0 -s 42`. host macOS (Darwin 25.5.0, Apple M3 24GB UMA, MTL0 backend).
+- [ ] **대조 (동일 build·동일 protocol 정상):** `SmolVLM-500M-Instruct-GGUF` (0.5B) · `SmolVLM2-2.2B-Instruct-GGUF` (2.2B v2) · `Qwen2.5-VL-3B-Instruct-GGUF` (3B Q4_K_M) 셋 다 byte-exact greedy 로 정상 serve. → SmolVLM-Instruct(2.2B v1) GGUF 의 tokenizer/special-token 메타데이터(`token[6]`이 -1 로 매핑) issue 로 추정 (모델 그래프가 아니라 vocab/added-tokens export).
+- [ ] **no workaround applied:** M5.SUBSTRATE multimodal ladder 의 2.2B rung 은 clean 한 `SmolVLM2-2.2B-Instruct-GGUF` 변종으로 대체 — 같은 param-class·같은 idefics3 projector 라 ladder 의 param-gradient 의미를 보존하는 정직한 substitute (회피 패치가 아니라 모델 교체). `bench/sandbox_multimodal_ladder.hexa` (cycle-20).
+- target: upstream llama.cpp mtmd / ggml-org GGUF re-export (added-tokens/vocab fix) · discovered_by hexa-codex cycle-20 M5.SUBSTRATE multimodal ladder · severity low (clean 대체 모델 존재, ladder 영향 없음). 메모리 룰 `feedback_kick_failure_inbox.md` (tool 실패 → workaround 금지 → upstream inbox 등록) 준수.
+
 ## 2026-05-25 — hexa runtime same-name `let` 전역충돌 → `/paper lint` 페이지체크 블록 (target hexa-lang) [ROOT CAUSE of the OPS entry below]
 - [ ] **버그:** `hexa 0.1.0-dispatch` 런타임에서 서로 다른 두 함수가 같은 이름의 `let` 바인딩을 선언하면, 두 번째 함수 안의 참조가 자신의 로컬 값이 아니라 **소스에서 먼저 정의된 함수의 값**으로 resolve 됨 (function-local scoping 위반).
 - [ ] **최소 재현 (3-fn):** `fn a(){ let pdf="FROM_A"; println(pdf) } fn b(){ let pdf="FROM_B"; println(pdf) } fn main(){ b(); a(); b() }` → 출력이 전부 `FROM_A` (기대값 `FROM_B / FROM_A / FROM_B`). 이름이 같은 `let` 이 전역 1개로 병합됨.

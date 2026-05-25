@@ -1,0 +1,49 @@
+rung	params_b	img	axis	expected	wall_ms	correct	output_snippet
+SmolVLM-500M-Instruct-Q8_0	0.5	count_5	count	5	2437	1	5.
+SmolVLM-500M-Instruct-Q8_0	0.5	count_6	count	6	2197	1	6.
+SmolVLM-500M-Instruct-Q8_0	0.5	count_7	count	7	1703	0	6.
+SmolVLM-500M-Instruct-Q8_0	0.5	count_8	count	8	2236	1	8.
+SmolVLM-500M-Instruct-Q8_0	0.5	count_9	count	9	1685	1	9.
+SmolVLM-500M-Instruct-Q8_0	0.5	ocr_opengate	ocr	gate	1706	1	OPEN GATE.
+SmolVLM-500M-Instruct-Q8_0	0.5	ocr_redtruck	ocr	truck	1723	1	RED TRUCK.
+SmolVLM-500M-Instruct-Q8_0	0.5	ocr_bluestone	ocr	stone	2386	1	BLUE STONE.
+SmolVLM-500M-Instruct-Q8_0	0.5	ocr_greenleaf	ocr	leaf	1770	1	GREEN LEAF.
+SmolVLM-500M-Instruct-Q8_0	0.5	spatial_left_red	spatial	red	1722	1	Red.
+SmolVLM-500M-Instruct-Q8_0	0.5	spatial_right_blue	spatial	blue	2189	1	Blue.
+SmolVLM-500M-Instruct-Q8_0	0.5	spatial_above_green	spatial	green	1746	1	Green.
+SmolVLM-500M-Instruct-Q8_0	0.5	spatial_below_orange	spatial	orange	1743	0	Yellow.
+SmolVLM-500M-Instruct-Q8_0	0.5	shape_triangle	shape	triangle	1826	1	Triangle.
+SmolVLM-500M-Instruct-Q8_0	0.5	shape_square	shape	square	1726	0	Rectangle.
+SmolVLM-500M-Instruct-Q8_0	0.5	shape_circle	shape	circle	2258	1	Circle.
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	count_5	count	5	6871	1	5
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	count_6	count	6	4595	1	6
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	count_7	count	7	4549	1	7
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	count_8	count	8	4620	0	9
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	count_9	count	9	4608	1	9
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	ocr_opengate	ocr	gate	4290	1	OPEN GATE
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	ocr_redtruck	ocr	truck	3410	1	RED TRUCK
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	ocr_bluestone	ocr	stone	4849	1	BLUE STONE
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	ocr_greenleaf	ocr	leaf	3931	1	GREEN LEAF
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	spatial_left_red	spatial	red	5273	1	red
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	spatial_right_blue	spatial	blue	3680	1	blue
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	spatial_above_green	spatial	green	3844	1	Green
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	spatial_below_orange	spatial	orange	3797	1	orange
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	shape_triangle	shape	triangle	4829	1	Triangle
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	shape_square	shape	square	4992	1	square
+SmolVLM2-2.2B-Instruct-Q8_0	2.2	shape_circle	shape	circle	3810	1	circle
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	count_5	count	5	11932	1	5
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	count_6	count	6	10350	1	6
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	count_7	count	7	8875	0	6
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	count_8	count	8	8860	0	7
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	count_9	count	9	8676	0	8
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	ocr_opengate	ocr	gate	6996	1	OPEN GATE
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	ocr_redtruck	ocr	truck	7181	1	RED TRUCK
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	ocr_bluestone	ocr	stone	8074	1	BLUE STONE
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	ocr_greenleaf	ocr	leaf	6928	1	GREEN LEAF
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	spatial_left_red	spatial	red	6976	1	Red
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	spatial_right_blue	spatial	blue	7253	1	Blue
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	spatial_above_green	spatial	green	7385	1	Green
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	spatial_below_orange	spatial	orange	6572	1	Orange
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	shape_triangle	shape	triangle	8314	1	Triangle
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	shape_square	shape	square	7493	1	Square
+Qwen2.5-VL-3B-Instruct-Q4_K_M	3.0	shape_circle	shape	circle	8345	1	Circle

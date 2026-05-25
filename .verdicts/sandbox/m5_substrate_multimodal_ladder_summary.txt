@@ -1,0 +1,22 @@
+# bench=sandbox_multimodal_ladder (M5.SUBSTRATE multimodal CAPABILITY LADDER, cycle-20)
+# rungs=3  params_b=0.5,2.2,3.0  tool=llama-mtmd-cli (stock brew llama.cpp, CLIP on MTL0 Metal/UMA)
+# manifest=16 synthetic PIL images, 4 difficulty-stratified axes (count x5 [5-9 objects] / ocr x4 [2-word phrases] / spatial x4 / shape x3)
+# scorer=byte_exact_subset (case-insensitive substring on expected_kw; NO LLM self-judge; same family as smoke + rwkv_m1)
+# decode=greedy --temp 0 -s 42 -n 24 (seed-pinned byte-exact replay)
+# host=mac-mini-m3 (Apple M3, 24GB UMA; PRE-M5 Metal, MTL0 backend active); cost_usd=0
+# total_items=16
+# rung0_name=SmolVLM-500M-Instruct-Q8_0
+# rung0_params_b=0.5
+# rung0_correct=13/16
+# rung0_accuracy_pct=81.25
+# rung1_name=SmolVLM2-2.2B-Instruct-Q8_0
+# rung1_params_b=2.2
+# rung1_correct=15/16
+# rung1_accuracy_pct=93.75
+# rung2_name=Qwen2.5-VL-3B-Instruct-Q4_K_M
+# rung2_params_b=3.0
+# rung2_correct=13/16
+# rung2_accuracy_pct=81.25
+# monotone_nondecreasing=false
+# model_sources=ggml-org/SmolVLM-500M-Instruct-GGUF · ggml-org/SmolVLM2-2.2B-Instruct-GGUF · ggml-org/Qwen2.5-VL-3B-Instruct-GGUF (HF)
+# fit_consumer=verify/numerics_substrate_multimodal_fit.hexa (closed-form logistic in log2(params), recompute from this TSV)

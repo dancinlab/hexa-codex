@@ -1,0 +1,89 @@
+# status=executed
+# milestone=M3.ECON (POSITIVE measured-latency cost model — companion to the F-CODEX-2 falsification)
+# verifier=verify/numerics_economics_measured_cost_model.hexa  (8 structural checks, closed-form OLS)
+# bench=.verdicts/sandbox/stage4_context_scaling.tsv  (real llama-server, $0 local M3 Metal, cycle-16)
+# model=Qwen2.5-1.5B-Instruct-Q4_K_M  host=mac-mini-m3 (brew llama.cpp + Metal, 24GB UMA)  port=8091  -np 1 -cb
+# run=POOL_DISABLE=1 hexa run verify/numerics_economics_measured_cost_model.hexa
+# ── fitted coefficients (the LOAD-BEARING positive finding) ──────────────
+# (b) 2-component physical model: wall_ms = decode_fixed + prefill_slope · input_tokens
+#       decode_fixed  = 370.08 ms        (context-invariant fixed ~64-token decode floor, mem-bandwidth wall)
+#       prefill_slope = 0.168306 ms/tok  (prefill TTFT linear in input length, paged-attention regime)
+#       R² (linear, wall_ms axis) = 0.996997
+# (a) single power-law: wall_ms = a · context^τ̂
+#       τ̂ = 0.523982   a = 13.7228   R² (linear) = 0.961115
+#       (τ̂ reproduces the F-CODEX-2 falsification fit bit-for-bit — same data, same OLS)
+# ── comparison ───────────────────────────────────────────────────────────
+# 2-component R² 0.996997 > single power-law R² 0.961115  (Δ = +0.0359) — the
+# physical decode-fixed + linear-prefill model fits BETTER than the pure
+# power-law. The curve is decode-bound + linear-prefill, NOT a pure ctx^τ̂.
+# Per-rung worst residual = 5.76% (1k rung); others ≤ 4.1%.
+# checks=8/8 PASS
+# tier=🟢 SUPPORTED-NUMERICAL (real bench + closed-form OLS recompute of the positive measured law)
+# cost_usd=0
+# m3_econ_or_branch=SATISFIED  (the OR-branch "re-derive a measured-τ̂ cost model" half — the
+#   falsification of n=6 τ=4 is shipped at PAPER/economics-lattice-falsified; THIS is the
+#   POSITIVE measured law that satisfies M3.ECON's "EITHER … OR …" with a REAL finding)
+# ════════════════════════════════════════════════════════════════════════
+#  WHY 2-COMPONENT, NOT POWER-LAW (honest, real-limits-first)
+# ════════════════════════════════════════════════════════════════════════
+# The substrate's per-request wall_ms decomposes into two physical phases:
+#   • decode_fixed (370 ms) — the fixed max_tokens≈64 decode phase. Each
+#     decoded token reloads the full weight matrix once → memory-bandwidth-
+#     bound, context-INVARIANT (Theorem I-1 wall, infer_cost/ai-inference-cost.md
+#     §S7.6). This floor does NOT grow with prompt length.
+#   • prefill_slope · input_tokens (0.168 ms/tok) — the prefill (TTFT) phase,
+#     ~LINEAR in input length in the paged-attention regime (§S7.6 "TTFT
+#     linear in input length").
+# The single power-law conflates the two phases into one descriptive exponent
+# (τ̂≈0.52); the 2-component model SEPARATES them and fits the measured curve
+# to R²=0.997. This is exactly the functional family the F-CODEX-2
+# falsification named ("dominated by the FIXED 64-tok decode + cached-prefix
+# prefill"), now closed-form-fit and recompute-verified.
+# ════════════════════════════════════════════════════════════════════════
+#  hexa run (numerical recompute) — RAW STDOUT VERBATIM  (exit code 0)
+# ════════════════════════════════════════════════════════════════════════
+========================================================================
+  hexa-codex ECONOMICS measured-cost-model harness — M3.ECON OR-branch
+  POSITIVE companion to the F-CODEX-2 falsification (τ=4 → measured law)
+  cycle-18: wall_ms = decode_fixed + prefill_slope·input_tokens (OLS)
+========================================================================
+  data source: .verdicts/sandbox/stage4_context_scaling.tsv (verbatim)
+  Qwen2.5-1.5B-Instruct-Q4_K_M · mac-mini-m3 Metal · -np 1 -cb · $0 · accuracy 17/20 flat
+
+  ── model (a) single power-law: wall_ms = a · context^τ̂
+       τ̂ = 0.523982   a = 13.7228   R²(linear) = 0.961115
+  ── model (b) 2-component:      wall_ms = decode_fixed + prefill_slope·input_tokens
+       decode_fixed  = 370.08 ms
+       prefill_slope = 0.168306 ms/tok
+       R²(linear)    = 0.996997
+
+  per-rung fit table (ctx · input_tok · measured · pred_2comp · pred_pow):
+    ctx=1024.0  in_tok=987.0  meas=569.0  2comp=536.198  pow=518.544
+    ctx=2048.0  in_tok=1947.0  meas=670.0  2comp=697.771  pow=745.624
+    ctx=4096.0  in_tok=3867.0  meas=1005.0  2comp=1020.92  pow=1072.15
+    ctx=8192.0  in_tok=7647.0  meas=1668.0  2comp=1657.11  pow=1541.66
+
+  [PASS] wall_ms strictly monotone-increasing with context_len (569<670<1005<1668)
+         · first_violation_at=-1
+  [PASS] throughput_tok_per_s strictly monotone-decreasing with context_len (22.80>17.60>11.98>7.31)
+         · first_violation_at=-1
+  [PASS] 2-component model R² ≥ 0.98 (measured cost model fits the curve)
+         · r2_2comp=0.996997  floor=0.98
+  [PASS] 2-component R² > single-power-law R² (decode-fixed + linear-prefill beats pure ctx^τ̂)
+         · r2_2comp=0.996997  r2_powerlaw=0.961115  delta=0.0358824
+  [PASS] per-rung 2-component predicted-vs-measured residual ≤ 8.0%
+         · worst_pct=5.76494  at_rung_idx=0  tol=8.0
+  [PASS] decode_fixed > 0 (context-invariant fixed-decode floor, mem-bandwidth wall)
+         · decode_fixed=370.08 ms
+  [PASS] prefill_slope > 0 (prefill TTFT linear in input_tokens, paged-attention regime)
+         · prefill_slope=0.168306 ms/tok
+  [PASS] single power-law τ̂ reproduces F-CODEX-2 falsification fit (0.524) — same data, same OLS
+         · tau_hat=0.523982  falsified_ref=0.523982  drift=1.30586e-07
+
+========================================================================
+  8/8 checks passed
+  🟢 SUPPORTED-NUMERICAL — measured 2-component cost model landed
+  · wall_ms = 370.08 + 0.168306·input_tokens   (R²=0.996997)
+  · beats single power-law (R²=0.961115, τ̂=0.523982 — the falsified n=6 τ=4 fit)
+  · M3.ECON M5-release OR-branch satisfied with a REAL measured law
+__HEXA_CODEX_NUMERICS_ECONOMICS_MEASURED_COST_MODEL__ PASS

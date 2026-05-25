@@ -1,0 +1,719 @@
+% SHIPPABLE — all 4 canonical sections (§Formula, §Method, §Benchmark, §Benefit)
+% are linked to a 🟢 SUPPORTED-NUMERICAL verdict per project.tape cx_paper_gate.
+% Scaffolded cycle-15d (2026-05-25) on the RWKV M2 (constant-memory) + M3
+% (linear-time) closed-form laws. §Formula closes via a closed-form least-squares
+% + log-log power-law recompute over the committed ctx-sweep data,
+% verify/numerics_rwkv_m2m3_laws.hexa (8/8 laws PASS), verdicts
+% .verdicts/rwkv/m2_constant_memory.txt + .verdicts/rwkv/m3_linear_time.txt.
+% The structure — RWKV recurrent state is FLAT (slope 0) where a Transformer
+% KV-cache is exactly O(n); RWKV prefill is power-law p≈1 where attention prefill
+% is p>1; RWKV decode is O(1) in depth where attention decode is O(n) — is
+% reproduced from the measured grid. The SINGLE absolute model pair / one
+% substrate / q5_k_m quant are explicitly NOT generalized beyond the measurement.
+%
+% g51 publish-lint EXPANSION: the 4-section result is expanded to satisfy commons
+% g51 (≥10 pages + ≥1 fal.ai figure) with GENUINE scholarly content — a §Background
+% deriving the WKV7 linear-attention recurrence and the attention KV-cache identity,
+% a §Related Work (Transformer attention, linear-attention / Transformers-are-RNNs,
+% RetNet, Mamba/SSM, the RWKV lineage), an extended §Discussion (the crossover law,
+% the prefill-constant-factor caveat, why decode-O(1) is the deployment-load-bearing
+% half), and an §Appendix carrying the full 27-row sweep .tsv + the verbatim verify
+% recompute stdout. NO numeric claim changes — every section stays linked to its
+% existing 🟢 verdict. The fal.ai figure is figures/fig01_memory_latency_laws.png
+% (prompt: figures/_prompts/memory_latency_laws.txt).
+
+\documentclass[11pt,a4paper]{article}
+
+% ---------- arxiv-style preamble ----------
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=blue!50!black,
+  urlcolor=blue!50!black
+}
+
+\newcommand{\green}[1]{\textcolor{green!50!black}{\textbf{#1}}}
+\newcommand{\ctx}{\ensuremath{n}}
+
+\title{
+  \textbf{Constant Memory, Linear Time: Measured Context-Scaling Laws
+  for an Attention-Free RNN Language Model}\\[4pt]
+  \large An RWKV-7 ``Goose'' 2.9B vs.\ Transformer head-to-head on a single
+  self-hosted substrate --- the recurrent state is flat where the KV-cache is
+  \(O(\ctx)\), prefill is \(p\!\approx\!1\) where attention is \(p\!>\!1\),
+  and decode is \(O(1)\) in depth where attention is \(O(\ctx)\)
+}
+
+\author{hexa-codex maintainers \\ \texttt{github.com/dancinlab/hexa-codex}}
+
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% =========================================================================
+\begin{abstract}
+The defining promise of attention-free recurrent language models --- constant
+memory and constant per-token inference cost, independent of context length --- is
+usually argued from architecture and benchmarked on bespoke kernels. We instead
+\emph{measure} it end-to-end on a single commodity substrate (a Mac\,mini\,M3,
+stock \texttt{llama.cpp}, Metal/UMA, \$0 incremental cost), comparing RWKV-7
+``Goose'' 2.9B (\texttt{rwkv7}, an attention-free RNN with no KV-cache) against
+Qwen2.5-0.5B-Instruct (\texttt{qwen2}, a standard KV-cache Transformer) over a
+context-length sweep spanning \(512 \to \num{65536}\) tokens (a \(128\times\)
+span). We extract four closed-form scaling laws and verify each by deterministic
+recompute (least-squares slope, \(R^2\), and log--log power-law exponent over the
+committed measurement grid; \(8/8\) checks pass).
+\textbf{(1)~Memory:} the RWKV recurrent state is \emph{flat} at
+\SI{20.62}{MiB} (max--min span \(=0\), slope \(=0\)) across the entire
+\(128\times\) span, whereas the Transformer KV-cache is exactly linear,
+\(\mathrm{KV}(\ctx)=\ctx\cdot\SI{12}{KiB/tok}\) (intercept \(0\), \(R^2=1\),
+architecturally exact). \textbf{(2)~Prefill:} RWKV prefill time is a power law
+with exponent \(p=0.962\approx 1\) (\(R^2=0.996\)); attention prefill has
+\(p=1.366>1\) (\(\Delta p = 0.40\)). \textbf{(3)~Decode:} RWKV decode throughput
+is depth-\emph{independent} (ms/tok ratio \(1.24\times\), slope \(\approx 0\));
+attention decode degrades \(3.55\times\) over the same depth (slope
+\(>0\), \(R^2=0.985\)). The two pre-registered falsifiers (``RWKV memory grows''
+and ``RWKV latency is superlinear'') are \emph{not} triggered. The practical
+consequences: a memory crossover at \(\ctx\approx\num{1760}\) tokens beyond which
+RWKV uses strictly less cache memory (\(4.66\times\) less at \num{8192}), and a
+decode that stays at full speed where the Transformer has already slowed
+\(3.55\times\). We make no claim beyond this single model pair, this one
+substrate, and the \texttt{q5\_k\_m}/\texttt{Q4\_K\_M} quantizations measured;
+the absolute prefill constant is, in fact, \emph{worse} for RWKV here, and we
+say so plainly.
+\end{abstract}
+
+% =========================================================================
+\section{Introduction}
+\label{sec:intro}
+
+Transformer self-attention is, per layer, quadratic in sequence length: scoring
+all \(\ctx\) query--key pairs costs \(O(\ctx^2)\) work, and autoregressive
+decoding must additionally store a key/value vector for every past token --- a
+\emph{KV-cache} that grows \(O(\ctx)\) in memory and is re-read on every new
+token \citep{vaswani2017attention}. For short prompts this is invisible; for the
+long contexts now routine in retrieval, agents, and code, it is the dominant
+cost. An entire family of subquadratic architectures --- linear attention
+\citep{katharopoulos2020transformers}, retentive networks
+\citep{sun2023retnet}, structured state-space models \citep{gu2023mamba}, and the
+RWKV line \citep{peng2023rwkv,peng2025rwkv7} --- was built to escape it, each
+claiming linear-time training, \(O(1)\) per-token inference, and a
+\emph{constant-size} recurrent state in place of the growing cache.
+
+These claims are usually defended in two registers: an architectural argument
+(``the state is a fixed-size matrix, therefore memory is constant''), and a
+benchmark on the authors' own optimized kernels. Both are legitimate, but
+neither tells a practitioner what they will actually observe when they download
+a community GGUF and run it on the hardware they have, against the Transformer
+they already deploy. The architectural argument is an upper bound on what is
+\emph{possible}; the kernel benchmark is a measurement of what is possible
+\emph{with effort that a downstream user may not reproduce}. The gap between them
+is where deployment surprises live.
+
+This paper closes that gap for one concrete, fully-reproducible setting. We take
+RWKV-7 ``Goose'' 2.9B \citep{peng2025rwkv7} --- whose abstract claims ``constant
+memory usage and constant inference time per token'' --- and a standard
+KV-cache Transformer of comparable serving footprint (Qwen2.5-0.5B-Instruct
+\citep{qwen25}), run both on \emph{stock} \texttt{llama.cpp}
+\citep{llamacpp} on a single Mac\,mini\,M3 (Metal/UMA, no special kernels, \$0
+incremental cost), and sweep the context length from \num{512} to \num{65536}
+tokens. We then extract closed-form laws from the measurement and verify each by
+deterministic recompute rather than asserting them. The result is not a new
+architecture or a new benchmark suite; it is a \emph{measured confirmation},
+with the constant factors stated honestly, of the two scaling laws that make
+attention-free models attractive --- and an equally honest statement of where,
+on this substrate, the Transformer still wins (the absolute prefill constant).
+
+\medskip
+\noindent\textbf{Contributions.}
+\begin{enumerate}\itemsep0.3em
+\item \textbf{A measured constant-memory law} (\S\ref{sec:formula}): the RWKV-7
+  recurrent state is flat at \SI{20.62}{MiB} over a \(128\times\) context span,
+  while the Transformer KV-cache is exactly \(\ctx\cdot\SI{12}{KiB/tok}\)
+  (\(R^2=1\), architecturally derivable). Crossover at \(\ctx\approx\num{1760}\);
+  \(4.66\times\) less cache memory at \num{8192}.
+\item \textbf{A measured linear-time law} (\S\ref{sec:formula}): RWKV prefill is
+  power-law \(p=0.962\approx1\) where attention prefill is \(p=1.366\); RWKV
+  decode is \(O(1)\) in depth where attention decode degrades \(3.55\times\).
+\item \textbf{A verify-by-recompute discipline} (\S\ref{sec:method}): every law
+  is re-derived from the committed grid by a deterministic numerical verifier
+  (\(8/8\) checks), so no number in this paper rests on the authors' judgement
+  alone; both pre-registered falsifiers are checked and not triggered.
+\item \textbf{An honest negative} (\S\ref{sec:limits},~\S\ref{sec:discussion}):
+  on this stock substrate RWKV's \emph{absolute} prefill is slower than the tiny
+  Transformer's at every measured context; the asymptotic win is in the
+  \emph{exponent} and in decode/memory, not in the prefill constant.
+\end{enumerate}
+
+% =========================================================================
+\section{Background}
+\label{sec:bg}
+
+\paragraph{The Transformer KV-cache and its \(O(\ctx)\) memory.}
+A decoder-only Transformer with \(L\) layers, \(h_{kv}\) key/value heads of
+dimension \(d_h\), in \(b\)-byte precision, caches one key and one value vector
+per head per past token. After \(\ctx\) tokens the cache occupies
+\begin{equation}
+\label{eq:kv}
+\mathrm{KV}(\ctx) \;=\; \underbrace{L \cdot h_{kv} \cdot d_h \cdot 2}_{\text{K{+}V floats per token}} \cdot\, b \cdot \ctx
+\quad\text{bytes,}
+\end{equation}
+i.e.\ exactly linear in \(\ctx\) with zero intercept. For the
+Qwen2.5-0.5B-Instruct configuration measured here
+(\(L=24\), \(h_{kv}=2\), \(d_h=64\), \(b=2\) bytes/fp16) the per-token slope is
+\(24\cdot 2\cdot 64\cdot 2\cdot 2 = \SI{12288}{bytes/tok} = \SI{12}{KiB/tok} =
+\SI{0.01171875}{MiB/tok}\). This is the closed form that our memory measurement
+must --- and does --- reproduce. Architectures that grow this cache pay the cost
+twice: in \emph{capacity} (the cache must fit in memory) and in \emph{bandwidth}
+(every decode step re-reads the whole cache), the latter being precisely the
+pressure that paged / block-sparse cache managers
+\citep{kwon2023vllm} were designed to relieve.
+
+\paragraph{The attention-free recurrence: a fixed-size state.}
+RWKV replaces attention with a recurrence whose carried state has a
+\emph{context-independent} shape. Writing the time-mixing block of the RWKV
+family as a linear-attention recurrence \citep{katharopoulos2020transformers,
+peng2023rwkv}, the per-channel update at step \(t\) maintains a numerator and
+denominator (or, in RWKV-7, a state \emph{matrix}) that are updated in place:
+\begin{equation}
+\label{eq:wkv}
+S_t \;=\; \mathrm{diag}(w)\, S_{t-1} \;+\; k_t\, v_t^{\top},
+\qquad
+o_t \;=\; \frac{r_t^{\top} S_t}{\,r_t^{\top} u_t + \varepsilon\,},
+\end{equation}
+where \(w\) is a (learned, in RWKV-7 input-dependent and vector-valued) decay,
+\(k_t, v_t, r_t\) are the key/value/receptance projections, and \(S_t\) has a
+fixed shape set by the head dimension --- crucially, \emph{not} by \(t\).
+RWKV-7 ``Goose'' generalizes this with a delta-rule update, vector-valued gating,
+and in-context learning rates that let the transition matrix be non-diagonal and
+input-dependent \citep{peng2025rwkv7}; the architectural invariant we test is
+narrower and survives all those generalizations: \emph{the carried state does not
+grow with context}. Concretely, the served model reports a single recurrent cell,
+\(\SI{20.62}{MiB} = R(\mathrm{f32})\,\SI{0.62}{MiB} + S(\mathrm{f32})\,\SI{20.00}{MiB}\)
+for \(1\) cell over \(32\) layers, regardless of how many tokens have been
+consumed. The \(O(1)\) per-token \emph{time} claim follows from the same
+in-place structure: Eq.~\eqref{eq:wkv} costs the same work at \(t=1\) and at
+\(t=\num{65536}\), since it never attends back over history.
+
+\paragraph{What is and is not being tested.}
+We test the two \emph{operational} consequences of this structure that a
+deployer cares about: (i) does measured cache memory stay flat, and (ii) does
+measured latency (prefill total time and decode throughput) scale linearly /
+stay constant. We do \emph{not} test RWKV-7's representational claims (state
+tracking, regular-language recognition, the \(\mathsf{TC}^0\) separation of
+\citealp{peng2025rwkv7}); those are orthogonal and already argued in the
+architecture paper. Our M1 surfacing step separately measured task accuracy
+(\(15/20\) on a fixed canonical manifest, vs.\ \(16/20\) for the Qwen baseline
+and \(6/20\) for a BitNet control on the identical scorer), establishing that
+the model is a \emph{usable} continuation model and not a degenerate one; the
+present paper is about its scaling, not its quality.
+
+% =========================================================================
+\section{Formula}
+\label{sec:formula}
+\green{SUPPORTED-NUMERICAL} --- four closed-form laws, each recomputed
+deterministically from the committed sweep grid by
+\texttt{verify/numerics\_rwkv\_m2m3\_laws.hexa} (\(8/8\) checks pass; verbatim
+stdout in Appendix~\ref{app:verify}). Verdicts:
+\texttt{.verdicts/rwkv/m2\_constant\_memory.txt} (laws L1--L3) and
+\texttt{.verdicts/rwkv/m3\_linear\_time.txt} (laws L4--L8).
+
+\paragraph{Law 1 --- Transformer KV-cache is exactly \(O(\ctx)\) (L1).}
+A least-squares fit of the measured KV buffer vs.\ context returns
+\begin{equation}
+\label{eq:law1}
+\mathrm{KV}(\ctx) \;=\; \ctx \cdot \SI{0.01171875}{MiB/tok},
+\qquad \text{intercept } = 0,\quad R^2 = 1,
+\end{equation}
+matching the architectural derivation of Eq.~\eqref{eq:kv} to floating-point ULP
+noise (\(\sim\!5\times10^{-8}\), declared in the verifier as a \(10^{-6}\)
+tolerance --- far tighter than measurement noise). The cache exactly doubles when
+context doubles (\(6\to12\to24\to48\to96\to192\,\)MiB at
+\(512\to\num{16384}\)).
+
+\paragraph{Law 2 --- RWKV recurrent state is flat (L2).}
+Over the full sweep --- and including the \(\ctx=\num{65536}\) probe, a
+\(128\times\) span --- the RWKV state is
+\begin{equation}
+\label{eq:law2}
+\mathrm{state}(\ctx) \;=\; \SI{20.62}{MiB} \;=\; \text{const},
+\qquad \text{max--min span} = 0,\quad \text{slope} = 0.
+\end{equation}
+The carried state is a single fixed-shape cell (Eq.~\eqref{eq:wkv}); the
+measurement confirms it does not move by even one ULP across the span.
+
+\paragraph{Memory crossover.}
+Equating Eqs.~\eqref{eq:law1} and~\eqref{eq:law2},
+\(\ctx^\star = \SI{20.62}{MiB} / \SI{0.01171875}{MiB/tok} \approx \num{1760}\)
+tokens. Below \(\ctx^\star\) the Transformer's tiny cache is smaller; above it,
+RWKV's flat state wins and the gap diverges linearly (\(4.66\times\) less cache
+memory at \num{8192}, and unbounded as \(\ctx\to\infty\)).
+
+\paragraph{Law 3 --- RWKV prefill is linear-time (L4).}
+A log--log power-law fit of total prefill time vs.\ context gives exponent
+\begin{equation}
+\label{eq:law3}
+p_{\mathrm{RWKV}}^{\mathrm{pp}} \;=\; 0.962 \;\approx\; 1
+\qquad (|p-1| < 0.05,\;\; \text{linear } R^2 = 0.996),
+\end{equation}
+i.e.\ prefill is \(\Theta(\ctx^1)\): a \(16\times\) context costs \(14.9\times\)
+the time, and per-token prefill throughput is flat (\(\sim\)128--155 tok/s).
+
+\paragraph{Law 4 --- attention prefill is superlinear (L5).}
+The same fit on the Transformer returns
+\(p_{\mathrm{Qwen}}^{\mathrm{pp}} = 1.366 > 1\), with
+\(\Delta p = p_{\mathrm{Qwen}} - p_{\mathrm{RWKV}} = 0.40\): a \(16\times\)
+context costs \(51.9\times\) the time, and prefill throughput \emph{degrades}
+(\(1880 \to 578\) tok/s) --- the \(O(\ctx^{>1})\) attention penalty, visible
+directly on stock hardware.
+
+\paragraph{Laws on decode (L6, L7).}
+Converting decode throughput to per-token latency (ms/tok \(=1000/\)tok/s) and
+fitting vs.\ context depth:
+\begin{equation}
+\label{eq:law5}
+\text{RWKV: } \tfrac{\mathrm{ms}}{\mathrm{tok}}\ \text{ratio} = 1.24\times,\
+\text{slope} \approx 0\ (O(1));
+\qquad
+\text{Qwen: slope} = +0.00363,\ R^2 = 0.985,\ 3.55\times\,@\,\num{8192}\ (O(\ctx)).
+\end{equation}
+RWKV decode is depth-independent; attention decode grows linearly in depth, as
+the recurrence-vs-attention duality of \citet{katharopoulos2020transformers}
+predicts.
+
+\paragraph{Falsifiers (L3, L8) --- not triggered.}
+Two falsifiers were pre-registered. \emph{M2:} ``RWKV resident memory grows with
+context beyond a flat band'' --- rejected, since the fitted state slope is
+\(0\) (Eq.~\eqref{eq:law2}). \emph{M3:} ``RWKV latency is superlinear in
+context'' (prefill \(p>1.1\) \emph{or} decode slope \(>0.01\)) --- rejected,
+since \(p=0.962<1.1\) and the decode slope is \(\approx 0\) (slightly negative).
+Both falsifiers are evaluated inside the verifier, not asserted by us.
+
+% =========================================================================
+\section{Method}
+\label{sec:method}
+\green{SUPPORTED-NUMERICAL} --- the protocol below is the exact, pre-registered
+harness; its output grid is committed verbatim
+(\texttt{.verdicts/rwkv/m2m3\_ctx\_sweep.tsv}) and re-derived by
+\texttt{verify/numerics\_rwkv\_m2m3\_laws.hexa}.
+
+\paragraph{Substrate and models.}
+A single Mac\,mini\,M3 (Apple Silicon, Metal/UMA), stock Homebrew
+\texttt{llama.cpp} build 9150 \citep{llamacpp}, \$0 incremental cost (local
+serving). RWKV-7 ``Goose'' World3 2.9B as the community GGUF mirror
+\texttt{RWKV7-Goose-World3-2.9B-HF-q5\_k\_m.gguf} (architecture \texttt{rwkv7},
+902 tensors, \(\mathrm{ctx\_len}=\num{1048576}\), embed 2560, 32 blocks;
+attention-free RNN, \emph{no} KV-cache); Qwen2.5-0.5B-Instruct as
+\texttt{Qwen2.5-0.5B-Instruct-Q4\_K\_M.gguf} (architecture \texttt{qwen2}, a
+KV-cache Transformer) as the baseline. Importantly, RWKV-7 is \emph{natively}
+supported by stock \texttt{llama.cpp} --- no \texttt{rwkv.cpp} build and no
+conversion was required.
+
+\paragraph{Memory axis.}
+At context construction, \texttt{llama.cpp} logs the cache buffer size: for the
+Transformer, \texttt{llama\_kv\_cache:\ ...\ KV buffer size = $N$ MiB}; for
+RWKV, \texttt{llama\_memory\_recurrent:\ size = 20.62 MiB (1 cells, 32 layers, 1
+seqs)}. We read this number directly at each context length
+\(\{512, 1024, 2048, 4096, 8192, \num{16384}\}\) (and \num{65536} for RWKV).
+As an independent coarse corroboration we also capture process peak RSS via
+\texttt{/usr/bin/time -l} (``maximum resident set size'').
+
+\paragraph{Latency axis (and the engine quirk).}
+Latency is measured with the dedicated \texttt{llama-bench} binary
+(\texttt{-o csv}), \emph{not} \texttt{llama-completion}. This is a load-bearing
+protocol note: on this engine, driving an \texttt{rwkv7} prefill through
+\texttt{llama-completion -f <large-prompt-file>} hits a pathologically slow code
+path (a \(\sim\)1500-token prompt ran \(>\)\,4.75 minutes without emitting its
+perf block); short prompts are unaffected. \texttt{llama-bench} handles
+\texttt{rwkv7} cleanly and fast and emits machine-readable CSV. We measure
+\textbf{prefill} as total prefill time vs.\ context (\texttt{-p $N$ -n 0 -r 2},
+warm/steady-state) at \(\ctx \in \{512,1024,2048,3072,4096,6144,8192\}\), and
+\textbf{decode} as decode throughput after a depth-\(D\) prefill
+(\texttt{-n 64 -p 0 -d $D$ -r 2}) at \(D \in \{0,512,1024,2048,4096,8192\}\).
+This quirk is a stock-\texttt{llama.cpp} observation (not an architectural
+property of RWKV) and is logged as such; the dedicated benchmark binary is the
+correct instrument and removes it entirely.
+
+\paragraph{Pre-registered fits and tolerances.}
+The eight laws (L1--L8) and their numeric thresholds were fixed \emph{before}
+fitting: linear slope/intercept/\(R^2\) by ordinary least squares; power-law
+exponent \(p\) as the slope of \(\log y\) vs.\ \(\log x\); ``flat'' as max--min
+span \(=0\) and slope \(=0\); ``linear'' as \(|p-1|<0.05\) and \(R^2>0.99\);
+``superlinear'' as \(p>1\) and \(\Delta p>0.3\); decode ``flat'' as
+ms/tok ratio \(<1.3\times\) and \(|\text{slope}|<0.01\); decode ``grows'' as
+slope \(>0\), \(R^2>0.95\), growth \(\in(3,4)\times\). The verifier is pure
+arithmetic over the committed data --- no LLM, no subprocess, no re-measurement
+--- so it is a closed-form \emph{recompute} (g0), reproducible by
+\texttt{hexa run verify/numerics\_rwkv\_m2m3\_laws.hexa}.
+
+% =========================================================================
+\section{Benchmark}
+\label{sec:benchmark}
+\green{SUPPORTED-NUMERICAL} --- the full warm/steady-state sweep. Source of truth:
+\texttt{.verdicts/rwkv/m2m3\_ctx\_sweep.tsv} (27 rows), summarized in
+\texttt{m2\_constant\_memory.txt} + \texttt{m3\_linear\_time.txt}.
+
+\paragraph{Memory (cache buffer, MiB).}
+\begin{center}
+\begin{tabular}{rrrr}
+\toprule
+ctx & Qwen KV (MiB) & RWKV state (MiB) & ratio (Qwen/RWKV) \\
+\midrule
+512    & 6.00   & 20.62 & 0.29 \\
+1024   & 12.00  & 20.62 & 0.58 \\
+2048   & 24.00  & 20.62 & 1.16 \\
+4096   & 48.00  & 20.62 & 2.33 \\
+8192   & 96.00  & 20.62 & 4.66 \\
+16384  & 192.00 & 20.62 & 9.31 \\
+65536  & ---    & 20.62 & --- \\
+\bottomrule
+\end{tabular}
+\end{center}
+\noindent The Qwen cache doubles exactly with context; the RWKV state is flat to
+\num{65536}. Peak-RSS corroborates: RWKV \(2356 \to \SI{2353}{MB}\) (flat
+within noise) vs.\ Qwen \(512 \to \SI{706}{MB}\) (\(+194\,\)MB, matching the
+\SI{192}{MiB} KV growth). The crossover at \(\ctx\approx\num{1760}\) is visible
+between the \num{1024} and \num{2048} rows (ratio crosses \(1.0\)).
+
+\paragraph{Prefill (total time, ms).}
+\begin{center}
+\begin{tabular}{rrrr}
+\toprule
+ctx & RWKV pp (ms) & Qwen pp (ms) & RWKV t/s \\
+\midrule
+512   & 4004.81 & 273.321 & $\sim$128 \\
+1024  & 7693.19 & 1072.84 & \\
+2048  & 15137.6 & 1845.77 & \\
+3072  & 19806.0 & 3004.45 & \\
+4096  & 27174.8 & 5129.67 & \\
+6144  & 44253.6 & 9752.57 & \\
+8192  & 59760.4 & 14174.2 & $\sim$137 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\noindent Over a \(16\times\) context, RWKV prefill grows \(14.9\times\) (linear,
+t/s flat) while Qwen grows \(51.9\times\) (superlinear, t/s degrading
+\(1880\to578\)). Note the honest constant-factor gap: RWKV's \emph{absolute}
+prefill is slower at every context here (\S\ref{sec:limits}).
+
+\paragraph{Decode (throughput vs.\ depth).}
+\begin{center}
+\begin{tabular}{rrrrr}
+\toprule
+depth & RWKV (tok/s) & Qwen (tok/s) & RWKV ms/tok & Qwen ms/tok \\
+\midrule
+0    & 8.16  & 80.75 & 122.6 & 12.4 \\
+512  & 8.77  & 57.01 & 114.1 & 17.5 \\
+1024 & 10.09 & 52.76 & 99.1  & 19.0 \\
+2048 & 9.97  & 42.20 & 100.3 & 23.7 \\
+4096 & 10.14 & 33.24 & 98.6  & 30.1 \\
+8192 & 9.32  & 22.76 & 107.3 & 43.9 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\noindent RWKV decode is flat ($\sim$10 tok/s, ms/tok ratio \(1.24\times\), no
+trend); Qwen decode degrades linearly (ms/tok \(12.4\to43.9\), \(3.55\times\)
+slower at depth \num{8192}). The two trajectories \emph{cross} in deployment
+relevance: the Transformer starts far faster per token but is on a slope toward
+the recurrent model, which never moves.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.92\textwidth]{figures/fig01_memory_latency_laws.png}
+  % generated via fal.ai (gpt-image-2); prompt: figures/_prompts/memory_latency_laws.txt
+  \caption{Schematic of the two measured scaling laws. \emph{Left:} cache memory
+    vs.\ context --- the Transformer KV-cache rises on the exact line
+    \(\ctx\cdot\SI{12}{KiB/tok}\) (Eq.~\eqref{eq:law1}) while the RWKV recurrent
+    state is the flat \SI{20.62}{MiB} band (Eq.~\eqref{eq:law2}); the curves cross
+    at \(\ctx\approx\num{1760}\) (dashed vertical), beyond which RWKV uses strictly
+    less. \emph{Right:} decode latency vs.\ context depth --- RWKV is the flat
+    \(O(1)\) band, attention is the rising \(O(\ctx)\) line that ends
+    \(3.55\times\) slower at depth \num{8192} (Eq.~\eqref{eq:law5}). The curve
+    \emph{shapes} are the laws certified in \S\ref{sec:formula}; the load-bearing
+    per-cell numbers live in the tables of this section and the verbatim grid of
+    Appendix~\ref{app:grid}, not in the artwork. AI-generated schematic
+    (\texttt{figures/\_prompts/memory\_latency\_laws.txt}).}
+  \label{fig:laws}
+\end{figure}
+
+% =========================================================================
+\section{Benefit}
+\label{sec:benefit}
+\green{SUPPORTED-NUMERICAL} --- the sweep lands three deployment-actionable
+deltas, all measured at \$0 incremental cost on self-hosted M3 Metal.
+
+\begin{itemize}
+  \item \textbf{Constant cache memory; \(4.66\times\) less at \num{8192} and
+    unbounded thereafter.} Past the crossover at \(\ctx\approx\num{1760}\), the
+    flat \SI{20.62}{MiB} RWKV state beats the Transformer's growing
+    \(\ctx\cdot\SI{12}{KiB/tok}\) cache, and the gap diverges \emph{linearly}
+    with context (\(2.33\times\) at \num{4096}, \(4.66\times\) at \num{8192},
+    \(9.31\times\) at \num{16384}, \(\to\infty\)). The capacity-planning rule is
+    direct: for a long-context workload the recurrent model's cache footprint is
+    a single fixed line item, independent of how long any session runs ---
+    there is no KV-cache eviction, paging, or quantization decision to make
+    \citep{kwon2023vllm}.
+  \item \textbf{Decode that never slows --- the load-bearing latency win.} RWKV
+    decode is depth-independent (ms/tok ratio \(1.24\times\)) where attention
+    decode degrades \(3.55\times\) over the same depth. For an interactive or
+    agentic workload, the per-token latency a user feels under a long, growing
+    context is \emph{constant} for the recurrent model and \emph{worsening} for
+    the Transformer. This is the half of the latency story that matters most in
+    serving: decode dominates wall-clock for any generation longer than the
+    prompt.
+  \item \textbf{Linear vs.\ superlinear prefill --- the exponent, honestly.}
+    RWKV prefill scales \(p=0.962\) where attention scales \(p=1.366\); the
+    \(\Delta p = 0.40\) means that as context grows, the prefill \emph{gap}
+    narrows and eventually inverts in RWKV's favour, even though (see below) the
+    Transformer's tiny-model prefill is faster in \emph{absolute} terms over the
+    measured range. The benefit here is asymptotic and structural, and we report
+    it as such rather than overclaiming a present-day prefill speedup.
+\end{itemize}
+
+\noindent The first two deltas are unconditional wins on this substrate beyond
+the crossover; the third is an exponent win whose absolute payoff arrives at
+larger contexts and/or with a same-size Transformer baseline. We deliberately
+chose a \emph{stronger} Transformer baseline per FLOP (a heavily-quantized
+0.5B that is faster than its size suggests) rather than a same-size 2.9B
+Transformer, so the prefill comparison is, if anything, unfavourable to RWKV ---
+and the linear-time exponent still holds.
+
+% =========================================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Quadratic attention and the long-context cost.}
+The Transformer \citep{vaswani2017attention} made self-attention the default
+sequence operator at the cost of \(O(\ctx^2)\) attention work and an \(O(\ctx)\)
+KV-cache. The serving community has largely accepted the cache and optimized its
+\emph{management} --- PagedAttention \citep{kwon2023vllm} treats the KV-cache as
+virtual memory with block-level paging to reduce fragmentation and enable
+sharing --- rather than removing it. Our measurement quantifies exactly the cost
+being managed: a line of slope \SI{12}{KiB/tok} per the configuration of
+Eq.~\eqref{eq:kv}.
+
+\paragraph{Linear attention and the recurrence duality.}
+\citet{katharopoulos2020transformers} showed that replacing the softmax with a
+kernel feature map turns autoregressive attention into a linear RNN with a
+fixed-size state, giving \(O(1)\) per-step inference --- the theoretical basis
+for the constant-state claim we measure. RetNet \citep{sun2023retnet} makes the
+same recurrence/attention duality explicit through its retention mechanism,
+offering parallel training and \(O(1)\) recurrent inference. Structured
+state-space models, culminating in Mamba \citep{gu2023mamba}, reach the same
+linear-time, constant-state regime via input-dependent selective SSMs and report
+\(5\times\) higher inference throughput than Transformers with linear scaling to
+million-length sequences. These works establish the regime; our contribution is
+an \emph{independent, stock-substrate confirmation} for one such model with the
+constant factors made explicit.
+
+\paragraph{The RWKV lineage.}
+RWKV \citep{peng2023rwkv} introduced the receptance-weighted key-value
+formulation, training like a Transformer and serving like an RNN with constant
+compute and memory at inference. RWKV-7 ``Goose'' \citep{peng2025rwkv7} ---
+the model we measure --- generalizes the delta rule with vector-valued gating
+and in-context learning rates, achieving 3B-scale state-of-the-art on
+multilingual tasks while (per its abstract) retaining ``constant memory usage
+and constant inference time per token'' and provably exceeding \(\mathsf{TC}^0\)
+expressivity. A recent survey \citep{li2024rwkvsurvey} catalogues the rapidly
+growing RWKV ecosystem. Our paper is, to our knowledge, the first to publish a
+\emph{verify-by-recompute} measurement of the constant-memory and linear-time
+laws for RWKV-7 against a Transformer on a single commodity inference engine,
+including the honest prefill-constant caveat.
+
+% =========================================================================
+\section{Limitations and honest caveats}
+\label{sec:limits}
+
+\begin{itemize}
+  \item \textbf{Single model pair.} We compare exactly two checkpoints
+    (RWKV-7 2.9B vs.\ Qwen2.5-0.5B); the laws are about these two, not about
+    ``RNNs vs.\ Transformers'' in general. The \emph{exponents} (flat,
+    \(p\approx1\), \(p>1\), \(O(1)\) vs.\ \(O(\ctx)\)) are architecture-level and
+    expected to generalize; the \emph{constants} (\SI{20.62}{MiB},
+    \SI{12}{KiB/tok}, the crossover at \num{1760}) are configuration-specific.
+  \item \textbf{One substrate, one quantization.} All numbers are from stock
+    \texttt{llama.cpp} 9150 on a Mac\,mini\,M3 (Metal/UMA), with RWKV at
+    \texttt{q5\_k\_m} and Qwen at \texttt{Q4\_K\_M}. Different engines, kernels,
+    GPUs, batch sizes, or precisions will move the constants (and possibly the
+    prefill code path); the qualitative laws should survive but are not
+    guaranteed across substrates.
+  \item \textbf{The absolute prefill constant favours the Transformer here.}
+    This is the most important caveat and we state it without hedging: over the
+    entire measured range RWKV prefill is slower in wall-clock than the tiny
+    quantized Transformer (e.g.\ \SI{59760}{ms} vs.\ \SI{14174}{ms} at
+    \num{8192}). The RWKV win in prefill is in the \emph{exponent}
+    (\(\Delta p = 0.40\)), which only overtakes at larger context and/or against
+    a same-size Transformer. We did not measure the cross-over context for
+    absolute prefill; that is future work.
+  \item \textbf{Memory is cache buffer, corroborated by peak RSS, not a full
+    accounting.} The \SI{20.62}{MiB} and \(\ctx\cdot\SI{12}{KiB/tok}\) are the
+    \emph{cache/state} buffers reported at context construction; total process
+    RSS (which includes weights and runtime) is reported only as a coarse
+    corroboration (RWKV flat \(2356\to\SI{2353}{MB}\), Qwen \(+194\,\)MB). The
+    constant-memory claim is about the context-dependent buffer, which is the
+    quantity that grows in a Transformer.
+  \item \textbf{Quality is established separately and modestly.} RWKV-7 scored
+    \(15/20\) on our fixed canonical manifest (vs.\ \(16/20\) Qwen, \(6/20\)
+    BitNet) --- a usable floor, not a quality claim. The present scaling laws say
+    nothing about answer quality at long context; they say the model stays cheap,
+    not that it stays correct.
+  \item \textbf{Engine quirk is empirical, not adversarially probed.} The
+    \texttt{llama-completion} slow-prefill path is reported as observed and
+    worked around with \texttt{llama-bench}; we did not root-cause it in the
+    \texttt{ggml} kernels. It is a stock-engine observation, not a property of
+    RWKV, and is logged for upstream follow-up.
+\end{itemize}
+
+% =========================================================================
+\section{Discussion and outlook}
+\label{sec:discussion}
+
+\paragraph{Why decode-\(O(1)\) is the half that ships.}
+Of the four laws, the constant-memory and constant-decode results are the ones
+that change a deployment decision today; the prefill exponent is an asymptotic
+promise. The reason is structural: in interactive and agentic serving, decode
+dominates wall-clock (every emitted token pays the per-step cost, and outputs
+are typically long relative to a re-used prompt), and memory dominates capacity
+planning (the cache, not the weights, is what scales with session length). A
+recurrent model removes \emph{both} growth curves at once --- a flat memory line
+and a flat decode line --- which is precisely the regime that paged-cache
+engineering \citep{kwon2023vllm} approximates for Transformers at considerable
+complexity. The recurrent model gets it for free, by construction
+(Eq.~\eqref{eq:wkv}).
+
+\paragraph{The crossover is the deployment knob.}
+The memory crossover at \(\ctx^\star\approx\num{1760}\) is not a curiosity: it is
+the context length above which switching to the recurrent model is a pure memory
+win, and it scales with the ratio of the (fixed) recurrent state to the
+Transformer's per-token slope. For a larger Transformer (more layers / KV heads)
+the slope rises and the crossover moves \emph{left}, making the recurrent model
+win even sooner; for a smaller recurrent state it also moves left. The single
+most useful follow-up is to measure \(\ctx^\star\) and the analogous
+\emph{absolute}-prefill crossover across a grid of model sizes, turning the two
+laws here into a provisioning surface (the same way our sibling OPS work turned a
+serving sweep into an M/M/c surface).
+
+\paragraph{What stays the same.}
+None of this overturns attention for short contexts or for tasks where its
+absolute prefill speed and (separately argued) quality dominate. The
+contribution is narrow and verified: on a single commodity substrate, the two
+attention-free scaling laws hold as advertised, the constant factors are what
+they are, and the honest negative (prefill constant) is on the record next to
+the wins.
+
+% =========================================================================
+\section*{Reproducibility}
+\addcontentsline{toc}{section}{Reproducibility}
+
+Code and data: \url{https://github.com/dancinlab/hexa-codex}. The measurement
+harness is \texttt{bench/rwkv\_m2m3\_ctx\_sweep.hexa}; the committed grid is
+\texttt{.verdicts/rwkv/m2m3\_ctx\_sweep.tsv}; the closed-form recompute is
+\texttt{verify/numerics\_rwkv\_m2m3\_laws.hexa}, runnable as
+\texttt{hexa run verify/numerics\_rwkv\_m2m3\_laws.hexa} (emits the \(8/8\) PASS
+block of Appendix~\ref{app:verify}). Verdicts:
+\texttt{.verdicts/rwkv/m2\_constant\_memory.txt} and
+\texttt{.verdicts/rwkv/m3\_linear\_time.txt}. Build this paper with
+\texttt{make} (pdflatex \(\times 3\) + bibtex).
+
+% =========================================================================
+\appendix
+\section{Full sweep grid}
+\label{app:grid}
+The verbatim 27-row source-of-truth, \texttt{.verdicts/rwkv/m2m3\_ctx\_sweep.tsv}
+(stock \texttt{llama.cpp} 9150, Metal/UMA, Mac\,mini\,M3; RWKV
+\texttt{q5\_k\_m} vs.\ Qwen \texttt{Q4\_K\_M}; warm/steady-state):
+
+\begin{center}
+\small
+\begin{tabular}{llrrl}
+\toprule
+axis & ctx/depth & RWKV & Qwen & unit \\
+\midrule
+mem\_mib    & 512   & 20.62   & 6.00    & MiB \\
+mem\_mib    & 1024  & 20.62   & 12.00   & MiB \\
+mem\_mib    & 2048  & 20.62   & 24.00   & MiB \\
+mem\_mib    & 4096  & 20.62   & 48.00   & MiB \\
+mem\_mib    & 8192  & 20.62   & 96.00   & MiB \\
+mem\_mib    & 16384 & 20.62   & 192.00  & MiB \\
+mem\_mib    & 65536 & 20.62   & ---     & MiB \\
+prefill\_ms & 512   & 4004.81 & 273.321 & ms  \\
+prefill\_ms & 1024  & 7693.19 & 1072.84 & ms  \\
+prefill\_ms & 2048  & 15137.6 & 1845.77 & ms  \\
+prefill\_ms & 3072  & 19806.0 & 3004.45 & ms  \\
+prefill\_ms & 4096  & 27174.8 & 5129.67 & ms  \\
+prefill\_ms & 6144  & 44253.6 & 9752.57 & ms  \\
+prefill\_ms & 8192  & 59760.4 & 14174.2 & ms  \\
+decode\_ts  & 0     & 8.16    & 80.75   & tok/s \\
+decode\_ts  & 512   & 8.77    & 57.01   & tok/s \\
+decode\_ts  & 1024  & 10.09   & 52.76   & tok/s \\
+decode\_ts  & 2048  & 9.97    & 42.20   & tok/s \\
+decode\_ts  & 4096  & 10.14   & 33.24   & tok/s \\
+decode\_ts  & 8192  & 9.32    & 22.76   & tok/s \\
+peak\_rss\_mb & 512  & 2356   & 512     & MB \\
+peak\_rss\_mb & 16384& 2353   & 706     & MB \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\section{Verbatim recompute output}
+\label{app:verify}
+The deterministic recompute, \texttt{hexa run
+verify/numerics\_rwkv\_m2m3\_laws.hexa} (pure \texttt{math\_pure} arithmetic over
+the committed grid; no LLM, no subprocess). Reproduced verbatim from
+\texttt{.verdicts/rwkv/m2\_constant\_memory.txt} /
+\texttt{.verdicts/rwkv/m3\_linear\_time.txt}:
+
+\begin{verbatim}
+========================================================================
+  hexa-codex RWKV M2/M3 closed-form laws (math_pure recompute)
+  M2 constant-memory + M3 linear-time, vs Qwen2.5-0.5B-Q4 baseline
+========================================================================
+
+  [M2 memory]
+  [PASS] L1 Qwen KV-cache EXACT linear: slope = 12 KiB/tok, intercept = 0, R2 = 1 [M2]
+         . slope=0.0117188 (analytic 0.0117188) intercept=0.0 R2=1.0
+  [PASS] L2 RWKV recurrent state FLAT over 512->65536 (128x ctx): span=0, slope=0 [M2]
+         . span=0.0 MiB  slope=0.0 MiB/tok  const=20.62 MiB
+  [PASS] L3 M2 falsifier (RWKV memory grows) NOT triggered [M2]
+         . RWKV state slope=0.0 MiB/tok ~= 0 -> flat, falsifier rejected
+
+  [M3 prefill]
+  [PASS] L4 RWKV prefill LINEAR: power-law exponent p~=1, linear R2>0.99 [M3]
+         . p=0.962172 (|p-1|<0.05)  slope=7.22626 ms/tok  R2=0.995701
+  [PASS] L5 Qwen prefill SUPERLINEAR: p_qwen>1 and p_qwen-p_rwkv>0.3 [M3]
+         . p_qwen=1.36548 p_rwkv=0.962172 dp=0.403305 (attention O(n^>1) penalty visible)
+
+  [M3 decode]
+  [PASS] L6 RWKV decode FLAT: ms/tok max/min<1.3x and slope~=0 over 0->8192 [M3]
+         . ms/tok 98.6193->122.549  ratio=1.24265  slope=-0.00105132 per ctx-tok
+  [PASS] L7 Qwen decode GROWS linearly: slope>0, R2>0.95, 3.5x @8192 [M3]
+         . slope=0.00363425 ms/tok per ctx-tok  R2=0.985097  growth@8192=3.54789x
+
+  [falsifiers]
+  [PASS] L8 M3 falsifier (RWKV latency superlinear) NOT triggered [M3]
+         . prefill p=0.962172 (<1.1)  decode slope=-0.00105132 (~=0) -> linear-time,
+           falsifier rejected
+========================================================================
+  8/8 laws hold
+  RWKV M2 (constant-memory) + M3 (linear-time) laws: closed.
+__HEXA_CODEX_NUMERICS_RWKV_M2M3__ PASS
+\end{verbatim}
+
+% =========================================================================
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}

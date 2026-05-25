@@ -1,0 +1,121 @@
+% BibTeX bibliography — RWKV linear-attention laws.
+% Every entry carries an arXiv id / DOI / stable URL — untraceable claims do not
+% enter the paper. arXiv ids were confirmed against the live arXiv API.
+
+% ---- The architecture under test ----
+@misc{peng2025rwkv7,
+  author       = {Peng, Bo and Zhang, Ruichong and Goldstein, Daniel and
+                  Alcaide, Eric and Du, Xingjian and Hou, Haowen and
+                  Lin, Jiaju and Liu, Jiaxing and Lu, Janna and
+                  Merrill, William and Song, Guangyu and Tan, Kaifeng and others},
+  title        = {{RWKV-7} ``{Goose}'' with Expressive Dynamic State Evolution},
+  year         = {2025},
+  eprint       = {2503.14456},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2503.14456}
+}
+
+@misc{peng2023rwkv,
+  author       = {Peng, Bo and Alcaide, Eric and Anthony, Quentin and
+                  Albalak, Alon and Arcadinho, Samuel and Biderman, Stella and
+                  Cao, Huanqi and Cheng, Xin and Chung, Michael and
+                  Grella, Matteo and GV, Kranthi Kiran and He, Xuzheng and others},
+  title        = {{RWKV}: Reinventing {RNNs} for the Transformer Era},
+  year         = {2023},
+  eprint       = {2305.13048},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2305.13048}
+}
+
+@misc{li2024rwkvsurvey,
+  author       = {Li, Zhiyuan and Xia, Tingyu and Chang, Yi and Wu, Yuan},
+  title        = {A Survey of {RWKV}},
+  year         = {2024},
+  eprint       = {2412.14847},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2412.14847}
+}
+
+% ---- The quadratic-attention baseline lineage ----
+@inproceedings{vaswani2017attention,
+  author    = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and
+               Uszkoreit, Jakob and Jones, Llion and Gomez, Aidan N. and
+               Kaiser, {\L}ukasz and Polosukhin, Illia},
+  title     = {Attention Is All You Need},
+  booktitle = {Advances in Neural Information Processing Systems (NeurIPS)},
+  year      = {2017},
+  eprint    = {1706.03762},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/1706.03762}
+}
+
+@misc{qwen25,
+  author       = {{Qwen Team}},
+  title        = {{Qwen2.5} Technical Report},
+  year         = {2024},
+  eprint       = {2412.15115},
+  archivePrefix= {arXiv},
+  url          = {https://arxiv.org/abs/2412.15115}
+}
+
+% ---- The subquadratic / linear-attention / SSM lineage ----
+@inproceedings{katharopoulos2020transformers,
+  author    = {Katharopoulos, Angelos and Vyas, Apoorv and
+               Pappas, Nikolaos and Fleuret, Fran\c{c}ois},
+  title     = {Transformers are {RNNs}: Fast Autoregressive Transformers
+               with Linear Attention},
+  booktitle = {Proceedings of the 37th International Conference on Machine
+               Learning (ICML)},
+  year      = {2020},
+  eprint    = {2006.16236},
+  archivePrefix = {arXiv},
+  url       = {https://arxiv.org/abs/2006.16236}
+}
+
+@misc{sun2023retnet,
+  author       = {Sun, Yutao and Dong, Li and Huang, Shaohan and Ma, Shuming
+                  and Xia, Yuqing and Xue, Jilong and Wang, Jianyong and Wei, Furu},
+  title        = {Retentive Network: A Successor to Transformer for Large
+                  Language Models},
+  year         = {2023},
+  eprint       = {2307.08621},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.CL},
+  url          = {https://arxiv.org/abs/2307.08621}
+}
+
+@misc{gu2023mamba,
+  author       = {Gu, Albert and Dao, Tri},
+  title        = {{Mamba}: Linear-Time Sequence Modeling with Selective
+                  State Spaces},
+  year         = {2023},
+  eprint       = {2312.00752},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.LG},
+  url          = {https://arxiv.org/abs/2312.00752}
+}
+
+% ---- The serving substrate + KV-cache management ----
+@misc{llamacpp,
+  author       = {Gerganov, Georgi and {llama.cpp contributors}},
+  title        = {{llama.cpp}: LLM inference in C/C++},
+  year         = {2024},
+  howpublished = {\url{https://github.com/ggml-org/llama.cpp}}
+}
+
+@inproceedings{kwon2023vllm,
+  author    = {Kwon, Woosuk and Li, Zhuohan and Zhuang, Siyuan and Sheng, Ying
+               and Zheng, Lianmin and Yu, Cody Hao and Gonzalez, Joseph E.
+               and Zhang, Hao and Stoica, Ion},
+  title     = {Efficient Memory Management for Large Language Model Serving
+               with {PagedAttention}},
+  booktitle = {Proceedings of the 29th Symposium on Operating Systems Principles (SOSP)},
+  year      = {2023},
+  eprint    = {2309.06180},
+  archivePrefix = {arXiv},
+  doi       = {10.1145/3600006.3613165},
+  url       = {https://arxiv.org/abs/2309.06180}
+}

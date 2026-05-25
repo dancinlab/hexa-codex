@@ -1,0 +1,292 @@
+#!hexa strict
+// LAB/lab-01-interrupt-no-loss/interrupt_harness.hexa — mid-generation interrupt
+// no-loss measurement harness.
+//
+// LAB-01 INTERRUPT-NO-LOSS — LLM 중간 끼어들기 · 유실 없음 (see LAB/README.md LAB-01).
+//
+// HYPOTHESIS (falsifiable):
+//   A method exists to live-append mid-generation interrupt input with 0% loss:
+//   while the assistant is mid-task, N additional user inputs ("interrupts") can
+//   be folded into the model context such that EVERY interrupt reaches the model
+//   (0 dropped), using an APPEND-ONLY log + monotonic sequence + boundary flush.
+//
+// FALSIFIER:
+//   If ANY of the N injected interrupts is absent from the reconstructed context
+//   the mechanism sends to the model (loss>0), OR the concurrent-append race drops
+//   / corrupts / reorders a write (lines != N OR distinct codes != N), the
+//   "no-loss live-append" hypothesis is FALSE. We report the real counts either way.
+//
+// DESIGN (3 deterministic mechanisms + 1 end-to-end substrate confirm):
+//   A_sequential  — append-only log, N interrupts appended in order (the METHOD).
+//                   reconstructed context = the whole log → expect all N present.
+//   A_concurrent  — the SAME append-only log under a real OS race: N appends fired
+//                   concurrently (subshell `&` + `wait`). POSIX O_APPEND atomicity
+//                   for small writes ⇒ expect all N land, none interleaved/lost.
+//   B_singleslot  — CONTROL: a 1-slot buffer OVERWRITTEN per interrupt (the naive
+//                   "new input clobbers the buffer" race). Only the last survives ⇒
+//                   expect loss = N-1. Proves the harness CAN detect loss, so the
+//                   A loss=0 is NON-VACUOUS (lab-02 had no such control).
+//   end-to-end    — POST A's reconstructed context + B's to the SANDBOX substrate;
+//                   the model echoes back every code it sees. recall_A should ≫
+//                   recall_B. This is the secondary confirmation that the surviving
+//                   context actually REACHES the model; the load-bearing falsifier
+//                   stays the deterministic context-presence + O_APPEND counts.
+//
+// HONESTY (cx_lab_sandbox · g5 no-self-judge):
+//   • The end-to-end recall call routes to the self-hosted SANDBOX substrate
+//     (local llama-server, Qwen2.5-1.5B-Instruct-Q4_K_M). T4 empirical, $0 local.
+//   • loss / distinct / recall counts are DETERMINISTIC `grep -Eo | sort -u`
+//     substring counts over stable code tags IRQ-<salt>-NNN — the LLM NEVER judges
+//     its own correctness; it only emits the echo, which is then integer-counted.
+//   • HONEST RESIDUAL: "generation-step boundaries" are modeled as turn boundaries
+//     (request/response llama-server cannot inject mid-token-stream from a single
+//     process). A true mid-token-stream OS-thread reader-vs-writer race is the
+//     LAB-01-stress follow-up (mirrors LAB-07's relation to LAB-02). The concurrent
+//     APPEND test here IS a real OS race on the writer side (genuine O_APPEND),
+//     but the reader does not race the writer.
+//
+// OUTPUT (persisted under LAB/lab-01-interrupt-no-loss/):
+//   irq_appendonly.log   (the append-only log artifact, sequential)
+//   irq_concurrent.log   (the append-only log under concurrent fire)
+//   irq_singleslot.slot  (the 1-slot control, final state = last code only)
+//   echo_appendonly.txt  (model echo on A's reconstructed context)
+//   echo_singleslot.txt  (model echo on B's reconstructed context)
+//   result_interrupt.tsv (per-mechanism: injected, present_in_ctx, loss, seq_intact, model_recall)
+//   result_interrupt_summary.txt (aggregate verdict)
+//
+// Run:
+//   export POOL_DISABLE=1
+//   nohup llama-server -m ~/Models/gguf/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf \
+//       --host 127.0.0.1 --port 8099 -np 1 --log-disable -c 4096 &
+//   POOL_DISABLE=1 hexa run LAB/lab-01-interrupt-no-loss/interrupt_harness.hexa
+//   (the dispatch `hexa run` builds + runs via self/native/hexa_v2; the bare
+//    hexa.real launcher needs HEXA_LANG set to the hexa-lang repo first.)
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External HTTP subprocess (curl → llama-server) + grep/sort set-count + filesystem append — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/LAB/lab-01-interrupt-no-loss"
+let MODEL_NAME = "Qwen2.5-1.5B-Instruct-Q4_K_M"
+let SERVER_URL = "http://127.0.0.1:8099"
+let MAX_TOK = 256
+let N_IRQ = 12
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn json_escape(s: str) -> str {
+    let mut t = s.replace("\\", "\\\\")
+    t = t.replace("\"", "\\\"")
+    t = t.replace("\n", "\\n")
+    t = t.replace("\r", "\\r")
+    t = t.replace("\t", "\\t")
+    return t
+}
+
+// zero-pad to 3 digits — keeps codes lexically sortable + grep-pattern stable.
+fn pad3(n: int) -> str {
+    if n < 10 { return "00" + str(n) }
+    if n < 100 { return "0" + str(n) }
+    return str(n)
+}
+
+// stable interrupt code tag: IRQ-<salt>-NNN. salt makes a run's codes distinct
+// from a prior run's leftover files; NNN is the monotonic sequence number.
+fn code(i: int, salt: str) -> str {
+    return "IRQ-" + salt + "-" + pad3(i)
+}
+
+// distinct count of valid IRQ-<salt>-NNN codes present in a file (deterministic,
+// no LLM-judge). grep -Eo extracts every code occurrence, sort -u dedups, grep -c .
+// counts the distinct survivors (0 on empty input).
+fn present_count(path: str, salt: str) -> int {
+    let pat = "IRQ-" + salt + "-[0-9][0-9][0-9]"
+    let c = exec("grep -Eo " + shq(pat) + " " + shq(path) +
+                 " 2>/dev/null | sort -u | grep -c . ").trim()
+    if c.len() == 0 { return 0 }
+    return int(c)
+}
+
+// raw non-empty line count of a file (0 on missing/empty).
+fn line_count(path: str) -> int {
+    let c = exec("grep -c . " + shq(path) + " 2>/dev/null").trim()
+    if c.len() == 0 { return 0 }
+    return int(c)
+}
+
+// POST a reconstructed context to the SANDBOX substrate; return the model's echo.
+fn run_recall(transcript: str) -> str {
+    let pj = json_escape(transcript)
+    let body = "{\"messages\":[{\"role\":\"user\",\"content\":\"" + pj +
+               "\"}],\"max_tokens\":" + str(MAX_TOK) + ",\"temperature\":0}"
+    let cmd = "resp=$(curl -s -X POST " + SERVER_URL + "/v1/chat/completions " +
+              "-H 'Content-Type: application/json' -d " + shq(body) + "); " +
+              "printf '%s' \"$resp\" | jq -r '.choices[0].message.content // \"\"'"
+    return exec(cmd)
+}
+
+// Build the recall transcript around a reconstructed code list.
+fn build_transcript(codeblock: str) -> str {
+    return "You are mid-way through a long task (counting from 1 upward). While " +
+           "you work, the user keeps interjecting short reference codes you must " +
+           "remember. Here are the codes you have received so far, in order:\n" +
+           codeblock + "\n\n" +
+           "Before continuing the count, repeat back EVERY code listed above, " +
+           "comma-separated, codes only (format IRQ-XXXX-NNN), no other words."
+}
+
+fn main() {
+    println("========================================================================")
+    println("  LAB-01 INTERRUPT-NO-LOSS — 중간 끼어들기 유실 측정 harness")
+    println("  model:        " + MODEL_NAME + "  (SANDBOX substrate · port 8099)")
+    println("  interrupts:   N=" + str(N_IRQ) + "  (codes IRQ-<salt>-001.." + pad3(N_IRQ) + ")")
+    println("  mechanisms:   A_sequential · A_concurrent (O_APPEND race) · B_singleslot (control)")
+    println("  scoring:      deterministic grep/sort distinct-count (NO LLM self-judge)")
+    println("========================================================================")
+
+    // Pre-flight: substrate reachable?
+    let health = exec("curl -s -o /dev/null -w '%{http_code}' " + SERVER_URL + "/health").trim()
+    if health != "200" {
+        println("")
+        println("  ! llama-server NOT reachable at " + SERVER_URL + "/health (http=" + health + ")")
+        println("  ! start with:")
+        println("       export POOL_DISABLE=1")
+        println("       nohup llama-server -m ~/Models/gguf/" + MODEL_NAME + ".gguf \\")
+        println("           --host 127.0.0.1 --port 8099 -np 1 --log-disable -c 4096 &")
+        println("__LAB_01_INTERRUPT__ BLOCKED_AT_BUILD")
+        exit(2)
+    }
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let salt = exec("openssl rand -hex 2 2>/dev/null || date +%H%M%S").trim()
+    println("")
+    println("  run salt: " + salt)
+
+    let logA  = OUT_DIR + "/irq_appendonly.log"
+    let logC  = OUT_DIR + "/irq_concurrent.log"
+    let slotB = OUT_DIR + "/irq_singleslot.slot"
+    let echoA = OUT_DIR + "/echo_appendonly.txt"
+    let echoB = OUT_DIR + "/echo_singleslot.txt"
+    exec("rm -f " + shq(logA) + " " + shq(logC) + " " + shq(slotB) + " " + shq(echoA) + " " + shq(echoB))
+
+    // ── Mechanism A_sequential: append-only log, N interrupts appended in order ──
+    let mut i = 1
+    while i <= N_IRQ {
+        exec("printf '%s\\n' " + shq(code(i, salt)) + " >> " + shq(logA))
+        i = i + 1
+    }
+    let lines_A    = line_count(logA)
+    let present_A  = present_count(logA, salt)
+    let loss_A     = N_IRQ - present_A
+    let seq_intact_A = (lines_A == N_IRQ && present_A == N_IRQ)
+    println("  [A_sequential]  lines=" + str(lines_A) + " present=" + str(present_A) +
+            " loss=" + str(loss_A) + " seq_intact=" + str(seq_intact_A))
+
+    // ── Mechanism A_concurrent: same append-only log under a real OS race ──
+    // Fire N appends concurrently (subshell `&`) then `wait`. O_APPEND atomicity
+    // for sub-PIPE_BUF writes ⇒ every line lands, none interleaved.
+    let conc = "for k in $(seq 1 " + str(N_IRQ) + "); do " +
+               "( printf 'IRQ-" + salt + "-%03d\\n' \"$k\" >> " + shq(logC) + " ) & " +
+               "done; wait"
+    exec(conc)
+    let lines_C   = line_count(logC)
+    let present_C = present_count(logC, salt)
+    let loss_C    = N_IRQ - present_C
+    let concurrent_intact = (lines_C == N_IRQ && present_C == N_IRQ)
+    println("  [A_concurrent]  lines=" + str(lines_C) + " present=" + str(present_C) +
+            " loss=" + str(loss_C) + " intact=" + str(concurrent_intact) + " (O_APPEND race)")
+
+    // ── Mechanism B_singleslot (CONTROL): overwrite a 1-slot buffer per interrupt ──
+    let mut j = 1
+    while j <= N_IRQ {
+        exec("printf '%s\\n' " + shq(code(j, salt)) + " > " + shq(slotB))   // '>' = OVERWRITE
+        j = j + 1
+    }
+    let present_B = present_count(slotB, salt)
+    let loss_B    = N_IRQ - present_B
+    println("  [B_singleslot]  present=" + str(present_B) +
+            " loss=" + str(loss_B) + " (control — only last survives, by design)")
+
+    // ── end-to-end: model echo on each reconstructed context ──
+    let ctxA = exec("cat " + shq(logA)).trim()
+    let ctxB = exec("cat " + shq(slotB)).trim()
+    let outA = run_recall(build_transcript(ctxA))
+    exec("printf '%s' " + shq(outA) + " > " + shq(echoA))
+    let recall_A = present_count(echoA, salt)
+    let outB = run_recall(build_transcript(ctxB))
+    exec("printf '%s' " + shq(outB) + " > " + shq(echoB))
+    let recall_B = present_count(echoB, salt)
+    println("  [end-to-end]    model recall_A=" + str(recall_A) + "/" + str(N_IRQ) +
+            "  recall_B=" + str(recall_B) + "/" + str(N_IRQ) + "  (substrate echo, secondary)")
+
+    // ── verdict ──
+    // Hypothesis SUPPORTED iff the append-only mechanism loses nothing (sequential
+    // AND under the concurrent O_APPEND race). B is the control: loss_B>0 proves the
+    // harness detects loss, so A's loss=0 is non-vacuous.
+    let mut hypothesis = "FALSIFIED"
+    if loss_A == 0 && loss_C == 0 && seq_intact_A && concurrent_intact {
+        hypothesis = "SUPPORTED"
+    }
+    let mut control_ok = "vacuous"
+    if loss_B > 0 { control_ok = "valid(loss_B=" + str(loss_B) + ")" }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — LAB-01 INTERRUPT-NO-LOSS first smoke")
+    println("========================================================================")
+    println("  injected_per_mech    : " + str(N_IRQ))
+    println("  A_sequential loss     : " + str(loss_A) + "  (present " + str(present_A) + "/" + str(N_IRQ) + ", seq_intact=" + str(seq_intact_A) + ")")
+    println("  A_concurrent loss     : " + str(loss_C) + "  (present " + str(present_C) + "/" + str(N_IRQ) + ", O_APPEND intact=" + str(concurrent_intact) + ")")
+    println("  B_singleslot loss     : " + str(loss_B) + "  (present " + str(present_B) + "/" + str(N_IRQ) + " — CONTROL, expect " + str(N_IRQ-1) + ")")
+    println("  control_status        : " + control_ok)
+    println("  model recall A / B    : " + str(recall_A) + " / " + str(recall_B) + "  (substrate echo, secondary)")
+    println("  HYPOTHESIS            : " + hypothesis + "  (no-loss iff A_seq loss==0 AND A_conc loss==0 AND seq intact)")
+
+    // ── persist tsv ──
+    let tsv = OUT_DIR + "/result_interrupt.tsv"
+    exec("rm -f " + shq(tsv))
+    exec("echo " + shq("# bench=LAB/lab-01-interrupt-no-loss/interrupt_harness.hexa · LAB-01 first smoke") + " >> " + shq(tsv))
+    exec("echo " + shq("# model=" + MODEL_NAME + " · SANDBOX substrate · port 8099 · cost_usd=0 · salt=" + salt) + " >> " + shq(tsv))
+    exec("echo " + shq("# loss=injected - distinct_codes_present_in_reconstructed_context (deterministic grep/sort, NO LLM self-judge)") + " >> " + shq(tsv))
+    exec("echo " + shq("# model_recall=distinct codes the substrate echoed back (secondary end-to-end confirm)") + " >> " + shq(tsv))
+    exec("echo " + shq("mechanism\tinjected\tpresent_in_ctx\tloss\tseq_intact\tmodel_recall") + " >> " + shq(tsv))
+    exec("echo " + shq("A_sequential\t" + str(N_IRQ) + "\t" + str(present_A) + "\t" + str(loss_A) + "\t" + str(seq_intact_A) + "\t" + str(recall_A)) + " >> " + shq(tsv))
+    exec("echo " + shq("A_concurrent\t" + str(N_IRQ) + "\t" + str(present_C) + "\t" + str(loss_C) + "\t" + str(concurrent_intact) + "\t-") + " >> " + shq(tsv))
+    exec("echo " + shq("B_singleslot\t" + str(N_IRQ) + "\t" + str(present_B) + "\t" + str(loss_B) + "\tfalse\t" + str(recall_B)) + " >> " + shq(tsv))
+
+    // ── persist summary verdict ──
+    let summary = OUT_DIR + "/result_interrupt_summary.txt"
+    exec("rm -f " + shq(summary))
+    exec("echo " + shq("# verdict=LAB-01 INTERRUPT-NO-LOSS first smoke · 중간 끼어들기 유실 측정") + " >> " + shq(summary))
+    exec("echo " + shq("# bench=LAB/lab-01-interrupt-no-loss/interrupt_harness.hexa") + " >> " + shq(summary))
+    exec("echo " + shq("# model=" + MODEL_NAME + " · SANDBOX substrate (local llama-server) · port 8099") + " >> " + shq(summary))
+    exec("echo " + shq("# host=mac-mini-m3 (brew llama.cpp + Metal) · cost_usd=0 · salt=" + salt) + " >> " + shq(summary))
+    exec("echo " + shq("# tool=curl + llama-server /v1/chat/completions (echo) + grep/sort distinct-count (deterministic, NO LLM self-judge)") + " >> " + shq(summary))
+    exec("echo " + shq("# injected_per_mechanism=" + str(N_IRQ)) + " >> " + shq(summary))
+    exec("echo " + shq("# A_sequential: present=" + str(present_A) + "/" + str(N_IRQ) + " loss=" + str(loss_A) + " seq_intact=" + str(seq_intact_A) + "  (append-only log, in-order)") + " >> " + shq(summary))
+    exec("echo " + shq("# A_concurrent: present=" + str(present_C) + "/" + str(N_IRQ) + " loss=" + str(loss_C) + " O_APPEND_intact=" + str(concurrent_intact) + "  (N appends fired concurrently, subshell & + wait)") + " >> " + shq(summary))
+    exec("echo " + shq("# B_singleslot: present=" + str(present_B) + "/" + str(N_IRQ) + " loss=" + str(loss_B) + "  (CONTROL: 1-slot overwrite, expect loss=" + str(N_IRQ-1) + " — proves harness detects loss)") + " >> " + shq(summary))
+    exec("echo " + shq("# control_status=" + control_ok + "  (control valid iff loss_B>0; else the no-loss A result would be vacuous)") + " >> " + shq(summary))
+    exec("echo " + shq("# model_recall_A=" + str(recall_A) + "/" + str(N_IRQ) + " model_recall_B=" + str(recall_B) + "/" + str(N_IRQ) + "  (substrate echo, secondary end-to-end confirm)") + " >> " + shq(summary))
+    exec("echo " + shq("# hypothesis=" + hypothesis + "  (no-loss live-append SUPPORTED iff A_seq loss==0 AND A_conc loss==0 AND both seq intact; else FALSIFIED)") + " >> " + shq(summary))
+    exec("echo " + shq("# falsifier=any injected interrupt absent from reconstructed context (loss>0) OR concurrent race drops/corrupts a write (lines!=N OR distinct!=N) -> FALSE") + " >> " + shq(summary))
+    exec("echo " + shq("# honest_residual=boundaries modeled as turn boundaries (request/response server, no mid-token-stream inject); true mid-stream OS-thread reader-vs-writer race = LAB-01-stress follow-up. Concurrent APPEND is a real OS writer race (O_APPEND), reader not racing.") + " >> " + shq(summary))
+    exec("echo " + shq("# raw_per_row=LAB/lab-01-interrupt-no-loss/result_interrupt.tsv · artifacts=irq_appendonly.log,irq_concurrent.log,irq_singleslot.slot,echo_appendonly.txt,echo_singleslot.txt") + " >> " + shq(summary))
+
+    println("")
+    println("  -> " + tsv)
+    println("  -> " + summary)
+    println("__LAB_01_INTERRUPT__ OK")
+}

@@ -1,0 +1,8 @@
+# bench=LAB/lab-01-interrupt-no-loss/interrupt_harness.hexa · LAB-01 first smoke
+# model=Qwen2.5-1.5B-Instruct-Q4_K_M · SANDBOX substrate · port 8099 · cost_usd=0 · salt=3149
+# loss=injected - distinct_codes_present_in_reconstructed_context (deterministic grep/sort, NO LLM self-judge)
+# model_recall=distinct codes the substrate echoed back (secondary end-to-end confirm)
+mechanism	injected	present_in_ctx	loss	seq_intact	model_recall
+A_sequential	12	12	0	true	12
+A_concurrent	12	12	0	true	-
+B_singleslot	12	1	11	false	3

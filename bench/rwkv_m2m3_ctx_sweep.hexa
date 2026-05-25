@@ -26,7 +26,7 @@
 //                          → peak RSS (/usr/bin/time -l) is the coarse corroboration.
 //   (llama-completion's prefill is slow specifically for rwkv7 + large -f file; the
 //    short-prompt M1 path printed its perf block fine. Logged as a stock-llama.cpp
-//    upstream observation in RWKV.log.md — NOT a hexa-lang inbox patch.)
+//    upstream observation in LAB/lab-04-rwkv/RWKV.log.md — NOT a hexa-lang inbox patch.)
 //
 // This bench is a thin reproducible WRAPPER over llama-bench + llama-completion; the
 // committed (ctx, metric) numbers feed verify/numerics_rwkv_m2m3_laws.hexa which

@@ -1,0 +1,52 @@
+# LAB-01 INTERRUPT-NO-LOSS — verdict note (first smoke)
+# date=2026-05-25 · host=mac-mini-m3 · cost_usd=0 · salt=3149
+#
+# HYPOTHESIS: a method exists to live-append mid-generation interrupt input with
+#   0% loss (append-only log + monotonic seq + boundary flush). FALSIFIER: any of
+#   the N injected interrupts absent from the reconstructed model context, OR the
+#   concurrent-append race drops/corrupts/reorders a write.
+#
+# RESULT: HYPOTHESIS SUPPORTED (first smoke, N=12).
+#   A_sequential : 12/12 present, loss=0, seq_intact=true
+#   A_concurrent : 12/12 present, loss=0, O_APPEND race intact (no interleave/loss)
+#   B_singleslot : 1/12 present, loss=11   (CONTROL — see below)
+#   falsifier NOT triggered (loss_A==0 AND loss_C==0 AND both seq intact).
+#
+# TIER MAP
+#  - Mechanism loss (the load-bearing falsifier): DETERMINISTIC grep -Eo | sort -u
+#    distinct-count of stable IRQ-<salt>-NNN tags over the reconstructed-context
+#    files. NO LLM self-judge. The append-only mechanism's loss=0 is a real
+#    measured integer count, reproducible bit-for-bit.
+#  - Concurrent O_APPEND atomicity (T4 on-host): 12 appends fired concurrently
+#    (subshell `&` + `wait`) all landed, 12/12 distinct, 0 interleave — the POSIX
+#    O_APPEND sub-PIPE_BUF write-atomicity property, witnessed empirically here.
+#  - CONTROL VALIDITY (the non-vacuity guard lab-02 lacked): the single-slot
+#    overwrite buffer loses 11/12 (loss_B=11>0). This PROVES the harness can detect
+#    loss, so the append-only loss=0 is a genuine negative-of-loss, not a blind pass.
+#  - End-to-end model recall (SECONDARY, NOT load-bearing): Qwen2.5-1.5B on SANDBOX
+#    echoed 12/12 codes from the append-only context, but only "3" from the
+#    single-slot context — of which just 1 was real (the model HALLUCINATED
+#    IRQ-3149-013/-014, pattern-continuing the lone IRQ-3149-012). This is exactly
+#    why model-echo is NOT the falsifier surface: a model can fabricate
+#    format-matching codes. The deterministic context-presence count is.
+#  - No LLM self-judge: the model only emits the echo; all loss/recall numbers are
+#    closed-form integer set-counts over stable tags. g5 honesty held.
+#
+# HONEST RESIDUAL (the LAB-01-stress follow-up, mirroring LAB-07↔LAB-02):
+#  - "Generation-step boundaries" are modeled as TURN boundaries — a request/response
+#    llama-server cannot inject mid-token-stream from a single process. A true
+#    mid-token-stream OS-thread reader-vs-writer race is NOT yet tested.
+#  - The concurrent test races WRITERS (real O_APPEND), but the reader does not race
+#    the writer. N=12 single trial, single synthetic task, 1.5B model.
+#
+# hexa verify --fence (empirical T4 claim is measured, not closed-form; fence recorded verbatim):
+#   verify --fence
+#     claim  = LAB-01 interrupt-no-loss: an append-only log + monotonic sequence + boundary flush delivers N=12 mid-task interrupts to the reconstructed model context with 0 loss, holding under a concurrent O_APPEND write race (12/12 distinct, no interleave); a single-slot overwrite control loses 11/12 (proving the harness detects loss); Qwen2.5-1.5B on SANDBOX echoes 12/12 from the append-only context vs hallucinated 3 (only 1 real) from the single-slot — deterministic grep/sort distinct-count, no LLM self-judge
+#     tier   = ⚪ SPECULATION-FENCED
+#     reason = imagination/metaphor class (hexa-bio AXIS) — verification
+#              N/A by design; NOT a proven atlas atom (g4 honest fence,
+#              SF ≠ verified — atlas certification intrinsically N/A)
+#
+# raw_per_row=LAB/lab-01-interrupt-no-loss/result_interrupt.tsv
+# summary=LAB/lab-01-interrupt-no-loss/result_interrupt_summary.txt
+# artifacts=irq_appendonly.log · irq_concurrent.log · irq_singleslot.slot · echo_appendonly.txt · echo_singleslot.txt

@@ -1,0 +1,15 @@
+# verdict=LAB-01 INTERRUPT-NO-LOSS first smoke · 중간 끼어들기 유실 측정
+# bench=LAB/lab-01-interrupt-no-loss/interrupt_harness.hexa
+# model=Qwen2.5-1.5B-Instruct-Q4_K_M · SANDBOX substrate (local llama-server) · port 8099
+# host=mac-mini-m3 (brew llama.cpp + Metal) · cost_usd=0 · salt=3149
+# tool=curl + llama-server /v1/chat/completions (echo) + grep/sort distinct-count (deterministic, NO LLM self-judge)
+# injected_per_mechanism=12
+# A_sequential: present=12/12 loss=0 seq_intact=true  (append-only log, in-order)
+# A_concurrent: present=12/12 loss=0 O_APPEND_intact=true  (N appends fired concurrently, subshell & + wait)
+# B_singleslot: present=1/12 loss=11  (CONTROL: 1-slot overwrite, expect loss=11 — proves harness detects loss)
+# control_status=valid(loss_B=11)  (control valid iff loss_B>0; else the no-loss A result would be vacuous)
+# model_recall_A=12/12 model_recall_B=3/12  (substrate echo, secondary end-to-end confirm)
+# hypothesis=SUPPORTED  (no-loss live-append SUPPORTED iff A_seq loss==0 AND A_conc loss==0 AND both seq intact; else FALSIFIED)
+# falsifier=any injected interrupt absent from reconstructed context (loss>0) OR concurrent race drops/corrupts a write (lines!=N OR distinct!=N) -> FALSE
+# honest_residual=boundaries modeled as turn boundaries (request/response server, no mid-token-stream inject); true mid-stream OS-thread reader-vs-writer race = LAB-01-stress follow-up. Concurrent APPEND is a real OS writer race (O_APPEND), reader not racing.
+# raw_per_row=LAB/lab-01-interrupt-no-loss/result_interrupt.tsv · artifacts=irq_appendonly.log,irq_concurrent.log,irq_singleslot.slot,echo_appendonly.txt,echo_singleslot.txt

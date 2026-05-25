@@ -40,29 +40,29 @@
   do   = "T4 claims run lm_foundry train · hexa-eval infer · serving bench — metrics in .verdicts"
   dont = "fence empirical claim · accept simulator-only output · skip T4 bench when claim is empirical"
 
-@D cx_paper_gate := "/paper gated on 100% verified-by-recompute AND significance" :: workflow [required active]
-  do   = "`/paper new <slug>` only when 100% formal(blue) or numerical(green) AND significance satisfied"
-  dont = "scaffold w/ any fenced/deferred/falsified/citation-only · trivial atom recheck · bookkeeping"
+@D cx_paper_gate := "/paper gated on every section CLOSED-by-recompute AND significance" :: workflow [required active]
+  do   = "`/paper new <slug>` only when every section CLOSED-by-recompute + significance"
+  dont = "scaffold w/ any fenced/insufficient/citation-only · trivial atom recheck · bookkeeping"
 
-@D cx_paper_significance := "paper requires formula + benchmark + measured benefit" :: workflow [required active]
-  do   = "paper triggers only on formula + real bench + quantified benefit (cost/latency/accuracy delta)"
-  dont = "paper for atlas atom recheck · known identity · bookkeeping closure · unverified prediction"
+@D cx_paper_significance := "paper requires formula + benchmark + (benefit OR closed refutation)" :: workflow [required active]
+  do   = "paper triggers on formula + real bench + (quantified benefit OR closed-negative refutation)"
+  dont = "paper for atom recheck · known identity · bookkeeping · unverified prediction · insufficient"
 
-@D cx_paper_format := "paper sections — formula · method · benchmark · benefit" :: workflow [required active]
-  do   = "paper §formula · §method · §benchmark (real run) · §benefit (delta vs baseline)"
-  dont = "narrative-only · benchmark substitute for formula · skip §benefit · vague qualitative claims"
+@D cx_paper_format := "paper sections — formula · method · benchmark · benefit|refutation" :: workflow [required active]
+  do   = "paper §formula · §method · §benchmark (real run) · §benefit (delta) OR §refutation (gap)"
+  dont = "narrative-only · benchmark substitute for formula · skip §benefit/§refutation · vague claims"
 
 @D cx_paper_sections := "every paper section claim links to its verdict" :: workflow [required active]
-  do   = "every paper section claim links to its .verdicts/<slug>/<id>.txt formal-blue verdict"
+  do   = "every section claim links to its .verdicts/<slug>/<id>.txt CLOSED-recompute verdict (+falsified)"
   dont = "ship paper with any unresolved residual section · treat verdict matrix as optional"
 
 @D cx_paper_violation := "violating paper immediately revoked" :: workflow [required active]
   do   = "violating paper (cx_paper_gate / significance fail) revoked immediately — PAPER/<slug>/ removed"
   dont = "keep violating paper as draft · mark WIP · defer revocation · allow gate-failure residual"
 
-@D cx_paper_one_per_domain := "one canonical paper per group — ECONOMICS · SAFETY · OPS · SUBSTRATE" :: workflow [required active]
-  do   = "ship one canonical paper per domain group — replace in place when a stronger finding lands"
-  dont = "ship multiple papers per group · accumulate paper backlog · fork same-group narratives"
+@D cx_paper_one_per_domain := "per group: 1 positive + 1 closed-negative canonical — ECON · SAFETY · OPS · SUBSTRATE" :: workflow [required active]
+  do   = "per group max 1 positive + max 1 closed-negative · replace in place when stronger lands"
+  dont = "two+ positive OR two+ negative per group · paper backlog · fork same-group narratives"
 
 @D cx_discovery := "discovery runs continuously, not only at cycle tail" :: workflow [required active]
   do   = "interleave `/kick` / `/gap` discovery every batch — a discovery lane runs alongside verify"

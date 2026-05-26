@@ -1042,3 +1042,59 @@ Phi-4-MoE 등 D disclosed 한 것들) — n=5+ 면 p<0.05 KS-test 의미 있음.
 | `.verdicts/economics/e1_moe_landings.tsv` | new | 3 MoE rows + comment header |
 | `verify/numerics_economics_e1_moe_dense_ks_test.hexa` | new | Mann-Whitney U closed-form, 5/5 PASS |
 | `.verdicts/economics/e1_moe_dense_ks_verdict.txt` | new (auto-emit) | tier + statistics |
+
+## cycle-31 — NOVEL axis E1 batch 3 (n=5 MoE) 🟠 directional WEAKER (vs cycle-29)
+
+**사용자 지시:** "economy novel 계속 진행". cycle-29 PR #78 next_probe (≥5 MoE for high-confidence KS) 추진.
+
+### WebFetch 결과 (3 new MoE 후보)
+
+| 후보 | 결과 | D 공개? |
+|------|------|---------|
+| Hunyuan-Large (arXiv:2411.02265) | 389B/52B-active | ❌ 미공개 (synthetic 표현만) |
+| **DeepSeek-V2** (arXiv:2405.04434) | 236B/21B-active | ✅ **8.1T** |
+| **Phi-3.5-MoE** (HF card) | 60.8B/6.6B-active | ✅ **4.9T** (10% multilingual, 512×H100 23일) |
+
+→ 2 new MoE 추가, n=3 → **n=5** 달성.
+
+### cycle-31 verifier 결과 (5/5 PASS · 🟠 INSUFFICIENT WEAKER)
+
+MoE 5 rows dev sorted (×100): [1029, 1667, 1929, 2000, **3712**]
+- Arctic 10.29 · DBRX 16.67 · DeepSeek-V2 19.29 · DeepSeek-V3 20.00 · **Phi-3.5-MoE 37.12** ⚠
+- median MoE dev = 19.29
+- **4/5 below dense median 24.05** (Phi-3.5-MoE 만 위로)
+
+Mann-Whitney:
+- U_moe = 23 · U_dense = 32 · E[U] = 27.5 · Var[U] ≈ 77.92
+- z = (23-27.5)/8.83 = -0.510 · z²×10000 = 2598
+- **|z| = 0.51 (vs cycle-29 0.857)** — 데이터 늘리니 directional 더 weakens
+
+### 중대 reinterpretation: cycle-27 → cycle-29 → cycle-31
+
+| cycle | n | |z| | verdict |
+|-------|---|-----|---------|
+| cycle-27 | 1 | (anecdote) | 🟢 directional (DeepSeek 정확 20.0) |
+| cycle-29 | 3 | 0.857 | 🟠 INSUFFICIENT (directional 약화) |
+| **cycle-31** | **5** | **0.510** | **🟠 INSUFFICIENT WEAKER (점차 약화)** |
+
+**conclusion (점차 명확해진 honest reading):**
+- DeepSeek-V3 D/N=20.000 정확 = DeepSeek 팀 의 *active-Chinchilla design choice* (intentional)
+- DeepSeek-V2 도 19.29 = 같은 design line (DeepSeek family invariant)
+- DBRX (16.67) + Arctic (10.29) = 다른 design choice (under-train 가깝)
+- **Phi-3.5-MoE (37.12) = dense overtraining 정책 그대로** (Microsoft 의 small-MoE 도 D/N 큰 inference-amortization 적용)
+- → "MoE = distinct family" 는 부정. **"MoE 도 training-policy heterogeneous"** (정확히 dense 처럼)
+- Sardana 2024 inference-amortization 가 MoE 에도 적용됨 (Phi-3.5-MoE 가 strongest evidence)
+
+### Honest residual (cycle-31 limits)
+
+- n=5 vs n=11 still insufficient for p<0.05 KS
+- cycle-32+ target: Mixtral-Large-2 / Grok-1 / Phi-4-MoE WebFetch (if D disclosed)
+- Mixtral/Qwen non-disclosure 정책 invariant (cycle-29 exclusion 명시 유지)
+- 자기-strawman 회피 ✅ (Sardana 2024 외부 anchor cross-link)
+
+### 산출물
+
+- `.verdicts/economics/e1_moe_landings.tsv` +2 rows (5 MoE total)
+- `verify/numerics_economics_e1_moe_dense_ks_test.hexa` n=3 → n=5 + verdict_msg/honest_residual update
+- `.verdicts/economics/e1_moe_dense_ks_verdict.txt` (auto-emit cycle-31)
+- (다음 cycle-32 후속 = Mixtral-Large-2 / Grok-1 / Phi-4-MoE 시도)

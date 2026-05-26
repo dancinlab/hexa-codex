@@ -4,16 +4,16 @@
 # verifier=verify/numerics_economics_e1_moe_dense_ks_test.hexa
 # input_dense=.verdicts/economics/c1_chinchilla_envelope.tsv (cycle-26, 13 rows · 11 dense)
 # input_moe=.verdicts/economics/e1_moe_landings.tsv (cycle-29 batch 2, 3 rows)
-# tier=🟠 INSUFFICIENT — directional signal WEAKENS at n=3
+# tier=🟠 INSUFFICIENT — directional signal WEAKENS at n=5 (vs cycle-29 n=3)
 # checks=5/5
 # n_dense=11
-# n_moe=3
+# n_moe=5
 # dense_dev_sorted_x100=[100, 185, 1071, 1238, 1715, 2405, 3430, 4340, 4445, 5000, 9375]
 # dense_q1_x100=1071 · dense_med_x100=2405 · dense_q3_x100=4340
-# moe_dev_sorted_x100=[1029, 1667, 2000]  (Arctic 1029 · DBRX 1667 · DeepSeek 2000)
-# moe_percentiles=DeepSeek 45% · DBRX 36% · Arctic 18%
-# mann_whitney_U_moe=11 · U_dense=22
-# expected_U_x10=165 · var_U_x12=495
-# z_squared_x10000=7333 (|z|≥1 iff z²≥10000)
-# verdict_msg=Mann-Whitney |z|<1 at n=3 — MoE distribution NOT distinguishable from dense. cycle-27 anecdote may be coincidence. E1 hypothesis weakens, but cannot conclusively close at n=3.
+# moe_dev_sorted_x100=[1029, 1667, 1929, 2000, 3712]  (Arctic 1029 · DBRX 1667 · DeepSeek 2000)
+# moe_percentiles=DeepSeek-V3 45% · DBRX 36% · Arctic 18% · DeepSeek-V2 45% · Phi-3.5-MoE 63%
+# mann_whitney_U_moe=23 · U_dense=32
+# expected_U_x10=275 · var_U_x12=935
+# z_squared_x10000=2598 (|z|≥1 iff z²≥10000)
+# verdict_msg=Mann-Whitney |z|<1 at n=5 (cycle-31 batch 3) — Phi-3.5-MoE (37.12 > dense median 24.05) 가 added 되면서 MoE distribution 이 dense 와 더 overlap. cycle-27 anecdote (DeepSeek 정확 20.0) 는 DeepSeek 팀 의 active-Chinchilla design choice, family-wide property 아님. E1 hypothesis 점차 약화 — 'MoE-as-distinct-family' 보다 'MoE 도 training-policy heterogeneous' 가 더 honest reading.
 # next_probe=cycle-30 Mixtral-Large-2 / Hunyuan-Large / Grok-1 collection (if D disclosed) → ≥5 MoE → high-confidence KS

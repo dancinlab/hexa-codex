@@ -1,0 +1,38 @@
+# bench=sandbox_p4_quant_band_pilot (P4 quant-band Pareto, CHEAP 3-band pilot)
+# discovery=.discoveries/sandbox-p4-new-axes.tape @C d_p4_quantization_band_ladder
+# bands=Qwen2.5-1.5B-Instruct {Q3_K_M, Q4_K_M, Q8_0}  bpw=3.5,4.5,8.5
+# manifest=.verdicts/sandbox/stage2_manifest.tsv subset N=200 (40/stratum × 5)
+# scorer=byte_exact_subset (NO LLM self-judge; same family as stage2_persona + mm ladder)
+# decode=greedy --temp 0 -s 42 -n 256 (seed-pinned byte-exact replay)
+# tool=llama-completion (chat-template aware)
+# host=mac-mini-m3 (Apple M3, 24GB UMA, $0 local)
+# band0_name=Qwen2.5-1.5B-Instruct-Q3_K_M
+# band0_bpw=3.5
+# band0_correct=88/200
+# band0_accuracy_pct=44.0
+# band0_tok_per_s=0.82
+# band0_total_wall_ms=370879
+# band0_total_tok=306
+# band1_name=Qwen2.5-1.5B-Instruct-Q4_K_M
+# band1_bpw=4.5
+# band1_correct=86/200
+# band1_accuracy_pct=43.0
+# band1_tok_per_s=0.91
+# band1_total_wall_ms=320051
+# band1_total_tok=292
+# band2_name=Qwen2.5-1.5B-Instruct-Q8_0
+# band2_bpw=8.5
+# band2_correct=85/200
+# band2_accuracy_pct=42.50
+# band2_tok_per_s=0.74
+# band2_total_wall_ms=379646
+# band2_total_tok=284
+# delta_q3_q4_pp=-1
+# delta_q4_q8_pp=-1
+# knee_detected=false  (hypothesis: delta_q3_q4>=5pp AND |delta_q4_q8|<=2pp)
+# monotone_no_knee=false  (FALSIFIER — acc[Q3]<=acc[Q4]<=acc[Q8] AND no knee; recheck manifest if true)
+# pareto_knee_band=Q3_K_M
+# todo_rss_sampler=hexa-native peak-RSS surface missing (rss_mb column emits 0; replace sample_rss_mb when /usr/bin/time -l wrapper lands)
+# todo_hf_download=hexa-native hf_download surface missing (ensure_models only verifies presence; pre-fetch Q3_K_M + Q8_0 out-of-band)
+# next=full 6-band {Q2_K,Q3_K_M,Q4_K_M,Q5_K_M,Q6_K,Q8_0} ladder iff knee_detected=true
+# fit_consumer=verify/numerics_substrate_quant_pareto.hexa (PENDING — closed-form accuracy(bpw) fit, consumes this TSV)

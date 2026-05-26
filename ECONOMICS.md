@@ -207,8 +207,8 @@ ECONOMICS group.
 ### 축 D — 신규 비용 축 (seed 백로그)
 - [ ] D1 — 토큰당 에너지/$ · KV-cache 비용곡선 · speculative-decoding 비용모델 — 새 falsifiable 축 seed → `.discoveries/`.
 
-### 축 E — 🆕 NOVEL: MoE vs Dense scaling law divergence (cycle-27)
-> cycle-26 C1 cross-cycle 발견에서 spawn: 12 modern dense (Llama3·Qwen2.5·Phi-3·Gemma-2) 모두 Chinchilla overtraining (D/N ∈ [22, 1875])인 반면 **DeepSeek-V3 active-37B/14.8T 만 D/N=20.000 정확 hit** (cycle-26 `.verdicts/economics/c1_chinchilla_envelope.tsv` 13-row). MoE active-param 가 dense 와 *다른 scaling law family* 일 가능성 — 측정 가능한 영구 axis.
+### 축 E — 🆕 NOVEL: MoE vs Dense scaling law divergence (cycle-27, ⭐ MAIN priority lane)
+> **⭐ 다음 cycle 우선 진행 lane** (NOVEL axis 메인 정책, cycle-28 cross-domain 동시 적용). cycle-26 C1 cross-cycle 발견에서 spawn: 12 modern dense (Llama3·Qwen2.5·Phi-3·Gemma-2) 모두 Chinchilla overtraining (D/N ∈ [22, 1875])인 반면 **DeepSeek-V3 active-37B/14.8T 만 D/N=20.000 정확 hit** (cycle-26 `.verdicts/economics/c1_chinchilla_envelope.tsv` 13-row). MoE active-param 가 dense 와 *다른 scaling law family* 일 가능성 — 측정 가능한 영구 axis. cycle-27 first-probe verdict: 🟢 SUPPORTED-NUMERICAL (directional, n=1, `.verdicts/economics/e1_moe_dense_divergence_verdict.txt`).
 - [ ] E1 — MoE active-param scaling law 분리: ≥3 MoE landing (DeepSeek-V3 · Mixtral 8x7B · Qwen3-MoE 등) (N_total, N_active, D) 수집 → active-only 와 total 의 D/N 분포 분리 평가. 반증자: ≥3 MoE 의 active-D/N 가 dense D/N 분포 (median ≈250)와 KS-test p≥0.05 → MoE divergence FALSIFIED (단순 동일 분포의 outlier). 외부 anchor: DeepSeek-V3 arXiv:2412.19437 · Mixtral 8x7B arXiv:2401.04088 · Sardana 2024 arXiv:2401.00448 (inference-amortization).
 
 ## SANDBOX 활용 (consumer 입장)

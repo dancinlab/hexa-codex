@@ -7,6 +7,73 @@
 
 ---
 
+## 2026-05-27 — cycle-28 — NOVEL 축 N1 spawn (MAIN PRIORITY · cross-substrate measurement reproducibility)
+
+**사용자 지시 (F1 lane).** ECONOMICS cycle-27 axis E1 패턴을 mirror — NOVEL 영구 축을 SANDBOX 에 추가하고 cycle-28 의 MAIN PRIORITY lane 으로 표기. cycle-23c (16-item, 4-rung) BREAKTHROUGH 와 cycle-24 (50-item, 3-rung partial) STUCK 의 *같은 axis 다른 manifest scale 모순* 을 영구 meta-measurement 차원으로 formalise.
+
+### 진행
+
+| step | 산출물 | 결과 |
+|------|--------|------|
+| 1 | `SANDBOX.md` §영구 축 · 축 N + milestone N1 추가 | +3 line, `**⭐ MAIN priority lane — 다음 cycle 우선 진행**` mark + `🆕 NOVEL` 표기 |
+| 2 | `.discoveries/sandbox-n1-cross-substrate-reproducibility.tape` 작성 | 5 entries (3 @C seeds + V/I), `hexa tape` 0 malformed ✅, 모두 `verified_tier_target=GREEN status=open` |
+| 3 | `verify/numerics_sandbox_n1_reproducibility.hexa` 작성 | parse PASS, 5/5 structural checks PASS, closed-form recompute (no fire, no model load, $0) |
+| 4 | `.verdicts/sandbox/n1_reproducibility_verdict.txt` 자동 emit | 🟠 INSUFFICIENT (정직 — n=3 common subset + cycle-23c 0.5B/2.2B 80% tie + cycle-24 3.0B partial 18/24) |
+| 5 | 본 log entry | (이 entry) |
+| 6 | commit + PR | (다음) |
+
+### N1 first-probe 결과 (🟠 INSUFFICIENT, 정직)
+
+공통 3-rung 부분집합 (0.5B SmolVLM-500M / 2.2B SmolVLM2 / 3.0B Qwen-VL-3B; 7B 는 cycle-24 stuck 으로 제외) 의 counting axis 정확도 비교:
+
+| rung | cycle-23c (16-item, n=5) | cycle-24 (50-item, n=50/50/24) | Δ pp×100 |
+|------|--------------------------|--------------------------------|----------|
+| 0.5B SmolVLM-500M | 4/5 = 80% | 6/50 = 12% | **-6800** |
+| 2.2B SmolVLM2 | 4/5 = 80% | 28/50 = 56% | -2400 |
+| 3.0B Qwen-VL-3B | 2/5 = 40% | 18/24 = 75% (partial) | **+3500** |
+
+- adjacent-pair sign-agreement = **0/2** (모두 부호 반대)
+  - 0.5B→2.2B: cyc23c Δ=0 (tie) · cyc24 Δ=+4400 → sign(0)=0 ≠ sign(+)=1
+  - 2.2B→3.0B: cyc23c Δ=-4000 · cyc24 Δ=+1900 → sign(-)=-1 ≠ sign(+)=1
+- Spearman ρ × 10000 = -2500 (n=3 with cyc23c tie 80%/80% → degenerate; formal out-of-band)
+- 5/5 structural checks PASS — 단 structural checks 는 recompute integrity 만 측정, statistical sufficiency 아님
+
+### 의미 있는 dual reading
+
+**cross-cycle CONTRADICTION 은 REAL.** absolute accuracy Δ range -6800 → +3500 (pp×100) · 부호 0/2 일치 · 형태 (V vs monotone) 정반대. 단 n=3 + cyc23c tie + cyc24 3.0B partial 의 세 가지 구조적 confound 때문에 "small-N artifact" 와 "manifest-shape artifact" 의 attribution 은 cycle-28 N1 first-probe 가 **결론낼 수 없음** — surface 만 함. 두 reading 모두 가능:
+
+- **R1** cycle-23c V-shape 가 n=5 small-sample artifact (cycle-24 monotone 이 더 큰 N 의 ground truth)
+- **R2** 16-item PIL generator 와 50-item PIL generator 의 difficulty 분포 자체가 다름 (manifest-density-dependent absolute accuracy + 둘 다 real)
+
+N1 는 이 분리를 **영구 hygiene lane** 으로 만든다 — 모든 SANDBOX measurement 가 cross-manifest replication 1 probe 통과 (또는 honest residual 명시) 후에야 paper / verdict 로 ship 가능하다는 governance rule 의 SSOT.
+
+### Cross-cycle linkage
+
+- **부모:** cycle-23c (`.verdicts/sandbox/m5_substrate_multimodal_fit_4rung.txt` 🟢 V-shape BREAKTHROUGH) + cycle-24 (`.verdicts/sandbox/p1_subitizing_50item.tsv` 🟠 monotone partial STUCK)
+- **mirror:** ECONOMICS cycle-27 axis E1 NOVEL spawn pattern (`.discoveries/economics-e1-moe-dense-divergence.tape`) — 3 @C seeds + 5/5 structural checks + 직접 verdict emit, 같은 골격
+- **cycle-25 next-probe (load-bearing close):** 50-item TIME-CAPPED re-run with 5-rung 완주 (7B 포함) → 🟠 → 🟢 or 🔴 closed-negative. `bench/sandbox_p1_subitizing_50item.hexa` (cycle-25 quick-reference table 의 entry) 가 그 fire-ready harness.
+- **cycle-29+ follow-ups:** seed 2 (manifest difficulty comparability bench) + seed 3 (영구 hygiene checklist 등록)
+
+### Honest residual (cycle-28 N1 limits)
+
+- **n=3 common rung subset = 통계적으로 부족** (Spearman 6 permutations only, confidence interval 넓음). 5/5 structural PASS 가 statistical sufficiency 를 의미하지 않음.
+- **cycle-23c counting tie** (0.5B 80% = 2.2B 80%) 가 Spearman degenerate input — n=3 rank vector 가 (2,2,1) 로 묶임.
+- **cycle-24 3.0B partial** (18/24, 7B stuck before fire) → SE ≈ √(0.75·0.25/24) ≈ 8.8pp · 50/50 fill 시 point 이동 가능.
+- **manifest comparability 미분리** — seed 2 가 그 lane (cycle-29+ bench harness 필요). 16-item PIL generator vs 50-item PIL generator 의 (object-count, render-density, image-size, palette) 분포가 같은지 미확인.
+- **체크박스 증가 없음** — N1 은 OPEN `[ ]` 로 영구 frontier 유지 ([[feedback_closure_is_physical_limit]] · cx_paper_significance · perpetual axis invariant). 진행도 변동 0.
+
+### 산출물
+
+| 파일 | 종류 | 크기 |
+|------|------|------|
+| `SANDBOX.md` (§영구 축) | edit | +3 lines (N + N1 + MAIN PRIORITY mark) |
+| `.discoveries/sandbox-n1-cross-substrate-reproducibility.tape` | new | 5 entries, 0 malformed |
+| `verify/numerics_sandbox_n1_reproducibility.hexa` | new | 5/5 checks PASS · closed-form · $0 |
+| `.verdicts/sandbox/n1_reproducibility_verdict.txt` | auto-emit | 20 lines, 🟠 INSUFFICIENT (정직) |
+| `SANDBOX.log.md` (this entry) | append | cycle-28 entry |
+
+---
+
 ## 2026-05-25 — M5.OPS cycle-16b — OPS canonical paper g51 publish-readiness (RELEASE-READY pending tag)
 
 M4.OPS 에서 ship 한 OPS canonical paper `PAPER/ops-slo-mmc-surface/` 를 commons **g51 publish-lint (≥10p + ≥1 fal.ai figure)** 까지 끌어올림. **honest-no-pad 가드 통과** — finding 이 실제로 10페이지 분량의 진짜 학술 콘텐츠를 지탱함(패딩 아님). 추가한 것:

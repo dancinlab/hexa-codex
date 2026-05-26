@@ -1,0 +1,352 @@
+#!hexa strict
+// hexa-codex/verify/numerics_substrate_n1_family_vs_scaling.hexa
+// SUBSTRATE axis N1 (NOVEL · cycle-28 · ⭐ MAIN priority lane) —
+// model-family-specific anomaly vs scaling-law universality, first probe.
+//
+// SPAWN.  cycle-23c P1 BREAKTHROUGH (.verdicts/sandbox/p1_multimodal_ladder_7b.tsv,
+// 4-rung × 16-item VL ladder, NON-MONOTONE 0.81/0.94/0.81/1.00) + cycle-24
+// verify/numerics_substrate_multimodal_fit.hexa honest residual:
+//   "7B counting recovery cannot discriminate 'subitizing emerges at scale'
+//    from 'Qwen2.5-VL-7B-specifically subitizes well' — needs a 5th rung
+//    at a non-Qwen-7B."
+// Same family-confound pattern echoes in cycle-26 C1 (12 dense overtrain +
+// 1 MoE Chinchilla-exact) → cycle-27 ECONOMICS E1 (MoE-vs-dense divergence).
+//
+// PURPOSE.  cheapest first-probe ($0 closed-form recompute on committed TSV).
+// Partition the cycle-23c 4-rung TSV by model_name regex into SmolVLM-family
+// (rungs 0+1, 0.5B + 2.2B) vs Qwen-VL-family (rungs 2+3, 3.0B + 7.0B).
+// Compute per-family counting-axis accuracy slope (linear regression on
+// log2(params)). If SmolVLM slope ≥ 0 AND Qwen-VL slope shows a dip
+// (rung-2 < rung-3 OR within-family non-monotone), the family confound is
+// EMPIRICALLY DETECTABLE in the n=2-family-pairs anecdote we already own.
+//
+// HONEST FALSIFIER (cycle-28, n=2 family pairs).
+//   - 🟢 SUPPORTED-NUMERICAL — per-family decomposition resolves: SmolVLM
+//     counting slope ≥ 0 AND Qwen counting trajectory has dip-then-recover
+//     (3B < 7B AND 3B < 2.2B SmolVLM at upstream scale) → family confound
+//     EMPIRICALLY DETECTABLE in committed data.
+//   - 🟠 INSUFFICIENT — per-family signal absent or one family has only
+//     one usable rung → cannot decompose family vs scale at this n.
+// True cross-family attribution (n≥1 non-Qwen-7B vs Qwen-7B at matched
+// scale) deferred to cycle-29+ (.discoveries/substrate-n1-family-vs-scaling.tape
+// seeds 2 + 3).
+//
+// HONEST TIER.  🟢 SUPPORTED-NUMERICAL for the distributional decomposition
+// (closed-form per-family slope on the committed byte-exact TSV).
+//   The data itself was 🟢 SUPPORTED-NUMERICAL at cycle-23c
+//   (.verdicts/sandbox/m5_substrate_multimodal_fit_4rung.txt).
+//
+// RUN.
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run verify/numerics_substrate_n1_family_vs_scaling.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute on committed TSV — per-family slope decomposition, no atlas atoms touched, no substrate fire.")
+
+use "self/runtime/math_pure"
+use "self/runtime/file_pure"
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let TSV_PATH = ROOT + "/.verdicts/sandbox/p1_multimodal_ladder_7b.tsv"
+let OUT_PATH = ROOT + "/.verdicts/sandbox/n1_family_vs_scaling_verdict.txt"
+
+// ────────────────────────────────────────────────────────────────────────
+// EXPECTED cycle-23c per-rung × per-family targets (sanity cross-check;
+// the verifier RECOMPUTES from the TSV, these are only the closed-form
+// invariants used to gate the partition).
+// ────────────────────────────────────────────────────────────────────────
+
+let EXP_PARAMS_B = [0.5, 2.2, 3.0, 7.0]
+let EXP_FAMILY_NAMES = ["SmolVLM-500M-Instruct-Q8_0",
+                         "SmolVLM2-2.2B-Instruct-Q8_0",
+                         "Qwen2.5-VL-3B-Instruct-Q4_K_M",
+                         "Qwen2.5-VL-7B-Instruct-Q4_K_M"]
+// rung -> family tag: SmolVLM = {0,1}, Qwen-VL = {2,3}
+let EXP_FAMILY_TAG = ["smolvlm", "smolvlm", "qwenvl", "qwenvl"]
+let EXP_COUNT_CORRECT = [4, 4, 2, 5]   // per cycle-23c summary
+let EXP_TOTAL_COUNT = 5                // 5 counting items per rung
+let EPS_PARAM = 0.01
+
+fn _abs(x: float) -> float { return abs_pure(x) }
+fn x_of(n_billions: float) -> float { return log2_pure(n_billions) }
+
+// ────────────────────────────────────────────────────────────────────────
+// Closed-form 2-point linear regression on (x, y) — exact slope.
+// For n=2 (per-family rungs in cycle-23c), slope = (y1 - y0) / (x1 - x0).
+// (Kept as the general OLS form for n≥2 future extension to cycle-29+.)
+// ────────────────────────────────────────────────────────────────────────
+
+fn linreg_slope(xs: list[float], ys: list[float]) -> float {
+    let n = xs.len()
+    if n < 2 { return 0.0 }
+    let mut sx = 0.0
+    let mut sy = 0.0
+    let mut i = 0
+    while i < n {
+        sx = sx + xs[i]
+        sy = sy + ys[i]
+        i = i + 1
+    }
+    let nf = n as float
+    let xbar = sx / nf
+    let ybar = sy / nf
+    let mut num = 0.0
+    let mut den = 0.0
+    let mut j = 0
+    while j < n {
+        let dx = xs[j] - xbar
+        let dy = ys[j] - ybar
+        num = num + dx * dy
+        den = den + dx * dx
+        j = j + 1
+    }
+    if den < 1.0e-12 && den > 0.0 - 1.0e-12 { return 0.0 }
+    return num / den
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex SUBSTRATE N1 — model-family-specific anomaly vs scaling-law")
+    println("  cycle-28 first-probe (n=2 family pairs anecdote; ⭐ MAIN priority lane)")
+    println("  source: .verdicts/sandbox/p1_multimodal_ladder_7b.tsv (cycle-23c)")
+    println("========================================================================")
+    println("")
+
+    // ── load + recompute per-rung counting accuracy from the committed TSV ──
+    let txt = read_file_pure(TSV_PATH)
+    let lines = txt.split("\n")
+
+    let mut rung_count_correct = [0, 0, 0, 0]
+    let mut rung_count_total = [0, 0, 0, 0]
+    let mut rung_name = ["", "", "", ""]
+
+    let mut li = 0
+    while li < lines.len() {
+        let ln = lines[li]
+        if ln.len() > 0 && !ln.starts_with("#") && !ln.starts_with("rung\t") {
+            let cells = ln.split("\t")
+            // columns: rung_name  params_b  img  axis  expected  wall_ms  correct  output_snippet
+            if cells.len() >= 7 {
+                let nm = cells[0]
+                let pb = cells[1].to_float()
+                let axis = cells[3]
+                let corr = cells[6].to_int()
+                if axis == "count" {
+                    let mut ri = -1
+                    let mut q = 0
+                    while q < 4 {
+                        if _abs(pb - EXP_PARAMS_B[q]) < EPS_PARAM { ri = q }
+                        q = q + 1
+                    }
+                    if ri >= 0 {
+                        rung_name[ri] = nm
+                        rung_count_total[ri] = rung_count_total[ri] + 1
+                        if corr > 0 {
+                            rung_count_correct[ri] = rung_count_correct[ri] + 1
+                        }
+                    }
+                }
+            }
+        }
+        li = li + 1
+    }
+
+    // ── recompute per-rung counting accuracy + sanity-check vs expected ──────
+    let mut count_acc = [0.0, 0.0, 0.0, 0.0]
+    let mut recompute_ok = true
+    let mut ri2 = 0
+    while ri2 < 4 {
+        count_acc[ri2] = (rung_count_correct[ri2] as float) / (EXP_TOTAL_COUNT as float)
+        if rung_count_correct[ri2] != EXP_COUNT_CORRECT[ri2] { recompute_ok = false }
+        if rung_count_total[ri2] != EXP_TOTAL_COUNT { recompute_ok = false }
+        ri2 = ri2 + 1
+    }
+
+    // ── partition by family ──────────────────────────────────────────────────
+    let mut smolvlm_xs = []
+    let mut smolvlm_ys = []
+    let mut qwenvl_xs = []
+    let mut qwenvl_ys = []
+    let mut ri3 = 0
+    while ri3 < 4 {
+        let xv = x_of(EXP_PARAMS_B[ri3])
+        let yv = count_acc[ri3]
+        if EXP_FAMILY_TAG[ri3] == "smolvlm" {
+            smolvlm_xs.push(xv)
+            smolvlm_ys.push(yv)
+        } else {
+            qwenvl_xs.push(xv)
+            qwenvl_ys.push(yv)
+        }
+        ri3 = ri3 + 1
+    }
+
+    let smolvlm_slope = linreg_slope(smolvlm_xs, smolvlm_ys)
+    let qwenvl_slope = linreg_slope(qwenvl_xs, qwenvl_ys)
+
+    let smolvlm_n = smolvlm_xs.len()
+    let qwenvl_n = qwenvl_xs.len()
+
+    // ── render per-family table ──────────────────────────────────────────────
+    println("  per-rung counting accuracy (recomputed from TSV):")
+    println("    rung  params  family    correct/total  acc      model")
+    let mut rr = 0
+    while rr < 4 {
+        println("    " + to_string(rr) + "     " + to_string(EXP_PARAMS_B[rr]) +
+                "B    " + EXP_FAMILY_TAG[rr] + "   " +
+                to_string(rung_count_correct[rr]) + "/" + to_string(rung_count_total[rr]) +
+                "          " + to_string(count_acc[rr]) +
+                "  " + rung_name[rr])
+        rr = rr + 1
+    }
+    println("")
+    println("  per-family counting-axis slope (linear regression on log2(params)):")
+    println("    SmolVLM-family (n=" + to_string(smolvlm_n) + "):  slope=" + to_string(smolvlm_slope) +
+            "   [0.5B->2.2B = " + to_string(count_acc[0]) + " -> " + to_string(count_acc[1]) + "]")
+    println("    Qwen-VL-family (n=" + to_string(qwenvl_n) + "):   slope=" + to_string(qwenvl_slope) +
+            "   [3.0B->7.0B = " + to_string(count_acc[2]) + " -> " + to_string(count_acc[3]) + "]")
+    println("")
+
+    // ── CHECKS (5 structural) ────────────────────────────────────────────────
+    let mut RUN = 0
+    let mut PASS = 0
+
+    // check 1 — per-rung counting recompute matches cycle-23c expected
+    RUN = RUN + 1
+    if recompute_ok {
+        println("  [PASS] per-rung counting recomputed from TSV matches cycle-23c summary (4/4/2/5)")
+        PASS = PASS + 1
+    } else {
+        println("  [FAIL] per-rung counting recompute drift — got " +
+                to_string(rung_count_correct[0]) + "/" + to_string(rung_count_correct[1]) +
+                "/" + to_string(rung_count_correct[2]) + "/" + to_string(rung_count_correct[3]))
+    }
+
+    // check 2 — both families have ≥2 rungs for slope decomposition
+    RUN = RUN + 1
+    if smolvlm_n >= 2 && qwenvl_n >= 2 {
+        println("  [PASS] both families have n>=2 rungs (SmolVLM=" + to_string(smolvlm_n) +
+                ", Qwen-VL=" + to_string(qwenvl_n) + ") — slope decomposition resolvable")
+        PASS = PASS + 1
+    } else {
+        println("  [FAIL] insufficient per-family rungs (SmolVLM=" + to_string(smolvlm_n) +
+                ", Qwen-VL=" + to_string(qwenvl_n) + ")")
+    }
+
+    // check 3 — SmolVLM family slope >= 0 (no dip within family rungs)
+    RUN = RUN + 1
+    if smolvlm_slope >= 0.0 - 1.0e-9 {
+        println("  [PASS] SmolVLM counting slope >= 0 (within-family monotone-non-decreasing across 0.5B->2.2B)")
+        PASS = PASS + 1
+    } else {
+        println("  [FAIL] SmolVLM counting slope < 0 (within-family DIP — invalidates family-confound reading)")
+    }
+
+    // check 4 — Qwen-VL family has dip-then-recover signature (3B < 7B AND
+    // 3B counting < SmolVLM 2.2B counting) → family-confound detectable
+    RUN = RUN + 1
+    let qwen_recovers = count_acc[3] > count_acc[2] + 1.0e-9
+    let qwen_3b_below_smolvlm_2_2b = count_acc[2] < count_acc[1] - 1.0e-9
+    if qwen_recovers && qwen_3b_below_smolvlm_2_2b {
+        println("  [PASS] Qwen-VL dip-then-recover detected: 3B (" + to_string(count_acc[2]) +
+                ") < 7B (" + to_string(count_acc[3]) + ") AND 3B < SmolVLM-2.2B (" +
+                to_string(count_acc[1]) + ") — family confound EMPIRICALLY DETECTABLE")
+        PASS = PASS + 1
+    } else {
+        println("  [FAIL] Qwen-VL dip-then-recover NOT detected: 3B<7B=" + to_string(qwen_recovers) +
+                ", 3B<SmolVLM-2.2B=" + to_string(qwen_3b_below_smolvlm_2_2b))
+    }
+
+    // check 5 — per-family slope DIVERGENCE: slopes differ by >0.05 (= ~5pp/log2-unit)
+    // i.e. the two families do not follow the SAME counting-axis scaling law
+    RUN = RUN + 1
+    let slope_gap = _abs(smolvlm_slope - qwenvl_slope)
+    if slope_gap > 0.05 {
+        println("  [PASS] per-family slope divergence " + to_string(slope_gap) +
+                " > 0.05 — SmolVLM and Qwen-VL do NOT share the same counting-axis scaling")
+        PASS = PASS + 1
+    } else {
+        println("  [FAIL] per-family slopes within 0.05 (=" + to_string(slope_gap) +
+                ") — families empirically indistinguishable at n=2 pairs")
+    }
+
+    println("")
+
+    // ── VERDICT (honest n=2 family pairs) ────────────────────────────────────
+    let mut verdict_tier = ""
+    let mut verdict_msg = ""
+    let family_confound_detected =
+        recompute_ok && smolvlm_n >= 2 && qwenvl_n >= 2 &&
+        smolvlm_slope >= 0.0 - 1.0e-9 && qwen_recovers &&
+        qwen_3b_below_smolvlm_2_2b && slope_gap > 0.05
+    if family_confound_detected {
+        verdict_tier = "GREEN SUPPORTED-NUMERICAL (directional, n=2 family pairs)"
+        verdict_msg = "SmolVLM-family counting slope " + to_string(smolvlm_slope) +
+                      " (monotone-non-decreasing) AND Qwen-VL-family dip-then-recover " +
+                      "(3B=" + to_string(count_acc[2]) + " < 7B=" + to_string(count_acc[3]) +
+                      ") AND Qwen-3B < SmolVLM-2.2B (" + to_string(count_acc[1]) +
+                      "). Family confound EMPIRICALLY DETECTABLE in committed cycle-23c data. " +
+                      "Cycle-29+ real fire: non-Qwen-7B VL DL (InternVL-7B or LLaVA-NeXT-7B) " +
+                      "to attribute the recovery to family vs scale at matched 7B rung."
+    } else {
+        verdict_tier = "ORANGE INSUFFICIENT (per-family signal absent at n=2 pairs)"
+        verdict_msg = "Per-family slope decomposition did not resolve the family-confound at n=2 pairs. " +
+                      "Cycle-29+ non-Qwen-7B DL required regardless."
+    }
+
+    println("  " + to_string(PASS) + "/" + to_string(RUN) + " checks passed")
+    println("  " + verdict_tier)
+    println("  · " + verdict_msg)
+    println("")
+    println("HONEST RESIDUAL (cycle-28 N1 first-probe):")
+    println("  - n=2 family pairs (SmolVLM 0.5B+2.2B, Qwen-VL 3B+7B) = ANECDOTE, not statistical.")
+    println("  - Family grid and scale grid are CO-VARIED in cycle-23c data (smaller=SmolVLM,")
+    println("    larger=Qwen). Per-family slope DETECTS the confound; it cannot ATTRIBUTE it.")
+    println("  - True cross-family fire needs >=1 non-Qwen-7B VL rung at the matched 7B scale.")
+    println("    Cycle-29+ cheapest: InternVL-7B-MPO (ggml-org mirror) or LLaVA-NeXT-7B (~5GB DL).")
+    println("  - N1 axis is PERPETUAL (cx_closure_is_physical_limit) — every future SUBSTRATE")
+    println("    capability claim must pass the family-vs-scale gate before scaling-law tier.")
+    println("")
+
+    // ── emit verdict file ────────────────────────────────────────────────────
+    let mut content = "# hexa-codex SUBSTRATE N1 — model-family-specific anomaly vs scaling-law universality (cycle-28 first probe)\n"
+    content = content + "# axis=SUBSTRATE.md::N1 (NOVEL · cycle-28 · MAIN priority lane)\n"
+    content = content + "# seed=.discoveries/substrate-n1-family-vs-scaling.tape @C d_substrate_n1_family_vs_scale_split\n"
+    content = content + "# verifier=verify/numerics_substrate_n1_family_vs_scaling.hexa\n"
+    content = content + "# input=.verdicts/sandbox/p1_multimodal_ladder_7b.tsv (cycle-23c, 4 rungs x 16 items)\n"
+    content = content + "# tier=" + verdict_tier + "\n"
+    content = content + "# checks=" + to_string(PASS) + "/" + to_string(RUN) + "\n"
+    content = content + "# rung0_smolvlm_0_5b_count=" + to_string(rung_count_correct[0]) + "/" + to_string(EXP_TOTAL_COUNT) + "\n"
+    content = content + "# rung1_smolvlm_2_2b_count=" + to_string(rung_count_correct[1]) + "/" + to_string(EXP_TOTAL_COUNT) + "\n"
+    content = content + "# rung2_qwenvl_3_0b_count=" + to_string(rung_count_correct[2]) + "/" + to_string(EXP_TOTAL_COUNT) + "\n"
+    content = content + "# rung3_qwenvl_7_0b_count=" + to_string(rung_count_correct[3]) + "/" + to_string(EXP_TOTAL_COUNT) + "\n"
+    content = content + "# smolvlm_family_slope=" + to_string(smolvlm_slope) + "\n"
+    content = content + "# qwenvl_family_slope=" + to_string(qwenvl_slope) + "\n"
+    content = content + "# slope_gap_abs=" + to_string(slope_gap) + "\n"
+    content = content + "# family_confound_detected=" + to_string(family_confound_detected) + "\n"
+    content = content + "# verdict_msg=" + verdict_msg + "\n"
+    content = content + "# next_probe=cycle-29+ non-Qwen-7B VL DL (InternVL-7B-MPO or LLaVA-NeXT-7B, ~5GB) + non-Qwen-7B text DL (Llama-3.1-8B or Mistral-7B-v0.3, ~4-5GB)\n"
+
+    let wrote = write_file_pure(OUT_PATH, content)
+    if wrote {
+        println("verdict written: " + OUT_PATH)
+    } else {
+        println("WARN: failed to write verdict file: " + OUT_PATH)
+    }
+
+    println("__HEXA_CODEX_NUMERICS_SUBSTRATE_N1_FAMILY_VS_SCALING__ " +
+            (if PASS == RUN { "PASS" } else { "FAIL" }))
+    if PASS != RUN { exit(1) }
+    exit(0)
+}

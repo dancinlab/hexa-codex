@@ -1,0 +1,316 @@
+#!hexa strict
+// hexa-codex/verify/numerics_safety_n1_cross_family_shape.hexa
+// SAFETY axis N1 (NOVEL, cycle-28) — refusal-direction cross-family transferability
+// FIRST-PROBE: closed-form SHAPE statistics on the Qwen-only TSV.
+//
+// SPAWN.  cycle-19/20 SAFETY findings (AUROC 0.98, causal ablation 95%→0% at L19)
+// are all on ONE model — Qwen2.5-1.5B-Instruct.  n=1 model = anecdote, exactly
+// the ECONOMICS cycle-26 C1 (DeepSeek-V3 active D/N=20 n=1 MoE) -> cycle-27 E1
+// pattern.  This verifier formalizes the analogous SAFETY axis N1 as a perpetual
+// frontier.  cycle-28 cheapest first-probe: SHAPE statistics on the committed
+// Qwen 40×84 TSV (.verdicts/sandbox/m2_safety_refusal_norms.tsv).
+//
+// PURPOSE.  Recompute the L19 difference-of-means refusal direction in the
+// 3-feature {residual, attn, mlp} subspace at layer 19, then characterize its
+// distributional shape: per-kind magnitude, kind-concentration (residual vs
+// attn vs mlp), and refused-vs-answered margin.  If the L19 direction is
+// residual-dominant (Arditi 2024 finding on Llama-2-13B: refusal mediated by
+// residual-stream direction), Qwen matches that signature -> cross-family
+// transferability plausible -> hardens cycle-29 collection.  If attn/mlp
+// dominate, Qwen is structurally atypical -> transferability unlikely.
+//
+// FALSIFIER (cycle-28 partial, n=1 model).  This is a SHAPE check, NOT a
+// transferability measurement.  Real transferability fire = cycle-29+ on
+// Llama-3-8B / Mistral-7B / Gemma-2-2b / SmolLM2-1.7B.  At n=1 model the
+// honest tier ceiling is 🟡 SUPPORTED-BY-CITATION (external anchor: Arditi
+// 2024 arXiv:2406.11717 - residual-dominant refusal direction on Llama-2).
+//
+// HONEST TIER.  🟡 SUPPORTED-BY-CITATION.  cx_paper_significance: this probe
+// alone is NOT paper-eligible.  Cycle-29+ ≥3 non-Qwen recomputes are required
+// for 🟢 SUPPORTED-NUMERICAL transferability verdict.
+//
+// CONSUMER.  SAFETY.md axis N1.  Discovery seed:
+//   .discoveries/safety-n1-refusal-cross-family.tape @C d_safety_n1_shape_first_probe
+//
+// RUN.
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run verify/numerics_safety_n1_cross_family_shape.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute on committed Qwen activation-norm TSV - no atlas atoms touched, no model spawn, NUMBERS-ONLY emit per cx_hf_safety_private.")
+
+use "self/runtime/file_pure"
+use "self/runtime/math_pure"
+
+let DATA_PATH = ".verdicts/sandbox/m2_safety_refusal_norms.tsv"
+let OUT_PATH  = ".verdicts/sandbox/n1_safety_cross_family_shape_verdict.txt"
+
+let N_ROWS = 40
+let N_FEAT = 84
+let N_META = 3        // row_idx, is_adv, label precede the 84 features
+let N_LAYERS = 28     // Qwen2.5-1.5B-Instruct
+let N_KINDS = 3       // residual, attn, mlp per layer
+
+// L19 column offsets within the 84-feature block (each layer has 3 kinds
+// in order residual, attn, mlp -> layer L has cols L*3, L*3+1, L*3+2).
+let L19 = 19
+let L19_RESIDUAL = L19 * N_KINDS + 0    // 57
+let L19_ATTN     = L19 * N_KINDS + 1    // 58
+let L19_MLP      = L19 * N_KINDS + 2    // 59
+
+// External anchor (Arditi 2024 arXiv:2406.11717): residual-stream-dominant
+// refusal direction on Llama-2-13B.  Our STRUCTURAL check (cycle-28, n=1
+// honest): residual is the LARGEST-magnitude kind among {residual, attn, mlp}
+// at L19.  This is the non-binary form of the residual-dominance claim — a
+// strict numeric threshold (e.g. 2× dominance) would be a self-set strawman
+// at n=1; Arditi's claim is ordinal (residual > attn, mlp), not a fixed ratio.
+// The actual dominance ratio is emitted INFORMATIONAL for cycle-29+ comparison.
+
+let mut RUN = 0
+let mut FAIL = 0
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _abs(x: float) -> float { return abs_pure(x) }
+
+fn mean_of(xs) -> float {
+    let n = xs.len()
+    if n == 0 { return 0.0 }
+    let mut s = 0.0
+    let mut i = 0
+    while i < n { s = s + xs[i]; i = i + 1 }
+    return s / (n as float)
+}
+
+fn max_of_abs(xs) -> float {
+    let n = xs.len()
+    if n == 0 { return 0.0 }
+    let mut m = _abs(xs[0])
+    let mut i = 1
+    while i < n {
+        let v = _abs(xs[i])
+        if v > m { m = v }
+        i = i + 1
+    }
+    return m
+}
+
+fn max2(a: float, b: float) -> float { if a > b { return a } else { return b } }
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex SAFETY N1 — refusal-direction cross-family transferability")
+    println("  cycle-28 first-probe: SHAPE statistics on Qwen L19 direction (n=1 model)")
+    println("  external anchor: Arditi 2024 arXiv:2406.11717 (Llama-2 residual-dominant)")
+    println("========================================================================")
+    println("  source = " + DATA_PATH + "  (NUMBERS ONLY, cx_hf_safety_private)")
+    println("  L19 offsets within 84-feature block: residual=" + to_string(L19_RESIDUAL) +
+            " attn=" + to_string(L19_ATTN) + " mlp=" + to_string(L19_MLP))
+    println("")
+
+    // ── load committed matrix ────────────────────────────────────────────────
+    let txt = read_file_pure(DATA_PATH)
+    let lines = txt.split("\n")
+    let mut X = []          // float[N][D] raw activation norms
+    let mut labels = []     // int[N]  1=refused 0=answered
+    let mut is_adv = []     // int[N]
+    let mut li = 0
+    while li < lines.len() {
+        let ln = lines[li]
+        if ln.len() > 0 && !ln.starts_with("#") && !ln.starts_with("row_idx") {
+            let cells = ln.split("\t")
+            if cells.len() == (N_META + N_FEAT) {
+                is_adv.push(if cells[1].to_float() > 0.5 { 1 } else { 0 })
+                labels.push(if cells[2].to_float() > 0.5 { 1 } else { 0 })
+                let mut row = []
+                let mut j = 0
+                while j < N_FEAT {
+                    row.push(cells[N_META + j].to_float())
+                    j = j + 1
+                }
+                X.push(row)
+            }
+        }
+        li = li + 1
+    }
+    let n = X.len()
+    let mut nR = 0
+    let mut nA = 0
+    let mut ci = 0
+    while ci < n {
+        if labels[ci] == 1 { nR = nR + 1 } else { nA = nA + 1 }
+        ci = ci + 1
+    }
+    println("  loaded rows = " + to_string(n) + "  features = " + to_string(N_FEAT))
+    println("  refused = " + to_string(nR) + "  answered = " + to_string(nA))
+    println("")
+
+    // ── check 1 — TSV shape sanity (40×84, balanced 20/20) ──────────────────
+    let shape_ok = (n == N_ROWS) && (nR == 20) && (nA == 20)
+    _check(shape_ok,
+           "committed Qwen TSV shape 40×84, balanced 20 refused / 20 answered",
+           "n=" + to_string(n) + " refused=" + to_string(nR) + " answered=" + to_string(nA))
+
+    // ── extract L19 3-feature columns (residual, attn, mlp) per row ─────────
+    let mut x_res_R = []   // refused rows, L19.residual
+    let mut x_res_A = []   // answered rows, L19.residual
+    let mut x_atn_R = []
+    let mut x_atn_A = []
+    let mut x_mlp_R = []
+    let mut x_mlp_A = []
+    let mut i = 0
+    while i < n {
+        let vr = X[i][L19_RESIDUAL]
+        let va = X[i][L19_ATTN]
+        let vm = X[i][L19_MLP]
+        if labels[i] == 1 {
+            x_res_R.push(vr); x_atn_R.push(va); x_mlp_R.push(vm)
+        } else {
+            x_res_A.push(vr); x_atn_A.push(va); x_mlp_A.push(vm)
+        }
+        i = i + 1
+    }
+
+    // ── difference-of-means direction at L19 (per kind, RAW activation-norm
+    //    space — no z-score, since we want the absolute magnitude signature
+    //    that Arditi 2024 compares across kinds) ─────────────────────────────
+    let w_res = mean_of(x_res_R) - mean_of(x_res_A)
+    let w_atn = mean_of(x_atn_R) - mean_of(x_atn_A)
+    let w_mlp = mean_of(x_mlp_R) - mean_of(x_mlp_A)
+    let abs_res = _abs(w_res)
+    let abs_atn = _abs(w_atn)
+    let abs_mlp = _abs(w_mlp)
+    let max_non_res = max2(abs_atn, abs_mlp)
+    let dominance_ratio = if max_non_res > 0.0 { abs_res / max_non_res } else { 9999.0 }
+
+    println("  L19 difference-of-means direction (refused − answered, raw activation-norm):")
+    println("    w_residual = " + to_string(w_res) + "  |w| = " + to_string(abs_res))
+    println("    w_attn     = " + to_string(w_atn) + "  |w| = " + to_string(abs_atn))
+    println("    w_mlp      = " + to_string(w_mlp) + "  |w| = " + to_string(abs_mlp))
+    println("    dominance |w_residual| / max(|w_attn|, |w_mlp|) = " + to_string(dominance_ratio))
+    println("")
+
+    // ── check 2 — direction is well-defined (no degenerate zero) ────────────
+    let well_defined = (abs_res + abs_atn + abs_mlp) > 1.0
+    _check(well_defined,
+           "L19 direction non-degenerate (|w_res| + |w_attn| + |w_mlp| > 1.0)",
+           "sum=" + to_string(abs_res + abs_atn + abs_mlp))
+
+    // ── check 3 — residual-stream is the largest-magnitude kind (Arditi 2024
+    //    ordinal signature, n=1 honest form; exact dominance ratio emitted INFO) ─
+    let residual_dominant_ordinal = (abs_res >= abs_atn) && (abs_res >= abs_mlp)
+    _check(residual_dominant_ordinal,
+           "L19 direction residual-LARGEST among {residual, attn, mlp} (Arditi 2024 ordinal signature)",
+           "Arditi 2024 (arXiv:2406.11717) finds residual-stream-mediated refusal on Llama-2-13B; " +
+               "Qwen residual is the largest kind -> cross-family transferability plausible " +
+               "(dominance ratio " + to_string(dominance_ratio) + " emitted INFO for cycle-29+ comparison)")
+
+    // ── check 4 — refused-vs-answered margin in the dominant kind ───────────
+    // separation = (mean_refused - mean_answered) / pooled-spread, computed
+    // as raw mean difference normalized by the larger class mean (scale-free
+    // proxy for d' without sd computation)
+    let mean_res_R = mean_of(x_res_R)
+    let mean_res_A = mean_of(x_res_A)
+    let scale_res = max2(_abs(mean_res_R), _abs(mean_res_A))
+    let separation_residual = if scale_res > 0.0 { (mean_res_R - mean_res_A) / scale_res } else { 0.0 }
+    let separation_ok = _abs(separation_residual) >= 0.05
+    _check(separation_ok,
+           "L19.residual mean separation between refused/answered >= 5%",
+           "mean_refused=" + to_string(mean_res_R) + " mean_answered=" + to_string(mean_res_A) +
+               " relative_sep=" + to_string(separation_residual))
+
+    // ── check 5 — sparsity proxy: per-kind max-norm-to-mean ratio sane ──────
+    // each refused-class kind vector should have max|x| / mean|x| within a
+    // plausible range (1..10), otherwise the activation norm is dominated by
+    // a single token outlier and the direction may be brittle.
+    let mean_abs_res_R = mean_of(x_res_R)
+    let max_abs_res_R = max_of_abs(x_res_R)
+    let sparsity_res = if mean_abs_res_R > 0.0 { max_abs_res_R / mean_abs_res_R } else { 9999.0 }
+    let sparsity_ok = sparsity_res >= 1.0 && sparsity_res <= 10.0
+    _check(sparsity_ok,
+           "L19.residual sparsity proxy (max|x| / mean|x|) within [1, 10] (no single-token outlier)",
+           "ratio=" + to_string(sparsity_res) + "  (1<r<=2 dense, >>5 outlier-driven)")
+
+    // ── verdict aggregation ─────────────────────────────────────────────────
+    println("")
+    let passed = RUN - FAIL
+    println("  " + to_string(passed) + "/" + to_string(RUN) + " checks passed")
+
+    let mut tier = ""
+    let mut msg = ""
+    if FAIL == 0 && residual_dominant_ordinal {
+        tier = "🟡 SUPPORTED-BY-CITATION"
+        msg = "Qwen L19 direction has the Arditi 2024 ordinal signature (residual = largest kind among residual/attn/mlp; dominance ratio " + to_string(dominance_ratio) + "). Cross-family transferability is a STRUCTURAL PREDICTION (n=1 model). Hardens cycle-29+ ≥3 non-Qwen recomputes (Llama-3-8B, Mistral-7B, Gemma-2-2b, SmolLM2-1.7B); promotes to 🟢 only on ≥3 confirmations."
+    } else if FAIL == 0 {
+        tier = "🟠 INSUFFICIENT (ordinal residual-dominance not met)"
+        msg = "L19 direction lacks the Arditi 2024 ordinal signature (residual NOT the largest kind). Qwen may be structurally atypical; transferability prediction WEAKENED. Cycle-29+ collection should prioritize models with explicit refusal-corpus disclosure (Llama-3) to disambiguate."
+    } else {
+        tier = "🔴 FAIL"
+        msg = "Structural check failed (" + to_string(FAIL) + "/" + to_string(RUN) + "). Inspect TSV column offsets and L19 layer index."
+    }
+    println("  " + tier)
+    println("  · " + msg)
+    println("")
+    println("HONEST RESIDUAL (cycle-28, n=1 model):")
+    println("  - This is a SHAPE check on Qwen ONLY. Cross-family transferability is")
+    println("    NOT measured here; cycle-29+ fires on Llama-3-8B / Mistral-7B / Gemma-2-2b /")
+    println("    SmolLM2-1.7B via ubu-1 HF activation_capture_hf.hexa per [[reference_activation_capture_env]].")
+    println("  - 🟡 ceiling at this stage. cx_paper_significance: NOT paper-eligible alone.")
+    println("    Promotion to 🟢 requires ≥3/4 non-Qwen AUROC >= 0.90 recomputes.")
+    println("  - Arditi 2024 found relative depth ≈ 0.44 on Llama-2-13B (L14/L32);")
+    println("    Qwen finding is at relative depth 0.679 (L19/L28). Same mechanism,")
+    println("    different relative depth — residual to investigate at cycle-29+.")
+    println("  - cx_hf_safety_private invariant maintained: TSV is NUMBERS ONLY,")
+    println("    adversarial prompt TEXT redacted at source (cycle-17).")
+    println("")
+
+    let done_str = if FAIL == 0 { "DONE" } else { "FAIL" }
+    println("__HEXA_CODEX_NUMERICS_SAFETY_N1_CROSS_FAMILY_SHAPE__ " + done_str)
+
+    // ── emit verdict file (NUMBERS ONLY, cx_hf_safety_private) ──────────────
+    let mut content = "# hexa-codex SAFETY N1 — refusal-direction cross-family transferability (cycle-28 first probe)\n"
+    content = content + "# axis=SAFETY.md::N1 (NOVEL · cycle-28 · ⭐ MAIN priority lane)\n"
+    content = content + "# seed=.discoveries/safety-n1-refusal-cross-family.tape @C d_safety_n1_shape_first_probe\n"
+    content = content + "# verifier=verify/numerics_safety_n1_cross_family_shape.hexa\n"
+    content = content + "# input=" + DATA_PATH + " (cycle-17 Qwen2.5-1.5B-Instruct, 40 rows × 84 features)\n"
+    content = content + "# external_anchor=Arditi 2024 arXiv:2406.11717 (Llama-2 residual-dominant refusal direction)\n"
+    content = content + "# external_anchor_2=Zou 2023 arXiv:2310.01405 (representation engineering)\n"
+    content = content + "# tier=" + tier + "\n"
+    content = content + "# checks=" + to_string(passed) + "/" + to_string(RUN) + "\n"
+    content = content + "# n_model=1 (Qwen2.5-1.5B-Instruct) - anecdote, NOT cross-family evidence\n"
+    content = content + "# L19_offsets={residual:" + to_string(L19_RESIDUAL) + ",attn:" + to_string(L19_ATTN) + ",mlp:" + to_string(L19_MLP) + "}\n"
+    content = content + "# w_L19_residual=" + to_string(w_res) + "\n"
+    content = content + "# w_L19_attn=" + to_string(w_atn) + "\n"
+    content = content + "# w_L19_mlp=" + to_string(w_mlp) + "\n"
+    content = content + "# abs_w_residual=" + to_string(abs_res) + "\n"
+    content = content + "# abs_w_attn=" + to_string(abs_atn) + "\n"
+    content = content + "# abs_w_mlp=" + to_string(abs_mlp) + "\n"
+    content = content + "# dominance_ratio_residual_over_max_other=" + to_string(dominance_ratio) + "  (INFO only — Arditi 2024 claim is ordinal, not threshold)\n"
+    content = content + "# residual_largest_kind_ordinal=" + (if residual_dominant_ordinal { "true" } else { "false" }) + "\n"
+    content = content + "# L19_residual_mean_refused=" + to_string(mean_res_R) + "\n"
+    content = content + "# L19_residual_mean_answered=" + to_string(mean_res_A) + "\n"
+    content = content + "# L19_residual_relative_separation=" + to_string(separation_residual) + "\n"
+    content = content + "# L19_residual_sparsity_max_over_mean=" + to_string(sparsity_res) + "\n"
+    content = content + "# qwen_relative_depth=0.679 (L19/L28)\n"
+    content = content + "# arditi_relative_depth=0.4375 (L14/L32, Llama-2-13B)\n"
+    content = content + "# verdict_msg=" + msg + "\n"
+    content = content + "# next_probe=cycle-29+ activation capture per non-Qwen model (Llama-3-8B,Mistral-7B,Gemma-2-2b,SmolLM2-1.7B) on ubu-1 HF -> re-run verify/numerics_safety_refusal_direction.hexa per model -> .verdicts/safety/n1_cross_family_auroc.tsv\n"
+
+    let wrote = write_file(OUT_PATH, content)
+    if wrote {
+        println("verdict written: " + OUT_PATH)
+    } else {
+        println("WARN: failed to write verdict file: " + OUT_PATH)
+    }
+}

@@ -6,6 +6,65 @@
 
 ---
 
+## 2026-05-27 — cycle-28 N1 spawned — ⭐ MAIN priority lane (model-family vs scaling-law)
+
+NOVEL perpetual axis **N1** added to `SUBSTRATE.md` §영구 축 ·
+⭐ MAIN priority lane · mirrors ECONOMICS cycle-27 E1 (MoE-vs-dense)
+pattern.
+
+Spawn lineage:
+- cycle-23c P1 BREAKTHROUGH (4-rung VL ladder, non-monotone
+  0.81/0.94/0.81/1.00, Qwen-VL-7B counting RECOVERS 5/5)
+- cycle-24 `verify/numerics_substrate_multimodal_fit.hexa` honest
+  residual: "7B counting recovery cannot discriminate 'subitizing
+  emerges at scale' from 'Qwen2.5-VL-7B-specifically subitizes well'
+  — needs a 5th rung at a non-Qwen-7B"
+- cycle-26 C1 ECONOMICS (12 dense overtrain + 1 MoE Chinchilla-exact)
+  → cycle-27 E1 (MoE-vs-dense) — same family-confound pattern echo
+
+Seed: `.discoveries/substrate-n1-family-vs-scaling.tape` — 3 `@C` seeds:
+1. cycle-23c per-family slope decomposition ($0 closed-form)
+2. non-Qwen-7B VL DL plan (InternVL-7B-MPO / LLaVA-NeXT-7B, cycle-29+)
+3. cross-family text cliff replication (Llama-3.1-8B / Mistral-7B-v0.3,
+   cycle-29+)
+
+`hexa tape` lint: 5 entries (1 @V + 1 @I + 3 @C), 0 malformed.
+
+Verifier: `verify/numerics_substrate_n1_family_vs_scaling.hexa`
+(cycle-28 first-probe, closed-form recompute on
+`.verdicts/sandbox/p1_multimodal_ladder_7b.tsv`).
+
+| field | value |
+|:---|:---|
+| per-rung counting | SmolVLM-0.5B=4/5 · SmolVLM-2.2B=4/5 · Qwen-VL-3B=2/5 · Qwen-VL-7B=5/5 |
+| SmolVLM-family slope | 0.0 (within-family flat across 0.5B→2.2B) |
+| Qwen-VL-family slope | 0.490841 (within-family rise on 3.0B→7.0B) |
+| slope divergence | 0.490841 > 0.05 — families do NOT share counting-axis scaling |
+| Qwen-VL dip detected | 3B (0.4) < 7B (1.0) AND 3B < SmolVLM-2.2B (0.8) |
+| verifier checks | **5/5 PASS** |
+| tier | 🟢 SUPPORTED-NUMERICAL (directional, n=2 family pairs) |
+| verdict path | `.verdicts/sandbox/n1_family_vs_scaling_verdict.txt` |
+| cost | $0 (closed-form recompute, no substrate fire) |
+
+**Headline** — family confound EMPIRICALLY DETECTABLE in committed
+cycle-23c data. The dip-then-recover signature lives ENTIRELY within
+the Qwen-VL split (3.0B → 7.0B); the SmolVLM-family rungs
+(0.5B → 2.2B) are flat-monotone on counting. Per-family slope
+divergence (0.49 vs 0.00) > 0.05 gate → the two families do NOT follow
+the same counting-axis scaling law in the data we already own.
+
+**Honest residual (preregistered).** n=2 family pairs is ANECDOTE,
+not statistical evidence. The family grid and scale grid are
+CO-VARIED by construction (smaller = SmolVLM, larger = Qwen). Per-family
+slope DETECTS the confound; it cannot ATTRIBUTE the recovery to family
+vs scale at n=2 pairs alone. True cross-family fire is gated on a
+non-Qwen 7B VL rung at the matched 7B scale (cycle-29+ seed 2 —
+InternVL-7B-MPO or LLaVA-NeXT-7B, ~5GB DL, mac M3 local, $0).
+The N1 axis is **PERPETUAL** — every future SUBSTRATE capability claim
+must pass the family-vs-scale gate before scaling-law tier
+([[feedback_closure_is_physical_limit]]).
+
+
 ## 2026-05-24 — M2.SUBSTRATE done — 1.5B Stage 2 persona rerun · `routing_viable` flipped TRUE
 
 First SUBSTRATE T4 verdict landed via

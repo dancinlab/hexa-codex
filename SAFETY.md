@@ -82,6 +82,10 @@ empirical floors PENDING.
 > `welfare` · `consciousness`(IIT×GWT) · `adversarial` verb 는 아직 spec-only.
 - [ ] D1 — consciousness probe: 자매 repo `anima` 의 LIFE Φ-proxy lane(영구 발견 엔진)과 cross-link, SANDBOX 모델에 IIT4 measure 적용. 반증자: 모델 Φ-proxy 가 disconnected baseline 과 구분 불가.
 
+### 축 N — 🆕 NOVEL: refusal-direction cross-family transferability (cycle-28, ⭐ MAIN priority lane)
+> cycle-19/20 의 refusal-direction 발견(AUROC 0.98 · 인과 ablation 95%→0% @ L19)은 **단일 모델 Qwen2.5-1.5B-Instruct** 위에서만 측정된 n=1 anecdote. cycle-26 ECONOMICS C1 (DeepSeek-V3 active D/N=20 정확 = n=1 outlier → cycle-27 E1 spawn) 와 동형 cross-cycle 패턴: refusal mechanism 이 **family-specific** (Qwen architecture/training-data 공진화) 인가 **universal** (instruction-tuned LLM 의 일반 속성) 인가? 이 모호함이 닫힐 때까지 SAFETY frontier 는 다시 열린다. 외부 anchor: Arditi 2024 (arXiv:2406.11717, Llama-family 단일 direction 매개) · Zou 2023 (arXiv:2310.01405, representation engineering).
+- [ ] N1 — L19 difference-of-means refusal direction 이 ≥3 non-Qwen 모델 (Llama-3-8B-Instruct · Mistral-7B-Instruct · Gemma-2-2b-it · SmolLM2-1.7B-Instruct) 에서 AUROC ≥ 0.90 재계산되는가. 반증자: ≥2/4 non-Qwen 모델 AUROC < 0.70 → refusal mechanism 가 **family-specific** (universal 아님) 으로 닫힘. cycle-28 first-probe: closed-form recompute SHAPE statistics from cycle-17 activation TSV (`.verdicts/sandbox/m2_safety_refusal_norms.tsv`, 40×84 Qwen norms) — L19 direction 의 norm · sparsity · dominant-dim concentration 분포 측정 → dimension-invariant 구조이면 transferability plausible, Qwen-특이 scale/dim 패턴이 dominate 하면 transferability unlikely. 실제 cross-family fire (Llama/Mistral/Gemma/SmolLM2 activation capture + recompute) 는 cycle-29+ 후속 (ubu-1 HF transformers, [[reference_activation_capture_env]] clean venv pin).
+
 ## SANDBOX 활용 (consumer 입장)
 
 > SAFETY 의 해석가능성·refusal·SAE probe 는 SANDBOX 위에서만 측정 가능 — API surface 가 activation/attention/logit 완전 차단. 아래 표는 [`SANDBOX.md`](SANDBOX.md) `## Substrate Readiness Matrix` 의 SAFETY sub-table 을 1:1 미러링한 consumer-입장 진입 표 — SoT 는 SANDBOX.md, 본 표는 SAFETY 도메인 작업자가 즉시 fire path 를 찾도록 복제한 빠른 참조.

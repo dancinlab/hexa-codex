@@ -82,6 +82,10 @@ empirical evals PENDING.
 ### 축 D — causal-chain · cog-arch 역량 (`causal` · `cog_arch` verb)
 - [ ] D1 — causal-reasoning eval ladder (DAG 추론 정확도 vs scale). 반증자: causal 정확도가 scale ladder 에서 비단조.
 
+### 축 N — 🆕 NOVEL: model-family-specific anomaly vs scaling-law universality (cycle-28, ⭐ MAIN priority lane)
+> cycle-23c P1 BREAKTHROUGH 의 잔여(cycle-24 verifier honest residual): Qwen2.5-VL-3B 의 counting=2/5 dip 이 Qwen-family anomaly 인지 scale-law dip 인지 미분리. 7B-Qwen 회복(5/5)은 "subitizing emerges at scale" 과 "Qwen-VL-7B-specifically subitizes well" 을 discriminate 못함. cycle-26 C1 (12 dense overtrain, MoE 만 Chinchilla hit) → cycle-27 ECONOMICS E1 (MoE vs dense) 와 같은 family-confound 패턴이 SUBSTRATE 의 모든 capability claim 에도 깔려 있음 (현 ladder 는 Qwen 가 dominant). ⭐ MAIN priority lane — 모든 후속 capability claim 의 family-vs-scale 분리 게이트.
+- [ ] N1 — 각 capability claim (text wc_31_60 cliff at 3B→7B · VL counting recovery at 7B · multimodal saturation) 에 대해 non-Qwen 동급 scale 모델(Llama-3.x · Mistral · Gemma-3 · SmolVLM-NeXT)에서 transfer 측정. 반증자: 7B non-Qwen 가 Qwen finding 을 BinomialSE 내 replicate → claim 은 family-universal (scaling-law). non-Qwen 7B 가 다른 pattern (예: counting fails at 7B Mistral-VL) → claim 은 Qwen-specific (model anomaly). cycle-28 first-probe: cycle-23c 4-rung TSV 위 closed-form recompute — rung 0+1 (SmolVLM-family) vs rung 2+3 (Qwen-VL-family) per-family slope 분리. SmolVLM 가 monotone-rise + Qwen 가 dip-then-recover 이면 family confound 가 empirically detectable (anecdotal n=2 family pairs). cycle-29+ real fire = InternVL-7B 또는 LLaVA-NeXT-7B rung.
+
 ## SANDBOX 활용 (consumer 입장)
 
 > SUBSTRATE 의 capability eval (text scale ladder · multimodal · RLHF) 은 SANDBOX 위에서 — API surface 가 metered + non-deterministic + seed control 없음.

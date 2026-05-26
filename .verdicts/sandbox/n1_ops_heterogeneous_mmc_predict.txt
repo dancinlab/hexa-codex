@@ -1,0 +1,20 @@
+# hexa-codex OPS N1 — heterogeneous-μ multi-node Erlang-C predict (cycle-28 first probe)
+# axis=OPS.md::N1 (NOVEL · cycle-28 · MAIN priority lane)
+# seed=.discoveries/ops-n1-heterogeneous-mmc.tape @C (3 seeds: homogeneous-extension · SED · dominated-slow)
+# verifier=verify/numerics_ops_n1_heterogeneous_mmc.hexa
+# inputs=cycle-16 .verdicts/sandbox/m4_ops_formula_fit.txt (μ_mac MEASURED) + cycle-24 inbox/notes/p3-ubu1-llama-cpp-install.md (μ_ubu Option-A PREDICT)
+# tier=🟡 SUPPORTED-BY-CITATION-AND-DERIVED
+# checks=5/5
+# mu_mac_x1000=9530  (cycle-16 c=1 measured, mini M3 Metal UMA)
+# mu_ubu_x1000=3000  (cycle-24 Option-A CPU-only Q4_K_M PREDICT — not measured)
+# heterogeneity_ratio_x1000=3176  (~3.18x)
+# mu_sum_x1000=12530
+# mu_mean_x1000=6265
+# lambda_homogeneous_x1000=12530  (Bolch 2006 §6.3)
+# lambda_sed_x1000=12530  (Krishnamoorthy 1963)
+# lambda_slow_bound_x1000=6000  (Whitt 1986 / naive round-robin)
+# falsifier_band_lo_x1000=6000
+# falsifier_band_hi_x1000=14409  (= 1.15 · Σ μ_i)
+# verdict_msg=Closed-form 3-variant predict (Bolch 2006 / Krishnamoorthy 1963 / Whitt 1986) on μ_mac=9.53 (cycle-16 MEASURED) + μ_ubu=3.0 (cycle-24 Option-A CPU-only PREDICT). N1 axis CLOSES only when cycle-29+ 2-host fire (bench/sandbox_p3_multinode_2host.hexa) emits measured aggregate λ_max for comparison against [6.000, 14.409] qps falsifier band.
+# next_probe=cycle-29+ 2-host fire bench/sandbox_p3_multinode_2host.hexa LAN 192.168.50.119 — measure mini c=1 + ubu-1 c=1 baselines first, then aggregate ceiling
+# external_anchors=Bolch et al. 2006 'Queueing Networks and Markov Chains' (Wiley 2nd ed.) §6.3 · Kleinrock 1975 Vol. I §3.5 · Krishnamoorthy 1963 Op. Res. 11(2):321-330 · Whitt 1986 Op. Res. Letters 5(4):199-204 · Larsen & Agrawala 1983 IEEE TSE SE-9(2):189-197

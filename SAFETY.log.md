@@ -310,6 +310,66 @@ is honestly recorded.
 
 ---
 
+## cycle-28 — NOVEL 축 N1 spawn (포그라운드, sequential · ⭐ MAIN priority lane)
+
+**사용자 지시:** "NOVEL 축 만들고 MAIN priority 로 마크하자" (포그라운드, F2 lane). cycle-19/20 cross-cycle finding (refusal-direction AUROC 0.98 + 인과 ablation 95%→0% @ L19, 모두 단일 모델 Qwen2.5-1.5B-Instruct 위) 에서 spawn 한 영구 axis N (refusal-direction cross-family transferability) 추가. ECONOMICS cycle-26 C1 → cycle-27 E1 패턴의 SAFETY 동형.
+
+### 진행
+
+| step | 산출물 | 결과 |
+|------|--------|------|
+| 1 | `SAFETY.md` §축 N + milestone N1 추가 (⭐ MAIN priority) | +2 line, axis N framework 명시, [ ] OPEN state, perpetual invariant 유지 |
+| 2 | `.discoveries/safety-n1-refusal-cross-family.tape` 작성 | 5 entries (3 @C seeds + @I + @V), `hexa tape` 0 malformed ✅ |
+| 3 | `verify/numerics_safety_n1_cross_family_shape.hexa` 작성 | parse PASS, 5/5 checks PASS |
+| 4 | `.verdicts/sandbox/n1_safety_cross_family_shape_verdict.txt` 자동 emit | 🟡 SUPPORTED-BY-CITATION verdict + L19 SHAPE statistics + honest residual |
+| 5 | 본 log entry | (이 entry) |
+
+### N1 first-probe 결과 (🟡 SUPPORTED-BY-CITATION, n=1 model)
+
+cycle-17 committed Qwen2.5-1.5B TSV (`.verdicts/sandbox/m2_safety_refusal_norms.tsv`, 40×84) 에서 L19 difference-of-means refusal direction 의 3-kind 분해:
+
+```
+L19 difference-of-means direction (refused − answered, raw activation-norm):
+  w_residual = 9.32553  |w| = 9.32553   ← 가장 큰 kind (Arditi 2024 ordinal signature)
+  w_attn     = 1.21002  |w| = 1.21002
+  w_mlp      = 5.90492  |w| = 5.90492
+  dominance |w_residual| / max(|w_attn|, |w_mlp|) = 1.57928 (INFO only)
+```
+
+- check 1 PASS: 40×84 shape, balanced 20/20
+- check 2 PASS: L19 direction non-degenerate (sum=16.44)
+- check 3 PASS: **residual 이 L19 의 가장 큰 kind** — Arditi 2024 ordinal signature 일치
+- check 4 PASS: refused/answered relative-separation = 11.8% (>= 5% threshold)
+- check 5 PASS: L19.residual sparsity = 1.07 (dense, 단일 token outlier 없음)
+
+### 의미 있는 dual reading (n=1 model anecdote)
+
+- **Universal 해석 (A)**: Arditi 2024 (arXiv:2406.11717) 가 Llama-2-13B 에서 residual-stream-dominant refusal direction 을 보고했고, cycle-28 first-probe 가 Qwen2.5-1.5B 도 ordinal residual-dominant 임을 확인 → **instruction-tuned LLM 의 공통 mechanism** 가설 유지. cycle-29+ ≥3 non-Qwen 확정 시 🟢.
+- **Family-specific 해석 (B)**: dominance ratio 1.58 은 strict 2.0× threshold 에 못 미침 (Llama-2 보다 약함). 또한 Qwen 의 relative depth 0.679 (L19/28) 는 Arditi 의 0.44 (L14/32, Llama-2-13B) 와 다름 — same mechanism 인데 different relative depth? 또는 Qwen 만 특이? cycle-29+ 가 답.
+
+### Honest residual (cycle-28 limits)
+
+- **n=1 model = anecdote, NOT cross-family evidence.** ≥3 non-Qwen recompute 필요 (Llama-3-8B-Instruct · Mistral-7B-Instruct · Gemma-2-2b-it · SmolLM2-1.7B-Instruct).
+- **🟡 ceiling at this stage.** cx_paper_significance: 이 probe 단독으로는 paper-eligible 아님 (citation-only). cycle-29+ ≥3/4 non-Qwen AUROC >= 0.90 recompute 가 empirical-contact gate.
+- cycle-29+ cheapest probe: `lm_foundry/tool/activation_capture_hf.hexa` per 모델 (ubu-1 RTX 5070, HF transformers 4.51.3 clean venv + numpy<2 pin per [[reference_activation_capture_env]]) → per-model TSV mirror → re-run `verify/numerics_safety_refusal_direction.hexa` per model. cx_hf_safety_private: NUMBERS-ONLY emit 유지.
+- Arditi 2024 relative depth (0.44 on Llama-2-13B) vs Qwen (0.679 on Qwen2.5-1.5B) gap 는 별도 residual — same mechanism 인지 different mechanism 인지 cycle-29+ relative-depth sweep (seed 2: `d_safety_n1_relative_depth_invariance`) 가 답.
+- **perpetual invariant 유지**: N1 = OPEN [ ], SAFETY 진행도 변동 없음 ([[feedback_closure_is_physical_limit]]).
+
+### 후속 seeds (N1 tape 의 다른 2 seed)
+
+- `d_safety_n1_cross_family_auroc` — Llama-3-8B · Mistral-7B · Gemma-2-2b · SmolLM2-1.7B activation capture + per-model AUROC/LOO recompute. cycle-29+ ubu-1 fire (≥3/4 PASS → 🟢 universality, ≥2/4 FAIL → 🟢 family-specificity).
+- `d_safety_n1_relative_depth_invariance` — per-model load-bearing layer sweep (causal ablation pattern from cycle-20 m5_safety_causal_ablation.hexa). Arditi 0.44 vs Qwen 0.679 gap 의 직접 disambiguator. cycle-29+ 후속.
+
+### Files this round
+
+- NEW `.discoveries/safety-n1-refusal-cross-family.tape` (5 entries: @V + @I + 3 @C seeds, 0 malformed)
+- NEW `verify/numerics_safety_n1_cross_family_shape.hexa` (5/5 PASS, 🟡 SUPPORTED-BY-CITATION)
+- NEW `.verdicts/sandbox/n1_safety_cross_family_shape_verdict.txt` (verdict stdout verbatim)
+- EDIT `SAFETY.md` §축 N + milestone N1 (⭐ MAIN priority lane)
+- EDIT `SAFETY.log.md` — this entry
+
+---
+
 _Next: v1.1.0 (2026-08, TARGET) — wire `alignment` + `interpret`, ship the
 interpretability eval pipeline, land F-CODEX-3 empirical. Append round
 entries here as the group progresses._

@@ -6,6 +6,57 @@
 
 ---
 
+## 2026-05-27 — cycle-28 · NOVEL 축 N1 spawned — heterogeneous-μ multi-node Erlang-C divergence (⭐ MAIN priority lane)
+
+cycle-27 ECONOMICS 축 E (MoE-vs-dense distinct-family) 패턴을 OPS 로 미러링.
+cycle-16 single-UMA M/M/c fit (μ_eff ∈ {9.53, 7.505, 5.0} req/s/slot,
+ceiling=c·μ R²=1.0, `.verdicts/sandbox/m4_ops_formula_fit.txt`) 가 *homogeneous μ*
+가정 위에 닫혔고 cycle-24 (PR #72) ubu-1 install 완료로 mini (M3 Metal UMA)
++ ubu-1 (x86 CPU-only Option A pre-built bin) 2-host 경로가 열렸다. 공개
+이론 질문: classical M/M/c (homogeneous μ) 식이 heterogeneous μ_i (μ_mac/μ_ubu
+~3.18x) 에서도 성립하는가, 아니면 별개 family (Bolch 2006 §6.3
+heterogeneous-channel · Krishnamoorthy 1963 SED · Whitt 1986 dominated-slow)
+인가?
+
+**OPS.md §영구 축 N — NOVEL · MAIN priority lane (⭐).** N1 = heterogeneous-μ
+aggregate Erlang-C 분리 측정. cycle-28 first-probe = closed-form recompute
+(no substrate fire) — 3 routing variant 의 PREDICTED aggregate λ_max 도출.
+
+- `.discoveries/ops-n1-heterogeneous-mmc.tape` — 3 @C seeds (homogeneous-extension
+  · SED upper-bound · dominated-slow lower-bound). `hexa tape` lint 0 malformed.
+- `verify/numerics_ops_n1_heterogeneous_mmc.hexa` — 5/5 PASS, tier 🟡
+  SUPPORTED-BY-CITATION-AND-DERIVED. μ_mac=9.530 (cycle-16 c=1 MEASURED) +
+  μ_ubu=3.000 (cycle-24 Option-A CPU-only Q4_K_M PREDICT) → 3-variant predict
+  emit: homogeneous-additive 12.530 qps · SED steady 12.530 qps · dominated-slow
+  6.000 qps. **Falsifier band [6.000, 14.409] qps** — cycle-29+ measured aggregate
+  outside band → heterogeneous family extension needed.
+- 외부 anchor: Bolch et al. 2006 *Queueing Networks and Markov Chains* (Wiley
+  2nd ed.) §6.3 heterogeneous-channel M/M/c · Kleinrock 1975 *Queueing Systems
+  Vol. I* (Wiley) §3.5 multi-server stability · Krishnamoorthy 1963
+  *Operations Research* 11(2):321-330 (2-heterogeneous-server Poisson queue)
+  · Whitt 1986 *Op. Res. Letters* 5(4):199-204 (single vs multi-server
+  decision) · Larsen & Agrawala 1983 *IEEE TSE* SE-9(2):189-197.
+
+**Verdict file:** `.verdicts/sandbox/n1_ops_heterogeneous_mmc_predict.txt`.
+
+**Honest residual.** (1) μ_ubu=3.0 qps 는 PREDICT (Option-A CPU-only llama.cpp
+upstream bench-based 추정), NOT measured — cycle-29+ fire 의 FIRST 셀이
+mini c=1 + ubu-1 c=1 단독 baseline 을 찍어야 calibrate. (2) 3 routing-variant
+predict 는 textbook classical 결과 — N1 의 NOVEL contribution 은 substrate 의
+EMPIRICAL determination (어느 variant 에 가까운가, 또는 어느 것도 안 맞아
+heterogeneous family 필요한가) 이고 cycle-29+ 에서 fire. (3) cycle-22 skeleton
+의 `_dispatch_one` LB stub 는 round-robin 가정이지만 미구현 — cycle-29+
+실측 fire 진입 전 LB policy 명시 select 필요. (4) tailscale :8090 timeout
+residual 로 LAN 192.168.50.119 가 유일 live 경로 — predict 는 LAN RTT 가
+μ^-1 (≈333ms for ubu-1) 대비 negligible 가정.
+
+영구 axis 원리 ([[feedback_closure_is_physical_limit]]) 적용 — N1 은 cycle-29+
+실측 fire 후에도 새 host topology (multi-rack · multi-DC) · 새 GPU class ·
+새 serving stack (vLLM PagedAttention 분산) 등장 시 다시 열린다. 진행도 카운트
+증가시키지 않음 (perpetual axis 설계).
+
+---
+
 ## 2026-05-24 — cycle-15c · M2.OPS first SLO measurement RAN (substrate cross-domain)
 
 The OPS group's first empirical SLO landing executed through the SANDBOX

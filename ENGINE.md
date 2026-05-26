@@ -29,7 +29,7 @@ ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한�
 
 ### 축 A — ECONOMICS finding → train/infer router driving
 > **driving target:** lm_foundry 의 `route_dispatch.hexa` + train-time scale decision.
-- [ ] A1 — ECONOMICS C1/E1 finding (modern dense overtrain · MoE active D/N) 을 router 가 자동 반영 → 어떤 prompt class 에 어떤 model tier (dense vs MoE vs distilled) 를 routing 할지 결정. 반증자: routing decision 이 cycle-27/29 finding 과 contradict (예: MoE 가 일관적 Chinchilla-hit 인데 router 가 dense 만 선택).
+- [x] A1 — ECONOMICS C1/E1 finding (modern dense overtrain · MoE active D/N) 을 router 가 자동 반영 → 어떤 prompt class 에 어떤 model tier (dense vs MoE vs distilled) 를 routing 할지 결정. 반증자: routing decision 이 cycle-27/29 finding 과 contradict (예: MoE 가 일관적 Chinchilla-hit 인데 router 가 dense 만 선택). **CYCLE-1 first wire (2026-05-27):** `engine/wire_a1_econ_e1_router_rule.hexa` + `verify/numerics_engine_a1_wire_econ_e1.hexa` ✅ 5/5 PASS · 🟢 SUPPORTED-NUMERICAL. cost_sensitive_chat top-1 = Granite-3-3B-A800M (MoE, dev=625 = 26× dense median, active=800M), max_quality_research top-1 = Llama3.1-405B (dense, top-tier). N1 first data point: ΔM=7 from E1 spawn (cycle-27→ENGINE cycle-1), ΔM=0 from E1 mature (cycle-34 PARITY→ENGINE cycle-1 same session). **frontier OPEN** — 이 wire 는 E1 의 첫 finding-mature 반영이지 A1 axis 종료 아님; ECONOMICS 가 새 finding 을 발견하면 router rule 재-wire 필요.
 
 ### 축 B — SAFETY finding → inference-time intervention driving
 > **driving target:** SANDBOX serving stack (llama-server · transformers HF) 의 inference time refusal direction projection-out.

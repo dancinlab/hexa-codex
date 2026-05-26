@@ -13,3 +13,5 @@ deepseekv2-lite-2.4B-act	1.6e10	2.4e9	5.7e12	-1.0	-1.0	-1.0	H800	-1.0	2375.00	11
 granite-3.0-3B-a800m-act	3.3e9	8.0e8	1.0e13	-1.0	-1.0	-1.0	H100	-1.0	12500.00	625.00	https://huggingface.co/ibm-granite/granite-3.0-3b-a800m-instruct
 olmoe-1B-act	7.0e9	1.0e9	4.07e12	-1.0	-1.0	-1.0	-1.0	-1.0	4070.00	203.50	https://huggingface.co/allenai/OLMoE-1B-7B-0924
 phi-mini-moe-2.4B-act	7.6e9	2.4e9	4.0e11	-1.0	-1.0	-1.0	A100-80GB	-1.0	166.67	8.33	https://huggingface.co/microsoft/Phi-mini-MoE-instruct
+jetmoe-8b-act-2.2B	8.0e9	2.2e9	1.25e12	-1.0	-1.0	3.2256e4	H100	-1.0	568.18	28.41	https://huggingface.co/jetmoe/jetmoe-8b
+orion-moe8x7b-act-12.9B	4.67e10	1.29e10	5.0e12	-1.0	-1.0	-1.0	A100	-1.0	387.60	19.38	https://huggingface.co/OrionStarAI/Orion-MOE8x7B-Base

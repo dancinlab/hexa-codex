@@ -1,0 +1,446 @@
+#!hexa strict
+// bench/sandbox_p1_multimodal_ladder_7b.hexa — SANDBOX P1 multimodal 4th-rung extension (cycle-22).
+//
+// SPEC.  This harness implements `.discoveries/sandbox-p1-vl-7b-rung.tape` entry
+//   @C d_p1_vl_4th_rung_qwen_vl_7b
+// (the 4th VL rung at Qwen2.5-VL-7B-Instruct-Q4_K_M, same family as the cycle-20 3B rung
+// so the architectural variable is held constant; primary candidate of the 3 alternates
+// evaluated in the seed tape).
+//
+// QUESTION (SANDBOX P1 — higher scale rungs, multimodal half):
+//   At the 4th higher VL rung (7B+ with a loading mmproj), does the COUNTING axis
+//   recover (subitizing limit was data-scale-bounded → counting climbs back at scale),
+//   or does perception saturation hold while counting stays flat (subitizing is
+//   architectural, holds even at 7B+)?  This is the load-bearing falsifier of the
+//   cycle-20 NON-MONOTONE multimodal finding.
+//
+// CYCLE-20 NON-MONOTONE BASELINE (the 3-rung curve this 4-rung extension EXTENDS, NOT
+// replaces — same 16-item manifest, same scorer, same seed, same backend, so the new
+// rung is byte-comparable to the prior three):
+//   rung 0  SmolVLM-500M-Instruct-Q8_0    0.5B  13/16 = 81.25%   [count 4/5  perception 9/11]
+//   rung 1  SmolVLM2-2.2B-Instruct-Q8_0   2.2B  15/16 = 93.75%   [count 4/5  perception 11/11]
+//   rung 2  Qwen2.5-VL-3B-Instruct-Q4_K_M 3.0B  13/16 = 81.25%   [count 2/5  perception 11/11]
+//   → perception axis SATURATES at 11/11 from 2.2B onward; counting axis does NOT track
+//     params (the cycle-20 honest-negative — `.verdicts/sandbox/m5_substrate_multimodal_fit.txt`).
+//
+// FOURTH RUNG (THIS BENCH ADDS, served locally on the same MTL0 backend):
+//   rung 3  Qwen2.5-VL-7B-Instruct-Q4_K_M ~7B  total (Qwen2.5-VL native ViT + 7B llama)
+//   ~4.5GB weights + ~1.4GB mmproj ≈ 6GB on disk
+//   Source (HF GGUF, mmproj paired): ggml-org/Qwen2.5-VL-7B-Instruct-GGUF
+//
+// 2-WAY FALSIFIER (the crisp call this round forces, cited from the seed tape):
+//   (A) perception saturates flat (11/11 vs 2.2B/3B) AND counting recovers ≥4/5
+//       → subitizing limit was data-scale-bounded; SANDBOX P1 multimodal half closes
+//         POSITIVE at the 7B rung (counting unblocks); cycle-20 NON-MONOTONE was a
+//         capacity floor, not an architectural ceiling.
+//   (B) perception saturates flat (11/11 vs 2.2B/3B) AND counting stays ≤3/5
+//       → subitizing limit is architectural (holds even at 7B+); the cycle-20
+//         NON-MONOTONE verdict is the LOAD-BEARING finding, not a scale artifact.
+//   Either reading is informative.  Tertiary (both perception AND counting move) would
+//   re-open the perception saturation question — currently judged unlikely at 11/11.
+//
+// SAME MANIFEST (DO NOT CHANGE — cycle-20 comparability is load-bearing).
+//   16-item self-generated PIL manifest (4 difficulty-stratified axes):
+//     count×5 [5–9 dense black circles on a 3x3 deterministic grid, the non-saturating axis]
+//     ocr×4   [2-word uppercase phrases, the SECOND word is the keyword]
+//     spatial×4 [left/right/top/bottom relation between two colored squares]
+//     shape×3 [fine color+shape discrimination, single colored shape on white]
+//   Generated each run, seed-pinned, bit-reproducible (idempotent PIL paths into IMG_DIR).
+//
+// SAME SCORER (also DO NOT CHANGE — bytes must match cycle-20's scoring rule for
+// the 4-rung curve to be a single comparable measurement series):
+//   byte_exact_subset = lowercase the answer, collapse whitespace, case-insensitive
+//   SUBSTRING match on expected keyword.  NO LLM judges correctness — pure byte compare.
+//   Same family as bench/sandbox_multimodal_smoke.hexa + bench/sandbox_multimodal_ladder.hexa
+//   + bench/rwkv_m1_accuracy_floor.hexa.
+//
+// SEED-PINNED GREEDY (same as cycle-20):
+//   llama-mtmd-cli --temp 0 -s 42 -n 24  (greedy, deterministic byte-exact replay)
+//
+// BACKEND.  llama-mtmd-cli (stock brew llama.cpp, CLIP on MTL0 Metal/UMA backend).
+//   mac-mini-m3 (Apple M3, 24GB UMA, PRE-M5 Metal — MTL0 active).  Same host as cycles
+//   19 (smoke) and 20 (3-rung ladder).
+//
+// FIT ESTIMATE (M3 24GB UMA, 4th rung only — the first three rungs are unchanged from
+// cycle-20 and already fit at their original budgets):
+//   Qwen2.5-VL-7B-Instruct-Q4_K_M  weights  ≈ 4.5 GB
+//   mmproj-Qwen2.5-VL-7B-Instruct  f16      ≈ 1.4 GB
+//   KV cache for 16-item bench, n=24 tok, single-image context (~1-2k tokens)
+//                                          ≈ 0.5–1.0 GB (per-task, cold)
+//   total resident                          ≈ 6.5–7.0 GB
+//   M3 24GB UMA available (after macOS + brew tools)        ≈ 18–20 GB
+//   → HEADROOM ≈ 11–13 GB; FITS comfortably (no swap, MTL0 stable).
+//
+// Output:
+//   .verdicts/sandbox/p1_multimodal_ladder_7b.tsv          (per-rung × per-item rows; NUMBERS ONLY)
+//   .verdicts/sandbox/p1_multimodal_ladder_7b_summary.txt  (per-rung × per-axis sub-scores + overall)
+// The per-rung accuracy TSV is the committed source-of-truth consumed by the closed-form
+// capability fit: verify/numerics_substrate_multimodal_fit.hexa (extended to 4 rungs in
+// the FIRE round).
+//
+// Run (FIRE round only — this skeleton is DRY; gated on `hexa parse` first):
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_p1_multimodal_ladder_7b.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-mtmd-cli × 4 rungs + python3 PIL image-gen) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let IMG_DIR = "/tmp/vl_ladder_imgs"        // SAME path as cycle-20 (manifest is bit-identical)
+let OUT_PREFIX = "p1_multimodal_ladder_7b"
+let MAX_TOK = 24                  // SAME as cycle-20 — short factual answers, greedy
+let SEED = 42                     // SAME as cycle-20 — pinned RNG for byte-exact replay
+
+// ── THE FOUR RUNGS: [name, params_b, model_path, mmproj_path] ────────────────
+// First 3 rungs IDENTICAL to cycle-20 (bench/sandbox_multimodal_ladder.hexa RUNGS[0..3]) —
+// re-running them in the same harness gives the 4-rung curve a single seeded backend
+// trace, not a stitched comparison across two bench files.  4th rung is the new probe.
+//
+// TODO(FIRE-ROUND): the 4th-rung model + mmproj paths assume the user has run
+//   hf download ggml-org/Qwen2.5-VL-7B-Instruct-GGUF \
+//     Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf \
+//     --local-dir ~/Models/gguf/qwen25vl7b
+// (mirrors the cycle-19/20 download pattern for the 3B rung).  If `hexa hf` lands a
+// native subcommand surface that wraps `hf download`, switch to that here.
+let RUNGS = [
+    ["SmolVLM-500M-Instruct-Q8_0",   "0.5",
+        HOME + "/Models/gguf/smolvlm/SmolVLM-500M-Instruct-Q8_0.gguf",
+        HOME + "/Models/gguf/smolvlm/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf"],
+    ["SmolVLM2-2.2B-Instruct-Q8_0",  "2.2",
+        HOME + "/Models/gguf/smolvlm2_2b/SmolVLM2-2.2B-Instruct-Q8_0.gguf",
+        HOME + "/Models/gguf/smolvlm2_2b/mmproj-SmolVLM2-2.2B-Instruct-Q8_0.gguf"],
+    ["Qwen2.5-VL-3B-Instruct-Q4_K_M", "3.0",
+        HOME + "/Models/gguf/qwen25vl3b/Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf",
+        HOME + "/Models/gguf/qwen25vl3b/mmproj-Qwen2.5-VL-3B-Instruct-f16.gguf"],
+    ["Qwen2.5-VL-7B-Instruct-Q4_K_M", "7.0",
+        HOME + "/Models/gguf/qwen25vl7b/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+        HOME + "/Models/gguf/qwen25vl7b/mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf"],
+]
+
+// ── 16-item harder manifest: [img_basename, prompt, expected_kw, axis] ───────
+// IDENTICAL to cycle-20 (bench/sandbox_multimodal_ladder.hexa TASKS) — DO NOT CHANGE.
+// Manifest immutability is the load-bearing comparability property of this 4-rung curve.
+let TASKS = [
+    // axis count (5): multi-object counting, 5–9 objects (the non-saturating axis)
+    ["count_5",  "How many black circles are in this image? Answer with the number only.",            "5", "count"],
+    ["count_6",  "How many black circles are in this image? Answer with the number only.",            "6", "count"],
+    ["count_7",  "How many black circles are in this image? Answer with the number only.",            "7", "count"],
+    ["count_8",  "How many black circles are in this image? Answer with the number only.",            "8", "count"],
+    ["count_9",  "How many black circles are in this image? Answer with the number only.",            "9", "count"],
+    // axis ocr (4): OCR of 2-word uppercase phrases (the SECOND word is the keyword)
+    ["ocr_opengate",  "What text is written in this image? Answer with the exact words.",             "gate",  "ocr"],
+    ["ocr_redtruck",  "What text is written in this image? Answer with the exact words.",             "truck", "ocr"],
+    ["ocr_bluestone", "What text is written in this image? Answer with the exact words.",             "stone", "ocr"],
+    ["ocr_greenleaf", "What text is written in this image? Answer with the exact words.",             "leaf",  "ocr"],
+    // axis spatial (4): left/right/above relation between two colored squares
+    ["spatial_left_red",    "Which color square is on the left? Answer with one color word.",         "red",    "spatial"],
+    ["spatial_right_blue",  "Which color square is on the right? Answer with one color word.",        "blue",   "spatial"],
+    ["spatial_above_green", "Which color square is on the top? Answer with one color word.",          "green",  "spatial"],
+    ["spatial_below_orange","Which color square is on the bottom? Answer with one color word.",       "orange", "spatial"],
+    // axis shape (3): fine color+shape discrimination
+    ["shape_triangle", "What shape is the single red shape in this image? Answer with one word.",     "triangle", "shape"],
+    ["shape_square",   "What shape is the single blue shape in this image? Answer with one word.",    "square",   "shape"],
+    ["shape_circle",   "What shape is the single green shape in this image? Answer with one word.",    "circle",   "shape"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Generate the deterministic harder synthetic manifest images via PIL (idempotent,
+// seed-pinned). IDENTICAL to cycle-20 — bit-reproducible ground truth, fixed object
+// positions / text / colors / shapes. Returns "OK" or an error string.
+fn gen_images() -> str {
+    let py = "from PIL import Image, ImageDraw, ImageFont\n" +
+        "import os\n" +
+        "D='" + IMG_DIR + "'\n" +
+        "os.makedirs(D, exist_ok=True)\n" +
+        "def font(sz):\n" +
+        "    for p in ['/System/Library/Fonts/Supplemental/Arial Bold.ttf','/System/Library/Fonts/Helvetica.ttc','/Library/Fonts/Arial.ttf']:\n" +
+        "        if os.path.exists(p):\n" +
+        "            try: return ImageFont.truetype(p, sz)\n" +
+        "            except: pass\n" +
+        "    return ImageFont.load_default()\n" +
+        // ── count axis: 5..9 black circles on a 3x3 deterministic grid (384x384) ──
+        "GRID=[(40,40),(170,40),(300,40),(40,170),(170,170),(300,170),(40,300),(170,300),(300,300)]\n" +
+        "def count_img(name,n):\n" +
+        "    im=Image.new('RGB',(384,384),'white'); d=ImageDraw.Draw(im)\n" +
+        "    for i in range(n):\n" +
+        "        x,y=GRID[i]; d.ellipse([x,y,x+50,y+50],fill='black')\n" +
+        "    im.save(f'{D}/{name}.png')\n" +
+        "for nm,n in [('count_5',5),('count_6',6),('count_7',7),('count_8',8),('count_9',9)]:\n" +
+        "    count_img(nm,n)\n" +
+        // ── ocr axis: 2-word uppercase phrases (480x160) ──
+        "def ocr_img(name,phrase):\n" +
+        "    im=Image.new('RGB',(480,160),'white'); d=ImageDraw.Draw(im)\n" +
+        "    f=font(56); bb=d.textbbox((0,0),phrase,font=f); w=bb[2]-bb[0]; h=bb[3]-bb[1]\n" +
+        "    d.text(((480-w)/2-bb[0],(160-h)/2-bb[1]),phrase,fill='black',font=f); im.save(f'{D}/{name}.png')\n" +
+        "for nm,ph in [('ocr_opengate','OPEN GATE'),('ocr_redtruck','RED TRUCK'),('ocr_bluestone','BLUE STONE'),('ocr_greenleaf','GREEN LEAF')]:\n" +
+        "    ocr_img(nm,ph)\n" +
+        // ── spatial axis: two colored squares, relation in {left,right,top,bottom} ──
+        "def sq(d,box,col): d.rectangle(box,fill=col)\n" +
+        "def horiz(name,leftcol,rightcol):\n" +  // 480x200: left square + right square
+        "    im=Image.new('RGB',(480,200),'white'); d=ImageDraw.Draw(im)\n" +
+        "    sq(d,[40,60,150,170],leftcol); sq(d,[330,60,440,170],rightcol); im.save(f'{D}/{name}.png')\n" +
+        "def vert(name,topcol,botcol):\n" +      // 200x480: top square + bottom square
+        "    im=Image.new('RGB',(200,480),'white'); d=ImageDraw.Draw(im)\n" +
+        "    sq(d,[45,40,155,150],topcol); sq(d,[45,330,155,440],botcol); im.save(f'{D}/{name}.png')\n" +
+        "horiz('spatial_left_red','red','yellow')\n" +       // left=red, ask left -> red
+        "horiz('spatial_right_blue','yellow','blue')\n" +    // right=blue, ask right -> blue
+        "vert('spatial_above_green','green','purple')\n" +   // top=green, ask top -> green
+        "vert('spatial_below_orange','purple','orange')\n" + // bottom=orange, ask bottom -> orange
+        // ── shape axis: a single colored shape (triangle/square/circle) on white ──
+        "def tri(d,col):\n" +
+        "    d.polygon([(192,70),(110,290),(274,290)],fill=col)\n" +
+        "def shape_img(name,kind,col):\n" +
+        "    im=Image.new('RGB',(384,384),'white'); d=ImageDraw.Draw(im)\n" +
+        "    if kind=='triangle': tri(d,col)\n" +
+        "    elif kind=='square': d.rectangle([110,110,274,274],fill=col)\n" +
+        "    else: d.ellipse([110,110,274,274],fill=col)\n" +
+        "    im.save(f'{D}/{name}.png')\n" +
+        "shape_img('shape_triangle','triangle','red')\n" +
+        "shape_img('shape_square','square','blue')\n" +
+        "shape_img('shape_circle','circle','green')\n" +
+        "print('OK')\n"
+    let cmd = "python3 - <<'__PYEOF__'\n" + py + "__PYEOF__"
+    return exec(cmd).trim()
+}
+
+// Verify the 4th-rung GGUF + mmproj are present on disk; if missing emit a TODO that
+// names the exact `hf download` invocation the FIRE round needs.  Returns "OK" or a
+// descriptive missing-files string.
+//
+// TODO(FIRE-ROUND, surface): if `hexa hf download <repo> <files...>` lands as a native
+// subcommand we wire it here in place of the shell stub.  For now we shell out only to
+// `test -f` (read-only existence check) — no model download from this skeleton.
+fn check_7b_artifacts() -> str {
+    let model_7b = HOME + "/Models/gguf/qwen25vl7b/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
+    let mmproj_7b = HOME + "/Models/gguf/qwen25vl7b/mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf"
+    let cmd = "missing=''; " +
+              "test -f " + shq(model_7b) + " || missing=\"$missing model=" + model_7b + "\"; " +
+              "test -f " + shq(mmproj_7b) + " || missing=\"$missing mmproj=" + mmproj_7b + "\"; " +
+              "if [ -z \"$missing\" ]; then printf 'OK'; else " +
+              "printf 'MISSING%s -- run: hf download ggml-org/Qwen2.5-VL-7B-Instruct-GGUF Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf --local-dir ~/Models/gguf/qwen25vl7b' \"$missing\"; fi"
+    return exec(cmd).trim()
+}
+
+// Run one VL task via llama-mtmd-cli (-m model + --mmproj projector + --image FILE).
+// Greedy (--temp 0) + pinned -s SEED for byte-exact replay. Returns tab-separated:
+//   wall_ms \t correct(1|0) \t output_snippet
+// SCORER: lowercase, collapse whitespace, case-insensitive SUBSTRING match on
+// expected_kw. NO LLM self-judge — pure byte compare.
+//
+// TODO(FIRE-ROUND, surface): if `hexa mtmd` lands as a native subcommand wrapping
+// llama-mtmd-cli with the same flags, replace this exec stub with the native call.
+fn run_one(model: str, mmproj: str, img_base: str, prompt: str, expected_kw: str) -> str {
+    let img = IMG_DIR + "/" + img_base + ".png"
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-mtmd-cli -m " + shq(model) +
+              " --mmproj " + shq(mmproj) +
+              " --image " + shq(img) +
+              " -p " + shq(prompt) +
+              " -n " + str(MAX_TOK) + " --temp 0 -s " + str(SEED) + " 2>/dev/null); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans=$(printf '%s' \"$out\" | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-100); " +
+              "printf '%s\\t%s\\t%s' \"$wall_ms\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_p1_multimodal_ladder_7b — SANDBOX P1 multimodal 4th-rung extension (cycle-22)")
+    println("  spec:     .discoveries/sandbox-p1-vl-7b-rung.tape @C d_p1_vl_4th_rung_qwen_vl_7b")
+    println("  baseline: cycle-20 NON-MONOTONE 3-rung (0.5B 81.25% -> 2.2B 93.75% -> 3.0B 81.25%)")
+    println("  rungs:    4 VL models (0.5B / 2.2B / 3.0B / 7.0B params) served locally on MTL0")
+    println("  tool:     llama-mtmd-cli (stock brew llama.cpp, ggml, CLIP on MTL0 Metal/UMA)")
+    println("  manifest: 16 HARDER synthetic images (count×5 / ocr×4 / spatial×4 / shape×3) — IDENTICAL to cycle-20")
+    println("  scorer:   byte_exact_subset (NO LLM self-judge; same family as cycle-20 ladder)")
+    println("  decode:   greedy --temp 0 -s " + str(SEED) + " -n " + str(MAX_TOK) + " (seed-pinned)")
+    println("========================================================================")
+
+    println("  checking 4th-rung Qwen-VL-7B GGUF + mmproj artifacts ...")
+    let artifacts = check_7b_artifacts()
+    if artifacts != "OK" {
+        println("  ! 7B artifacts not present on disk:")
+        println("    " + artifacts)
+        println("__HEXA_CODEX_BENCH_MM_LADDER_7B__ FAIL_ARTIFACTS_MISSING")
+        exit(1)
+    }
+    println("  artifacts OK (4.5GB Q4_K_M + 1.4GB mmproj resident under ~/Models/gguf/qwen25vl7b/)")
+
+    println("  generating deterministic harder manifest images via PIL (same as cycle-20) ...")
+    let gen = gen_images()
+    if gen != "OK" {
+        println("  ! image generation FAILED: " + gen)
+        println("__HEXA_CODEX_BENCH_MM_LADDER_7B__ FAIL_IMG_GEN")
+        exit(1)
+    }
+    println("  images OK in " + IMG_DIR)
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/" + OUT_PREFIX + ".tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'rung\tparams_b\timg\taxis\texpected\twall_ms\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    let total = len(TASKS)
+    // per-rung accuracy ladder (the capability-fit source data; consumed by the fit recompute)
+    let mut ladder_names = []
+    let mut ladder_params = []
+    let mut ladder_correct = []
+    let mut ladder_count = []     // per-rung counting-axis correct (the load-bearing axis at 7B)
+    let mut ladder_ocr = []
+    let mut ladder_spatial = []
+    let mut ladder_shape = []
+
+    let mut r = 0
+    while r < len(RUNGS) {
+        let rung = RUNGS[r]
+        let rname = rung[0]
+        let rparams = rung[1]
+        let rmodel = rung[2]
+        let rmmproj = rung[3]
+        println("")
+        println("  ── RUNG " + str(r) + ": " + rname + "  (" + rparams + "B params) ──────────")
+
+        let mut n_correct = 0
+        let mut total_ms = 0
+        // per-axis tallies
+        let mut c_count = 0
+        let mut c_ocr = 0
+        let mut c_spatial = 0
+        let mut c_shape = 0
+        let mut i = 0
+        while i < total {
+            let task = TASKS[i]
+            let img_base = task[0]
+            let prompt = task[1]
+            let expected = task[2]
+            let axis = task[3]
+            let line = run_one(rmodel, rmmproj, img_base, prompt, expected)
+            let parts = line.split("\t")
+            if parts.len() < 3 {
+                println("    ! parse error img=" + img_base + " raw=" + line)
+                let bad = rname + "\t" + rparams + "\t" + img_base + "\t" + axis + "\t" + expected + "\t0\t0\tPARSE_ERROR:" + line.substr(0, 60)
+                exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+                i = i + 1
+                continue
+            }
+            let wall_ms = int(parts[0])
+            let correct = parts[1]
+            let snippet = parts[2].replace("\t", " ")
+            total_ms = total_ms + wall_ms
+            if correct == "1" {
+                n_correct = n_correct + 1
+                if axis == "count"   { c_count = c_count + 1 }
+                if axis == "ocr"     { c_ocr = c_ocr + 1 }
+                if axis == "spatial" { c_spatial = c_spatial + 1 }
+                if axis == "shape"   { c_shape = c_shape + 1 }
+            }
+            let row = rname + "\t" + rparams + "\t" + img_base + "\t" + axis + "\t" + expected + "\t" + str(wall_ms) + "\t" + correct + "\t" + snippet.substr(0, 100)
+            exec("echo " + shq(row) + " >> " + shq(tsv_path))
+            println("    [" + str(i+1) + "/" + str(total) + "] axis=" + axis + " img=" + img_base +
+                    " expect=" + expected + " -> correct=" + correct + " ans=" + snippet.substr(0, 36))
+            i = i + 1
+        }
+        let mut acc_x100 = 0
+        if total > 0 { acc_x100 = (n_correct * 10000) / total }
+        println("    RUNG " + rname + " : " + str(n_correct) + "/" + str(total) +
+                " (" + str(acc_x100 / 100) + "." + str(acc_x100 % 100) + "%)" +
+                "  [count " + str(c_count) + "/5  ocr " + str(c_ocr) + "/4  spatial " + str(c_spatial) + "/4  shape " + str(c_shape) + "/3]" +
+                "  wall_ms=" + str(total_ms))
+        ladder_names.push(rname)
+        ladder_params.push(rparams)
+        ladder_correct.push(str(n_correct))
+        ladder_count.push(str(c_count))
+        ladder_ocr.push(str(c_ocr))
+        ladder_spatial.push(str(c_spatial))
+        ladder_shape.push(str(c_shape))
+        r = r + 1
+    }
+
+    // ── 4-rung capability ladder summary (the closed-form-fit source-of-truth) ─────
+    println("")
+    println("========================================================================")
+    println("  CAPABILITY LADDER (4 rungs) — accuracy + per-axis vs params")
+    println("========================================================================")
+    let mut monotone = "true"
+    let mut prev = -1
+    let mut k = 0
+    while k < len(ladder_names) {
+        let nc = int(ladder_correct[k])
+        let ax100 = (nc * 10000) / total
+        println("  rung " + str(k) + "  " + ladder_params[k] + "B  " +
+                ladder_correct[k] + "/" + str(total) + "  = " + str(ax100 / 100) + "." + str(ax100 % 100) + "%  " +
+                "[count " + ladder_count[k] + "/5  ocr " + ladder_ocr[k] + "/4  spatial " + ladder_spatial[k] + "/4  shape " + ladder_shape[k] + "/3]  " +
+                ladder_names[k])
+        if nc < prev { monotone = "false" }
+        prev = nc
+        k = k + 1
+    }
+    println("  monotone_nondecreasing_overall : " + monotone)
+
+    // 2-way falsifier call (printed for human verdict-trail; the verifier recompute
+    // is downstream in verify/numerics_substrate_multimodal_fit.hexa extended to 4 rungs).
+    println("")
+    println("  2-WAY FALSIFIER (cycle-22 P1):")
+    println("    (A) perception saturates flat (rung3 perception == 11/11) AND counting recovers (rung3 count >= 4/5)")
+    println("        -> subitizing limit was data-scale-bounded; counting unblocks at 7B (POSITIVE)")
+    println("    (B) perception saturates flat (rung3 perception == 11/11) AND counting stays low (rung3 count <= 3/5)")
+    println("        -> subitizing limit is architectural (holds at 7B+); cycle-20 NON-MONOTONE is load-bearing (NEGATIVE)")
+    let perc3 = int(ladder_ocr[3]) + int(ladder_spatial[3]) + int(ladder_shape[3])
+    let cnt3 = int(ladder_count[3])
+    println("    -> rung3 (7B) measured: perception=" + str(perc3) + "/11  counting=" + str(cnt3) + "/5")
+
+    // ── persist summary (NUMBERS ONLY per spec — no narrative inside TSV body) ─────
+    let summary_path = OUT_DIR + "/" + OUT_PREFIX + "_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# bench=sandbox_p1_multimodal_ladder_7b (SANDBOX P1 multimodal 4th-rung extension, cycle-22)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# spec=.discoveries/sandbox-p1-vl-7b-rung.tape @C d_p1_vl_4th_rung_qwen_vl_7b") + " >> " + shq(summary_path))
+    exec("echo " + shq("# baseline=cycle-20 3-rung NON-MONOTONE: 0.5B 13/16 -> 2.2B 15/16 -> 3.0B 13/16") + " >> " + shq(summary_path))
+    exec("echo " + shq("# rungs=4  params_b=0.5,2.2,3.0,7.0  tool=llama-mtmd-cli (stock brew llama.cpp, CLIP on MTL0 Metal/UMA)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# manifest=16 synthetic PIL images, 4 axes (count x5 [5-9 objects] / ocr x4 [2-word phrases] / spatial x4 / shape x3) — IDENTICAL to cycle-20") + " >> " + shq(summary_path))
+    exec("echo " + shq("# scorer=byte_exact_subset (case-insensitive substring on expected_kw; NO LLM self-judge; same family as cycle-20 ladder)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# decode=greedy --temp 0 -s " + str(SEED) + " -n " + str(MAX_TOK) + " (seed-pinned byte-exact replay)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (Apple M3, 24GB UMA; PRE-M5 Metal, MTL0 backend active); cost_usd=0") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_items=" + str(total)) + " >> " + shq(summary_path))
+    let mut k2 = 0
+    while k2 < len(ladder_names) {
+        let nc = int(ladder_correct[k2])
+        let ax100 = (nc * 10000) / total
+        exec("echo " + shq("# rung" + str(k2) + "_name=" + ladder_names[k2]) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_params_b=" + ladder_params[k2]) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_correct=" + ladder_correct[k2] + "/" + str(total)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_accuracy_pct=" + str(ax100 / 100) + "." + str(ax100 % 100)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_count_correct=" + ladder_count[k2] + "/5") + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_ocr_correct=" + ladder_ocr[k2] + "/4") + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_spatial_correct=" + ladder_spatial[k2] + "/4") + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_shape_correct=" + ladder_shape[k2] + "/3") + " >> " + shq(summary_path))
+        k2 = k2 + 1
+    }
+    exec("echo " + shq("# monotone_nondecreasing_overall=" + monotone) + " >> " + shq(summary_path))
+    exec("echo " + shq("# model_sources=ggml-org/SmolVLM-500M-Instruct-GGUF · ggml-org/SmolVLM2-2.2B-Instruct-GGUF · ggml-org/Qwen2.5-VL-3B-Instruct-GGUF · ggml-org/Qwen2.5-VL-7B-Instruct-GGUF (HF)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# fit_consumer=verify/numerics_substrate_multimodal_fit.hexa (closed-form recompute, extend to 4 rungs from this TSV)") + " >> " + shq(summary_path))
+
+    println("")
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("__HEXA_CODEX_BENCH_MM_LADDER_7B__ DONE")
+    exit(0)
+}

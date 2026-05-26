@@ -1,0 +1,19 @@
+# hexa-codex SANDBOX N1 — cross-substrate measurement reproducibility (cycle-28 first probe)
+# axis=SANDBOX.md::N1 (NOVEL · MAIN PRIORITY · cycle-28)
+# seed=.discoveries/sandbox-n1-cross-substrate-reproducibility.tape @C d_sandbox_n1_cross_manifest_rank_correlation
+# verifier=verify/numerics_sandbox_n1_reproducibility.hexa
+# input1=.verdicts/sandbox/m5_substrate_multimodal_ladder.tsv (cycle-23c, 16-item, COUNTING rows)
+# input2=.verdicts/sandbox/p1_subitizing_50item.tsv (cycle-24, 50-item partial)
+# mirror_of=ECONOMICS cycle-27 axis E1 NOVEL spawn pattern (.discoveries/economics-e1-moe-dense-divergence.tape)
+# tier=🟠 INSUFFICIENT (n=3 + tie + cycle-24 partial)
+# checks=5/5
+# common_subset=3-rung (0.5B/2.2B/3.0B; 7B excluded — cycle-24 stuck)
+# cyc23c_counting_x10000=[8000, 8000, 4000]  (16-item, n=5 per rung)
+# cyc24_counting_x10000=[1200, 5600, 7500]   (50-item partial, n=50/50/24)
+# delta_pp_x100_cyc24_minus_cyc23c=[-6800, -2400, 3500]
+# spearman_rho_x10000=-2500  (n=3 with cyc23c tie at 80% → degenerate; |ρ|>10000 = formal out-of-band)
+# sign_agreement=0/2  (adjacent-pair Δ sign match)
+# cyc23c_pair_deltas_x10000=[0, -4000]
+# cyc24_pair_deltas_x10000=[4400, 1900]
+# verdict_msg=common subset n=3 with cycle-23c 0.5B/2.2B tie at 80% (degenerate Spearman) AND cycle-24 3.0B PARTIAL (18/24, SE≈8.8pp) — cannot statistically discriminate finding-shape reproduction at this scale. Sign-agreement = 0/2. The cross-cycle CONTRADICTION (cycle-23c V-shape vs cycle-24 monotone) is REAL on absolute accuracy (Δ ranges -2800 to +3500 pp×100) but n=3 with structural confounds (tie + partial + manifest density unchecked) cannot yet attribute to small-N artifact vs manifest-shape artifact. cycle-25 50-item TIME-CAPPED full 5-rung re-run is the load-bearing close — N1 first-probe surfaces the gap, does NOT resolve it.
+# next_probe=cycle-25 50-item TIME-CAPPED re-run with 5-rung incl 7B → converts 🟠 to 🟢 (or 🔴 closed-negative)

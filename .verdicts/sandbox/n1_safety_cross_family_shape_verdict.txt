@@ -1,0 +1,27 @@
+# hexa-codex SAFETY N1 — refusal-direction cross-family transferability (cycle-28 first probe)
+# axis=SAFETY.md::N1 (NOVEL · cycle-28 · ⭐ MAIN priority lane)
+# seed=.discoveries/safety-n1-refusal-cross-family.tape @C d_safety_n1_shape_first_probe
+# verifier=verify/numerics_safety_n1_cross_family_shape.hexa
+# input=.verdicts/sandbox/m2_safety_refusal_norms.tsv (cycle-17 Qwen2.5-1.5B-Instruct, 40 rows × 84 features)
+# external_anchor=Arditi 2024 arXiv:2406.11717 (Llama-2 residual-dominant refusal direction)
+# external_anchor_2=Zou 2023 arXiv:2310.01405 (representation engineering)
+# tier=🟡 SUPPORTED-BY-CITATION
+# checks=5/5
+# n_model=1 (Qwen2.5-1.5B-Instruct) - anecdote, NOT cross-family evidence
+# L19_offsets={residual:57,attn:58,mlp:59}
+# w_L19_residual=9.32553
+# w_L19_attn=1.21002
+# w_L19_mlp=5.90492
+# abs_w_residual=9.32553
+# abs_w_attn=1.21002
+# abs_w_mlp=5.90492
+# dominance_ratio_residual_over_max_other=1.57928  (INFO only — Arditi 2024 claim is ordinal, not threshold)
+# residual_largest_kind_ordinal=true
+# L19_residual_mean_refused=79.055
+# L19_residual_mean_answered=69.7295
+# L19_residual_relative_separation=0.117962
+# L19_residual_sparsity_max_over_mean=1.07379
+# qwen_relative_depth=0.679 (L19/L28)
+# arditi_relative_depth=0.4375 (L14/L32, Llama-2-13B)
+# verdict_msg=Qwen L19 direction has the Arditi 2024 ordinal signature (residual = largest kind among residual/attn/mlp; dominance ratio 1.57928). Cross-family transferability is a STRUCTURAL PREDICTION (n=1 model). Hardens cycle-29+ ≥3 non-Qwen recomputes (Llama-3-8B, Mistral-7B, Gemma-2-2b, SmolLM2-1.7B); promotes to 🟢 only on ≥3 confirmations.
+# next_probe=cycle-29+ activation capture per non-Qwen model (Llama-3-8B,Mistral-7B,Gemma-2-2b,SmolLM2-1.7B) on ubu-1 HF -> re-run verify/numerics_safety_refusal_direction.hexa per model -> .verdicts/safety/n1_cross_family_auroc.tsv

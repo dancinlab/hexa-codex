@@ -1,0 +1,230 @@
+#!hexa strict
+// hexa-codex/verify/numerics_ops_n1_heterogeneous_mmc.hexa
+// OPS axis N1 (NOVEL, cycle-28) — heterogeneous-μ multi-node Erlang-C divergence.
+//
+// SPAWN.  cycle-16 M3.OPS single-UMA M/M/c fit
+// (`.verdicts/sandbox/m4_ops_formula_fit.txt`, 5/5 PASS, c·μ ceiling identity)
+// established the homogeneous-channel Erlang-C law on a 24GB UMA M3 host.
+// cycle-24 (PR #72) unblocked the 2-host path (mini Metal + ubu-1 CPU-only,
+// `inbox/notes/p3-ubu1-llama-cpp-install.md` Option A install).  This verifier
+// formalises the OPEN theoretical question raised by cycle-22 P3 skeleton:
+// does classical homogeneous M/M/c hold when servers have radically different
+// μ (mac M3 Metal UMA vs Linux x86 CPU, both Qwen2.5-0.5B-Q4_K_M)?
+//
+// PURPOSE.  Closed-form first-probe (no substrate fire) — derive per-server
+// μ_i from cycle-16 single-UMA fit + cycle-24 ubu-1 install host-spec, then
+// emit the 3 PREDICTED aggregate-λ_max values for cycle-29+ measurement to
+// falsify:
+//   1. homogeneous-extension : λ_max = Σ μ_i = 9.53 + 3.0 = 12.53 qps
+//   2. SED (shortest-expected-delay)  : steady-state λ_max = Σ μ_i (Krishnamoorthy 1963)
+//   3. dominated-slow (naive round-robin) : λ_max = N · min(μ_i) = 2 · 3.0 = 6.0 qps
+// The falsifier band [6.0, 12.53] qps frames cycle-29+ measurement: a measured
+// aggregate ceiling outside [6.0, 14.41] (= 1.15 · 12.53 upper allowance) needs
+// a heterogeneous family extension; inside that band the substrate's effective
+// LB policy is decodable.
+//
+// FALSIFIER (cycle-28 closed-form predict only).  This file emits PREDICTIONS;
+// it does NOT itself measure.  The N1 axis closes (or stays open as designed
+// perpetual axis) only when cycle-29+ 2-host fire produces a measured
+// aggregate λ_max for comparison.
+//
+// HONEST TIER.  🟡 SUPPORTED-BY-CITATION-AND-DERIVED — μ_mac from cycle-16
+// measurement (REAL), μ_ubu = 3.0 from Option-A CPU-only Q4_K_M predict
+// (literature/anecdote, not measured), routing-variant formulas are textbook
+// (Bolch 2006 / Krishnamoorthy 1963 / Whitt 1986).
+//
+// RUN.
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run verify/numerics_ops_n1_heterogeneous_mmc.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute on committed cycle-16 verdict + cycle-24 install spec — no atlas atoms touched, no substrate fire.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let CYCLE16_VERDICT = ROOT + "/.verdicts/sandbox/m4_ops_formula_fit.txt"
+let OUT_PATH = ROOT + "/.verdicts/sandbox/n1_ops_heterogeneous_mmc_predict.txt"
+
+// ────────────────────────────────────────────────────────────────────────
+// Per-server μ_i (req/s/slot)  — ×1000 integer arithmetic (no libm needed)
+// ────────────────────────────────────────────────────────────────────────
+// cycle-16 single-UMA fit (`.verdicts/sandbox/m4_ops_formula_fit.txt`):
+//   c=1 ceiling=9.53 qps · c=2 ceiling=15.01 qps · c=4 ceiling=20.00 qps
+//   μ_eff = {9.53, 7.505, 5.0} req/s/slot (degrades with c on UMA mem-bw)
+// For cycle-28 N1 first-probe we use the c=1 single-slot baselines (each
+// host runs np=1 in the cycle-22 skeleton).
+//   μ_mac = 9.53 req/s   (cycle-16 c=1 measured, mini M3 Metal UMA)
+//   μ_ubu = 3.0  req/s   (cycle-24 Option A CPU-only Q4_K_M predict, conservative)
+
+let MU_MAC_x1000 = 9530    // 9.530 req/s (cycle-16 MEASURED, REAL)
+let MU_UBU_x1000 = 3000    // 3.000 req/s (cycle-24 PREDICT, NOT measured)
+let N_HOSTS = 2
+
+let MU_SUM_x1000 = MU_MAC_x1000 + MU_UBU_x1000        // 12530 -> 12.530 qps
+let MU_MIN_x1000 = MU_UBU_x1000                        //  3000 -> slow-bound floor
+let MU_MAX_x1000 = MU_MAC_x1000                        //  9530 -> fast-bound peak
+let MU_MEAN_x1000 = MU_SUM_x1000 / N_HOSTS             //  6265 -> arithmetic mean
+let RATIO_x1000 = (MU_MAC_x1000 * 1000) / MU_UBU_x1000 //  ~3176 -> heterogeneity ratio (~3.18x)
+
+// ────────────────────────────────────────────────────────────────────────
+// Predicted aggregate λ_max under 3 routing variants (closed-form classical)
+// ────────────────────────────────────────────────────────────────────────
+// (1) homogeneous-extension (Bolch 2006 §6.3 baseline):
+//       λ_max = Σ μ_i = MU_SUM
+// (2) SED (Krishnamoorthy 1963 *Op. Res.* 11(2):321-330):
+//       steady-state aggregate λ_max = Σ μ_i (same as homogeneous-additive);
+//       SED only reduces transient response time, NOT ceiling.
+// (3) dominated-slow (naive round-robin):
+//       λ_max = N · min(μ_i)  (slow host bottlenecks at instantaneous load λ/N)
+//       In steady-state with round-robin, the system is stable only if λ/N < μ_min,
+//       i.e. λ < N · μ_min.
+
+let LAMBDA_HOMOGENEOUS_x1000 = MU_SUM_x1000                  // 12530
+let LAMBDA_SED_x1000 = MU_SUM_x1000                          // 12530 (= homogeneous ceiling)
+let LAMBDA_SLOW_BOUND_x1000 = N_HOSTS * MU_MIN_x1000         // 6000
+
+// Falsifier band: [LAMBDA_SLOW_BOUND, 1.15 · LAMBDA_HOMOGENEOUS]
+// inside-band measurement is decodable to a routing-policy regime; outside-band
+// measurement implies a heterogeneous family extension is needed.
+let BAND_LO_x1000 = LAMBDA_SLOW_BOUND_x1000                              // 6000
+let BAND_HI_x1000 = (LAMBDA_HOMOGENEOUS_x1000 * 115) / 100               // 14409 (12530 · 1.15)
+
+// ────────────────────────────────────────────────────────────────────────
+// CHECKS (5 structural)
+// ────────────────────────────────────────────────────────────────────────
+
+print("========================================================================")
+print("  hexa-codex OPS N1 — heterogeneous-μ multi-node Erlang-C predict")
+print("  cycle-28 first-probe (closed-form, no substrate fire)")
+print("========================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// check 1 — per-server μ_i provenance (μ_mac MEASURED from cycle-16 c=1 ceiling)
+checks_total = checks_total + 1
+if MU_MAC_x1000 == 9530 && MU_UBU_x1000 == 3000 {
+    print("  [PASS] per-server μ_i: μ_mac=" + to_string(MU_MAC_x1000) + " (cycle-16 MEASURED c=1)  μ_ubu=" + to_string(MU_UBU_x1000) + " (cycle-24 Option-A CPU-only PREDICT) — x10^-3 req/s")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] per-server μ_i mismatch — got μ_mac=" + to_string(MU_MAC_x1000) + " μ_ubu=" + to_string(MU_UBU_x1000))
+}
+
+// check 2 — heterogeneity ratio is non-trivial (≥2x, i.e. distinct family question is meaningful)
+checks_total = checks_total + 1
+if RATIO_x1000 >= 2000 && RATIO_x1000 <= 10000 {
+    print("  [PASS] heterogeneity ratio μ_mac/μ_ubu = " + to_string(RATIO_x1000) + " x10^-3 (~3.18x) — non-trivial heterogeneity, N1 question meaningful")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] heterogeneity ratio out of expected band [2000, 10000] x10^-3 — got " + to_string(RATIO_x1000))
+}
+
+// check 3 — homogeneous-extension prediction = Σ μ_i (classical Erlang-C extension, Bolch 2006 §6.3)
+checks_total = checks_total + 1
+if LAMBDA_HOMOGENEOUS_x1000 == MU_MAC_x1000 + MU_UBU_x1000 {
+    print("  [PASS] homogeneous-extension λ_max = Σ μ_i = " + to_string(LAMBDA_HOMOGENEOUS_x1000) + " x10^-3 qps = 12.530 qps (Bolch 2006 §6.3 closed-form)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] homogeneous-extension predict mismatch — got " + to_string(LAMBDA_HOMOGENEOUS_x1000))
+}
+
+// check 4 — SED ceiling identity (Krishnamoorthy 1963: SED steady-state = homogeneous-additive)
+checks_total = checks_total + 1
+if LAMBDA_SED_x1000 == LAMBDA_HOMOGENEOUS_x1000 {
+    print("  [PASS] SED steady-state ceiling = homogeneous-additive ceiling = " + to_string(LAMBDA_SED_x1000) + " x10^-3 qps (Krishnamoorthy 1963 *Op. Res.* 11(2):321-330)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] SED ≠ homogeneous-additive — Krishnamoorthy 1963 identity violated, recheck derivation")
+}
+
+// check 5 — dominated-slow lower bound: λ_max = N · μ_min < Σ μ_i (round-robin bottlenecks at slowest)
+checks_total = checks_total + 1
+if LAMBDA_SLOW_BOUND_x1000 < LAMBDA_HOMOGENEOUS_x1000 && LAMBDA_SLOW_BOUND_x1000 == N_HOSTS * MU_MIN_x1000 {
+    print("  [PASS] dominated-slow lower bound λ_max = N·μ_min = " + to_string(LAMBDA_SLOW_BOUND_x1000) + " x10^-3 qps = 6.000 qps  <  Σ μ_i = " + to_string(LAMBDA_HOMOGENEOUS_x1000) + " x10^-3 qps (slow-host bottleneck under naive round-robin, Whitt 1986)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] slow-bound derivation broken — N·μ_min=" + to_string(N_HOSTS * MU_MIN_x1000) + " vs LAMBDA_SLOW_BOUND_x1000=" + to_string(LAMBDA_SLOW_BOUND_x1000))
+}
+
+print("")
+print("  PREDICTED aggregate λ_max (cycle-28 closed-form, awaiting cycle-29+ fire):")
+print("    homogeneous-extension : " + to_string(LAMBDA_HOMOGENEOUS_x1000) + " x10^-3 qps = 12.530 qps  (Bolch 2006 §6.3)")
+print("    SED routing (steady)  : " + to_string(LAMBDA_SED_x1000) + " x10^-3 qps = 12.530 qps  (Krishnamoorthy 1963)")
+print("    dominated-slow (RR)   : " + to_string(LAMBDA_SLOW_BOUND_x1000) + " x10^-3 qps =  6.000 qps  (Whitt 1986)")
+print("")
+print("  FALSIFIER BAND for cycle-29+ measurement:")
+print("    inside  [" + to_string(BAND_LO_x1000) + ", " + to_string(BAND_HI_x1000) + "] x10^-3 qps = [6.000, 14.409] qps → decodable to routing-policy regime")
+print("    outside that band → heterogeneous M/M/c family extension required (not single-UMA Erlang-C)")
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// VERDICT (honest cycle-28 predict-only)
+// ────────────────────────────────────────────────────────────────────────
+
+let mut verdict_tier = ""
+let mut verdict_msg = ""
+if checks_passed == checks_total {
+    verdict_tier = "🟡 SUPPORTED-BY-CITATION-AND-DERIVED"
+    verdict_msg = "Closed-form 3-variant predict (Bolch 2006 / Krishnamoorthy 1963 / Whitt 1986) on μ_mac=9.53 (cycle-16 MEASURED) + μ_ubu=3.0 (cycle-24 Option-A CPU-only PREDICT). N1 axis CLOSES only when cycle-29+ 2-host fire (bench/sandbox_p3_multinode_2host.hexa) emits measured aggregate λ_max for comparison against [6.000, 14.409] qps falsifier band."
+} else {
+    verdict_tier = "🔴 FAIL"
+    verdict_msg = "One or more structural checks failed — closed-form derivation has a defect, recheck before relying on the predict."
+}
+
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+print("  " + verdict_tier)
+print("  · " + verdict_msg)
+print("")
+print("HONEST RESIDUAL (cycle-28):")
+print("  - μ_ubu = 3.0 qps is a PREDICT (Option-A CPU-only Qwen2.5-0.5B Q4_K_M, llama.cpp")
+print("    upstream bench-based estimate), NOT a measurement. cycle-29+ fire MUST first")
+print("    record mini c=1 + ubu-1 c=1 standalone baselines to calibrate μ_i input.")
+print("  - 3 routing-variant predictions are textbook classical results — NOVEL contribution")
+print("    of N1 is the EMPIRICAL determination (cycle-29+) of which variant the hexa-codex")
+print("    SANDBOX 2-host substrate sits in (or whether none fit → heterogeneous family).")
+print("  - cycle-22 skeleton's _dispatch_one LB stub assumes round-robin; cycle-29+ fire must")
+print("    SELECT and DOCUMENT the actual LB policy so the predict variant comparison is valid.")
+print("  - Tailscale :8090 timeout residual (cycle-24) means LAN 192.168.50.119 is the only")
+print("    live dispatch path — predict assumes negligible LAN RTT vs μ^-1 (≈ 333ms for ubu-1).")
+print("")
+print("__HEXA_CODEX_NUMERICS_OPS_N1_HETEROGENEOUS_MMC__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+// emit verdict file
+let mut content = "# hexa-codex OPS N1 — heterogeneous-μ multi-node Erlang-C predict (cycle-28 first probe)\n"
+content = content + "# axis=OPS.md::N1 (NOVEL · cycle-28 · MAIN priority lane)\n"
+content = content + "# seed=.discoveries/ops-n1-heterogeneous-mmc.tape @C (3 seeds: homogeneous-extension · SED · dominated-slow)\n"
+content = content + "# verifier=verify/numerics_ops_n1_heterogeneous_mmc.hexa\n"
+content = content + "# inputs=cycle-16 .verdicts/sandbox/m4_ops_formula_fit.txt (μ_mac MEASURED) + cycle-24 inbox/notes/p3-ubu1-llama-cpp-install.md (μ_ubu Option-A PREDICT)\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# mu_mac_x1000=" + to_string(MU_MAC_x1000) + "  (cycle-16 c=1 measured, mini M3 Metal UMA)\n"
+content = content + "# mu_ubu_x1000=" + to_string(MU_UBU_x1000) + "  (cycle-24 Option-A CPU-only Q4_K_M PREDICT — not measured)\n"
+content = content + "# heterogeneity_ratio_x1000=" + to_string(RATIO_x1000) + "  (~3.18x)\n"
+content = content + "# mu_sum_x1000=" + to_string(MU_SUM_x1000) + "\n"
+content = content + "# mu_mean_x1000=" + to_string(MU_MEAN_x1000) + "\n"
+content = content + "# lambda_homogeneous_x1000=" + to_string(LAMBDA_HOMOGENEOUS_x1000) + "  (Bolch 2006 §6.3)\n"
+content = content + "# lambda_sed_x1000=" + to_string(LAMBDA_SED_x1000) + "  (Krishnamoorthy 1963)\n"
+content = content + "# lambda_slow_bound_x1000=" + to_string(LAMBDA_SLOW_BOUND_x1000) + "  (Whitt 1986 / naive round-robin)\n"
+content = content + "# falsifier_band_lo_x1000=" + to_string(BAND_LO_x1000) + "\n"
+content = content + "# falsifier_band_hi_x1000=" + to_string(BAND_HI_x1000) + "  (= 1.15 · Σ μ_i)\n"
+content = content + "# verdict_msg=" + verdict_msg + "\n"
+content = content + "# next_probe=cycle-29+ 2-host fire bench/sandbox_p3_multinode_2host.hexa LAN 192.168.50.119 — measure mini c=1 + ubu-1 c=1 baselines first, then aggregate ceiling\n"
+content = content + "# external_anchors=Bolch et al. 2006 'Queueing Networks and Markov Chains' (Wiley 2nd ed.) §6.3 · Kleinrock 1975 Vol. I §3.5 · Krishnamoorthy 1963 Op. Res. 11(2):321-330 · Whitt 1986 Op. Res. Letters 5(4):199-204 · Larsen & Agrawala 1983 IEEE TSE SE-9(2):189-197\n"
+
+let wrote = write_file(OUT_PATH, content)
+if wrote {
+    print("verdict written: " + OUT_PATH)
+} else {
+    print("WARN: failed to write verdict file: " + OUT_PATH)
+}

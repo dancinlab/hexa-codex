@@ -1,0 +1,17 @@
+# hexa-codex SUBSTRATE N1 — model-family-specific anomaly vs scaling-law universality (cycle-28 first probe)
+# axis=SUBSTRATE.md::N1 (NOVEL · cycle-28 · MAIN priority lane)
+# seed=.discoveries/substrate-n1-family-vs-scaling.tape @C d_substrate_n1_family_vs_scale_split
+# verifier=verify/numerics_substrate_n1_family_vs_scaling.hexa
+# input=.verdicts/sandbox/p1_multimodal_ladder_7b.tsv (cycle-23c, 4 rungs x 16 items)
+# tier=GREEN SUPPORTED-NUMERICAL (directional, n=2 family pairs)
+# checks=5/5
+# rung0_smolvlm_0_5b_count=4/5
+# rung1_smolvlm_2_2b_count=4/5
+# rung2_qwenvl_3_0b_count=2/5
+# rung3_qwenvl_7_0b_count=5/5
+# smolvlm_family_slope=0.0
+# qwenvl_family_slope=0.490841
+# slope_gap_abs=0.490841
+# family_confound_detected=true
+# verdict_msg=SmolVLM-family counting slope 0.0 (monotone-non-decreasing) AND Qwen-VL-family dip-then-recover (3B=0.4 < 7B=1.0) AND Qwen-3B < SmolVLM-2.2B (0.8). Family confound EMPIRICALLY DETECTABLE in committed cycle-23c data. Cycle-29+ real fire: non-Qwen-7B VL DL (InternVL-7B or LLaVA-NeXT-7B) to attribute the recovery to family vs scale at matched 7B rung.
+# next_probe=cycle-29+ non-Qwen-7B VL DL (InternVL-7B-MPO or LLaVA-NeXT-7B, ~5GB) + non-Qwen-7B text DL (Llama-3.1-8B or Mistral-7B-v0.3, ~4-5GB)

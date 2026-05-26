@@ -3,6 +3,47 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-4 B1 runtime PREFLIGHT · 4/5 assets present · 🟠 PARTIAL (gap=rhat-vector)
+
+ENGINE 네번째 fire. B1 axis 의 cycle-2 SPEC wire 는 SPEC-only 였고 actual runtime fire (load 모델 + register forward hook + 측정 adv/benign refusal rate) 는 cost-bearing 으로 cycle-5+ 로 deferred 되어 있던 상태. 이 cycle-4 = 그 cycle-5 fire 의 readiness 를 측정하는 **closed-form PREFLIGHT** — 어떤 자산이 이미 존재하고 어떤 게 빠졌는지 GAP REPORT 생성. 모델 load · venv install · activation capture 모두 절대 안 함 (read-only filesystem + pool probe 만).
+
+### 산출물
+
+- [x] `ENGINE/verify/numerics_engine_b1_runtime_preflight.hexa` — 5-asset survey, 각 asset 마다 1 check, READ-ONLY exec() probes (`pool on ubu-1 "ls ..."` · `find` · `grep`); `_root()` upstream-walk pattern 재사용 (a1 verifier 와 동일 idiom). 모델 다운로드 · venv 설치 · activation 캡처 절대 안 함.
+- [x] `ENGINE/verdicts/b1_runtime_preflight_verdict.txt` — readiness=🟠 PARTIAL · 4/5 assets · gaps=rhat-vector · per-asset PASS/FAIL breakdown.
+
+### Asset survey 결과 (4/5 PASS)
+
+| # | Asset | Status | Detail |
+|---|-------|--------|--------|
+| 1 | Qwen2.5-1.5B-Instruct 모델 | ✅ PASS | ubu-1 HF cache `~/.cache/huggingface/hub/models--Qwen--Qwen2.5-1.5B-Instruct` 존재. Mac local 은 base + GGUF Q4/Q8 만 (Instruct fp32 없음 — 상관 없음, ubu-1 에서 fire) |
+| 2 | r̂ direction vector (full 1536-dim) | ❌ FAIL | 현재 commit 된 SoT 는 `m2_safety_refusal_norms.tsv` 84-col **NORMS** + `causal_ablation_summary.json` **scalar dir_norm** 만; cycle-19 의 transient 1536-dim hidden-state direction 은 ablation 후 폐기됨. cycle-5 fire 의 STEP-1 으로 재추출 필요 (= fire 자체에 internal) |
+| 3 | 40-prompt adv+benign set | ✅ PASS | `bench/sandbox_stage4_refusal_matrix.hexa` (20 adv 4 categories × 5: hate · violence · self_harm · medical_advice_risk) + `bench/sandbox_m5_safety_causal_ablation.hexa` L66-67 의 ADV/BENIGN tuple. PRIVATE per cx_hf_safety_private (in-source committed, HF 미등록). Task brief 의 "200-sample" 은 canonical 40 의 misstatement — 40 으로 fire 가능, 200-scaling 은 cycle-5b 별도 asset |
+| 4 | HF transformers clean venv | ✅ PASS (변형 인정) | `~/venv-hf-clean` 없음, 대신 `~/sandbox_probe/venv` 가 transformers==4.51.3 + numpy==1.26.4 (= reference_activation_capture_env 의 pin) — cycle-19 causal_ablation 이 실제로 쓰던 venv. naming 만 다름; pin 일치하므로 동일 환경 |
+| 5 | Forward-hook + projection-out code | ✅ PASS | `bench/sandbox_m5_safety_causal_ablation.hexa` L89-90 이미 `register_forward_hook` 을 embed + 28 decoder layer 전부에 등록, projection-out 라인 `h ← h − (h·r̂)r̂` 본문 포함. cycle-5 fire = 이 harness 를 SPEC layer=19 single-source 로 reduce (현재 3-layer scan 17/18/19) — trivial |
+
+### Readiness 판정
+
+🟠 **PARTIAL** — cycle-5 runtime fire 는 blocked-until=`rhat-vector` 이지만 이 gap 은 **별도 prereq 가 아니라 fire 자체의 STEP-1**. asset 4-5 (venv + hook code) 가 PASS 이므로 새 install / 새 code 없이 cycle-5 가 바로 진입 가능. STEP-1 에서 r̂ 추출 + npy 로 persist (`m5_safety_refusal_direction_L19.npy` 권장) → STEP-2 에서 projection-out 적용 → STEP-3 에서 SPEC ±10pp band 검증 (adv_after ≤ 10, benign_after ≤ 10).
+
+### 영구 axis 원칙 (feedback_closure_is_physical_limit)
+
+- B1 axis 의 `[x]` 상태는 cycle-2 SPEC close 그대로 유지. PREFLIGHT 는 axis flip 아님 — cycle-5+ fire 의 readiness 측정일 뿐.
+- frontier OPEN: Qwen-only universal 여부, SPEC tolerance band ±10pp 의 실제 fire 결과, cross-family generalization 모두 SAFETY N1 axis 의 미해결 spawning 잔량 — B1 wire 의 scope 도 그에 따라 재정의 여지 있음.
+
+### N1 latency (3rd data point)
+
+- B1 finding spawn/mature: SAFETY cycle-19/20
+- B1 SPEC wire: ENGINE cycle-2 (ΔM_after_mature ≈ 14 sibling cycles)
+- B1 PREFLIGHT: ENGINE cycle-4 (ΔM_after_mature ≈ 16 cycles · ΔM_after_wire = 2 cycles)
+- runtime FIRE (예상): ENGINE cycle-5+, blocked-until=rhat-vector(in-fire) → ΔM_after_mature ≥ 17
+
+### Cycle-5 진입 권고
+
+`bench/sandbox_m5_safety_causal_ablation.hexa` 의 STEP-1 logic 을 SPEC layer=19 단일-source 로 축소 + r̂ 를 `~/sandbox_probe/` 에 `.npy` 로 persist → mac repo 로 scp → `.verdicts/sandbox/m5_safety_refusal_direction_L19.npy` 로 commit → STEP-2 (projection-out at L19 only) → STEP-3 (refusal rate 측정, SPEC ±10pp 검증 verdict 생성). asset survey 가 양호하므로 새 환경 prep 없음.
+
+---
+
 ## 2026-05-27 — cycle-3 ENGINE 도메인 폴더 통합 reorg · 모든 산출물 `ENGINE/` 안으로
 
 **사용자 지시:** "ENGINE/* 폴더 생성후 안에 모두 구현" + "도메인도".

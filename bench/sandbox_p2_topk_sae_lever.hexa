@@ -1,0 +1,292 @@
+#!hexa strict
+// bench/sandbox_p2_topk_sae_lever.hexa — SANDBOX P2 reopen-trigger SKELETON
+// (cycle-22, lane P2). LEVER-ISOLATION probe for the cycle-20 M5.SAFETY SAE-half
+// closed-negative (.verdicts/sandbox/m5_safety_sae_decomposition.txt 🔴).
+//
+// Tape entry (cx_discovery_log): .discoveries/sandbox-p2-prod-sae.tape
+//   @C d_p2_top_k_sae_family := "Top-K / JumpReLU / BatchTopK SAE family — different
+//                                 sparsity prior, same axis" :: seed
+//                                 [verified_tier_target=GREEN status=open]
+//
+// ============================================================================
+// WHY THIS HARNESS (the lever-isolation logic — NOT a from-scratch reopen)
+// ============================================================================
+//   Cycle-20 (PR closed) trained a from-scratch ReLU L1 SAE on 59,795 L19 token-
+//   activations of Qwen2.5-1.5B-Instruct on ubu-1 RTX 5070, and reported a
+//   CLOSED HONEST-NEGATIVE on the SAE-half of the M5.SAFETY interpretability
+//   stretch (.verdicts/sandbox/m5_safety_sae_decomposition.txt):
+//
+//     CYCLE-20 BASELINE (ReLU L1, L1=0.4, width=6144, 40 epochs)
+//       corpus              = 1550 NEUTRAL prompts × ~39 tok = 59,795 token-acts × 1536
+//       SAE sparsity        = mean L0 = 3.57 / 6144   ·   alive 278 / 6144   ·   dead 5866
+//       SAE reconstruction  = FVU = 0.0005   ·   var_explained = 0.9995
+//       max |cos(decoder feature, r̂)|  = 0.0847       ← the closed-negative number
+//       r̂ energy captured by top-1 /  5 / 10 SAE feats = 0.0072 / 0.0283 / 0.0482
+//       top-10 SAE-feat ablation refusal = 0.9000   (≈ random-10 control 0.8833)
+//       full-r ablation (PR #60 ref)     = 0.0000   ← what a real refusal mediator looks like
+//       robustness — invariant across 3 sparsity regimes (dense L0≈8626 / over-sparse
+//         L0≈1.7 / proper-sparse L0≈3.6, all max|cos| ≈ 0.08–0.10) → NOT an L1-tuning artifact
+//       PCA control (Path B) — best PC |cos|=0.1250, top-20 captures 6.66% of r̂
+//
+//   The cycle-20 verdict's CAVEAT was: "robust to the L1 tuning knob, but every
+//   regime tested was still a ReLU-L1 SAE family." Two distinct LEVERS remain
+//   that COULD individually be the load-bearing cause of the negative:
+//
+//     LEVER (A)  the SPARSITY PRIOR (ReLU L1 vs alternatives) — L1 is known to
+//                  underconsume aligned features (Wright et al / Anthropic refs);
+//                  Top-K, JumpReLU, BatchTopK all eliminate the L1 shrinkage path.
+//     LEVER (B)  the CORPUS SIZE (~10 tok/feature vs production ≥1000 tok/feature)
+//                  — addressed separately by seed d_p2_corpus_dictionary_scaleup.
+//
+//   This harness isolates LEVER (A) by holding LEVER (B) CONSTANT (the SAME
+//   60k token-acts L19 corpus, the SAME measurement bar) and swapping ONLY the
+//   sparsity prior across three modern SAE families. Reading the cycle-20
+//   baseline numbers FROM THE VERDICT (NO re-train of the ReLU L1 baseline this
+//   round) is the cheap path — attribution is the goal, not re-measurement.
+//
+//   FALSIFIER (cx_lab_falsifiable, MUST be true at design time):
+//     (i)  EITHER max|cos(decoder feature, r̂)| jumps to ≥ 0.25 on Top-K /
+//          JumpReLU / BatchTopK at the SAME 60k corpus scale
+//          → the L1 prior was load-bearing, cycle-20 negative reopens, lever
+//            (A) lifts the verdict 🔴 → 🟡 candidate, escalate to a full
+//            re-decomposition under the winning family.
+//     (ii) OR all three families plateau at ≤ 0.10 (within 0.02 of the
+//          cycle-20 ReLU L1 0.085)
+//          → the corpus size IS load-bearing, cycle-20 negative HARDENS,
+//            lever (A) is conclusively NOT the cause, escalate to lever (B)
+//            via seed d_p2_corpus_dictionary_scaleup (no need to test more
+//            sparsity priors).
+//
+//   EITHER outcome closes the lever-attribution question. The harness is
+//   designed to make the answer FORCED, not interpretive.
+//
+// ============================================================================
+// THREE SAE FAMILIES TESTED HEAD-TO-HEAD (canonical settings; cite-locked)
+// ============================================================================
+//   (a) Top-K SAE      — Gao, Goh, Heimersheim 2024 ("Scaling and Evaluating
+//                          Sparse Autoencoders", arXiv 2406.04093). Per-token
+//                          K-largest-magnitude activations kept, rest hard-zeroed.
+//                          K SWEEP: K ∈ {8, 16, 32} (brackets cycle-20 mean L0=3.6
+//                          and the production tier; 3 datapoints distinguish a
+//                          monotone-aligned curve from a plateau).
+//
+//   (b) JumpReLU SAE   — Rajamanoharan et al 2024 ("JumpReLU SAEs", DeepMind
+//                          arXiv 2407.14435). Activation passes through a
+//                          learned per-feature threshold θ ≥ 0; below-threshold
+//                          → hard-zeroed (straight-through estimator for grad).
+//                          ONE threshold setting tuned to land mean-L0 in the
+//                          same ~8–32 envelope as the Top-K sweep (apples-to-
+//                          apples sparsity).
+//
+//   (c) BatchTopK SAE  — Bussmann, Leask, Nanda 2024 ("BatchTopK Sparse
+//                          Autoencoders", arXiv 2412.06410). K-largest across
+//                          the ENTIRE BATCH (not per-token) → allows variable
+//                          per-token sparsity, matching the natural variability
+//                          of refusal-relevant token positions.
+//                          ONE batch-K setting tuned to match the same mean-L0
+//                          envelope as (a) and (b).
+//
+//   All three are evaluated on the IDENTICAL 60k L19 token-acts corpus from
+//   cycle-20, with the IDENTICAL refusal direction r̂ (recomputed from PR #60's
+//   20+20 adv-vs-benign matched pool, same ||r(L19)|| = 27.6792 bit-for-bit
+//   reproducibility target). Held-constant axes: model (Qwen2.5-1.5B-Instruct
+//   fp32), src layer (L19), dictionary width (6144 = 4× d_model), training
+//   epochs (40), Adam LR (4e-4), batch size (4096), unit-norm decoder
+//   re-normalization step, the 24-phrase deterministic refusal marker-scan.
+//
+// ============================================================================
+// EMIT — PER-FAMILY METRICS TO `.verdicts/sandbox/p2_topk_sae_lever.tsv`
+// ============================================================================
+//   NUMBERS ONLY (cx_hf_safety_private — adv prompt text + completions live
+//   in-process, NEVER written to disk; the TSV columns are scalar floats /
+//   ints only). One row per (family, sparsity_setting):
+//
+//     family            str    one of {relu_l1_baseline, topk, jumprelu, batchtopk}
+//     sparsity_setting  str    e.g. "L1=0.4" / "K=8" / "K=16" / "K=32" / "theta=…" / "batchK=…"
+//     mean_L0           f64    realized mean active features / token
+//     alive_features    i64    # features with ≥ 1 firing across the eval set
+//     dead_features     i64    dictionary_width − alive_features
+//     fvu               f64    fraction of variance unexplained (recon quality)
+//     max_abs_cos       f64    max |cos(decoder feature, r̂)| over alive features
+//     top1_energy       f64    r̂ energy captured by top-1 aligned feature subspace
+//     top5_energy       f64    r̂ energy captured by top-5 aligned feature subspace
+//     top10_energy      f64    r̂ energy captured by top-10 aligned feature subspace
+//     ablate_top10_ref  f64    adv refusal rate after ablating top-10 aligned subspace (n=20)
+//     ablate_random10   f64    specificity control: 3-seed mean refusal under 10 random unit dirs
+//     ablate_full_r     f64    PR #60 reference (full single direction r — should reproduce ≈0.00)
+//     baseline_ref      f64    no-ablation refusal rate (should reproduce ≈ 0.95 on the same n=20)
+//
+//   The FIRST ROW IS THE CYCLE-20 ReLU L1 BASELINE, copied verbatim from
+//   .verdicts/sandbox/m5_safety_sae_decomposition.txt (NOT re-trained — lever-
+//   isolation attributes against the prior frozen baseline). Provenance for
+//   that row's values: see the cycle-20 verdict §"RAW STDOUT" block.
+//
+//   No adversarial prompt strings, no generation completions, no per-prompt
+//   labels are written to the TSV (cx_hf_safety_private). Only the aggregate
+//   scalars above.
+//
+// ============================================================================
+// HONEST FEASIBILITY NOTE — Hexa lacks a native SAE training surface
+// ============================================================================
+//   Per feedback_hexa_only_authoring (2026-05-23), this harness is `.hexa`
+//   only — no new `.py` / `.sh` files are committed. But Hexa stdlib has no
+//   native autodiff/SAE training primitives, so the SAE-train step MUST be
+//   dispatched to an external library. The honest pattern (matching cycle-20's
+//   bench/sandbox_m5_safety_sae_decomposition.hexa, which inlined its python
+//   compute body in a `_payload()` string) is:
+//
+//     (i)   The .hexa harness owns the ORCHESTRATION shape: read the cached
+//           L19 acts cache path, emit the per-family invocation plan, parse
+//           the per-family alignment metrics back into the TSV.
+//
+//     (ii)  The actual SAE-train + alignment-compute python body is dispatched
+//           via `pool on ubu-1 <python invocation>` against a pinned external
+//           reference repo (see TODO_PIN_REFERENCE_REPO below). NO new .py
+//           file lands in this repo — the python entry-point is either
+//             (a) the external library's installed CLI, or
+//             (b) a base64-shipped scratch script under the cycle-20
+//                 ~/sandbox_probe/venv pin (reference_activation_capture_env),
+//                 SAME pattern as cycle-20.
+//
+//     (iii) Adversarial text never crosses the wire: the ADV+BENIGN pool that
+//           recomputes r is rebuilt in-process on ubu-1 (same as cycle-20),
+//           and only NUMBERS come back into the TSV.
+//
+//   This skeleton commit STOPS at (i). The SAE-train dispatch is left as a
+//   TODO marker — the next sub-cycle wires the actual `pool on ubu-1` calls
+//   once the external-library pin lands. NO FIRE in this commit.
+//
+// ============================================================================
+// TARGET HOST  (ubu-1 RTX 5070 12GB — same as cycle-20; 60k token-acts × 1536
+// dims × fp32 = ~0.37 GB raw activations, fits in 12 GB next to a 6144-wide
+// SAE and the 1.5B model loaded for r-recompute + ablation eval, per cycle-20).
+// ============================================================================
+//
+// ============================================================================
+// EXTERNAL REFERENCE REPO + COMMIT PIN  (honest "TBD pending lib pick")
+// ============================================================================
+//   Candidate libraries (cited at design time, NOT YET pinned — the
+//   d_p2_runpod_compute_tier_runbook seed names this as the infra-prep step):
+//
+//     1. github.com/openai/sparse_autoencoder
+//          — Gao, Goh, Heimersheim 2024 reference Top-K implementation.
+//          — TODO_PIN_REFERENCE_REPO_COMMIT (pick a tagged commit, not main).
+//
+//     2. github.com/jbloomAus/SAELens
+//          — Bloom et al community SAE library, supports Top-K / JumpReLU /
+//            BatchTopK families behind a unified config — best single-library
+//            surface for this 3-family head-to-head (most likely pick).
+//          — TODO_PIN_REFERENCE_REPO_COMMIT (pick a tagged release commit).
+//
+//     3. github.com/EleutherAI/sae
+//          — EleutherAI Top-K + JumpReLU implementation, smaller surface.
+//          — TODO_PIN_REFERENCE_REPO_COMMIT.
+//
+//   DECISION (recorded for the next sub-cycle):
+//     Default candidate = SAELens (covers all 3 families in one config space,
+//     reduces install + venv-pin overhead vs running 3 separate libraries).
+//     PIN COMMIT IS TBD until the next sub-cycle's `pool on ubu-1` install
+//     dry-run lands (env-pin shape per reference_activation_capture_env).
+//     Whichever library is chosen, its commit hash + install recipe lands in
+//     the next sub-cycle's inbox/notes/p2-topk-sae-pin.md (per the
+//     d_p2_runpod_compute_tier_runbook pattern for the larger scaleup).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External SAE library dispatch on ubu-1 GPU + per-family alignment metric harvest; no atlas atoms touched. SKELETON ONLY — no fire.")
+
+// ----------------------------------------------------------------------------
+// Manifest of the lever-isolation plan, machine-readable inside the .hexa file.
+// Three SAE families × their canonical sparsity settings, plus the frozen
+// cycle-20 baseline row that the TSV will lead with.
+// ----------------------------------------------------------------------------
+
+fn families() -> str {
+    // The cycle-20 baseline is included at the head of the TSV (NOT re-trained;
+    // copied from the cycle-20 verdict). The other rows are the lever-swap
+    // candidates the next sub-cycle will dispatch.
+    return "" +
+        "relu_l1_baseline\tL1=0.4\t# CYCLE-20 frozen (read from .verdicts/sandbox/m5_safety_sae_decomposition.txt — NO re-train)\n" +
+        "topk\tK=8\t# Gao-Goh-Heimersheim 2024 (arXiv 2406.04093) — sweep low\n" +
+        "topk\tK=16\t# Gao-Goh-Heimersheim 2024 (arXiv 2406.04093) — sweep mid (~ cycle-20 L0 envelope)\n" +
+        "topk\tK=32\t# Gao-Goh-Heimersheim 2024 (arXiv 2406.04093) — sweep high\n" +
+        "jumprelu\ttheta=AUTO_TUNED_TO_MEAN_L0~16\t# Rajamanoharan et al 2024 (arXiv 2407.14435)\n" +
+        "batchtopk\tbatchK=AUTO_TUNED_TO_MEAN_L0~16\t# Bussmann-Leask-Nanda 2024 (arXiv 2412.06410)\n"
+}
+
+// Frozen cycle-20 baseline row (verbatim copy from the verdict; do NOT edit
+// these numbers without re-running cycle-20 — they are the comparison surface).
+fn baseline_relu_l1_row() -> str {
+    return "" +
+        "relu_l1_baseline\tL1=0.4\t" +
+        "3.57\t" +     // mean_L0
+        "278\t" +      // alive_features
+        "5866\t" +     // dead_features
+        "0.0005\t" +   // fvu
+        "0.0847\t" +   // max_abs_cos
+        "0.0072\t" +   // top1_energy
+        "0.0283\t" +   // top5_energy
+        "0.0482\t" +   // top10_energy
+        "0.9000\t" +   // ablate_top10_ref
+        "0.8833\t" +   // ablate_random10
+        "0.0000\t" +   // ablate_full_r (PR #60 reproduced)
+        "0.9500\n"     // baseline_ref
+}
+
+// TSV header (column order matches the contract above and the cycle-20 row).
+fn tsv_header() -> str {
+    return "family\tsparsity_setting\tmean_L0\talive_features\tdead_features\tfvu\tmax_abs_cos\ttop1_energy\ttop5_energy\ttop10_energy\tablate_top10_ref\tablate_random10\tablate_full_r\tbaseline_ref\n"
+}
+
+// Path of the TSV emit (relative to repo root, per project_bench_sot — only the
+// aggregate scalars land here; raw run logs stay on ubu-1 scratch SoT).
+fn tsv_path() -> str {
+    return ".verdicts/sandbox/p2_topk_sae_lever.tsv"
+}
+
+// ----------------------------------------------------------------------------
+// SAE-train dispatch plan (the TODO surface the next sub-cycle wires).
+// This function is the SoT for what gets shipped to ubu-1; the actual call is
+// a `pool on ubu-1 <python invocation>` once the library pin lands.
+// ----------------------------------------------------------------------------
+fn dispatch_plan() -> str {
+    return "" +
+        "# DISPATCH PLAN (SKELETON — wired by next sub-cycle, NO FIRE in this commit)\n" +
+        "#\n" +
+        "# host:      ubu-1 (aiden-B650M-K) RTX 5070 12GB  (cycle-20 substrate, $0)\n" +
+        "# venv:      ~/sandbox_probe/venv  (clean pin — torch 2.12+cu130 transformers 4.51.3 numpy 1.26.4)\n" +
+        "# acts cache: ~/sandbox_probe/l19_acts_cache.pt   (cycle-20 cached X = 59795 × 1536 fp32; reused)\n" +
+        "#                                                  IF stale, recompute via the cycle-20 STEP 1 path.\n" +
+        "# r vector:  recomputed in-process from PR #60's 20 adv + 20 benign matched pool (NO disk write)\n" +
+        "#\n" +
+        "# external library: TBD_PIN_SAE_LIB  (default candidate = SAELens, see header §EXTERNAL REFERENCE REPO)\n" +
+        "# external commit:  TODO_PIN_REFERENCE_REPO_COMMIT  (resolved by next sub-cycle)\n" +
+        "#\n" +
+        "# TODO (next sub-cycle):\n" +
+        "#   pool on ubu-1 'cd ~/sandbox_probe && venv/bin/python -m <TBD_PIN_SAE_LIB> \\\n" +
+        "#       --acts l19_acts_cache.pt --width 6144 --epochs 40 \\\n" +
+        "#       --family topk --k 8 --emit-tsv-row /tmp/p2_row_topk_k8.tsv'\n" +
+        "#   (then repeat for K=16, K=32, jumprelu, batchtopk; concatenate the 5 rows\n" +
+        "#    below the baseline row and write to .verdicts/sandbox/p2_topk_sae_lever.tsv)\n"
+}
+
+// ----------------------------------------------------------------------------
+// main — prints the orchestration manifest (families × the dispatch plan) so a
+// caller can review the lever-isolation shape before the next sub-cycle wires
+// the actual pool dispatch. NO FIRE: no pool call, no SAE train, no TSV write
+// in this commit.
+// ----------------------------------------------------------------------------
+fn main() {
+    println("# bench/sandbox_p2_topk_sae_lever.hexa — LEVER-ISOLATION skeleton (cycle-22)")
+    println("# tape: .discoveries/sandbox-p2-prod-sae.tape :: d_p2_top_k_sae_family")
+    println("# baseline: .verdicts/sandbox/m5_safety_sae_decomposition.txt (cycle-20 ReLU L1)")
+    println("# emit:    " + tsv_path())
+    println("")
+    println("# Families × sparsity settings:")
+    println(families())
+    println("# TSV header (frozen schema):")
+    println(tsv_header())
+    println("# Frozen cycle-20 baseline row (NOT re-trained):")
+    println(baseline_relu_l1_row())
+    println(dispatch_plan())
+    println("# END SKELETON — next sub-cycle wires the pool dispatch + writes the TSV.")
+}

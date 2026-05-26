@@ -1,0 +1,472 @@
+#!hexa strict
+// bench/sandbox_p3_multinode_2host.hexa — SANDBOX P3 (perpetual-axis,
+// cycle-22): 2-host homogeneous-replica Erlang-C knee re-measurement.
+// SKELETON ONLY (no FIRE) — parse-clean per cx_paper_gate authoring rules.
+//
+// ============================================================================
+// SOURCE TAPE ENTRY (1-of-4 P3 seeds)
+// ============================================================================
+//   .discoveries/sandbox-p3-multinode.tape :: @C d_p3_2host_homogeneous_pilot
+//   verified_tier_target = GREEN · status = open
+//
+//   "2-host homogeneous-replica Erlang-C knee re-measurement (mini + ubu-1)"
+//
+// ============================================================================
+// HYPOTHESIS (verbatim, .discoveries/sandbox-p3-multinode.tape L35)
+// ============================================================================
+//   aggregate λ_max ≈ Σ_h c_h·μ_h ≈ 2·μ̄ (with μ_h heterogeneous via host
+//   hardware) AND the M/M/c pole-knee structure HOLDS modulo a fixed-additive
+//   network-RTT offset on the ubu-1 path (so the knee shifts right relative
+//   to a same-host c=2 baseline, but the functional family stays Erlang-C).
+//
+// ============================================================================
+// FALSIFIER (verbatim, .discoveries/sandbox-p3-multinode.tape L36)
+// ============================================================================
+//   if measured aggregate throughput ceiling falls >25% short of Σ μ_h
+//   (above what the network RTT explains), the M/M/c independence
+//   assumption breaks under distributed serving — a substrate-architecture
+//   finding (likely client-side LB serialisation OR shared-resource
+//   contention on the pool route).
+//
+// ============================================================================
+// REFERENCE BASELINES (what this bench extends)
+// ============================================================================
+//   - SANDBOX.md M3.OPS line: 18-cell single-host grid (3 -np × 6 rate
+//     {1,2,5,10,20,40}, Stage-2 N=2000, cycle-16). Saturation throughput
+//     c·μ for c∈{1,2,4} measured 9.53 / 15.01 / 20.00 qps; μ_eff degrades
+//     with c on shared UMA mem-bw (9.53/7.505/5.0 req/s/slot).
+//   - bench/sandbox_stage4_slo_under_load.hexa: single-host SLO harness
+//     pattern (warmup/measure, per-cell shard, percentile_ms via shell
+//     sort -n, error vs latency separation, kw-substring scoring).
+//   - bench/sandbox_m5_safety_causal_ablation.hexa: multi-step pattern,
+//     `pool on ubu-1` dispatch convention (cycle-19).
+//   - verify/numerics_ops_mmc_knee.hexa: closed-form M/M/c verifier; the
+//     verdict surface this bench feeds, reused with c=2 (aggregate of two
+//     c=1 replicas) substituted (TODO: c=2-substituted verifier variant).
+//
+// ============================================================================
+// METHOD (3-step substrate protocol — skeleton only, FIRE in a later cycle)
+// ============================================================================
+//   1. Serve Qwen2.5-0.5B-Instruct-Q4_K_M as TWO identical llama-server
+//      replicas, each `-np 1 -cb` (so total c=2 across hosts):
+//        - mini  (local)  127.0.0.1:8090
+//        - ubu-1 (remote) ubu-1:8090 over the existing tailscale/pool route
+//      0-dep design: no nginx, no haproxy, no extra runtime — client-side
+//      round-robin in the harness (see _dispatch_one).
+//   2. Sweep the same M3.OPS rate grid {1, 2, 5, 10, 20, 40} qps. Wall cap
+//      240s per cell (M2.OPS FIX-R2 pattern) so the post-knee cells return
+//      honest partials rather than hanging.
+//   3. Per-cell emit per-replica + aggregate stats: p50/p99/throughput/
+//      accuracy. TSV NUMBERS ONLY to .verdicts/sandbox/p3_multinode_2host.tsv
+//      (one row per cell, replica column ∈ {mini, ubu-1, aggregate}).
+//
+// ============================================================================
+// HONESTY GATES (carried from single-host pattern)
+// ============================================================================
+//   - both servers killed between cells (clean -np state per cell, per host)
+//   - p99 only meaningful if n_completed ≥ 100 per cell — flagged NA below
+//   - error_rate captured SEPARATELY from latency (non-2xx never enters the
+//     latency array; would pollute p50 with sub-ms transport failures)
+//   - accuracy = byte-substring match on the manifest's expected_kw column
+//   - network RTT to ubu-1 baseline recorded ONCE per run (ping-mean ms);
+//     the d_p3_network_rtt_overhead_decomposition seed extends this later
+//   - identical model file SHA256 verified on both hosts before warmup
+//     (TODO: shipped via `pool on ubu-1` shasum check at boot)
+//
+// ============================================================================
+// THIS COMMIT'S DELIVERABLE: PARSE-CLEAN SKELETON
+// ============================================================================
+//   The actual HTTP request emission (round-robin curl POST against two
+//   hosts) is STUBBED with TODO markers — Hexa today has no first-class
+//   HTTP client surface, and the single-host pattern reaches it via shell
+//   curl in an exec() body. The FIRE round (a later cycle) will wire that
+//   shell body in exactly the same shape as drive_cell() in
+//   bench/sandbox_stage4_slo_under_load.hexa, with one extra knob (the
+//   replica round-robin index).
+//
+//   The FIRE round will also need:
+//     - brew llama.cpp on ubu-1 at a version that supports the same
+//       --slot-save-path + -np + -cb flags as mini's mac brew (TODO:
+//       version-pin check at boot).
+//     - the same GGUF file at $HOME/Models/gguf/<MODEL_NAME>.gguf on ubu-1
+//       (TODO: rsync-or-skip preflight via `pool on ubu-1 ls`).
+//     - tailscale / pool route open on TCP 8090 (TODO: `pool on ubu-1
+//       curl 127.0.0.1:8090/health` preflight, plus a `nc -z ubu-1 8090`
+//       reachability check from mini).
+//
+// Run (LATER — this commit ships harness skeleton only, parse-clean):
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_p3_multinode_2host.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Skeleton only — no atlas atoms touched. FIRE round will dispatch external curl + llama-server subprocesses on mini + ubu-1 via existing pool route.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MANIFEST_PATH = ROOT + "/.verdicts/sandbox/stage2_manifest.tsv"
+let MODEL_PATH = HOME + "/Models/gguf/Qwen2.5-0.5B-Instruct-Q4_K_M.gguf"
+let MODEL_NAME = "Qwen2.5-0.5B-Instruct-Q4_K_M"
+
+// ── replica topology (2 hosts, identical config — homogeneous pilot) ────────
+// host_id ∈ {"mini", "ubu-1"}; each replica binds :8090 on its own host.
+// mini is in-process (127.0.0.1); ubu-1 is reached over the existing pool
+// route. The FIRE round drives both via a single shared curl shell helper
+// that takes (replica_idx, idx) and rotates host on replica_idx % 2.
+let HOST_MINI = "127.0.0.1"
+let HOST_UBU1 = "ubu-1"             // pool/tailscale-resolved
+let PORT_MINI = "8090"
+let PORT_UBU1 = "8090"
+let URL_MINI  = "http://127.0.0.1:8090"
+let URL_UBU1  = "http://ubu-1:8090"
+let N_REPLICAS = 2                  // total c = N_REPLICAS · np_per_replica
+let NP_PER_REPLICA = 1              // homogeneous c=1 per host → aggregate c=2
+
+let MAX_TOK = 64
+let SHARD_DIR     = "/tmp/sandbox_p3_2host_shards"
+let PAYLOAD_DIR   = "/tmp/sandbox_p3_2host_payloads"
+let SERVER_LOG_M  = "/tmp/sandbox_p3_2host_mini.log"
+let SERVER_LOG_U  = "/tmp/sandbox_p3_2host_ubu1.log"
+let SERVER_PIDF_M = "/tmp/sandbox_p3_2host_mini.pid"
+let SERVER_PIDF_U = "/tmp/sandbox_p3_2host_ubu1.pid"
+let SLOT_DIR_M    = "/tmp/sandbox_p3_2host_slots_mini"
+let SLOT_DIR_U    = "/tmp/sandbox_p3_2host_slots_ubu1"
+
+let WARMUP_SEC    = 30              // EXCLUDED from percentile rollup
+let MEASURE_SEC   = 60              // included
+let WALL_CAP_SEC  = 240             // M2.OPS FIX-R2 pattern — never hang
+let MIN_FOR_P99   = 100             // honesty gate for p99
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Kill any stale server on our port on the LOCAL host. Idempotent.
+fn kill_server_local() {
+    exec("if [ -f " + shq(SERVER_PIDF_M) + " ]; then " +
+         "  pid=$(cat " + shq(SERVER_PIDF_M) + " 2>/dev/null); " +
+         "  if [ -n \"$pid\" ] && kill -0 $pid 2>/dev/null; then " +
+         "    kill -TERM $pid 2>/dev/null; sleep 1; " +
+         "    if kill -0 $pid 2>/dev/null; then kill -KILL $pid 2>/dev/null; fi; " +
+         "  fi; " +
+         "  rm -f " + shq(SERVER_PIDF_M) + "; " +
+         "fi; " +
+         "for p in $(lsof -iTCP:" + PORT_MINI + " -sTCP:LISTEN -t 2>/dev/null); do " +
+         "  kill -TERM $p 2>/dev/null; sleep 1; kill -KILL $p 2>/dev/null; " +
+         "done; " +
+         "true")
+}
+
+// Kill any stale server on our port on the REMOTE host (ubu-1) via pool.
+// TODO(FIRE-round): wire `pool on ubu-1 "<kill snippet>"`. The kill snippet
+// is the same shape as kill_server_local but with SERVER_PIDF_U / PORT_UBU1
+// and is shipped as a self-contained heredoc per feedback_pod_quoting
+// (never drive multi-step pod work through inline ssh quoting).
+fn kill_server_remote() {
+    // TODO(FIRE): pool on ubu-1 — ship kill snippet via scp + run, not inline
+    let _placeholder = "kill ubu-1 :" + PORT_UBU1
+    let _ = _placeholder
+}
+
+// Boot the LOCAL (mini) llama-server. Same double-fork nohup pattern as
+// bench/sandbox_stage4_slo_under_load.hexa::boot_server. Returns "ok" or
+// "fail:<reason>".
+fn boot_local() -> str {
+    kill_server_local()
+    exec("sleep 1")
+    exec("mkdir -p " + shq(SLOT_DIR_M))
+    let inner = "nohup llama-server -m " + shq(MODEL_PATH) +
+                " --host " + HOST_MINI + " --port " + PORT_MINI +
+                " -np " + str(NP_PER_REPLICA) + " -cb --log-disable " +
+                " -c 4096" +
+                " --slot-save-path " + shq(SLOT_DIR_M) +
+                " > " + shq(SERVER_LOG_M) + " 2>&1 < /dev/null " +
+                " & echo $! > " + shq(SERVER_PIDF_M)
+    let launch = "( " + inner + " ) &"
+    exec("/bin/sh -c " + shq(launch))
+    exec("for i in 1 2 3 4 5; do [ -s " + shq(SERVER_PIDF_M) + " ] && break; sleep 1; done")
+    let pid = exec("cat " + shq(SERVER_PIDF_M) + " 2>/dev/null").trim()
+    if pid.len() == 0 {
+        return "fail:no_pid_mini"
+    }
+    let probe = "for i in $(seq 1 60); do " +
+                "  code=$(curl -s -o /dev/null -w '%{http_code}' " + URL_MINI + "/health 2>/dev/null); " +
+                "  if [ \"$code\" = \"200\" ]; then echo READY; exit 0; fi; " +
+                "  if ! kill -0 " + pid + " 2>/dev/null; then echo DIED; exit 1; fi; " +
+                "  sleep 0.5; " +
+                "done; echo TIMEOUT; exit 1"
+    let r = exec(probe).trim()
+    if r.contains("READY") { return "ok" }
+    if r.contains("DIED")  { return "fail:mini_died" }
+    return "fail:mini_health_timeout"
+}
+
+// Boot the REMOTE (ubu-1) llama-server via the pool route. STUB — the FIRE
+// round will ship the boot snippet via `pool on ubu-1` exactly like the
+// local boot, with the same flags, then poll /health from mini against
+// URL_UBU1 over the tailscale route.
+//
+// TODO(FIRE-round) prerequisites the boot snippet will preflight:
+//   - ubu-1 has brew llama.cpp installed and on $PATH
+//   - llama-server supports --slot-save-path + -np + -cb (parity with mac
+//     brew on mini; bump check ≥ release that ships those flags)
+//   - $HOME/Models/gguf/<MODEL_NAME>.gguf is present + SHA256 matches mini's
+//     (rsync-or-skip — if absent, abort with "fail:ubu1_model_missing")
+//   - tailscale up; TCP 8090 reachable from mini (`nc -z ubu-1 8090`)
+//
+// Returns "ok" or "fail:<reason>" (same shape as boot_local).
+fn boot_remote() -> str {
+    // TODO(FIRE): pool on ubu-1 — ship the boot snippet via scp + run
+    // (NEVER inline ssh quoting per feedback_pod_quoting).
+    return "skeleton:not_yet_wired"
+}
+
+// Stage payloads — identical to the single-host bench. The same payload
+// directory is read by BOTH replicas (mini reads local FS directly; the
+// ubu-1 replica receives the request bodies inline in the curl POST, so
+// the staged JSON files on mini are the SoT for both routes).
+fn stage_payloads() -> int {
+    exec("rm -rf " + shq(PAYLOAD_DIR) + "; mkdir -p " + shq(PAYLOAD_DIR))
+    let cmd = "awk -F'\\t' 'NR>1 {" +
+              "  idx=$1; prompt=$4; " +
+              "  gsub(/\\\\/, \"\\\\\\\\\", prompt); " +
+              "  gsub(/\"/,  \"\\\\\\\"\", prompt); " +
+              "  gsub(/\\n/, \"\\\\n\", prompt); " +
+              "  body=\"{\\\"messages\\\":[{\\\"role\\\":\\\"user\\\",\\\"content\\\":\\\"\" prompt \"\\\"}],\\\"max_tokens\\\":" + str(MAX_TOK) + ",\\\"temperature\\\":0}\"; " +
+              "  path=\"" + PAYLOAD_DIR + "/\" idx \".json\"; " +
+              "  print body > path; close(path); " +
+              "  cnt++; " +
+              "} END { print cnt }' " + shq(MANIFEST_PATH)
+    let out = exec(cmd).trim()
+    if out.len() == 0 { return 0 }
+    return int(out)
+}
+
+fn stage_keywords() -> str {
+    let kw_path = "/tmp/sandbox_p3_2host_kw.tsv"
+    exec("awk -F'\\t' 'NR>1 { print $1 \"\\t\" $5 }' " + shq(MANIFEST_PATH) +
+         " > " + shq(kw_path))
+    return kw_path
+}
+
+// Round-trip ping to ubu-1 — single baseline measurement, recorded in the
+// summary file so the network-RTT offset on the ubu-1 path is reported
+// alongside the latency cells. The d_p3_network_rtt_overhead_decomposition
+// seed extends this to per-cell.
+fn measure_rtt_ubu1_ms() -> int {
+    // ping 5 packets, parse mean rtt. Returns -1 if ubu-1 unreachable.
+    let cmd = "ping -c 5 -q " + HOST_UBU1 + " 2>/dev/null | " +
+              "awk -F'/' '/min\\/avg/ {printf \"%d\", $5+0}'"
+    let out = exec(cmd).trim()
+    if out.len() == 0 { return -1 }
+    return int(out)
+}
+
+// Drive one cell — fire requests at target_rate_qps with client-side
+// round-robin across the 2 replicas. Returns
+//   "n_total\tn_completed\tn_errors\tn_correct"
+// for the measure-phase aggregate (per-replica rollup happens in
+// percentile_ms below by filtering shard rows on the replica column).
+//
+// TODO(FIRE-round): wire the actual dispatcher. The shape mirrors
+// drive_cell() in bench/sandbox_stage4_slo_under_load.hexa with two
+// changes:
+//   (a) per-row replica column added to shard ({mini, ubu1})
+//   (b) arrival generator emits (phase, idx, replica_idx) triples; the
+//       dispatcher picks the URL via `case replica_idx in 0) URL_MINI;;
+//       1) URL_UBU1;; esac` — pure shell, 0 extra dep.
+//   (c) the outer loop respects WALL_CAP_SEC (kill xargs at wall-cap).
+//
+// Hexa today has no first-class HTTP client surface, so the FIRE round
+// reuses the same shell-curl pattern as the single-host bench (NOT a fake
+// http_get intrinsic) — kept honest per the harness skeleton rule.
+fn drive_cell(target_rate_qps: int, manifest_n: int, kw_path: str) -> str {
+    let shard = SHARD_DIR + "/cell_" + str(target_rate_qps) + ".tsv"
+    exec("rm -f " + shq(shard) + "; mkdir -p " + shq(SHARD_DIR))
+    exec("printf 'phase\\treplica\\tenqueue_ns\\tcomplete_ns\\twall_ms\\thttp_code\\toutput_tok\\tcorrect\\n' > " + shq(shard))
+
+    // Suppress unused-var warnings on the parse-clean skeleton.
+    let _kw = kw_path
+    let _mn = manifest_n
+
+    // TODO(FIRE-round): the round-robin dispatcher body. Shape:
+    //   _dispatch_one() { phase=$1; idx=$2; replica=$3; ... curl POST ...; }
+    //   gen() { for i in $(seq 1 N); do phase=...; idx=...; replica=$((i%2));
+    //           printf '%s %s %s\n' $phase $idx $replica; sleep $tick_s; done }
+    //   (gen) | timeout WALL_CAP_SEC xargs -n 3 -P <C> bash -c '_dispatch_one "$0" "$1" "$2"'
+    // Returns the measure-phase totals via an awk rollup on the shard.
+
+    // Placeholder rollup so the skeleton returns the documented shape.
+    return "0\t0\t0\t0"
+}
+
+// Compute percentile from shard's measure rows, scoped to a replica
+// (replica ∈ {"mini", "ubu1", "all"} — "all" = aggregate, no filter).
+// Same approach as stage4_slo_under_load: sort -n + index by quantile.
+// Returns wall_ms at quantile, or -1 if no rows.
+fn percentile_ms(target_rate_qps: int, replica: str, q_x10000: int) -> int {
+    let shard = SHARD_DIR + "/cell_" + str(target_rate_qps) + ".tsv"
+    let filter = if replica == "all" {
+        "$1==\"measure\" && $6 ~ /^2/"
+    } else {
+        "$1==\"measure\" && $2==\"" + replica + "\" && $6 ~ /^2/"
+    }
+    let cmd = "awk -F'\\t' 'NR>1 && " + filter + " {print $5}' " + shq(shard) +
+              " | sort -n | awk -v q=" + str(q_x10000) +
+              " 'BEGIN{n=0} {a[++n]=$1} END{ " +
+              "  if (n==0) {print -1; exit} " +
+              "  idx=int(n*q/10000); if (idx<1) idx=1; if (idx>n) idx=n; " +
+              "  print a[idx] " +
+              "}'"
+    let out = exec(cmd).trim()
+    if out.len() == 0 { return -1 }
+    return int(out)
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_p3_multinode_2host")
+    println("  model:        " + MODEL_NAME)
+    println("  surface:      llama-server -np 1 -cb × 2 replicas")
+    println("                replica 0 mini  : " + URL_MINI)
+    println("                replica 1 ubu-1 : " + URL_UBU1 + " (via pool/tailscale)")
+    println("  aggregate c:  " + str(N_REPLICAS * NP_PER_REPLICA) + " (= " + str(N_REPLICAS) + " hosts × " + str(NP_PER_REPLICA) + " np)")
+    println("  rate grid:    {1, 2, 5, 10, 20, 40} qps (same axis as M3.OPS 18-cell)")
+    println("  wall cap:     " + str(WALL_CAP_SEC) + "s per cell (M2.OPS FIX-R2)")
+    println("  P3 source:    .discoveries/sandbox-p3-multinode.tape :: d_p3_2host_homogeneous_pilot")
+    println("  status:       SKELETON ONLY — FIRE round wires the dispatcher")
+    println("========================================================================")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/p3_multinode_2host.tsv"
+    exec("rm -f " + shq(tsv_path))
+    // One row per (rate × replica): replica ∈ {mini, ubu1, aggregate}.
+    exec("printf '%s\\n' " +
+         shq("rate_qps\treplica\tn_total\tn_completed\tn_errors\tn_correct\tp50_ms\tp99_ms\tthroughput_qps\terror_rate\taccuracy") +
+         " >> " + shq(tsv_path))
+
+    // Pre-flight 1: payloads + keywords (same SoT as single-host)
+    let manifest_n = stage_payloads()
+    println("  staged_payloads=" + str(manifest_n))
+    if manifest_n < 100 {
+        println("  ! manifest too small or missing — abort")
+        exit(2)
+    }
+    let kw_path = stage_keywords()
+    println("  staged_keywords=" + kw_path)
+
+    // Pre-flight 2: baseline RTT to ubu-1 (the network-overhead offset).
+    let rtt_ms = measure_rtt_ubu1_ms()
+    if rtt_ms < 0 {
+        println("  ! ubu-1 unreachable on the pool route — FIRE round needs tailscale up")
+    } else {
+        println("  baseline_rtt_ubu1=" + str(rtt_ms) + "ms (single ping baseline)")
+    }
+
+    // Pre-flight 3: boot both replicas
+    let boot_m = boot_local()
+    if boot_m != "ok" {
+        println("  ! mini boot failed: " + boot_m + " — abort")
+        kill_server_local()
+        exit(2)
+    }
+    let boot_u = boot_remote()
+    println("  mini  boot: " + boot_m)
+    println("  ubu-1 boot: " + boot_u + " (TODO(FIRE): wire pool dispatch)")
+
+    // Rate grid — same axis as M3.OPS 18-cell.
+    let rates = [1, 2, 5, 10, 20, 40]
+    let mut cells_run = 0
+    let mut gi = 0
+    while gi < len(rates) {
+        let rate = int(rates[gi])
+        println("")
+        println("  --- cell rate=" + str(rate) + "qps (2 replicas, c=" + str(N_REPLICAS * NP_PER_REPLICA) + ") ---")
+
+        let totals = drive_cell(rate, manifest_n, kw_path)
+        let parts = totals.split("\t")
+        let mut n_total = 0
+        let mut n_done  = 0
+        let mut n_err   = 0
+        let mut n_corr  = 0
+        if parts.len() >= 4 {
+            n_total = int(parts[0])
+            n_done  = int(parts[1])
+            n_err   = int(parts[2])
+            n_corr  = int(parts[3])
+        }
+
+        // Per-replica + aggregate percentile rollups.
+        let p50_m  = percentile_ms(rate, "mini",      5000)
+        let p99_m  = if n_done >= MIN_FOR_P99 { percentile_ms(rate, "mini",      9900) } else { -1 }
+        let p50_u  = percentile_ms(rate, "ubu1",      5000)
+        let p99_u  = if n_done >= MIN_FOR_P99 { percentile_ms(rate, "ubu1",      9900) } else { -1 }
+        let p50_a  = percentile_ms(rate, "all",       5000)
+        let p99_a  = if n_done >= MIN_FOR_P99 { percentile_ms(rate, "all",       9900) } else { -1 }
+
+        println("  per-replica p50/p99: mini=" + str(p50_m) + "/" + str(p99_m) +
+                "ms  ubu1=" + str(p50_u) + "/" + str(p99_u) + "ms")
+        println("  aggregate   p50/p99: " + str(p50_a) + "/" + str(p99_a) + "ms")
+        println("  n_total=" + str(n_total) + " n_done=" + str(n_done) +
+                " n_err=" + str(n_err) + " n_correct=" + str(n_corr))
+
+        // TODO(FIRE-round): emit per-replica + aggregate rows to TSV here
+        // using the same numeric-format pattern as stage4_slo_under_load
+        // (throughput = n_done / MEASURE_SEC; error_rate = n_err / n_total;
+        // accuracy = n_corr / n_done). Skeleton emits a single placeholder
+        // row per cell so the TSV header + row count is parse-checkable
+        // downstream; FIRE round replaces with the real 3-row emit.
+        let row = str(rate) + "\taggregate\t" + str(n_total) + "\t" + str(n_done) +
+                  "\t" + str(n_err) + "\t" + str(n_corr) +
+                  "\t" + str(p50_a) + "\t" + str(p99_a) +
+                  "\tNA\tNA\tNA"
+        exec("echo " + shq(row) + " >> " + shq(tsv_path))
+
+        cells_run = cells_run + 1
+        gi = gi + 1
+    }
+
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — P3 2-host multi-node Erlang-C re-measurement")
+    println("  cells_run = " + str(cells_run) + "/" + str(len(rates)))
+    println("  status    = SKELETON (parse-clean only; FIRE in a later cycle)")
+    println("========================================================================")
+
+    // Persist summary (skeleton version — replaced by FIRE-round run-time emit).
+    let sp = OUT_DIR + "/p3_multinode_2host_summary.txt"
+    exec("rm -f " + shq(sp))
+    exec("echo " + shq("# status=skeleton_only") + " >> " + shq(sp))
+    exec("echo " + shq("# source_tape=.discoveries/sandbox-p3-multinode.tape :: d_p3_2host_homogeneous_pilot") + " >> " + shq(sp))
+    exec("echo " + shq("# reference_baseline=SANDBOX.md M3.OPS 18-cell single-host grid (cycle-16)") + " >> " + shq(sp))
+    exec("echo " + shq("# model=" + MODEL_NAME) + " >> " + shq(sp))
+    exec("echo " + shq("# replicas=2 (mini + ubu-1, each -np 1 -cb on :8090)") + " >> " + shq(sp))
+    exec("echo " + shq("# aggregate_c=" + str(N_REPLICAS * NP_PER_REPLICA)) + " >> " + shq(sp))
+    exec("echo " + shq("# rate_grid_qps={1,2,5,10,20,40}") + " >> " + shq(sp))
+    exec("echo " + shq("# wall_cap_sec=" + str(WALL_CAP_SEC)) + " >> " + shq(sp))
+    exec("echo " + shq("# warmup_sec=" + str(WARMUP_SEC) + " measure_sec=" + str(MEASURE_SEC)) + " >> " + shq(sp))
+    exec("echo " + shq("# baseline_rtt_ubu1_ms=" + str(rtt_ms)) + " >> " + shq(sp))
+    exec("echo " + shq("# todo_fire_round=wire round-robin curl dispatcher + pool on ubu-1 boot + c=2-substituted verifier link") + " >> " + shq(sp))
+
+    // teardown
+    kill_server_local()
+    kill_server_remote()
+    exec("rm -rf " + shq(PAYLOAD_DIR) + " " + shq(SHARD_DIR) + " " + shq(SLOT_DIR_M))
+    exec("rm -f " + kw_path)
+
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + sp)
+    println("")
+    println("__HEXA_CODEX_BENCH_SANDBOX_P3_MULTINODE_2HOST__ SKELETON_PASS")
+    exit(0)
+}

@@ -1,0 +1,417 @@
+#!hexa strict
+// bench/sandbox_p4_quant_band_pilot.hexa — SANDBOX P4 quant-band Pareto ladder, CHEAP 3-band pilot.
+//
+// DISCOVERY ENTRY (load-bearing, do NOT rename):
+//   .discoveries/sandbox-p4-new-axes.tape  @C d_p4_quantization_band_ladder
+//   ("Q2/Q3/Q4/Q5/Q6/Q8 quant ladder accuracy-vs-speed Pareto (NEW quant-band axis)")
+//   This file is the CHEAPEST first-probe variant called out in that entry:
+//     "The CHEAPEST first-probe variant: 3 bands {Q3_K_M, Q4_K_M, Q8_0} on N=200,
+//      then full ladder if the knee is detectable."
+//   The full 6-band Q2/Q3/Q4/Q5/Q6/Q8 ladder lands in a SEPARATE bench
+//   (`bench/sandbox_p4_quant_ladder.hexa`) only after this pilot detects a knee.
+//
+// QUESTION (P4 quant-band axis, CAPABILITY-vs-SPEED Pareto):
+//   On a SELF-HOSTED substrate (the metered API cannot expose the quant-band axis
+//   at all), where is the accuracy/throughput Pareto knee for Qwen2.5-1.5B-Instruct
+//   across {Q3_K_M, Q4_K_M, Q8_0}? Q4_K_M is the canonical default this repo has
+//   shipped against since cycle-7 (`.verdicts/sandbox/m1_substrate_base_pick.txt`).
+//   The pilot's job is to CONFIRM or REFUTE that default with one quant rung above
+//   (Q8_0) and one below (Q3_K_M), holding the manifest + decode params fixed.
+//
+// HYPOTHESIS (verbatim from .discoveries/sandbox-p4-new-axes.tape):
+//   "accuracy saturates at Q4_K_M or above (Δ ≤2pp between Q4_K_M and Q8_0) but
+//    Q3_K_M shows >5pp drop and Q2_K shows >15pp drop — i.e. the Pareto knee
+//    sits at Q4 for Qwen2.5-1.5B".
+//   The CHEAPEST pilot here cannot speak to Q2 (no Q2 band) — it tests the
+//   Q3→Q4→Q8 portion of the knee only. A POSITIVE pilot (Δ(Q4,Q8)≤2pp AND
+//   Δ(Q3,Q4)>5pp) green-lights the full 6-band ladder; a NEGATIVE pilot
+//   short-circuits it.
+//
+// FALSIFIER (verbatim from the tape, mirrored as a hard predicate):
+//   "if accuracy degrades monotonically through Q4→Q8 without a knee, the
+//    substrate's calibration is anomalous — likely a manifest-leakage artifact,
+//    recheck the manifest."
+//   The harness emits 2 derived flags into the summary:
+//     knee_detected          = (acc[Q4_K_M] - acc[Q3_K_M]) >= 5pp AND |acc[Q8_0] - acc[Q4_K_M]| <= 2pp
+//     monotone_no_knee       = acc[Q3_K_M] <= acc[Q4_K_M] <= acc[Q8_0] AND NOT knee_detected
+//   monotone_no_knee = true → the falsifier fires → tape entry FALSIFIED (recheck manifest).
+//
+// THREE BANDS (cheapest-first per tape entry):
+//   band 0  Qwen2.5-1.5B-Instruct-Q3_K_M  ~0.8GB  (HF Qwen2.5-1.5B-Instruct-GGUF, repo split)
+//   band 1  Qwen2.5-1.5B-Instruct-Q4_K_M  ~1.0GB  (LOCAL: ~/Models/gguf/, repo default since cycle-7)
+//   band 2  Qwen2.5-1.5B-Instruct-Q8_0    ~1.7GB  (HF Qwen2.5-1.5B-Instruct-GGUF, repo split)
+//   Repo: Qwen/Qwen2.5-1.5B-Instruct-GGUF (HF). Q4_K_M already on disk; Q3_K_M + Q8_0 are
+//   TODO model-download stubs in `ensure_models()` below (Hexa surface for HF download missing).
+//
+// MANIFEST (CHEAP pilot subset — N=200, NOT full 2000):
+//   Stage-2 N=2000 manifest at `.verdicts/sandbox/stage2_manifest.tsv` (5 strata × 400).
+//   Subset = uniform-stratified 40 rows per stratum × 5 strata = 200 sampled rows.
+//   Stride = 10 within each stratum starting at the stratum's first row (manifest
+//   is contiguous: 1..400 = wc_5_15, 401..800 = wc_16_30, 801..1200 = wc_31_60,
+//   1201..1600 = wc_61_100, 1601..2000 = wc_101_200). Deterministic, reproducible.
+//   IDENTICAL across all 3 bands so the per-band comparison is apples-to-apples.
+//
+// SCORER: same non-self-judging family as the canonical cycle-8/cycle-20 benches
+//   (bench/sandbox_stage2_persona_scaled_1_5b.hexa, bench/sandbox_multimodal_ladder.hexa):
+//   lowercase, collapse whitespace, case-insensitive SUBSTRING match on expected_kw.
+//   NO LLM judges correctness — pure byte compare. Seed-pinned greedy (--temp 0 -s 42).
+//
+// PER-BAND EMIT (numbers only, NO LLM self-judge):
+//   accuracy  = byte_exact_subset correct / 200  (integer correct count + pct)
+//   tok_per_s = total_decoded_tokens / total_wall_seconds  (aggregate over 200 rows)
+//   rss_mb    = peak process RSS in MB (TODO sampler — Hexa surface for ps/wallclock peak missing)
+//
+// OUTPUT (numbers only, TSV per task spec):
+//   .verdicts/sandbox/p4_quant_band_pilot.tsv          (per-band × per-task rows)
+//   .verdicts/sandbox/p4_quant_band_pilot_summary.txt  (per-band aggregate + knee flags)
+//
+// Run (after model-download TODO is satisfied):
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_p4_quant_band_pilot.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-completion × 3 bands) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let MANIFEST = ROOT + "/.verdicts/sandbox/stage2_manifest.tsv"
+let OUT_PREFIX = "p4_quant_band_pilot"
+
+// Decode params (seed-pinned greedy — identical across bands for apples-to-apples).
+let SEED = 42
+let MAX_TOK = 256          // matches the cycle-6/cycle-8 "mid" persona budget; wc_101_200 still fits
+
+// Sampling parameters — uniform-stratified, CHEAP pilot N=200 (NOT full 2000).
+let PER_STRATUM_N = 40
+let STRIDE = 10
+let N_SAMPLED = 200
+
+// Per-stratum first-idx (1-based, verified against `.verdicts/sandbox/stage2_manifest.tsv`):
+//   wc_5_15    1..400
+//   wc_16_30   401..800
+//   wc_31_60   801..1200
+//   wc_61_100  1201..1600
+//   wc_101_200 1601..2000
+let STRATA = [
+    ["wc_5_15",     "1"],
+    ["wc_16_30",    "401"],
+    ["wc_31_60",    "801"],
+    ["wc_61_100",   "1201"],
+    ["wc_101_200",  "1601"],
+]
+
+// ── THE THREE BANDS (cheapest-first per tape entry) ──────────────────────────
+// Columns: [band_name, bits_per_weight_str, model_path, hf_repo, hf_filename, approx_size_mb]
+// bits_per_weight is the x-axis of the closed-form fit the follow-up verifier consumes.
+//   Q3_K_M ≈ 3.5 bpw  ·  Q4_K_M ≈ 4.5 bpw  ·  Q8_0 = 8.5 bpw  (llama.cpp k-quant docs)
+let BANDS = [
+    ["Qwen2.5-1.5B-Instruct-Q3_K_M",  "3.5",
+        HOME + "/Models/gguf/Qwen2.5-1.5B-Instruct-Q3_K_M.gguf",
+        "Qwen/Qwen2.5-1.5B-Instruct-GGUF", "qwen2.5-1.5b-instruct-q3_k_m.gguf", "824"],
+    ["Qwen2.5-1.5B-Instruct-Q4_K_M",  "4.5",
+        HOME + "/Models/gguf/Qwen2.5-1.5B-Instruct-Q4_K_M.gguf",
+        "Qwen/Qwen2.5-1.5B-Instruct-GGUF", "qwen2.5-1.5b-instruct-q4_k_m.gguf", "986"],
+    ["Qwen2.5-1.5B-Instruct-Q8_0",    "8.5",
+        HOME + "/Models/gguf/Qwen2.5-1.5B-Instruct-Q8_0.gguf",
+        "Qwen/Qwen2.5-1.5B-Instruct-GGUF", "qwen2.5-1.5b-instruct-q8_0.gguf", "1646"],
+]
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// TODO(hexa-surface-missing): Hexa-native HF model download surface is not yet
+// available. For now this stub merely VERIFIES presence — the operator must pre-
+// fetch the two missing Q3_K_M / Q8_0 GGUFs out-of-band (e.g. `huggingface-cli
+// download Qwen/Qwen2.5-1.5B-Instruct-GGUF qwen2.5-1.5b-instruct-q3_k_m.gguf
+// --local-dir ~/Models/gguf`). When the inbox HF-download surface lands, replace
+// the body of this fn with a hexa-native `hf_download(repo, file, dest)` call.
+// Returns "OK" if all 3 band files exist; otherwise returns a missing-list string.
+fn ensure_models() -> str {
+    let mut missing = ""
+    let mut i = 0
+    while i < len(BANDS) {
+        let path = BANDS[i][2]
+        let probe = exec("test -f " + shq(path) + " && echo OK || echo MISSING").trim()
+        if probe != "OK" {
+            missing = missing + BANDS[i][0] + "(" + BANDS[i][3] + "/" + BANDS[i][4] + "," + BANDS[i][5] + "MB) "
+        }
+        i = i + 1
+    }
+    if missing.len() == 0 { return "OK" }
+    return "MISSING: " + missing
+}
+
+// TODO(hexa-surface-missing): peak-RSS sampling has no hexa-native surface yet.
+// `ps -o rss=` reports CURRENT RSS only; peak-RSS needs `/usr/bin/time -l` on
+// macOS (max resident set size, KB) or `/usr/bin/time -v` on Linux. The current
+// stub returns "0" so the TSV column stays parse-clean and numeric; replace with
+// the wrapped-time pathway once the inbox surface lands. The wall_ms + tok_est
+// columns are already numerically honest (they come from $(date +%s%N) + wc -w).
+fn sample_rss_mb(pid_or_zero: str) -> str {
+    return "0"
+}
+
+// Read one row from the Stage 2 manifest (1-based idx; header line at file row 1
+// so data row N is file line N+1). Returns TAB-joined: wc \t stratum \t prompt \t expected_kw.
+fn read_row(manifest_idx: int) -> str {
+    let file_line = manifest_idx + 1
+    let cmd = "awk -F'\\t' 'NR==" + str(file_line) + " {printf \"%s\\t%s\\t%s\\t%s\", $2, $3, $4, $5}' " + shq(MANIFEST)
+    return exec(cmd)
+}
+
+// Dispatch one task on one band — seed-pinned greedy, byte-exact subset scorer.
+// Returns tab-separated: wall_ms \t tok_est \t correct(1|0) \t output_snippet
+fn run_band_task(model_path: str, prompt: str, expected_kw: str) -> str {
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-completion -m " + shq(model_path) +
+              " -p " + shq(prompt) +
+              " -n " + str(MAX_TOK) +
+              " --temp 0 -s " + str(SEED) + " -st 2>&1); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans_raw=$(printf '%s\\n' \"$out\" | awk '/^assistant$/{flag=1; next} /^> EOF by user/{flag=0} flag{print}' | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              // SCORER FIX (canonical from stage3_maxtokens_cap): strip [end of text] + common_perf_print trailer.
+              "ans=$(printf '%s' \"$ans_raw\" | sed 's/ *\\[end of text\\].*$//' | sed 's/ *common_perf_print:.*$//'); " +
+              "tok_est=$(printf '%s' \"$ans\" | wc -w | tr -d ' '); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-120 | tr '\\t' ' '); " +
+              "printf '%s\\t%s\\t%s\\t%s' \"$wall_ms\" \"$tok_est\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_p4_quant_band_pilot — P4 quant-band Pareto ladder (CHEAP 3-band pilot)")
+    println("  discovery: .discoveries/sandbox-p4-new-axes.tape @C d_p4_quantization_band_ladder")
+    println("  bands:    3 cheapest-first {Q3_K_M, Q4_K_M, Q8_0} of Qwen2.5-1.5B-Instruct")
+    println("  tool:     llama-completion (chat-template aware)")
+    println("  manifest: .verdicts/sandbox/stage2_manifest.tsv subset N=" + str(N_SAMPLED) + " (40/stratum × 5)")
+    println("  scorer:   byte_exact_subset (NO LLM self-judge)")
+    println("  decode:   greedy --temp 0 -s " + str(SEED) + " -n " + str(MAX_TOK) + " (seed-pinned)")
+    println("========================================================================")
+
+    let model_check = ensure_models()
+    if model_check != "OK" {
+        println("  ! model presence check FAILED: " + model_check)
+        println("  ! pre-fetch missing GGUFs out-of-band (TODO: hexa-native hf_download surface)")
+        println("__HEXA_CODEX_BENCH_SANDBOX_P4_QUANT_BAND_PILOT__ FAIL_MODEL_MISSING")
+        exit(1)
+    }
+    println("  models OK (all 3 bands present on disk)")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/" + OUT_PREFIX + ".tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'band\tbpw\tstratum\ttask_idx\twc\twall_ms\ttok_est\tcorrect\trss_mb\toutput_snippet' >> " + shq(tsv_path))
+
+    // Precompute the 200 sampled (manifest_idx, stratum) pairs.
+    let mut sampled_idx = [0]
+    let mut sampled_stratum = [""]
+    sampled_idx = []
+    sampled_stratum = []
+    let mut s_i = 0
+    while s_i < len(STRATA) {
+        let stratum_name = STRATA[s_i][0]
+        let first_idx = int(STRATA[s_i][1])
+        let mut k = 0
+        while k < PER_STRATUM_N {
+            let idx = first_idx + (k * STRIDE)
+            sampled_idx = sampled_idx + [idx]
+            sampled_stratum = sampled_stratum + [stratum_name]
+            k = k + 1
+        }
+        s_i = s_i + 1
+    }
+    println("  pre-sampled " + str(len(sampled_idx)) + " rows (expected " + str(N_SAMPLED) + ")")
+
+    // Per-band aggregates (parallel arrays, band-idx aligned).
+    let mut band_correct = [0, 0, 0]
+    let mut band_total_ms = [0, 0, 0]
+    let mut band_total_tok = [0, 0, 0]
+
+    let mut b = 0
+    while b < len(BANDS) {
+        let band = BANDS[b]
+        let bname = band[0]
+        let bpw = band[1]
+        let bpath = band[2]
+        println("")
+        println("  ── BAND " + str(b) + ": " + bname + "  (" + bpw + " bpw) ──────────")
+
+        let mut t_i = 0
+        while t_i < len(sampled_idx) {
+            let m_idx = sampled_idx[t_i]
+            let stratum = sampled_stratum[t_i]
+            let row = read_row(m_idx)
+            let parts = row.split("\t")
+            if parts.len() < 4 {
+                println("    ! manifest read parse error idx=" + str(m_idx) + " raw=" + row.substr(0, 80))
+                t_i = t_i + 1
+                continue
+            }
+            let wc = parts[0]
+            let prompt = parts[2]
+            let expected = parts[3]
+
+            let line = run_band_task(bpath, prompt, expected)
+            let lparts = line.split("\t")
+            if lparts.len() < 4 {
+                println("    ! dispatch parse error idx=" + str(m_idx) + " raw=" + line.substr(0, 80))
+                let bad = bname + "\t" + bpw + "\t" + stratum + "\t" + str(m_idx) + "\t" + wc + "\t0\t0\t0\t0\tPARSE_ERROR:" + line.substr(0, 80)
+                exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+                t_i = t_i + 1
+                continue
+            }
+            let wall_ms = int(lparts[0])
+            let tok_est = int(lparts[1])
+            let correct = lparts[2]
+            let snippet = lparts[3].replace("\t", " ")
+            let rss_mb = sample_rss_mb("0")  // TODO: real peak-RSS sampler
+
+            band_total_ms[b] = band_total_ms[b] + wall_ms
+            band_total_tok[b] = band_total_tok[b] + tok_est
+            if correct == "1" { band_correct[b] = band_correct[b] + 1 }
+
+            let row_out = bname + "\t" + bpw + "\t" + stratum + "\t" + str(m_idx) + "\t" + wc + "\t" + str(wall_ms) + "\t" + str(tok_est) + "\t" + correct + "\t" + rss_mb + "\t" + snippet.substr(0, 120)
+            exec("echo " + shq(row_out) + " >> " + shq(tsv_path))
+
+            if (t_i + 1) % 50 == 0 {
+                println("    [" + bname + " " + str(t_i + 1) + "/" + str(len(sampled_idx)) + "] running_correct=" + str(band_correct[b]) + " running_ms=" + str(band_total_ms[b]))
+            }
+            t_i = t_i + 1
+        }
+        println("    BAND " + bname + " : " + str(band_correct[b]) + "/" + str(N_SAMPLED) + "  total_wall_ms=" + str(band_total_ms[b]) + "  total_tok=" + str(band_total_tok[b]))
+        b = b + 1
+    }
+
+    // ── Per-band derived metrics + knee/falsifier flags ──────────────────────
+    // Accuracy as integer pct ×100 (so 81.25% prints as 8125 / 100 = 81.25).
+    let mut band_acc_x100 = [0, 0, 0]
+    let mut band_tok_per_s_x100 = [0, 0, 0]
+    let mut i = 0
+    while i < 3 {
+        if N_SAMPLED > 0 { band_acc_x100[i] = (band_correct[i] * 10000) / N_SAMPLED }
+        // tok/s = tok / (wall_ms / 1000) = tok * 1000 / wall_ms ; ×100 for 2dp print.
+        if band_total_ms[i] > 0 {
+            band_tok_per_s_x100[i] = (band_total_tok[i] * 100000) / band_total_ms[i]
+        }
+        i = i + 1
+    }
+
+    // Knee detection (HYPOTHESIS predicates from the tape entry):
+    //   delta_q3_q4_pp = acc[Q4] - acc[Q3]   (expected > 5pp under the hypothesis)
+    //   delta_q4_q8_pp = acc[Q8] - acc[Q4]   (expected |·| ≤ 2pp under the hypothesis)
+    // band indexing: 0 = Q3_K_M, 1 = Q4_K_M, 2 = Q8_0.
+    let acc_q3_pp = band_acc_x100[0] / 100
+    let acc_q4_pp = band_acc_x100[1] / 100
+    let acc_q8_pp = band_acc_x100[2] / 100
+    let delta_q3_q4_pp = acc_q4_pp - acc_q3_pp
+    let delta_q4_q8_pp = acc_q8_pp - acc_q4_pp
+    let mut abs_delta_q4_q8 = delta_q4_q8_pp
+    if abs_delta_q4_q8 < 0 { abs_delta_q4_q8 = -abs_delta_q4_q8 }
+
+    let mut knee_detected = "false"
+    if delta_q3_q4_pp >= 5 {
+        if abs_delta_q4_q8 <= 2 { knee_detected = "true" }
+    }
+
+    // FALSIFIER predicate (verbatim from the tape):
+    //   monotone_no_knee = acc[Q3] <= acc[Q4] <= acc[Q8] AND NOT knee_detected
+    //   if true → "substrate calibration is anomalous — likely a manifest-leakage
+    //              artifact, recheck the manifest" → tape entry FALSIFIED.
+    let mut monotone_no_knee = "false"
+    if acc_q3_pp <= acc_q4_pp {
+        if acc_q4_pp <= acc_q8_pp {
+            if knee_detected == "false" { monotone_no_knee = "true" }
+        }
+    }
+
+    // Pareto knee band call: the smallest band that meets the saturation criterion.
+    //   knee_band = Q4_K_M iff knee_detected
+    //   knee_band = Q3_K_M iff |acc[Q4] - acc[Q3]| ≤ 2 (Q3 already saturates)
+    //   knee_band = Q8_0   otherwise (no knee in pilot — full ladder needed)
+    let mut abs_delta_q3_q4 = delta_q3_q4_pp
+    if abs_delta_q3_q4 < 0 { abs_delta_q3_q4 = -abs_delta_q3_q4 }
+    let mut pareto_knee_band = "Q8_0"
+    if abs_delta_q3_q4 <= 2 {
+        pareto_knee_band = "Q3_K_M"
+    }
+    if knee_detected == "true" {
+        pareto_knee_band = "Q4_K_M"
+    }
+
+    // ── PRINT + PERSIST SUMMARY ──────────────────────────────────────────────
+    println("")
+    println("========================================================================")
+    println("  SUMMARY — P4 quant-band CHEAP 3-band pilot on Stage-2 N=" + str(N_SAMPLED))
+    println("========================================================================")
+    let mut p = 0
+    while p < 3 {
+        let pct_x100 = band_acc_x100[p]
+        let tps_x100 = band_tok_per_s_x100[p]
+        println("  " + BANDS[p][0] + "  bpw=" + BANDS[p][1] +
+                "  acc=" + str(band_correct[p]) + "/" + str(N_SAMPLED) +
+                " (" + str(pct_x100 / 100) + "." + str(pct_x100 % 100) + "%)" +
+                "  tok/s=" + str(tps_x100 / 100) + "." + str(tps_x100 % 100) +
+                "  wall_ms=" + str(band_total_ms[p]))
+        p = p + 1
+    }
+    println("  delta_q3_q4_pp     = " + str(delta_q3_q4_pp))
+    println("  delta_q4_q8_pp     = " + str(delta_q4_q8_pp))
+    println("  knee_detected      = " + knee_detected + "  (hypothesis: Δ(Q3,Q4)>5pp AND |Δ(Q4,Q8)|≤2pp)")
+    println("  monotone_no_knee   = " + monotone_no_knee + "  (FALSIFIER — recheck manifest if true)")
+    println("  pareto_knee_band   = " + pareto_knee_band)
+
+    let summary_path = OUT_DIR + "/" + OUT_PREFIX + "_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# bench=sandbox_p4_quant_band_pilot (P4 quant-band Pareto, CHEAP 3-band pilot)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# discovery=.discoveries/sandbox-p4-new-axes.tape @C d_p4_quantization_band_ladder") + " >> " + shq(summary_path))
+    exec("echo " + shq("# bands=Qwen2.5-1.5B-Instruct {Q3_K_M, Q4_K_M, Q8_0}  bpw=3.5,4.5,8.5") + " >> " + shq(summary_path))
+    exec("echo " + shq("# manifest=.verdicts/sandbox/stage2_manifest.tsv subset N=" + str(N_SAMPLED) + " (40/stratum × 5)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# scorer=byte_exact_subset (NO LLM self-judge; same family as stage2_persona + mm ladder)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# decode=greedy --temp 0 -s " + str(SEED) + " -n " + str(MAX_TOK) + " (seed-pinned byte-exact replay)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# tool=llama-completion (chat-template aware)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (Apple M3, 24GB UMA, $0 local)") + " >> " + shq(summary_path))
+    let mut p2 = 0
+    while p2 < 3 {
+        let pct_x100 = band_acc_x100[p2]
+        let tps_x100 = band_tok_per_s_x100[p2]
+        exec("echo " + shq("# band" + str(p2) + "_name=" + BANDS[p2][0]) + " >> " + shq(summary_path))
+        exec("echo " + shq("# band" + str(p2) + "_bpw=" + BANDS[p2][1]) + " >> " + shq(summary_path))
+        exec("echo " + shq("# band" + str(p2) + "_correct=" + str(band_correct[p2]) + "/" + str(N_SAMPLED)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# band" + str(p2) + "_accuracy_pct=" + str(pct_x100 / 100) + "." + str(pct_x100 % 100)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# band" + str(p2) + "_tok_per_s=" + str(tps_x100 / 100) + "." + str(tps_x100 % 100)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# band" + str(p2) + "_total_wall_ms=" + str(band_total_ms[p2])) + " >> " + shq(summary_path))
+        exec("echo " + shq("# band" + str(p2) + "_total_tok=" + str(band_total_tok[p2])) + " >> " + shq(summary_path))
+        p2 = p2 + 1
+    }
+    exec("echo " + shq("# delta_q3_q4_pp=" + str(delta_q3_q4_pp)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# delta_q4_q8_pp=" + str(delta_q4_q8_pp)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# knee_detected=" + knee_detected + "  (hypothesis: delta_q3_q4>=5pp AND |delta_q4_q8|<=2pp)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# monotone_no_knee=" + monotone_no_knee + "  (FALSIFIER — acc[Q3]<=acc[Q4]<=acc[Q8] AND no knee; recheck manifest if true)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# pareto_knee_band=" + pareto_knee_band) + " >> " + shq(summary_path))
+    exec("echo " + shq("# todo_rss_sampler=hexa-native peak-RSS surface missing (rss_mb column emits 0; replace sample_rss_mb when /usr/bin/time -l wrapper lands)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# todo_hf_download=hexa-native hf_download surface missing (ensure_models only verifies presence; pre-fetch Q3_K_M + Q8_0 out-of-band)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# next=full 6-band {Q2_K,Q3_K_M,Q4_K_M,Q5_K_M,Q6_K,Q8_0} ladder iff knee_detected=true") + " >> " + shq(summary_path))
+    exec("echo " + shq("# fit_consumer=verify/numerics_substrate_quant_pareto.hexa (PENDING — closed-form accuracy(bpw) fit, consumes this TSV)") + " >> " + shq(summary_path))
+
+    println("")
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("__HEXA_CODEX_BENCH_SANDBOX_P4_QUANT_BAND_PILOT__ DONE")
+    exit(0)
+}

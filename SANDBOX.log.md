@@ -2798,3 +2798,50 @@ arc 의 frontier 를 열 때까지). M5 cell 들은 "release" 키워드 때문�
 - P4 의 vLLM activation backend 는 LLMEngine-level API 호출이라 high-level `LLM` 클래스
   shortcut 없음 (cycle 시작 전에 vLLM 0.7.3 sample code 필요)
 
+
+## cycle-22 — 영구 축 P1-P4 second sweep: bench harness skeleton land (NO FIRE)
+
+**컨텍스트.** cycle-21 (PR #67) 에서 4축 17 @C discovery seed 가 들어왔다.
+이번 cycle 은 각 lane 의 *cheapest-first probe* 를 실제 `.hexa` bench harness
+skeleton 으로 land — `hexa parse` lint 만 통과시키고 **NO FIRE**. 실제 bench
+실행 (cycle-23 = FIRE round) 은 모델 다운로드 · 분산 셋업 · GPU 비용 때문에
+별도 결정 단위로 분리. background 4-Agent fan-out (총 ~14분 wall).
+
+| lane | harness | lines | parse | reference 모방 | 핵심 TODO (FIRE 시) |
+|------|---------|-------|-------|---------------|---------------------|
+| **P3** | `bench/sandbox_p3_multinode_2host.hexa` | 472 | ✅ | `sandbox_stage4_slo_under_load.hexa` (cycle-15) | round-robin curl dispatcher · pool on ubu-1 boot · 3-row per-cell TSV · `numerics_ops_mmc_knee.hexa` c=2 invariant 확장 |
+| **P4** | `bench/sandbox_p4_quant_band_pilot.hexa` | 417 | ✅ | `sandbox_stage2_persona_scaled_1_5b.hexa` | HF download surface (hexa-native 없음 → 수동 `hf download` 사전) · macOS `/usr/bin/time -l` RSS sampler · `numerics_substrate_quant_pareto.hexa` 작성 |
+| **P1** | `bench/sandbox_p1_multimodal_ladder_7b.hexa` | 446 | ✅ | `sandbox_multimodal_ladder.hexa` (cycle-20) | 4th rung GGUF DL (Qwen2.5-VL-7B-Q4_K_M + mmproj-f16, ~6GB) · `numerics_substrate_multimodal_fit.hexa` 3→4 rung 확장 |
+| **P2** | `bench/sandbox_p2_topk_sae_lever.hexa` | 292 | ✅ | `sandbox_m5_safety_sae_decomposition.hexa` (cycle-20) | SAELens 라이브러리 commit pin (default 후보) · python dispatch via `pool on ubu-1` (base64 ship pattern) · JumpReLU + BatchTopK 임계값 auto-tune |
+
+**Total: 1627 lines, 4/4 parse PASS, 0 credential matches.**
+
+### 설계 hygiene (lever isolation + comparability)
+
+각 harness는 cycle-20/cycle-15/cycle-16 baseline 과 **completely apples-to-apples**:
+- P3: 동일 rate grid {1,2,5,10,20,40} · 240s wall cap (FIX-R2) · `MIN_FOR_P99=100` honesty
+- P4: 동일 manifest (Stage-2 N=200 subset, 5-strata × 40, stride=10) · 동일 seed-pinned greedy (-s 42)
+- P1: 동일 16-item PIL manifest · 동일 byte-exact-subset scorer · cycle-20 3-rung **byte-identical**
+- P2: 동일 60k L19 corpus · 동일 r̂=27.6792 · 동일 dict width 6144 · cycle-20 ReLU L1 baseline **FROZEN as TSV row 1**
+
+cycle-20 numbers 가 lever 비교의 anchor — 새 family/rung 만 swap, 모든 control 동일.
+
+### Honest residual (cycle-23 FIRE blockers)
+
+| lane | blocker | unblock action |
+|------|---------|----------------|
+| P3 | ubu-1 brew llama.cpp 9150+ 미확인 · TCP 8090 reachability · 0.5B GGUF SHA256 mini↔ubu1 동일성 | pre-FIRE `pool on ubu-1` smoke (5분) |
+| P4 | Q3_K_M (~824MB) + Q8_0 (~1646MB) 미다운 (Q4_K_M ~986MB은 cycle-7부터 disk) | 수동 `huggingface-cli download` 사전 (~2.47GB 전체) |
+| P1 | Qwen2.5-VL-7B GGUF + mmproj-f16 (~6GB) 미다운 · `llama-mtmd-cli` 7B load 확인 안 됨 | 수동 DL + `--help` 호환성 5분 smoke |
+| P2 | SAELens (또는 alt) lib commit pin 미결정 · venv on ubu-1 미정 | `inbox/notes/p2-topk-sae-pin.md` 작성 (cycle-23 fire 직전) |
+
+### 다음 cycle 우선순위 (cheapest preflight first)
+
+1. **P3 preflight** (ubu-1 sshable 확인 + llama-server 부팅 5분) → 가장 cheap 검증
+2. **P4 model fetch** (~2.47GB 다운로드, M3 background) → 1시간 이내 fire 가능
+3. **P1 model fetch** (~6GB) + `llama-mtmd-cli` 7B smoke
+4. **P2 lib pin** + ubu-1 venv 정리
+
+진행도 21/25 (84%) 그대로 — harness skeleton land 는 P1-P4 OPEN cell 의
+inner-state 진척이지 새 cell close 가 아니다 (perpetual 설계 invariant).
+

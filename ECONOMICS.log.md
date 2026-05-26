@@ -970,3 +970,75 @@ historical Chinchilla 처럼 행동한다"**. dense modern 은 Sardana inference
 
 - `d_econ_e1_moe_inference_cost_per_token` — Mixtral 8x7B fire on mac M3 24GB UMA (Q4_K_M ~13GB) + active-param $/tok 측정 → routing overhead 평가. cycle-29+ 후속.
 - `d_econ_e1_moe_sardana_envelope` — Sardana 2024 envelope active-substituted variant closed-form recompute (D1 seed 5 와 자연 묶음). $0, cycle-28 cheapest.
+
+## cycle-29 — NOVEL axis E1 batch 2 (n=3 MoE Mann-Whitney) 🟠 directional WEAKENS
+
+**사용자 지시:** "ECONOMICS novel 포그라운드 진행". cycle-28 정책의 cheapest next-probe = cycle-27 n=1 anecdote → ≥3 MoE 확장 + KS-test 활성화.
+
+### 진행 (sequential)
+
+| step | 산출물 | 결과 |
+|------|--------|------|
+| 1 | WebFetch Mixtral 8x7B (arXiv:2401.04088) | 47B/13B-active · **D 미공개** ⚠ |
+| 2 | WebFetch Qwen3-235B-A22B HF card | 235B/22B-active · **D 미공개** ⚠ |
+| 3 | WebFetch DBRX (Databricks blog) | 132B/36B-active · **12T D 공개** ✅ |
+| 4 | WebFetch Snowflake Arctic blog | 480B/17B-active · **3.5T D 공개** ✅ |
+| 5 | `.verdicts/economics/e1_moe_landings.tsv` 작성 (3 MoE rows) | DeepSeek + DBRX + Arctic |
+| 6 | `verify/numerics_economics_e1_moe_dense_ks_test.hexa` 작성 (Mann-Whitney U closed-form) | parse + fire 5/5 PASS |
+| 7 | scaling bug fix (`/100` 제거) → z²×10000=7333 정확 | re-fire 5/5 PASS |
+| 8 | verdict file emit | `.verdicts/economics/e1_moe_dense_ks_verdict.txt` |
+
+### Honest data-availability disclosure
+
+Mixtral 8x7B + 8x22B + Qwen3-235B 모두 **D 미공개 정책** (Mistral / Qwen 의 training-token 비공개) — exclusion 은 cherry-picking 아닌 data-availability 기준. 새 collection 목록:
+- ✅ DBRX (Databricks blog, 12T disclosed)
+- ✅ Snowflake Arctic (blog, 3.5T disclosed)
+- ❌ Mixtral 8x7B/8x22B (D not disclosed)
+- ❌ Qwen3-235B-A22B (D not disclosed)
+
+### cycle-29 verifier 결과 (5/5 PASS · 🟠 INSUFFICIENT)
+
+dense dev sorted (×100, ÷100 for actual):
+```
+[100, 185, 1071, 1238, 1715, 2405, 3430, 4340, 4445, 5000, 9375]
+ ↑                                                              ↑
+ chinchilla-anchor 1.0                                   llama3-8B 93.75
+ Q1=10.71 · median=24.05 · Q3=43.40
+```
+
+MoE dev sorted: Arctic 10.29 · DBRX 16.67 · DeepSeek 20.00
+- DeepSeek percentile in dense: 45% (dense median 24.05 바로 아래)
+- DBRX percentile: 36%
+- Arctic percentile: 18%
+- Mann-Whitney U_moe=11 · U_dense=22 · E[U]=16.5 · Var[U]=41.25
+- z=-0.857 (z²×10000=7333) — |z|<1 → **directional signal WEAKENS**
+
+### 의미 있는 cycle-27 → cycle-29 evolution
+
+| 측정 | n | finding | tier |
+|------|---|---------|------|
+| cycle-27 (DeepSeek alone) | 1 | D/N=20.000 정확 hit dense percentile 0 | 🟢 directional |
+| **cycle-29 (3 MoE)** | **3** | **all 3 below dense median but Mann-Whitney \|z\|<1** | **🟠 INSUFFICIENT** |
+
+**중대 reinterpretation:** cycle-27 의 "MoE-as-distinct-family" hypothesis 가 n=3 에서
+약화. DeepSeek-V3 active D/N=20.000 정확 hit 은 **outlier** 가능성. DBRX (16.67) +
+Arctic (10.29) 가 dense 의 phi3 (17.15) / qwen2.5-72B (12.38) 와 유사 범위 — MoE
+active 가 dense 와 *명확히 distinct* 라고 결론하기엔 데이터 부족.
+
+forward path: cycle-30 ≥5 MoE collection (Mixtral-Large-2 / Hunyuan-Large / Grok-1 /
+Phi-4-MoE 등 D disclosed 한 것들) — n=5+ 면 p<0.05 KS-test 의미 있음.
+
+### Honest residual
+
+- n=3 vs n=11 still too small for high-confidence (p<0.05) Mann-Whitney
+- Mixtral/Qwen3 exclusion = data-availability honest design (not cherry-pick)
+- Per-row loss still 🟡 (no SANDBOX recompute) — E1 ratio-axis independent
+- DeepSeek-V3 의 "exactly 20.000" 가 의도된 design choice (DeepSeek 팀이 active-Chinchilla 명시 적용) 인지 우연인지 distinguish 못함 — n 늘려야 답
+
+### 산출물
+
+| file | type | 비고 |
+|------|------|------|
+| `.verdicts/economics/e1_moe_landings.tsv` | new | 3 MoE rows + comment header |
+| `verify/numerics_economics_e1_moe_dense_ks_test.hexa` | new | Mann-Whitney U closed-form, 5/5 PASS |
+| `.verdicts/economics/e1_moe_dense_ks_verdict.txt` | new (auto-emit) | tier + statistics |

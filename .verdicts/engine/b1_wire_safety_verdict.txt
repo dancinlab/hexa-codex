@@ -1,0 +1,14 @@
+# hexa-codex ENGINE B1 — wire verifier (cycle-2)
+# axis=ENGINE.md::B1 (SAFETY finding → inference-time intervention SPEC)
+# source_finding=SAFETY.md cycle-19/20 (L19 difference-of-means, AUROC 0.98, causal 95→0)
+# wire=engine/wire_b1_safety_refusal_intervention.hexa (SPEC-only, no runtime call)
+# verifier=verify/numerics_engine_b1_wire_safety.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — ENGINE B1 wire SPEC faithfully encodes SAFETY cycle-19/20 finding (6/6 checks)
+# checks=6/6
+# spec_layer_index=19
+# spec_intervention=projection_out_rank1
+# spec_source_model=qwen2.5-1.5b-instruct
+# effect_size_delta_pp=95
+# n1_latency_cycles_after_mature=14
+# n1_baseline_points={A1: 0 cycles, B1: 14 cycles}
+# next_runtime_fire=llama-server inference-hook on SANDBOX, cost-bearing

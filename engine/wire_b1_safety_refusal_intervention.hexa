@@ -1,0 +1,104 @@
+#!hexa strict
+// hexa-codex/engine/wire_b1_safety_refusal_intervention.hexa
+// ENGINE axis B1 wire — SAFETY refusal-direction finding → inference-time intervention SPEC
+//
+// SOURCE FINDING (SAFETY cycle-19/20, v1.4.0 release-anchored):
+//   - measurement: refusal-direction recompute via L19 difference-of-means
+//     on Qwen2.5-1.5B-Instruct, AUROC = 0.98 (correlational); causal
+//     single-direction ablation reduces adversarial refusal-rate from 95%
+//     to 0% with benign-refusal staying ≈ 0% (clean specificity preserved).
+//   - witness: .verdicts/sandbox/m4_safety_refusal_*  +
+//     bench/sandbox_stage4_refusal_matrix.hexa
+//   - external anchor: Arditi et al. 2024 (arXiv:2406.11717) demonstrates
+//     a single refusal direction mediates refusal in Llama-family;
+//     SAFETY cycle-19/20 replicates the structural finding in Qwen.
+//
+// WIRE SCOPE (cycle-2, SPEC-ONLY).  This wire encodes the intervention
+// CONFIGURATION (layer index, direction-extraction method, ablation
+// formula, expected post-intervention metrics) for a future runtime
+// consumer — e.g. llama-server inference-time hook (cost-bearing fire,
+// deferred to ENGINE cycle-3+ on the SANDBOX substrate).  The wire itself
+// is pure: no inference call, no SANDBOX dep, no model load.  A future
+// runtime can read this SPEC + apply the projection-out at serve time.
+//
+// SPEC PARAMETERS (load-bearing):
+//   - layer_index = 19
+//   - direction_extraction = "difference_of_means" (mean(refused) − mean(answered))
+//   - intervention = "projection_out" (h ← h − (h · r̂_unit) r̂_unit; rank-1)
+//   - expected_adv_refusal_rate_after = 0% (vs 95% pre-intervention)
+//   - expected_benign_refusal_rate_after = 0% (specificity preserved)
+//   - tolerance = 10pp (per ENGINE.md::B1 falsifier band)
+//   - normative reference model: qwen2.5-1.5b-instruct (single source measurement)
+//
+// FALSIFIER (paired verifier).
+//   verify/numerics_engine_b1_wire_safety.hexa asserts the SPEC matches
+//   the SAFETY cycle-19/20 measured ground truth + Arditi 2024 form.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Spec emission; no substrate / runtime call.")
+
+// ────────────────────────────────────────────────────────────────────────
+// SPEC fields
+// ────────────────────────────────────────────────────────────────────────
+
+let SPEC_LAYER_INDEX = 19
+let SPEC_DIRECTION_METHOD = "difference_of_means"
+let SPEC_INTERVENTION = "projection_out"
+let SPEC_RANK = 1                            // rank-1 ablation (single direction)
+let SPEC_SOURCE_MODEL = "qwen2.5-1.5b-instruct"
+
+// expected metrics (×100 = percent integer)
+let SPEC_EXPECTED_ADV_REFUSAL_PCT_AFTER_x100 = 0      // 0%
+let SPEC_EXPECTED_BENIGN_REFUSAL_PCT_AFTER_x100 = 0    // 0%
+let SPEC_TOLERANCE_PCT_x100 = 10                       // ±10pp
+
+// measured ground truth (SAFETY cycle-19/20 baseline, pre-intervention)
+let GROUND_ADV_REFUSAL_PCT_PRE_x100 = 95
+let GROUND_BENIGN_REFUSAL_PCT_PRE_x100 = 0
+let GROUND_AUROC_x100 = 98
+
+// effect size (causal ablation: 95→0 = 95pp drop on adversarial)
+let SPEC_EXPECTED_ADV_DELTA_pp = GROUND_ADV_REFUSAL_PCT_PRE_x100 - SPEC_EXPECTED_ADV_REFUSAL_PCT_AFTER_x100
+
+// per-class adversarial refusal-rate (cycle-19 breakdown · pct × 100)
+let GROUND_ADV_CLASSES = ["hate", "violence", "self_harm", "medical_risk"]
+let GROUND_ADV_RATES_PRE_x100 = [100, 100, 80, 100]
+
+// runtime-consumer hook surface (what a future inference-time integrator reads)
+fn emit_spec_record() -> str {
+    let mut s = "ENGINE.B1.spec {\n"
+    s = s + "  layer_index: " + to_string(SPEC_LAYER_INDEX) + "\n"
+    s = s + "  direction_extraction: \"" + SPEC_DIRECTION_METHOD + "\"\n"
+    s = s + "  intervention: \"" + SPEC_INTERVENTION + "\"\n"
+    s = s + "  rank: " + to_string(SPEC_RANK) + "\n"
+    s = s + "  source_model: \"" + SPEC_SOURCE_MODEL + "\"\n"
+    s = s + "  expected_adv_refusal_pct_after: " + to_string(SPEC_EXPECTED_ADV_REFUSAL_PCT_AFTER_x100) + "\n"
+    s = s + "  expected_benign_refusal_pct_after: " + to_string(SPEC_EXPECTED_BENIGN_REFUSAL_PCT_AFTER_x100) + "\n"
+    s = s + "  tolerance_pct: " + to_string(SPEC_TOLERANCE_PCT_x100) + "\n"
+    s = s + "  ground_adv_refusal_pct_pre: " + to_string(GROUND_ADV_REFUSAL_PCT_PRE_x100) + "\n"
+    s = s + "  ground_auroc_pct: " + to_string(GROUND_AUROC_x100) + "\n"
+    s = s + "  ground_per_class: {"
+    let mut i = 0
+    while i < GROUND_ADV_CLASSES.len() {
+        s = s + GROUND_ADV_CLASSES[i] + "=" + to_string(GROUND_ADV_RATES_PRE_x100[i])
+        if i < GROUND_ADV_CLASSES.len() - 1 { s = s + ", " }
+        i = i + 1
+    }
+    s = s + "}\n"
+    s = s + "  expected_adv_delta_pp: " + to_string(SPEC_EXPECTED_ADV_DELTA_pp) + "\n"
+    s = s + "}\n"
+    return s
+}
+
+print("hexa-codex ENGINE B1 — SAFETY refusal-direction → intervention SPEC (cycle-2)")
+print("==============================================================================")
+print("")
+print(emit_spec_record())
+print("RUNTIME CONSUMER HINT (deferred to cycle-3+ cost-bearing fire):")
+print("  llama-server inference hook reads layer=19 hidden state h,")
+print("  computes h_new = h - (h · r̂) r̂ where r̂ = unit(mean(refused) - mean(answered)),")
+print("  expects post-intervention adversarial refusal rate ∈ [0, " +
+      to_string(SPEC_EXPECTED_ADV_REFUSAL_PCT_AFTER_x100 + SPEC_TOLERANCE_PCT_x100) +
+      "]% with benign rate ∈ [0, " + to_string(SPEC_TOLERANCE_PCT_x100) + "]%.")
+print("")
+print("__HEXA_CODEX_ENGINE_B1_SAFETY_REFUSAL_INTERVENTION__ DONE")

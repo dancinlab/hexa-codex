@@ -33,7 +33,7 @@ ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한�
 
 ### 축 B — SAFETY finding → inference-time intervention driving
 > **driving target:** SANDBOX serving stack (llama-server · transformers HF) 의 inference time refusal direction projection-out.
-- [ ] B1 — SAFETY cycle-19/20 의 refusal direction (L19 difference-of-means) 을 SANDBOX serving 에 inference time intervention 으로 wire (Arditi-style `h ← h − (h·r̂)r̂` projection-out). 반증자: wired intervention 의 refusal-rate 변화가 cycle-19 측정값 (95%→0%) 과 ±10pp 이상 deviation.
+- [x] B1 — SAFETY cycle-19/20 의 refusal direction (L19 difference-of-means) 을 SANDBOX serving 에 inference time intervention 으로 wire (Arditi-style `h ← h − (h·r̂)r̂` projection-out). 반증자: wired intervention 의 refusal-rate 변화가 cycle-19 측정값 (95%→0%) 과 ±10pp 이상 deviation. **CYCLE-2 SPEC wire (2026-05-27):** `engine/wire_b1_safety_refusal_intervention.hexa` + `verify/numerics_engine_b1_wire_safety.hexa` ✅ 6/6 PASS · 🟢 SUPPORTED-NUMERICAL. SPEC = (layer=19, direction=diff_of_means, intervention=projection_out, rank=1, expected adv_after≤10pp, benign≤10pp, source_model=qwen2.5-1.5b-instruct). **runtime application 는 cost-bearing — cycle-3+ deferred** (llama-server inference-hook on SANDBOX). N1 second data point: ΔM_after_mature ≈ 14 cycles (vs A1 의 0 cycles = same-session). **frontier OPEN** — Qwen-specific 인지 cross-family universal 인지 SAFETY N1 axis 가 spawning 중; 닫히면 wire scope 재정의 필요.
 
 ### 축 C — OPS finding → multi-node scheduler driving
 > **driving target:** SANDBOX pool dispatch (mini + ubu-1 LAN) 의 routing policy.

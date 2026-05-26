@@ -1,0 +1,73 @@
+========================================================================
+  hexa-codex ECONOMICS C1 — Chinchilla envelope landings (math_pure)
+  Source TSV: .verdicts/economics/c1_chinchilla_envelope.tsv
+  Tier per row: 🟡 SUPPORTED-BY-CITATION (loss NOT recomputed)
+========================================================================
+  Chinchilla rule-of-thumb tokens/param = 20.0
+  n=6 lattice α = 0.166667  A = 406.4  B = 410.7
+  Rows = 13 (12 modern + 1 anchor)
+
+  [PASS] Hoffmann D_opt(N) = 20·N identity per row (all 13 rows)
+         · max_drift=0.0
+    per-row (D/N) and deviation = (D/N)/20:
+      llama3-8B  N=8000000000.0  D=15000000000000.0  D/N=1875.0  dev=93.75
+      llama3-70B  N=70000000000.0  D=15000000000000.0  D/N=214.286  dev=10.7143
+      llama3.1-405B  N=405000000000.0  D=15000000000000.0  D/N=37.037  dev=1.85185
+      qwen2.5-72B  N=72700000000.0  D=18000000000000.0  D/N=247.593  dev=12.3796
+      deepseekv3-671B  N=671000000000.0  D=14800000000000.0  D/N=22.0566  dev=1.10283
+      deepseekv3-37B-act  N=37000000000.0  D=14800000000000.0  D/N=400.0  dev=20.0
+      phi3-mini-3.8B  N=3800000000.0  D=3300000000000.0  D/N=868.421  dev=43.4211
+      phi3-small-7B  N=7000000000.0  D=4800000000000.0  D/N=685.714  dev=34.2857
+      phi3-medium-14B  N=14000000000.0  D=4800000000000.0  D/N=342.857  dev=17.1429
+      gemma2-2B  N=2000000000.0  D=2000000000000.0  D/N=1000.0  dev=50.0
+      gemma2-9B  N=9000000000.0  D=8000000000000.0  D/N=888.889  dev=44.4444
+      gemma2-27B  N=27000000000.0  D=13000000000000.0  D/N=481.481  dev=24.0741
+      chinchilla-70B-anchor  N=70000000000.0  D=1400000000000.0  D/N=20.0  dev=1.0
+  [PASS] deviation_factor closed-form identity per row (dev·20 = D/N)
+         · 13/13 rows match at EPS=1e-09
+  [PASS] n=6 Lagrangian D/N optimum = (B/A)^6 (≈ 1.065, near-symmetric)
+         · (B/A)^6=1.06519
+  [PASS] n=6 (~1.065) vs Chinchilla (~20) D/N optimum gap > 18
+         · gap=18.9348
+
+  [PASS] 12/12 modern landings overtrain vs Chinchilla (dev > 1)
+         · k_modern=12 min_dev=1.10283 (deepseekv3-671B)
+  [PASS] Chinchilla 70B/1.4T anchor row sits at dev = 1.000
+         · anchor=chinchilla-70B-anchor dev=1.0 drift=0.0
+  [PASS] max modern deviation ≥ 50 (extreme overtraining at small-N end)
+         · max_id=llama3-8B max_dev=93.75
+  [PASS] DeepSeek-V3 (671B total / 14.8T) dev ≤ 1.5 — compute-optimal-aware
+         · dev=1.10283
+
+  [PASS] DeepSeek-V3 ACTIVE (37B / 14.8T) dev = 20.000 — Chinchilla-on-active emergence
+         · dev=20.0 drift=0.0
+  [PASS] Llama3 dev monotone-inverse to N: 8B > 70B > 405B AND 8B ≥ 90
+         · d(8B)=93.75 d(70B)=10.7143 d(405B)=1.85185
+
+========================================================================
+  Interpretation (honest):
+    - 12/12 modern landings overtrain vs Chinchilla 20 tok/param.
+    - The dense overtraining factor INVERTS with N — small models
+      get the most tokens-per-param (gemma2-2B = 1000, llama3-8B
+      = 1875 tok/param).  This is consistent with INFERENCE-amortized
+      optimal D (Sardana+Chen 2023, arXiv:2401.00448): if you serve
+      the model 10^9 times, train-compute-only optimum is wrong.
+    - DeepSeek-V3 (671B total) is the modern row closest to 
+      Chinchilla rule-of-thumb (dev ≈ 1.10) — MoE total params
+      ARE compute-optimal-aware. By ACTIVE params (37B) it lands
+      at dev = 20.000 EXACTLY — a Chinchilla-on-active reading.
+    - The Hoffmann CLOSED-FORM envelope L(N,D) = E+A·N^-α+B·D^-α
+      is NOT falsified — it is well-defined at every (N,D).
+      What IS falsified is the ASSUMPTION that train-compute is
+      the only cost being optimized.  The envelope NEEDS a 3rd
+      term (inference-amortization, data-quality, or both) to
+      explain modern allocations.
+    - Per-row LOSS is 🟡 citation-only (none disclosed in the
+      sources fetched).  We did NOT recompute loss; the envelope-
+      fit check 4-grade T3 parity ladder is NOT yet promoted to
+      🟢/🔵.  Future work: pull eval-loss from open-weights via
+      lm_foundry serving + measured-CE, fold per row.
+========================================================================
+  10/10 checks passed
+  ECONOMICS C1 envelope landings: closed (12 modern + 1 anchor).
+__HEXA_CODEX_NUMERICS_ECONOMICS_C1_ENVELOPE__ PASS

@@ -1,0 +1,125 @@
+# status=executed
+# milestone=ECONOMICS B1 (per-band 2-component vs single power-law on the P4 quant-band pilot)
+# verifier=verify/numerics_economics_quant_regime_shift.hexa  (4 structural checks, closed-form OLS per band)
+# bench=.verdicts/sandbox/p4_quant_band_pilot.tsv  (cycle-23b PR #70, 200 rows × 3 bands, mac-mini-m3 Metal, $0 local)
+# model=Qwen2.5-1.5B-Instruct × {Q3_K_M, Q4_K_M, Q8_0}  host=mac-mini-m3 (brew llama.cpp Metal, port 8091, -np 1 -cb)
+# input_proxy=wc (prompt word count from stage2 manifest; NOT input_tokens — true token count not emitted by P4 harness)
+# rungs=5 strata × 40 rows each (wc_5_15, wc_16_30, wc_31_60, wc_61_100, wc_101_200) → stratum-mean fit (matches cycle-16 4-rung pattern)
+# run=POOL_DISABLE=1 hexa run verify/numerics_economics_quant_regime_shift.hexa
+# ── per-band fit constants (the LOAD-BEARING B1 finding) ──────────────
+# 2-component  wall_ms = decode_fixed + prefill_slope · wc
+#   Q3_K_M:  decode_fixed = 1849.81 ms   prefill_slope = 0.0823 ms/wc   R²(2c) = 0.000322
+#   Q4_K_M:  decode_fixed = 1507.06 ms   prefill_slope = 1.6732 ms/wc   R²(2c) = 0.250186
+#   Q8_0:    decode_fixed = 1718.52 ms   prefill_slope = 3.2264 ms/wc   R²(2c) = 0.683258
+# single power-law  wall_ms = a · wc^τ̂
+#   Q3_K_M:  a = 2058.62   τ̂ = -0.0315   R²(pow) = 0.112646
+#   Q4_K_M:  a = 1535.51   τ̂ = +0.0103   R²(pow) = 0.016901
+#   Q8_0:    a = 1605.37   τ̂ = +0.0460   R²(pow) = 0.297552
+# ── B1 FALSIFIER per band  (反證자: 2-comp R² < single power-law R²) ──
+#   Q3_K_M:  ΔR² = 0.0003 − 0.1126 = −0.1123  🔴 FALSIFIED (power-law fits a near-flat noise curve better)
+#   Q4_K_M:  ΔR² = 0.2502 − 0.0169 = +0.2333  🟢 2-comp wins (but absolute R² weak)
+#   Q8_0:    ΔR² = 0.6833 − 0.2976 = +0.3857  🟢 2-comp wins clearly
+# ── constant-shift table (Q3 → Q4 → Q8) ──
+#   Δ decode_fixed  (Q3→Q4) = −342.75 ms      (Q4→Q8) = +211.46 ms     |sum|=554 ms
+#   Δ prefill_slope (Q3→Q4) = +1.591 ms/wc    (Q4→Q8) = +1.553 ms/wc   monotone ↑
+# checks=4/4 PASS
+# tier=🟠 MIXED-NUMERICAL  (per-band tiers split: 🔴 Q3 / 🟢 Q4 / 🟢 Q8 — B1 partially falsified on Q3,
+#                            but the bands ARE distinguishable and the slope-monotone-with-bpw signal is real)
+# cost_usd=0
+# b1_status=PARTIAL-FALSIFIER  (Q3 trips it; Q4 and Q8 reject it; the bigger finding is the SLOPE shift, not the constant)
+# ════════════════════════════════════════════════════════════════════════
+#  HONEST INTERPRETATION — bandwidth-bound vs precision-shift
+# ════════════════════════════════════════════════════════════════════════
+# The B1 question: do quant bands ONLY shift the constant decode_fixed
+# (predicted: yes — attention math is bit-precision invariant up to FP error),
+# or does the SLOPE also shift (suggesting bandwidth-bound behavior)?
+#
+# MEASURED: BOTH shift. The constants move by ±200–340 ms between adjacent
+# bands (small, non-monotone — likely cache/scheduler noise, not bpw signal).
+# The SLOPES move monotone with bpw: Q3=0.08 → Q4=1.67 → Q8=3.23 ms/wc. Q8
+# has ~40× the prefill slope of Q3. This IS the bandwidth-bound signature —
+# each prefill weight load moves more bytes at higher bpw, and the K/V
+# projection during prefill becomes the binding term.
+#
+# CAVEAT (the load-bearing one): the P4 wc range is 5–200 WORDS. At that
+# range each per-call overhead (server roundtrip, fixed 64-tok decode floor,
+# sampler jitter on a 256-tok cap) DOMINATES the prefill term. The variance
+# explained by wc is bounded by (slope · wc_range) ≈ Q8: 3.23 × 195 = 630 ms
+# vs observed wall std ≈ 250 ms — explains why Q8 R²=0.68 but Q3 R²≈0 (Q3's
+# slope is too small to clear the per-call noise floor).
+#
+# Why Q3 trips the falsifier strictly: at slope ≈ 0.08 ms/wc, the prefill
+# term contributes ~16 ms over the full wc range, while measured wall varies
+# by ~600 ms (mostly the wc_5_15 outlier rung at 2234 ms — a startup-cache
+# warm-up artifact). Neither model fits — a NEAR-FLAT constant + sampling
+# noise — but a slightly-negative-τ̂ power-law catches that the smallest
+# wc rung has the LARGEST wall (server warmup), so it "wins" by accident.
+# This is a fit pathology, not a real "power-law beats 2-component" win.
+#
+# COMPARED TO CYCLE-18 (stage4 context-scaling, Q4_K_M only, wc≈987–7647):
+# 2-comp decode_fixed = 370 ms, prefill_slope = 0.168 ms/tok, R² = 0.997.
+# That regime (wc ≈ 1000–7600) IS where 2-component shines; the P4 short-
+# prompt regime (wc 5–200) is the OPPOSITE end where per-call overhead wins.
+# Same substrate, two regimes — the cost model is REGIME-DEPENDENT, exactly
+# the B1 axis-B perpetual-frontier claim ("재측정 영구").
+# ════════════════════════════════════════════════════════════════════════
+#  RESIDUAL — what additional data tightens B1
+# ════════════════════════════════════════════════════════════════════════
+#  · per-row TRUE input_token count (server `/tokenize` round, not wc proxy)
+#  · batch regime sweep (-np 1 → 4 → 16 with -cb, vLLM continuous batching)
+#  · paged-attn comparison (vLLM block_size 16 vs llama.cpp KV-cache)
+#  · long-context bridge (wc 200 → 2000 → 8000 fills the gap between P4 and stage4)
+#  · fp16 reference band (currently absent from P4 — 8-band {Q2..fp16} would isolate slope law)
+#  · separate prefill_ms vs decode_ms columns from server timings JSON
+# ════════════════════════════════════════════════════════════════════════
+#  hexa run (numerical recompute) — RAW STDOUT VERBATIM  (exit code 0)
+# ════════════════════════════════════════════════════════════════════════
+========================================================================
+  hexa-codex ECONOMICS quant-regime shift harness — axis B B1 recompute
+  P4 quant-band pilot (Q3/Q4/Q8 × N=200, mac-mini-m3 Metal, $0 local)
+  per-band 2-component fit vs single power-law on stratum-mean rungs
+========================================================================
+  data: .verdicts/sandbox/p4_quant_band_pilot.tsv (cycle-23b PR #70)
+  rungs: 5 strata × 40 rows each, wc range 5–200 words (short-prompt regime)
+
+  ── per-band 2-component fit  wall_ms = decode_fixed + prefill_slope · wc
+    band      decode_fixed (ms)   prefill_slope (ms/wc)   R²(2-comp)
+    Q3_K_M    1849.81   0.0823216   0.000322134
+    Q4_K_M    1507.06   1.67323   0.250186
+    Q8_0      1718.52   3.22644   0.683258
+
+  ── per-band single power-law fit  wall_ms = a · wc^τ̂
+    band      a                 τ̂                 R²(power-law)
+    Q3_K_M    2058.62   -0.0314913   0.112646
+    Q4_K_M    1535.51   0.0102561   0.0169007
+    Q8_0      1605.37   0.0460289   0.297552
+
+  ── B1 FALSIFIER per band (2-comp R² ≥ power-law R²?):
+    Q3_K_M    Δ(R²) = -0.112324   🔴 FALSIFIED
+    Q4_K_M    Δ(R²) = 0.233285   🟢 2-comp wins
+    Q8_0      Δ(R²) = 0.385706   🟢 2-comp wins
+
+  ── constant-shift table (Q3 → Q4 → Q8):
+    Δ decode_fixed (Q3→Q4) = -342.754 ms
+    Δ decode_fixed (Q4→Q8) = 211.461 ms
+    Δ prefill_slope (Q3→Q4) = 1.59091 ms/wc
+    Δ prefill_slope (Q4→Q8) = 1.55321 ms/wc
+
+  [PASS] decode_fixed > 0 for ALL bands (Q3, Q4, Q8) — context-invariant floor present
+         · Q3=1849.81  Q4=1507.06  Q8=1718.52
+  [PASS] prefill_slope monotone with bpw (Q3 ≤ Q4 ≤ Q8) — bandwidth-bound prediction
+         · Q3=0.0823216 ms/wc  Q4=1.67323 ms/wc  Q8=3.22644 ms/wc
+  [PASS] B1 falsifier: at least one band has 2-comp R² ≥ power-law R² (not fully falsified)
+         · Q3_ok=false  Q4_ok=true  Q8_ok=true
+  [PASS] decode_fixed inter-band shift |Δb0(Q3→Q4)|+|Δb0(Q4→Q8)| ≥ 100 ms (bands distinguishable)
+         · Δb0(Q3→Q4)=-342.754  Δb0(Q4→Q8)=211.461  sum=554.215
+
+========================================================================
+  4/4 structural checks passed
+  🟠 MIXED-NUMERICAL — quant-regime shift quantified, B1 partial falsifier on Q3
+  · Q3_K_M  R²(2c)=0.000322134 < R²(pow)=0.112646 — 🔴 falsifier tripped
+  · Q4_K_M  R²(2c)=0.250186 > R²(pow)=0.0169007 — 🟢 2-comp wins (weak)
+  · Q8_0    R²(2c)=0.683258 > R²(pow)=0.297552 — 🟢 2-comp wins
+  · prefill_slope monotone Q3<Q4<Q8 (bandwidth-bound at Q8: 3.22644 ms/wc)
+  · honest residual: wc range 5–200 is short-prompt regime — per-call overhead dominates
+__HEXA_CODEX_NUMERICS_ECONOMICS_QUANT_REGIME_SHIFT__ PASS

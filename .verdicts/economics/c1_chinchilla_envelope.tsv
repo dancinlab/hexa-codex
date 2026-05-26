@@ -1,0 +1,33 @@
+# hexa-codex/.verdicts/economics/c1_chinchilla_envelope.tsv
+# ECONOMICS C1 — Chinchilla envelope landings (2024-2026)
+# Per cx_paper_format / cx_hf_eval_register-class honesty:
+#   - All numbers are SUPPORTED-BY-CITATION (citation URL in comment column).
+#   - We did NOT recompute pretraining loss (no logits, no eval-set access).
+#   - Tier per row = YELLOW (citation-only).
+# Columns:
+#   model            — short id
+#   N_params         — parameter count (count, NOT billions; full integer in scientific form)
+#   D_tokens         — pretraining tokens (count, full integer in scientific form)
+#   loss_final       — final pretraining cross-entropy (NaN sentinel = -1.0 = not disclosed)
+#   train_FLOPs      — total training compute in FLOPs (NaN sentinel = -1.0 = not disclosed)
+#   gpu_hours        — total GPU-hours (NaN sentinel = -1.0 = not disclosed)
+#   gpu_type         — H100-80GB / H800 / unknown
+#   chinchilla_D_opt — Chinchilla optimum D_opt(N) = 20 * N (Hoffmann eq.4, tokens/param ≈ 20)
+#   ratio_actual     — D_tokens / N_params (actual tokens-per-param)
+#   deviation_factor — ratio_actual / 20  (>1 = overtraining, <1 = undertraining)
+#   citation_url
+model	N_params	D_tokens	loss_final	train_FLOPs	gpu_hours	gpu_type	chinchilla_D_opt	ratio_actual	deviation_factor	citation_url
+llama3-8B	8.0e9	1.5e13	-1.0	-1.0	1.3e6	H100-80GB	1.6e11	1875.0	93.75	https://huggingface.co/meta-llama/Meta-Llama-3-8B
+llama3-70B	7.0e10	1.5e13	-1.0	-1.0	6.4e6	H100-80GB	1.4e12	214.29	10.71	https://huggingface.co/meta-llama/Meta-Llama-3-70B
+llama3.1-405B	4.05e11	1.5e13	-1.0	-1.0	3.084e7	H100-80GB	8.1e12	37.04	1.852	https://huggingface.co/meta-llama/Meta-Llama-3.1-405B
+qwen2.5-72B	7.27e10	1.8e13	-1.0	-1.0	-1.0	unknown	1.454e12	247.6	12.38	https://qwenlm.github.io/blog/qwen2.5/
+deepseekv3-671B	6.71e11	1.48e13	-1.0	-1.0	2.788e6	H800	1.342e13	22.06	1.103	https://arxiv.org/abs/2412.19437
+deepseekv3-37B-act	3.7e10	1.48e13	-1.0	-1.0	2.788e6	H800	7.4e11	400.0	20.0	https://arxiv.org/abs/2412.19437
+phi3-mini-3.8B	3.8e9	3.3e12	-1.0	-1.0	-1.0	unknown	7.6e10	868.42	43.42	https://arxiv.org/abs/2404.14219
+phi3-small-7B	7.0e9	4.8e12	-1.0	-1.0	-1.0	unknown	1.4e11	685.71	34.29	https://arxiv.org/abs/2404.14219
+phi3-medium-14B	1.4e10	4.8e12	-1.0	-1.0	-1.0	unknown	2.8e11	342.86	17.14	https://arxiv.org/abs/2404.14219
+gemma2-2B	2.0e9	2.0e12	-1.0	-1.0	-1.0	TPU	4.0e10	1000.0	50.0	https://huggingface.co/google/gemma-2-2b
+gemma2-9B	9.0e9	8.0e12	-1.0	-1.0	-1.0	TPU	1.8e11	888.89	44.44	https://huggingface.co/google/gemma-2-9b
+gemma2-27B	2.7e10	1.3e13	-1.0	-1.0	-1.0	TPU	5.4e11	481.48	24.07	https://huggingface.co/google/gemma-2-27b
+# --- Anchor row (HISTORICAL, on-Chinchilla; for envelope-fit reference) ---
+chinchilla-70B	7.0e10	1.4e12	1.95	5.76e23	-1.0	TPUv4	1.4e12	20.0	1.0	https://arxiv.org/abs/2203.15556

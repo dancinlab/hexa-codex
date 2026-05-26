@@ -1,82 +1,111 @@
 #!hexa strict
 // hexa-codex/verify/numerics_substrate_multimodal_fit.hexa — M5.SUBSTRATE multimodal
-// CAPABILITY FIT (closed-form recompute). cycle-20.
+// CAPABILITY FIT (closed-form recompute). cycle-20 (3-rung) + cycle-23c (4-rung extension).
 //
 // PURPOSE.  Closed-form recompute for the M5.SUBSTRATE multimodal capability half,
 // mirroring the TEXT capability fit (verify/numerics_substrate_cliff_logistic.hexa).
 // It reads the COMMITTED per-rung × per-item TSV produced by
-//   bench/sandbox_multimodal_ladder.hexa
-// (3 VL rungs × 16 harder difficulty-stratified items, byte-exact scored, NO LLM
+//   bench/sandbox_multimodal_ladder.hexa        (cycle-20, 3 VL rungs)
+//   bench/sandbox_p1_multimodal_ladder_7b.hexa  (cycle-22, 4 VL rungs incl. 7B)
+// (16 harder difficulty-stratified items per rung, byte-exact scored, NO LLM
 // self-judge), and from that raw data alone (no model spawn, no GPU, no API):
 //
 //   (1) RECOMPUTES each rung's overall accuracy + per-axis accuracy from the raw
 //       correct(1|0) column — the load-bearing recompute that proves the bench numbers.
-//   (2) Fits + recomputes a 2-parameter LOGISTIC capability law in log2(params):
-//         y(x) = L_lo + (L_hi - L_lo) / (1 + exp(-k*(x - x0))) ,  x = log2(N_params/1e9)
-//       with L_lo/L_hi pinned to the data (g0 Occam), k/x0 RMSE-fit on the 3 points.
-//   (3) Tests the CAPABILITY GRADIENT: does overall accuracy rise MONOTONICALLY with
-//       params? Reports the honest answer + the per-axis structure that explains it.
+//   (2) Fits + recomputes TWO capability-law families in log2(params) — the cycle-20
+//       2-parameter LOGISTIC (monotone-by-construction), AND a 3-parameter QUADRATIC
+//       in log2(params): y(x) = a*x^2 + b*x + c (the cycle-22 4-rung extension; dip-
+//       then-recover shape that the monotone logistic structurally cannot fit).
+//   (3) Tests the CAPABILITY GRADIENT: monotone overall? per-axis split? does the
+//       4-rung 7.0B recover the counting axis that dipped at 3.0B (cycle-22)?
 //
-// MEASURED DATA (from .verdicts/sandbox/m5_substrate_multimodal_ladder.tsv, recomputed
-// here — NOT hard-coded; the constants below are only the EXPECTED recompute targets
-// used as cross-checks):
-//   rung 0  0.5B  SmolVLM-500M-Instruct-Q8_0    13/16 = 0.8125
-//   rung 1  2.2B  SmolVLM2-2.2B-Instruct-Q8_0   15/16 = 0.9375
-//   rung 2  3.0B  Qwen2.5-VL-3B-Instruct-Q4_K_M 13/16 = 0.8125
+// MEASURED DATA (from .verdicts/sandbox/{m5_substrate_multimodal_ladder,
+// p1_multimodal_ladder_7b}.tsv, recomputed here — NOT hard-coded; the constants
+// below are only the EXPECTED recompute targets used as cross-checks):
 //
-// HONEST FINDING (the verdict this verifier emits).  Overall accuracy is NOT
-// monotone in params: it rises 0.5B->2.2B (+12.5pp) then FALLS 2.2B->3.0B (-12.5pp).
-// The fall is REAL, not a quantization artifact — a separate Q8_0 Qwen-VL-3B probe
-// counts the dense 5-9-object images identically to the Q4_K_M rung (5,6,6,7,8), so
-// the 3B rung genuinely undercounts where the 2.2B rung does not. The capability
-// gradient SPLITS by axis:
-//   - PERCEPTION axes (ocr 2-word + spatial L/R/top/bottom + fine shape, 11 items)
-//     ARE monotone-non-decreasing then SATURATE: 0.5B 9/11 -> 2.2B 11/11 -> 3.0B 11/11.
-//   - The COUNTING axis (5-9 dense objects, 5 items) does NOT track params — it is a
-//     known VLM subitizing-limit weakness that breaks the overall monotone trend.
-// So a single logistic in log2(params) is the WRONG functional family for the OVERALL
-// curve (it is monotone-by-construction and cannot reproduce a rise-then-fall); the
-// honest verdict is a NON-MONOTONE capability gradient on this harder manifest, with a
-// monotone-then-saturating perception sub-ladder. Both are CLOSED/valid outcomes.
+//   cycle-20 (3-rung):
+//     rung 0  0.5B  SmolVLM-500M-Instruct-Q8_0      13/16 = 0.8125
+//     rung 1  2.2B  SmolVLM2-2.2B-Instruct-Q8_0     15/16 = 0.9375
+//     rung 2  3.0B  Qwen2.5-VL-3B-Instruct-Q4_K_M   13/16 = 0.8125
+//
+//   cycle-22 / cycle-23c (4-rung):
+//     rung 0  0.5B  SmolVLM-500M-Instruct-Q8_0      13/16 = 0.8125
+//     rung 1  2.2B  SmolVLM2-2.2B-Instruct-Q8_0     15/16 = 0.9375
+//     rung 2  3.0B  Qwen2.5-VL-3B-Instruct-Q4_K_M   13/16 = 0.8125
+//     rung 3  7.0B  Qwen2.5-VL-7B-Instruct-Q4_K_M   16/16 = 1.0000
+//
+// HONEST FINDING (the verdict this verifier emits).
+//
+//   3-rung path (cycle-20): overall accuracy NON-monotone (rise then fall). A single
+//   logistic in log2(params) is the WRONG family. Perception sub-ladder IS monotone-
+//   saturating (9/11 -> 11/11 -> 11/11); counting axis is params-orthogonal at this
+//   scale (subitizing limit).
+//
+//   4-rung path (cycle-22 / cycle-23c, this extension): overall accuracy 81/94/81/100
+//   is STILL non-monotone (the 3B dip is real and survives the 7B recovery), so the
+//   monotone logistic is STILL structurally wrong on the OVERALL curve. The new fit
+//   family — a QUADRATIC in log2(params) — admits dip-then-recover by construction;
+//   compare its RMSE to the monotone-logistic RMSE on the same 4 points. The PER-AXIS
+//   stratification carries the real signal: perception (ocr+spatial+shape, 11 items)
+//   is 9/11 -> 11/11 -> 11/11 -> 11/11 (monotone-saturating, holds at 7B as the
+//   cycle-20 paper predicted); counting (5 items) is 4/4/2/5 — the 3B dip is real and
+//   the 7B FULLY RECOVERS to 5/5, so counting is NON-monotone (V-shape) and the
+//   recovery is treated as a per-rung dummy term, NOT a scaling law.
 //
 // PASS gate (this verifier emits 🟢 SUPPORTED-NUMERICAL for an HONEST-NEGATIVE on
 // overall monotonicity — the recompute itself is correct; the gradient is real-and-
 // non-monotone, a genuine measured finding, NOT a verifier failure):
-//   1. per-rung overall accuracy recompute matches the expected /16 fractions.
-//   2. per-axis recompute matches (perception sub-ladder 9/11 -> 11/11 -> 11/11).
+//   1. per-rung overall accuracy recompute matches the expected /16 fractions (3-or-4).
+//   2. per-axis recompute matches (perception sub-ladder + counting axis per-rung).
 //   3. logistic best-fit RMSE is reported; the OVERALL monotonicity test returns FALSE
 //      and the verifier records WHY (rise-then-fall: a monotone law cannot fit it).
 //   4. the PERCEPTION sub-ladder IS monotone-non-decreasing (the real, defensible
 //      capability gradient once the params-orthogonal counting axis is separated).
+//   5. (4-rung only) the QUADRATIC in log2(params) fits the OVERALL curve with
+//      strictly smaller RMSE than the monotone logistic (admits dip-then-recover).
 //
-// REQUIRES.  read_file_pure (self/runtime/file_pure) + exp_pure/log2_pure/abs_pure/
-//   sqrt_pure (self/runtime/math_pure). No model spawn, no llama-server, no API.
+// REQUIRES.  read_file_pure + file_exists_pure (self/runtime/file_pure) +
+//   exp_pure/log2_pure/abs_pure/sqrt_pure (self/runtime/math_pure). No model spawn,
+//   no llama-server, no API.
 //
 // CONSUMER.  M5.SUBSTRATE multimodal verdict link.
-//   Verdict persisted at .verdicts/sandbox/m5_substrate_multimodal_fit.txt
-//   (raw stdout verbatim, written by the cycle wrapper).
+//   3-rung verdict: .verdicts/sandbox/m5_substrate_multimodal_fit.txt        (cycle-20)
+//   4-rung verdict: .verdicts/sandbox/m5_substrate_multimodal_fit_4rung.txt  (cycle-23c)
 //
 // Run:
 //   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
 //     HEXA_CODEX_ROOT="$PWD" \
 //     ~/.hx/packages/hexa/hexa.real run verify/numerics_substrate_multimodal_fit.hexa
 //
+// Mode selection: prefers the 4-rung TSV when present (cycle-23c), else falls back to
+// the cycle-20 3-rung TSV. Both paths PASS the cycle-20 invariants; the 4-rung path
+// adds the quadratic-fit comparison + 7B recovery check.
+//
 // @no-lock-needed
-// @resolver-bypass(reason="Pure local verifier; reads a committed byte-exact-scored per-rung TSV and recomputes per-rung/per-axis accuracy + a closed-form logistic capability fit. No atlas atoms touched, no model spawn, float arithmetic only.")
+// @resolver-bypass(reason="Pure local verifier; reads a committed byte-exact-scored per-rung TSV and recomputes per-rung/per-axis accuracy + closed-form logistic + quadratic capability fits. No atlas atoms touched, no model spawn, float arithmetic only.")
 
 use "self/runtime/math_pure"
 use "self/runtime/file_pure"
 
-let DATA_PATH = ".verdicts/sandbox/m5_substrate_multimodal_ladder.tsv"
-let TOTAL_ITEMS = 16.0
+// ── Mode selection: 4-rung (cycle-23c) preferred, else 3-rung (cycle-20). ─────────
+let DATA_PATH_4RUNG = ".verdicts/sandbox/p1_multimodal_ladder_7b.tsv"
+let DATA_PATH_3RUNG = ".verdicts/sandbox/m5_substrate_multimodal_ladder.tsv"
 
-// ── EXPECTED recompute targets (cross-checks; the verifier RECOMPUTES from the TSV) ─
-let EXP_CORRECT = [13.0, 15.0, 13.0]            // /16 per rung (0.5B, 2.2B, 3.0B)
-let EXP_PARAMS_B = [0.5, 2.2, 3.0]
-// perception sub-ladder = ocr + spatial + shape (11 items); count axis excluded
-let EXP_PERC_CORRECT = [9.0, 11.0, 11.0]
+let TOTAL_ITEMS = 16.0
 let PERC_TOTAL = 11.0
-let N_RUNGS = 3
+let COUNT_TOTAL = 5.0
+
+// ── EXPECTED recompute targets per rung-count (cross-checks; the verifier
+//    RECOMPUTES from the TSV, these are only the cycle-20 / cycle-23c targets). ───
+let EXP_PARAMS_B_4 = [0.5, 2.2, 3.0, 7.0]
+let EXP_CORRECT_4  = [13.0, 15.0, 13.0, 16.0]
+let EXP_PERC_4     = [9.0, 11.0, 11.0, 11.0]
+let EXP_COUNT_4    = [4.0, 4.0, 2.0, 5.0]
+
+let EXP_PARAMS_B_3 = [0.5, 2.2, 3.0]
+let EXP_CORRECT_3  = [13.0, 15.0, 13.0]
+let EXP_PERC_3     = [9.0, 11.0, 11.0]
+let EXP_COUNT_3    = [4.0, 4.0, 2.0]
 
 let EPS_RECOMPUTE = 0.0001    // recompute must match the committed data exactly
 let EPS_PARAM = 0.01
@@ -107,26 +136,54 @@ fn logistic_at(x: float, l_lo: float, l_hi: float, k: float, x0: float) -> float
     return l_lo + ((l_hi - l_lo) / (1.0 + exp_pure(z)))
 }
 
+// quadratic in log2(params): y(x) = a*x^2 + b*x + c (admits dip-then-recover).
+fn quadratic_at(x: float, a: float, b: float, c: float) -> float {
+    return (a * x * x) + (b * x) + c
+}
+
 fn main() {
     println("========================================================================")
     println("  hexa-codex SUBSTRATE multimodal CAPABILITY FIT — closed-form recompute")
-    println("  M5.SUBSTRATE · 3 VL rungs (0.5B/2.2B/3.0B) · harder 16-item manifest")
-    println("  recompute per-rung + per-axis accuracy + logistic fit from committed TSV")
+    println("  M5.SUBSTRATE · VL rungs · harder 16-item manifest")
+    println("  recompute per-rung + per-axis accuracy + logistic + quadratic fit")
     println("========================================================================")
-    println("  source = " + DATA_PATH + "  (byte-exact scored, NO LLM self-judge)")
+
+    // ── Mode selection: 4-rung (cycle-23c) preferred, else 3-rung (cycle-20). ────
+    let mut data_path = DATA_PATH_4RUNG
+    let mut n_rungs = 4
+    let mut mode_label = "4-RUNG (cycle-23c, with Qwen2.5-VL-7B)"
+    let mut verdict_path = ".verdicts/sandbox/m5_substrate_multimodal_fit_4rung.txt"
+    let mut exp_params_b = EXP_PARAMS_B_4
+    let mut exp_correct  = EXP_CORRECT_4
+    let mut exp_perc     = EXP_PERC_4
+    let mut exp_count    = EXP_COUNT_4
+    if !file_exists_pure(DATA_PATH_4RUNG) {
+        data_path = DATA_PATH_3RUNG
+        n_rungs = 3
+        mode_label = "3-RUNG (cycle-20, legacy)"
+        verdict_path = ".verdicts/sandbox/m5_substrate_multimodal_fit.txt"
+        exp_params_b = EXP_PARAMS_B_3
+        exp_correct  = EXP_CORRECT_3
+        exp_perc     = EXP_PERC_3
+        exp_count    = EXP_COUNT_3
+    }
+    println("  mode    = " + mode_label)
+    println("  source  = " + data_path + "  (byte-exact scored, NO LLM self-judge)")
+    println("  verdict = " + verdict_path)
+    println("  rungs   = " + str(n_rungs))
     println("")
 
-    // ── load + recompute from the committed TSV ──────────────────────────────
-    let txt = read_file_pure(DATA_PATH)
+    // ── load + recompute from the committed TSV ──────────────────────────────────
+    let txt = read_file_pure(data_path)
     let lines = txt.split("\n")
 
     // accumulate per-rung overall correct + per-axis (count vs perception) by params_b.
-    // rung index is keyed by params_b matched to EXP_PARAMS_B.
-    let mut rung_correct = [0.0, 0.0, 0.0]
-    let mut rung_total = [0.0, 0.0, 0.0]
-    let mut rung_count_correct = [0.0, 0.0, 0.0]   // counting axis only
-    let mut rung_perc_correct = [0.0, 0.0, 0.0]    // ocr + spatial + shape
-    let mut rung_name = ["", "", ""]
+    // rung index keyed by params_b matched to exp_params_b. n_rungs ∈ {3, 4}.
+    let mut rung_correct = [0.0, 0.0, 0.0, 0.0]
+    let mut rung_total = [0.0, 0.0, 0.0, 0.0]
+    let mut rung_count_correct = [0.0, 0.0, 0.0, 0.0]
+    let mut rung_perc_correct = [0.0, 0.0, 0.0, 0.0]
+    let mut rung_name = ["", "", "", ""]
 
     let mut li = 0
     while li < lines.len() {
@@ -139,11 +196,10 @@ fn main() {
                 let pb = cells[1].to_float()
                 let axis = cells[3]
                 let corr = cells[6].to_float()
-                // find rung slot by params_b
                 let mut ri = -1
                 let mut q = 0
-                while q < N_RUNGS {
-                    if _abs(pb - EXP_PARAMS_B[q]) < EPS_PARAM { ri = q }
+                while q < n_rungs {
+                    if _abs(pb - exp_params_b[q]) < EPS_PARAM { ri = q }
                     q = q + 1
                 }
                 if ri >= 0 {
@@ -163,58 +219,72 @@ fn main() {
         li = li + 1
     }
 
-    // ── Check 1: per-rung overall accuracy recompute matches committed /16 ────
-    println("  rung   params   recomputed   expected   accuracy")
-    let mut acc = [0.0, 0.0, 0.0]
+    // ── Check 1: per-rung overall accuracy recompute matches committed /16 ──────
+    println("  rung   params   recomputed   expected   accuracy   model")
+    let mut acc = [0.0, 0.0, 0.0, 0.0]
     let mut recompute_ok = true
     let mut i = 0
-    while i < N_RUNGS {
+    while i < n_rungs {
         acc[i] = rung_correct[i] / TOTAL_ITEMS
-        let drift = _abs(rung_correct[i] - EXP_CORRECT[i])
+        let drift = _abs(rung_correct[i] - exp_correct[i])
         if drift > EPS_RECOMPUTE { recompute_ok = false }
         if _abs(rung_total[i] - TOTAL_ITEMS) > EPS_RECOMPUTE { recompute_ok = false }
-        println("  " + str(i) + "      " + to_string(EXP_PARAMS_B[i]) + "B    " +
+        println("  " + str(i) + "      " + to_string(exp_params_b[i]) + "B    " +
                 to_string(rung_correct[i]) + "/" + to_string(rung_total[i]) + "       " +
-                to_string(EXP_CORRECT[i]) + "/16      " + to_string(acc[i]) +
+                to_string(exp_correct[i]) + "/16      " + to_string(acc[i]) +
                 "   " + rung_name[i])
         i = i + 1
     }
     println("")
+    let mut detail1 = ""
+    let mut d1i = 0
+    while d1i < n_rungs {
+        if d1i > 0 { detail1 = detail1 + "  " }
+        detail1 = detail1 + to_string(exp_params_b[d1i]) + "B=" + to_string(rung_correct[d1i])
+        d1i = d1i + 1
+    }
     _check(recompute_ok,
            "per-rung overall accuracy recomputed from the committed TSV matches expected (/16)",
-           "0.5B=" + to_string(rung_correct[0]) + "  2.2B=" + to_string(rung_correct[1]) +
-           "  3.0B=" + to_string(rung_correct[2]) + "  (each /16)")
+           detail1 + "  (each /16)")
 
-    // ── Check 2: per-axis recompute (perception sub-ladder) matches ───────────
-    let mut perc_ok = true
+    // ── Check 2: per-axis recompute (perception + counting) matches ─────────────
+    let mut axis_ok = true
     let mut j = 0
-    while j < N_RUNGS {
-        if _abs(rung_perc_correct[j] - EXP_PERC_CORRECT[j]) > EPS_RECOMPUTE { perc_ok = false }
+    while j < n_rungs {
+        if _abs(rung_perc_correct[j] - exp_perc[j]) > EPS_RECOMPUTE { axis_ok = false }
+        if _abs(rung_count_correct[j] - exp_count[j]) > EPS_RECOMPUTE { axis_ok = false }
         j = j + 1
     }
-    _check(perc_ok,
-           "per-axis recompute: PERCEPTION sub-ladder (ocr+spatial+shape, 11 items) matches expected",
-           "perception correct: 0.5B=" + to_string(rung_perc_correct[0]) + "/11  2.2B=" +
-           to_string(rung_perc_correct[1]) + "/11  3.0B=" + to_string(rung_perc_correct[2]) + "/11  " +
-           "| counting axis: 0.5B=" + to_string(rung_count_correct[0]) + "/5  2.2B=" +
-           to_string(rung_count_correct[1]) + "/5  3.0B=" + to_string(rung_count_correct[2]) + "/5")
+    let mut perc_detail = "perception (ocr+spatial+shape, /11): "
+    let mut count_detail = " | counting (/5): "
+    let mut d2i = 0
+    while d2i < n_rungs {
+        if d2i > 0 {
+            perc_detail = perc_detail + "  "
+            count_detail = count_detail + "  "
+        }
+        perc_detail = perc_detail + to_string(exp_params_b[d2i]) + "B=" + to_string(rung_perc_correct[d2i])
+        count_detail = count_detail + to_string(exp_params_b[d2i]) + "B=" + to_string(rung_count_correct[d2i])
+        d2i = d2i + 1
+    }
+    _check(axis_ok,
+           "per-axis recompute: PERCEPTION sub-ladder + COUNTING axis match expected",
+           perc_detail + count_detail)
 
-    // ── logistic best-fit (grid search on k, x0; L_lo/L_hi pinned to data) ────
-    // L_lo = min observed accuracy, L_hi = max observed accuracy (g0 Occam pin).
+    // ── logistic best-fit (grid search on k, x0; L_lo/L_hi pinned to data) ──────
     let mut l_lo = acc[0]
     let mut l_hi = acc[0]
     let mut m = 0
-    while m < N_RUNGS {
+    while m < n_rungs {
         if acc[m] < l_lo { l_lo = acc[m] }
         if acc[m] > l_hi { l_hi = acc[m] }
         m = m + 1
     }
-    // grid-search k in [0.5, 12], x0 in [log2(0.5), log2(3)] minimising RMSE on 3 pts.
-    let x_lo = x_of(EXP_PARAMS_B[0])
-    let x_hi = x_of(EXP_PARAMS_B[2])
+    let x_lo = x_of(exp_params_b[0])
+    let x_hi = x_of(exp_params_b[n_rungs - 1])
     let mut best_k = 1.0
     let mut best_x0 = 0.0
-    let mut best_rmse = 1.0e9
+    let mut best_logistic_rmse = 1.0e9
     let mut ki = 0
     while ki <= 115 {
         let k = 0.5 + (ki as float) * 0.1
@@ -223,15 +293,15 @@ fn main() {
             let x0 = x_lo + (xi as float) * ((x_hi - x_lo) / 60.0)
             let mut ss = 0.0
             let mut p = 0
-            while p < N_RUNGS {
-                let yhat = logistic_at(x_of(EXP_PARAMS_B[p]), l_lo, l_hi, k, x0)
+            while p < n_rungs {
+                let yhat = logistic_at(x_of(exp_params_b[p]), l_lo, l_hi, k, x0)
                 let res = acc[p] - yhat
                 ss = ss + res * res
                 p = p + 1
             }
-            let rmse = sqrt_pure(ss / (N_RUNGS as float))
-            if rmse < best_rmse {
-                best_rmse = rmse
+            let rmse = sqrt_pure(ss / (n_rungs as float))
+            if rmse < best_logistic_rmse {
+                best_logistic_rmse = rmse
                 best_k = k
                 best_x0 = x0
             }
@@ -241,40 +311,153 @@ fn main() {
     }
 
     println("")
-    println("  best-fit logistic (L_lo/L_hi pinned to data, k/x0 grid-fit):")
+    println("  best-fit MONOTONE LOGISTIC (L_lo/L_hi pinned to data, k/x0 grid-fit):")
     println("    L_lo=" + to_string(l_lo) + "  L_hi=" + to_string(l_hi) +
-            "  k=" + to_string(best_k) + "  x0=" + to_string(best_x0) + "  RMSE=" + to_string(best_rmse))
+            "  k=" + to_string(best_k) + "  x0=" + to_string(best_x0) +
+            "  RMSE=" + to_string(best_logistic_rmse))
     let mut q2 = 0
-    while q2 < N_RUNGS {
-        let yhat = logistic_at(x_of(EXP_PARAMS_B[q2]), l_lo, l_hi, best_k, best_x0)
-        println("    " + to_string(EXP_PARAMS_B[q2]) + "B  y_obs=" + to_string(acc[q2]) +
+    while q2 < n_rungs {
+        let yhat = logistic_at(x_of(exp_params_b[q2]), l_lo, l_hi, best_k, best_x0)
+        println("    " + to_string(exp_params_b[q2]) + "B  y_obs=" + to_string(acc[q2]) +
                 "  y_logistic=" + to_string(yhat) + "  residual=" + to_string(_abs(acc[q2] - yhat)))
         q2 = q2 + 1
     }
     println("")
 
-    // ── Check 3: OVERALL monotonicity test — the honest capability-gradient verdict ─
-    // overall accuracy rises 0.5B->2.2B then falls 2.2B->3.0B: NOT monotone.
-    let step01 = acc[1] - acc[0]
-    let step12 = acc[2] - acc[1]
-    let overall_monotone = (step01 >= -EPS_RECOMPUTE) && (step12 >= -EPS_RECOMPUTE)
-    // best-fit RMSE for a monotone law on a rise-then-fall curve must be large
-    // (a logistic CANNOT bend back down) — report it as the structural-misfit signal.
-    let rise_then_fall = (step01 > EPS_RECOMPUTE) && (step12 < -EPS_RECOMPUTE)
-    _check(rise_then_fall && !overall_monotone,
-           "OVERALL capability gradient is NON-MONOTONE (rise 0.5B->2.2B, fall 2.2B->3.0B) — honest-negative; a monotone logistic structurally cannot fit it",
-           "step 0.5B->2.2B=+" + to_string(step01) + "  step 2.2B->3.0B=" + to_string(step12) +
-           "  best monotone-logistic RMSE=" + to_string(best_rmse) + " (large = structural misfit, as expected)")
+    // ── quadratic-in-log2(params) best-fit (grid search on a, b, c) ─────────────
+    // y(x) = a*x^2 + b*x + c — admits dip-then-recover by construction (a > 0 → U).
+    // Coarse 3D grid; covers the 4-rung dynamic range (acc in [0.81, 1.0], x in [-1, 2.81]).
+    let mut best_a = 0.0
+    let mut best_b = 0.0
+    let mut best_c = 0.0
+    let mut best_quad_rmse = 1.0e9
+    let mut ai = 0
+    while ai <= 40 {
+        let a = -0.20 + (ai as float) * 0.01      // a ∈ [-0.20, 0.20] step 0.01
+        let mut bi = 0
+        while bi <= 40 {
+            let b = -0.40 + (bi as float) * 0.02  // b ∈ [-0.40, 0.40] step 0.02
+            let mut ci = 0
+            while ci <= 40 {
+                let c = 0.60 + (ci as float) * 0.01  // c ∈ [0.60, 1.00] step 0.01
+                let mut ss = 0.0
+                let mut p2 = 0
+                while p2 < n_rungs {
+                    let yhat = quadratic_at(x_of(exp_params_b[p2]), a, b, c)
+                    let res = acc[p2] - yhat
+                    ss = ss + res * res
+                    p2 = p2 + 1
+                }
+                let rmse = sqrt_pure(ss / (n_rungs as float))
+                if rmse < best_quad_rmse {
+                    best_quad_rmse = rmse
+                    best_a = a
+                    best_b = b
+                    best_c = c
+                }
+                ci = ci + 1
+            }
+            bi = bi + 1
+        }
+        ai = ai + 1
+    }
 
-    // ── Check 4: PERCEPTION sub-ladder IS monotone-non-decreasing ─────────────
-    let pacc0 = rung_perc_correct[0] / PERC_TOTAL
-    let pacc1 = rung_perc_correct[1] / PERC_TOTAL
-    let pacc2 = rung_perc_correct[2] / PERC_TOTAL
-    let perc_monotone = (pacc1 >= pacc0 - EPS_RECOMPUTE) && (pacc2 >= pacc1 - EPS_RECOMPUTE)
+    println("  best-fit QUADRATIC in log2(params) — y(x) = a*x^2 + b*x + c:")
+    println("    a=" + to_string(best_a) + "  b=" + to_string(best_b) +
+            "  c=" + to_string(best_c) + "  RMSE=" + to_string(best_quad_rmse))
+    let mut q3 = 0
+    while q3 < n_rungs {
+        let yhat = quadratic_at(x_of(exp_params_b[q3]), best_a, best_b, best_c)
+        println("    " + to_string(exp_params_b[q3]) + "B  y_obs=" + to_string(acc[q3]) +
+                "  y_quad=" + to_string(yhat) + "  residual=" + to_string(_abs(acc[q3] - yhat)))
+        q3 = q3 + 1
+    }
+    println("")
+
+    // ── Check 3: OVERALL monotonicity test — the honest capability-gradient verdict ─
+    let mut overall_monotone = true
+    let mut any_rise = false
+    let mut any_fall = false
+    let mut s = 1
+    while s < n_rungs {
+        let step = acc[s] - acc[s - 1]
+        if step < -EPS_RECOMPUTE {
+            overall_monotone = false
+            any_fall = true
+        }
+        if step > EPS_RECOMPUTE { any_rise = true }
+        s = s + 1
+    }
+    let rise_then_fall = any_rise && any_fall
+    let mut step_str = "steps: "
+    let mut ss2 = 1
+    while ss2 < n_rungs {
+        let step = acc[ss2] - acc[ss2 - 1]
+        if ss2 > 1 { step_str = step_str + "  " }
+        step_str = step_str + to_string(exp_params_b[ss2 - 1]) + "B->" +
+                   to_string(exp_params_b[ss2]) + "B=" + to_string(step)
+        ss2 = ss2 + 1
+    }
+    _check(rise_then_fall && !overall_monotone,
+           "OVERALL capability gradient is NON-MONOTONE — honest-negative; a monotone logistic structurally cannot fit it",
+           step_str + "  best monotone-logistic RMSE=" + to_string(best_logistic_rmse) +
+           " (large = structural misfit, as expected)")
+
+    // ── Check 4: PERCEPTION sub-ladder IS monotone-non-decreasing ───────────────
+    let mut pacc = [0.0, 0.0, 0.0, 0.0]
+    let mut pp = 0
+    while pp < n_rungs {
+        pacc[pp] = rung_perc_correct[pp] / PERC_TOTAL
+        pp = pp + 1
+    }
+    let mut perc_monotone = true
+    let mut ps = 1
+    while ps < n_rungs {
+        if pacc[ps] < pacc[ps - 1] - EPS_RECOMPUTE { perc_monotone = false }
+        ps = ps + 1
+    }
+    let mut perc_traj = ""
+    let mut pti = 0
+    while pti < n_rungs {
+        if pti > 0 { perc_traj = perc_traj + " -> " }
+        perc_traj = perc_traj + to_string(exp_params_b[pti]) + "B=" + to_string(pacc[pti])
+        pti = pti + 1
+    }
     _check(perc_monotone,
            "PERCEPTION sub-ladder (ocr+spatial+shape) IS monotone-non-decreasing then saturates — the real capability gradient once the params-orthogonal counting axis is separated",
-           "perception acc: 0.5B=" + to_string(pacc0) + " -> 2.2B=" + to_string(pacc1) +
-           " -> 3.0B=" + to_string(pacc2) + "  (rises then saturates at 1.0)")
+           "perception acc: " + perc_traj)
+
+    // ── Check 5 (4-rung only): QUADRATIC beats monotone LOGISTIC on overall ─────
+    if n_rungs == 4 {
+        let quad_better = best_quad_rmse < best_logistic_rmse - EPS_RECOMPUTE
+        let mut delta = best_logistic_rmse - best_quad_rmse
+        _check(quad_better,
+               "QUADRATIC in log2(params) fits the OVERALL 4-rung dip-then-recover STRICTLY BETTER than the monotone logistic (admits the 3B counting dip)",
+               "logistic RMSE=" + to_string(best_logistic_rmse) +
+               "  quadratic RMSE=" + to_string(best_quad_rmse) +
+               "  improvement=" + to_string(delta) +
+               "  (positive a=" + to_string(best_a) + " → U-shape, dip-then-recover)")
+    }
+
+    // ── 4-rung COUNTING-axis V-shape diagnostic (cycle-22 7B recovery) ──────────
+    if n_rungs == 4 {
+        let count_dip_then_recover =
+            rung_count_correct[1] >= rung_count_correct[0] - EPS_RECOMPUTE &&
+            rung_count_correct[2] <  rung_count_correct[1] - EPS_RECOMPUTE &&
+            rung_count_correct[3] >  rung_count_correct[2] + EPS_RECOMPUTE
+        let mut count_traj = ""
+        let mut cti = 0
+        while cti < n_rungs {
+            if cti > 0 { count_traj = count_traj + " -> " }
+            count_traj = count_traj + to_string(exp_params_b[cti]) + "B=" +
+                         to_string(rung_count_correct[cti]) + "/5"
+            cti = cti + 1
+        }
+        _check(count_dip_then_recover,
+               "COUNTING axis is V-SHAPE: 7B FULLY RECOVERS the 3B subitizing dip — per-rung dummy (not a scaling law)",
+               "counting: " + count_traj +
+               "  (3B dip = real, 7B recovery to 5/5 = real; cycle-22 finding)")
+    }
 
     println("")
     println("========================================================================")
@@ -289,15 +472,28 @@ fn main() {
     }
 
     println("  🟢 SUPPORTED-NUMERICAL — multimodal capability ladder recomputed from")
-    println("     the committed byte-exact TSV; closed-form fit + gradient verdict:")
-    println("     overall: 0.5B 0.8125 -> 2.2B 0.9375 -> 3.0B 0.8125 (NON-MONOTONE, honest-negative)")
-    println("       → a single logistic in log2(params) is the WRONG family for the overall curve")
-    println("         (rise-then-fall; best monotone-logistic RMSE=" + to_string(best_rmse) + ")")
-    println("     perception sub-ladder (ocr+spatial+shape): 9/11 -> 11/11 -> 11/11 (MONOTONE→saturate)")
-    println("     counting axis (5-9 dense objects): does NOT track params (subitizing-limit; the")
-    println("       3.0B Qwen-VL undercounts where the 2.2B SmolVLM2 does not — NOT a quant artifact)")
-    println("  · M5.SUBSTRATE multimodal verdict link:")
-    println("    .verdicts/sandbox/m5_substrate_multimodal_fit.txt")
+    println("     the committed byte-exact TSV; closed-form fit + gradient verdict.")
+    println("     mode: " + mode_label)
+    if n_rungs == 4 {
+        println("     overall: 0.5B 0.8125 -> 2.2B 0.9375 -> 3.0B 0.8125 -> 7.0B 1.0000")
+        println("              (NON-MONOTONE: 3B dip is real; 7B recovers to 100%)")
+        println("       → monotone-logistic RMSE=" + to_string(best_logistic_rmse) +
+                " (STRUCTURAL MISFIT — cannot bend down then back up)")
+        println("       → quadratic-in-log2(params) RMSE=" + to_string(best_quad_rmse) +
+                " (BETTER FAMILY — admits dip-then-recover)")
+        println("     perception sub-ladder (ocr+spatial+shape): 9/11 -> 11/11 -> 11/11 -> 11/11")
+        println("              (monotone-saturating; 7B confirms cycle-20 prediction holds)")
+        println("     counting axis (5-9 dense objects): 4/5 -> 4/5 -> 2/5 -> 5/5")
+        println("              (V-shape: 3B subitizing dip + 7B full recovery; per-rung dummy term)")
+    } else {
+        println("     overall: 0.5B 0.8125 -> 2.2B 0.9375 -> 3.0B 0.8125 (NON-MONOTONE, honest-negative)")
+        println("       → a single logistic in log2(params) is the WRONG family for the overall curve")
+        println("         (rise-then-fall; best monotone-logistic RMSE=" + to_string(best_logistic_rmse) + ")")
+        println("     perception sub-ladder (ocr+spatial+shape): 9/11 -> 11/11 -> 11/11 (MONOTONE→saturate)")
+        println("     counting axis (5-9 dense objects): does NOT track params (subitizing-limit; the")
+        println("       3.0B Qwen-VL undercounts where the 2.2B SmolVLM2 does not — NOT a quant artifact)")
+    }
+    println("  · M5.SUBSTRATE multimodal verdict link: " + verdict_path)
     println("__HEXA_CODEX_NUMERICS_SUBSTRATE_MULTIMODAL_FIT__ PASS")
     exit(0)
 }

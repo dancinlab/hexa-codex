@@ -3002,3 +3002,95 @@ difference 추정). 7B에서 모든 axis perfect → **scaling 으로 counting r
 
 진행도 21/25 (84%) 유지 — 영구 축 inner-state 진척. 영구 axis 자체는 close 안
 됨 (perpetual 설계 invariant [[feedback_closure_is_physical_limit]]).
+
+## cycle-24 — fan-out (4 Agents · 3 lane closed + 1 partial-fire)
+
+post-cycle-23 4-lane 자연 후속 fan-out. background 4-Agent · parallel.
+
+| lane | Agent | 결과 | verdict |
+|------|-------|------|---------|
+| A1 P1 50-item subitizing | sandbox_p1_subitizing_50item.hexa | 3 rungs partial + 7B stuck | 🟠 INSUFFICIENT |
+| A2 4-rung verifier | numerics_substrate_multimodal_fit.hexa extended 304→499 | 6/6 checks · quadratic fit ΔRMSE -0.0023 | 🟢 SUPPORTED-NUMERICAL |
+| A3 P3 ubu-1 install | binary + scp + smoke | 5/5 PASS · 226s · path-to-fire OPEN | ✅ unblocked |
+| A4 P2 SAELens pin | inbox/notes/p2-topk-sae-pin.md (239 lines) | 3 lib commit SHA + 5-step runbook | ✅ infra-prep |
+
+### A2 verifier — cycle-23c 4-rung 닫힘 (🟢 SUPPORTED-NUMERICAL)
+
+- mode selection (file_exists_pure): 3-rung legacy fallback 자동 (cycle-20 invariant 보존) · 4-rung mode 활성화
+- N_RUNGS parametric (3 → 4): EXP_PARAMS_B [0.5, 2.2, 3.0, 7.0] · EXP_CORRECT [13, 15, 13, 16]
+- **NEW fit family — quadratic in log2(params)**: a·x² + b·x + c, 40×40×40 coarse grid
+  - measured: a=0.01, b=0.02, c=0.84 → RMSE 0.0545
+  - vs monotone-logistic RMSE 0.0568 → **ΔRMSE -0.0023** (positive a → U-shape, dip-then-recover 자연 fit)
+- + counting V-shape check (4/5→4/5→2/5→5/5)
+- + perception saturate check (9/11→11/11→11/11→11/11)
+- verdict: `.verdicts/sandbox/m5_substrate_multimodal_fit_4rung.txt` (170 lines, 12.5KB)
+
+Honest residual:
+- 3B dip 은 Qwen-VL-3B model-specific (scaling law 아님), per-rung dummy
+- 7B counting recovery 가 "subitizing emerges at scale" vs "Qwen-VL-7B-specific" 구분 못함 → non-Qwen-7B rung 필요 (InternVL-7B / LLaVA-NeXT-7B)
+- n=4 점에 3-param fit, 통계 modest (RMSE delta 작음)
+
+### A3 P3 ubu-1 install — path-to-fire OPEN
+
+- Option A binary: `llama-cpp/llama-b9334-bin-ubuntu-x64.tar.gz` (14MB · 1-2분 · CPU-only · NO CUDA build 필요)
+- GGUF transfer: sha256 bit-for-bit match (mini ↔ ubu-1)
+- end-to-end smoke: chat "2+2"→"4" via `http://192.168.50.119:8090/v1/chat/completions` (LAN OK, tailscale 8090 timeout)
+- 180 tok/s predict on 0.5B Q4_K_M CPU → P3 Erlang-C 측정 sufficient
+- 5/5 PASS · 226s wall · $0
+
+Honest residual: 
+- runbook `inbox/notes/p3-ubu1-llama-cpp-install.md` 의 asset name `.zip` 이 stale (실제 `.tar.gz`) · path `build/bin/` 도 stale (tarball flat extract) · cycle-25 P3 fire 전 runbook 패치 권장
+- tailscale port 8090 timeout (LAN 만 OK) — P3 fire harness LAN address 사용 또는 ubu-1 직접 dispatch
+- cycle-25 P3 fire 진입 가능
+
+### A4 P2 SAELens commit pin — infra-prep complete
+
+3 candidate lib commit SHA (모두 actual GitHub API):
+- `openai/sparse_autoencoder` HEAD `4965b941...` (no releases, 2024-06-30 · Top-K only · torch==2.1.0 pinning 충돌)
+- **`jbloomAus/SAELens` v6.44.0 `3b3f4cac...`** ★ recommended (2026-05-20 · 3 families first-class · venv-pin overhead 최소)
+- `EleutherAI/sparsify` (renamed from `EleutherAI/sae`) v1.3.0 `b2dee7c6...` (Top-K + JumpReLU, BatchTopK 별도 클래스 없음)
+
+cycle-25 P2 fire 5-step runbook 완비:
+1. ubu-1 venv 생성 + `sae-lens==6.44.0` install
+2. cycle-20 L19 activations cache 재사용 또는 재생성
+3. 5 dispatch rows (Top-K K=8/16/32 + JumpReLU + BatchTopK) scp-ship-script pattern (no inline-ssh quoting)
+4. 5 row harvest → frozen baseline 아래 concat
+5. verifier lever-attribution 판정 (cycle-20 negative reopen 또는 corpus-scale escalation)
+
+cycle-23 의 `inbox/notes/p3-ubu1-llama-cpp-install.md` 패턴 mirror · `cx_hf_safety_private` 준수 (NUMBERS ONLY).
+
+### A1 P1 50-item subitizing — STUCK + partial verdict (🟠 INSUFFICIENT)
+
+stuck @ Qwen2.5-VL-3B rung 25/50 위치 · 21분 무변화 · kill 후 partial data:
+
+| rung | counting | cycle-23c 16-item baseline | Δ |
+|------|----------|-----------------------------|---|
+| 0.5B SmolVLM-500M | **6/50 (12%)** | 4/5 (80%) | **-68pp** ⚠ |
+| 2.2B SmolVLM2 | **28/50 (56%)** | 4/5 (80%) | -24pp |
+| 3.0B Qwen-VL-3B | **18/24 (75%)** partial | 2/5 (40%) | **+35pp** ✨ |
+| 7.0B Qwen-VL-7B | (stuck before fire) | 5/5 (100%) | — load-bearing 검증 불가 |
+
+**중대 finding:** cycle-23c 의 16-item NON-MONOTONE 패턴 (4/5 → 4/5 → 2/5 → 5/5) 이
+n=50 partial 에서 **monotone-increasing 으로 보임** (12% → 56% → 75% partial) —
+**cycle-23c BREAKTHROUGH 의 dip-then-recover 해석이 n=5 small-sample artifact 일
+가능성** raised. 7B 미진행으로 load-bearing 검증 불가. 정직한 🟠 INSUFFICIENT.
+
+Honest residual:
+- 50-item PIL generator 의 difficulty 분포가 16-item 과 다른가? (manifest comparability 확인 필요)
+- 7B 의 stuck 원인 미규명 (3B count_7_s04 hang? llama-mtmd-cli deadlock?)
+- cycle-25 후속: 50-item 재실행 (smaller subset or wall-cap 적용) + 7B 완주
+- A1 harness `bench/sandbox_p1_subitizing_50item.hexa` (414 lines, parse PASS) 유지 (재사용 가능)
+
+### cycle-24 종합
+
+| 산출물 | 파일 | 크기 |
+|--------|------|------|
+| A1 harness | bench/sandbox_p1_subitizing_50item.hexa | 414 lines |
+| A1 partial TSV | .verdicts/sandbox/p1_subitizing_50item.tsv | 125 lines |
+| A2 verifier extended | verify/numerics_substrate_multimodal_fit.hexa | 304→499 (+195) |
+| A2 verdict | .verdicts/sandbox/m5_substrate_multimodal_fit_4rung.txt | 170 lines |
+| A4 inbox runbook | inbox/notes/p2-topk-sae-pin.md | 239 lines |
+
+진행도 21/25 (84%) 유지 — 영구 축 inner-state 진척. A1 partial이 cycle-23c
+BREAKTHROUGH 해석을 약화 → cycle-25 의 50-item 재실행 + 7B 완주가 진정한
+close 경로. P3, P2 두 lane 의 cycle-25 fire 진입 path 모두 OPEN.

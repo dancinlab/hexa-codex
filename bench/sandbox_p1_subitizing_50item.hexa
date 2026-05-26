@@ -1,0 +1,414 @@
+#!hexa strict
+// bench/sandbox_p1_subitizing_50item.hexa — SANDBOX P1 counting-axis SE refinement (cycle-24).
+//
+// SPEC.  This harness implements `.discoveries/sandbox-p1-vl-7b-rung.tape` entry
+//   @C d_p1_test_set_scale_for_subitizing
+// (the natural cycle-22→23c→24 follow-on: tighten the per-rung counting accuracy std
+// from binomial SE ≈ 0.20 at n=5 to ≈ 0.07 at n=50, distinguishing small-N sampling
+// noise from an architectural ceiling).
+//
+// QUESTION (SANDBOX P1 — counting-axis statistical hardening, multimodal):
+//   The cycle-23c 4-rung ladder landed Qwen2.5-VL-7B-Q4_K_M counting=5/5 (rung3),
+//   yielding the 🟢 SUPPORTED-NUMERICAL POSITIVE: "subitizing limit was data-scale-
+//   bounded; counting unblocks at 7B".  But n=5 per rung carries a binomial SE of
+//   ≈22% (the cycle-23c honest residual).  At n=50 (5 counts × 10 deterministic
+//   color/position-randomized samples per count) does the rung3 POSITIVE replicate
+//   (≥40/50 = ≥80%), or was it a small-sample artifact (<40/50, retraction)?
+//
+// CYCLE-23c BASELINE (the 16-item 4-rung curve this 50-item axis-only run statistically
+// hardens — IDENTICAL backend, scorer, decode, seed; ONLY the counting axis grows):
+//   rung 0  SmolVLM-500M-Instruct-Q8_0    0.5B  count 4/5
+//   rung 1  SmolVLM2-2.2B-Instruct-Q8_0   2.2B  count 4/5
+//   rung 2  Qwen2.5-VL-3B-Instruct-Q4_K_M 3.0B  count 2/5  ⚠ (Qwen2.5-VL-3B model-specific dip)
+//   rung 3  Qwen2.5-VL-7B-Instruct-Q4_K_M 7.0B  count 5/5  ✅ (the load-bearing POSITIVE)
+//   → cycle-23c verdict: (A) POSITIVE — subitizing limit was data-scale-bounded.
+//   .verdicts/sandbox/p1_multimodal_ladder_7b_summary.txt (🟢 SUPPORTED-NUMERICAL).
+//
+// THIS BENCH (cycle-24, counting axis ONLY, n=50 per rung, SAME 4 rungs):
+//   5 counts (5,6,7,8,9 dense black circles) × 10 seed-pinned position-randomized
+//   samples per count = 50 items, run against ALL 4 cycle-23c rungs.  No new models,
+//   no new mmprojs — all 4 GGUF + mmproj pairs already resident on disk from cycle-22/23c.
+//
+// 2-WAY REFINED FALSIFIER (the crisp call this round forces, cited from the seed tape):
+//   (A) rung3 counting ≥40/50 (≥80%) AND rung3 ≥ rung2_counting + margin
+//       → subitizing recovery REPLICATES at n=50; cycle-23c POSITIVE HARDENS to a
+//         statistically-tighter 🟢 SUPPORTED-NUMERICAL (binomial SE drops 22%→7%).
+//   (B) rung3 counting <40/50
+//       → cycle-23c rung3 5/5 was a n=5 small-sample artifact; the cycle-23c POSITIVE
+//         RETRACTS to a NEGATIVE / inconclusive; subitizing axis remains a possible
+//         architectural limit (would re-open the cycle-20 NON-MONOTONE reading).
+//   Either reading is informative.  The per-rung curve (0.5/2.2/3.0/7.0B counting at n=50)
+//   is the statistically-load-bearing source-of-truth for the SANDBOX P1 counting axis.
+//
+// MANIFEST (NEW — 50 items, counting axis ONLY; deterministic seed-pinned PIL):
+//   For each n ∈ {5,6,7,8,9}, 10 samples generated with:
+//     - n black circles on a 6x6 grid (36 candidate cells, 50x50 px each, 12 px margin),
+//       sampled WITHOUT replacement by the per-sample PRNG seed
+//       (seed = SEED + n*1000 + sample_idx)
+//     - canvas 384x384, white background, deterministic placement
+//     - bit-reproducible: same SEED + same n + same idx → byte-identical PNG
+//   PROMPT IDENTICAL to cycle-23c: "How many black circles are in this image?
+//     Answer with the number only." → expected_kw = str(n).
+//
+// SCORER (same as cycle-23c, DO NOT CHANGE — bytes must match the 16-item ladder for
+// the n=50 counting axis to be directly comparable to the n=5 axis it refines):
+//   byte_exact_subset = lowercase the answer, collapse whitespace, case-insensitive
+//   SUBSTRING match on the expected count digit.  NO LLM judges correctness — pure byte
+//   compare.  Same family as bench/sandbox_p1_multimodal_ladder_7b.hexa.
+//
+// SEED-PINNED GREEDY (same as cycle-23c):
+//   llama-mtmd-cli --temp 0 -s 42 -n 24  (greedy, deterministic byte-exact replay)
+//
+// BACKEND.  llama-mtmd-cli (stock brew llama.cpp, CLIP on MTL0 Metal/UMA backend).
+//   mac-mini-m3 (Apple M3, 24GB UMA, PRE-M5 Metal — MTL0 active).  Same host as cycles
+//   19 (smoke) / 20 (3-rung ladder) / 22-23c (4-rung ladder).
+//
+// FIT ESTIMATE (M3 24GB UMA, 4 rungs × 50 items = 200 inferences):
+//   Per-item wall (cycle-23c counting axis, n=24 tok, ~512x512 image): ~5–25s/item
+//   depending on rung (0.5B ≈ 3–5s, 2.2B ≈ 6–8s, 3.0B ≈ 8–12s, 7.0B ≈ 18–25s).
+//   Total: rung0 ~250s + rung1 ~400s + rung2 ~600s + rung3 ~1250s ≈ 42 min wall (rough).
+//   Image gen via PIL: deterministic, <2s total for 50 PNGs.
+//
+// Output:
+//   .verdicts/sandbox/p1_subitizing_50item.tsv           (per-rung × per-item rows; NUMBERS ONLY)
+//   .verdicts/sandbox/p1_subitizing_50item_summary.txt   (per-rung counting accuracy + falsifier call)
+// The per-rung counting accuracy TSV is the committed source-of-truth that statistically
+// hardens the cycle-23c 16-item ladder counting axis (n=5 → n=50, SE 0.20 → 0.07).
+//
+// Run (this skeleton is gated on `hexa parse` first):
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 \
+//     HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run bench/sandbox_p1_subitizing_50item.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="External CLI subprocess (llama-mtmd-cli × 4 rungs × 50 items + python3 PIL image-gen) + filesystem write — no atlas atoms touched.")
+
+let HOME = env("HOME")
+
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let pwd = exec("pwd").trim()
+    if pwd.len() > 0 { return pwd }
+    return HOME + "/core/hexa-codex"
+}
+
+let ROOT = _root()
+let OUT_DIR = ROOT + "/.verdicts/sandbox"
+let IMG_DIR = "/tmp/vl_subitizing_50item_imgs"   // NEW deterministic dir (does NOT clobber cycle-23c)
+let OUT_PREFIX = "p1_subitizing_50item"
+let MAX_TOK = 24                  // SAME as cycle-23c — short numeric answers, greedy
+let SEED = 42                     // SAME as cycle-23c — pinned RNG for byte-exact replay
+let SAMPLES_PER_COUNT = 10        // 10 deterministic position-randomized samples × 5 counts = 50 items
+
+// ── THE FOUR RUNGS: [name, params_b, model_path, mmproj_path] ────────────────
+// IDENTICAL to cycle-23c bench/sandbox_p1_multimodal_ladder_7b.hexa RUNGS — all 4 GGUF
+// + mmproj pairs already resident on disk from cycle-22/23c FIRE rounds.  No new
+// downloads required; the cycle-23c artifact-check semantics carry over implicitly.
+let RUNGS = [
+    ["SmolVLM-500M-Instruct-Q8_0",   "0.5",
+        HOME + "/Models/gguf/smolvlm/SmolVLM-500M-Instruct-Q8_0.gguf",
+        HOME + "/Models/gguf/smolvlm/mmproj-SmolVLM-500M-Instruct-Q8_0.gguf"],
+    ["SmolVLM2-2.2B-Instruct-Q8_0",  "2.2",
+        HOME + "/Models/gguf/smolvlm2_2b/SmolVLM2-2.2B-Instruct-Q8_0.gguf",
+        HOME + "/Models/gguf/smolvlm2_2b/mmproj-SmolVLM2-2.2B-Instruct-Q8_0.gguf"],
+    ["Qwen2.5-VL-3B-Instruct-Q4_K_M", "3.0",
+        HOME + "/Models/gguf/qwen25vl3b/Qwen2.5-VL-3B-Instruct-Q4_K_M.gguf",
+        HOME + "/Models/gguf/qwen25vl3b/mmproj-Qwen2.5-VL-3B-Instruct-f16.gguf"],
+    ["Qwen2.5-VL-7B-Instruct-Q4_K_M", "7.0",
+        HOME + "/Models/gguf/qwen25vl7b/Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf",
+        HOME + "/Models/gguf/qwen25vl7b/mmproj-Qwen2.5-VL-7B-Instruct-f16.gguf"],
+]
+
+// Counting axis ONLY: 5 counts (5,6,7,8,9) × SAMPLES_PER_COUNT = 50 items.
+// Each item: [img_basename, expected_kw_count].  Prompt is constant (single PROMPT
+// string below) so we don't carry a 4th column.
+let COUNTS = [5, 6, 7, 8, 9]
+let PROMPT = "How many black circles are in this image? Answer with the number only."
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// Generate the 50-item deterministic counting manifest via PIL.  Per-sample PRNG
+// seeded as SEED + n*1000 + idx, so position randomization is bit-reproducible
+// (idempotent across re-runs and re-checks).  Returns "OK" or an error string.
+fn gen_images() -> str {
+    let py = "from PIL import Image, ImageDraw\n" +
+        "import os, random\n" +
+        "D='" + IMG_DIR + "'\n" +
+        "SEED=" + str(SEED) + "\n" +
+        "SPC=" + str(SAMPLES_PER_COUNT) + "\n" +
+        "os.makedirs(D, exist_ok=True)\n" +
+        // 6x6 grid of 36 candidate cells (50px circles, 12px margin), 384x384 canvas
+        "CANVAS=384; CELL=50; MARGIN=12; STEP=CELL+MARGIN  # 62; grid origin offset 12\n" +
+        "GRID=[]\n" +
+        "for gy in range(6):\n" +
+        "    for gx in range(6):\n" +
+        "        x = MARGIN + gx*STEP\n" +
+        "        y = MARGIN + gy*STEP\n" +
+        "        GRID.append((x, y))\n" +
+        // per-sample image: pick `n` cells without replacement under per-sample seed
+        "def count_img(name, n, idx):\n" +
+        "    rng = random.Random(SEED + n*1000 + idx)\n" +
+        "    cells = rng.sample(GRID, n)\n" +
+        "    im = Image.new('RGB', (CANVAS, CANVAS), 'white')\n" +
+        "    d = ImageDraw.Draw(im)\n" +
+        "    for (x, y) in cells:\n" +
+        "        d.ellipse([x, y, x+CELL, y+CELL], fill='black')\n" +
+        "    im.save(f'{D}/{name}.png')\n" +
+        "for n in [5,6,7,8,9]:\n" +
+        "    for i in range(SPC):\n" +
+        "        count_img(f'count_{n}_s{i:02d}', n, i)\n" +
+        "print('OK')\n"
+    let cmd = "python3 - <<'__PYEOF__'\n" + py + "__PYEOF__"
+    return exec(cmd).trim()
+}
+
+// Verify all 4 rungs' GGUF + mmproj artifacts are present on disk.  Returns "OK" or
+// a descriptive missing-files string.  Read-only existence checks (no downloads).
+fn check_artifacts() -> str {
+    let mut cmd = "missing=''; "
+    let mut r = 0
+    while r < len(RUNGS) {
+        let rung = RUNGS[r]
+        let mpath = rung[2]
+        let pjpath = rung[3]
+        cmd = cmd + "test -f " + shq(mpath) + " || missing=\"$missing model=" + mpath + "\"; "
+        cmd = cmd + "test -f " + shq(pjpath) + " || missing=\"$missing mmproj=" + pjpath + "\"; "
+        r = r + 1
+    }
+    cmd = cmd + "if [ -z \"$missing\" ]; then printf 'OK'; else printf 'MISSING%s' \"$missing\"; fi"
+    return exec(cmd).trim()
+}
+
+// Run one VL task via llama-mtmd-cli (-m model + --mmproj projector + --image FILE).
+// Greedy (--temp 0) + pinned -s SEED for byte-exact replay.  Returns tab-separated:
+//   wall_ms \t correct(1|0) \t output_snippet
+// SCORER: lowercase, collapse whitespace, case-insensitive SUBSTRING match on the
+// expected count digit.  NO LLM self-judge — pure byte compare.  Same as cycle-23c.
+fn run_one(model: str, mmproj: str, img_base: str, expected_kw: str) -> str {
+    let img = IMG_DIR + "/" + img_base + ".png"
+    let cmd = "t_start=$(date +%s%N); " +
+              "out=$(llama-mtmd-cli -m " + shq(model) +
+              " --mmproj " + shq(mmproj) +
+              " --image " + shq(img) +
+              " -p " + shq(PROMPT) +
+              " -n " + str(MAX_TOK) + " --temp 0 -s " + str(SEED) + " 2>/dev/null); " +
+              "t_end=$(date +%s%N); " +
+              "wall_ms=$(( (t_end - t_start) / 1000000 )); " +
+              "ans=$(printf '%s' \"$out\" | tr '\\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//'); " +
+              "low=$(printf '%s' \"$ans\" | tr 'A-Z' 'a-z'); " +
+              "kw=$(printf '%s' " + shq(expected_kw) + " | tr 'A-Z' 'a-z'); " +
+              "if printf '%s' \"$low\" | grep -qF \"$kw\"; then correct=1; else correct=0; fi; " +
+              "snippet=$(printf '%s' \"$ans\" | cut -c1-100); " +
+              "printf '%s\\t%s\\t%s' \"$wall_ms\" \"$correct\" \"$snippet\""
+    return exec(cmd).trim()
+}
+
+fn main() {
+    println("========================================================================")
+    println("  bench/sandbox_p1_subitizing_50item — SANDBOX P1 counting-axis SE refinement (cycle-24)")
+    println("  spec:     .discoveries/sandbox-p1-vl-7b-rung.tape @C d_p1_test_set_scale_for_subitizing")
+    println("  baseline: cycle-23c 4-rung ladder rung3 (Qwen2.5-VL-7B) counting=5/5 (n=5, SE 22%)")
+    println("  rungs:    4 VL models (0.5B / 2.2B / 3.0B / 7.0B params) — IDENTICAL to cycle-23c")
+    println("  tool:     llama-mtmd-cli (stock brew llama.cpp, CLIP on MTL0 Metal/UMA)")
+    println("  manifest: 50 PIL count images (5 counts × " + str(SAMPLES_PER_COUNT) + " seed-pinned samples) — counting axis ONLY")
+    println("  scorer:   byte_exact_subset (NO LLM self-judge; same family as cycle-23c ladder)")
+    println("  decode:   greedy --temp 0 -s " + str(SEED) + " -n " + str(MAX_TOK) + " (seed-pinned)")
+    println("========================================================================")
+
+    println("  checking 4-rung GGUF + mmproj artifacts (all from cycle-22/23c) ...")
+    let artifacts = check_artifacts()
+    if artifacts != "OK" {
+        println("  ! artifacts not present on disk:")
+        println("    " + artifacts)
+        println("__HEXA_CODEX_BENCH_SUBITIZING_50__ FAIL_ARTIFACTS_MISSING")
+        exit(1)
+    }
+    println("  artifacts OK (all 4 rungs resident under ~/Models/gguf/)")
+
+    println("  generating 50-item deterministic counting manifest via PIL (seed-pinned) ...")
+    let gen = gen_images()
+    if gen != "OK" {
+        println("  ! image generation FAILED: " + gen)
+        println("__HEXA_CODEX_BENCH_SUBITIZING_50__ FAIL_IMG_GEN")
+        exit(1)
+    }
+    println("  images OK in " + IMG_DIR + " (50 PNGs)")
+
+    exec("mkdir -p " + shq(OUT_DIR))
+    let tsv_path = OUT_DIR + "/" + OUT_PREFIX + ".tsv"
+    exec("rm -f " + shq(tsv_path))
+    exec("echo 'rung\tparams_b\timg\tn_expected\tsample_idx\twall_ms\tcorrect\toutput_snippet' >> " + shq(tsv_path))
+
+    // per-rung counting accuracy (the load-bearing source data for the 2-way falsifier)
+    let mut ladder_names = []
+    let mut ladder_params = []
+    let mut ladder_correct_total = []     // x/50 total counting correct per rung
+    // per-count accuracy: ladder_correct_by_n[r][n_idx] = correct out of SAMPLES_PER_COUNT
+    let mut per_n_5 = []
+    let mut per_n_6 = []
+    let mut per_n_7 = []
+    let mut per_n_8 = []
+    let mut per_n_9 = []
+
+    let total = len(COUNTS) * SAMPLES_PER_COUNT     // 50
+
+    let mut r = 0
+    while r < len(RUNGS) {
+        let rung = RUNGS[r]
+        let rname = rung[0]
+        let rparams = rung[1]
+        let rmodel = rung[2]
+        let rmmproj = rung[3]
+        println("")
+        println("  ── RUNG " + str(r) + ": " + rname + "  (" + rparams + "B params) ──────────")
+
+        let mut n_correct = 0
+        let mut total_ms = 0
+        let mut c_n5 = 0
+        let mut c_n6 = 0
+        let mut c_n7 = 0
+        let mut c_n8 = 0
+        let mut c_n9 = 0
+        let mut item_idx = 0
+        let mut ci = 0
+        while ci < len(COUNTS) {
+            let n = COUNTS[ci]
+            let expected = str(n)
+            let mut si = 0
+            while si < SAMPLES_PER_COUNT {
+                let img_base = "count_" + str(n) + "_s" + (if si < 10 { "0" + str(si) } else { str(si) })
+                let line = run_one(rmodel, rmmproj, img_base, expected)
+                let parts = line.split("\t")
+                if parts.len() < 3 {
+                    println("    ! parse error img=" + img_base + " raw=" + line)
+                    let bad = rname + "\t" + rparams + "\t" + img_base + "\t" + expected + "\t" + str(si) + "\t0\t0\tPARSE_ERROR:" + line.substr(0, 60)
+                    exec("echo " + shq(bad) + " >> " + shq(tsv_path))
+                    si = si + 1
+                    item_idx = item_idx + 1
+                    continue
+                }
+                let wall_ms = int(parts[0])
+                let correct = parts[1]
+                let snippet = parts[2].replace("\t", " ")
+                total_ms = total_ms + wall_ms
+                if correct == "1" {
+                    n_correct = n_correct + 1
+                    if n == 5 { c_n5 = c_n5 + 1 }
+                    if n == 6 { c_n6 = c_n6 + 1 }
+                    if n == 7 { c_n7 = c_n7 + 1 }
+                    if n == 8 { c_n8 = c_n8 + 1 }
+                    if n == 9 { c_n9 = c_n9 + 1 }
+                }
+                let row = rname + "\t" + rparams + "\t" + img_base + "\t" + expected + "\t" + str(si) + "\t" + str(wall_ms) + "\t" + correct + "\t" + snippet.substr(0, 100)
+                exec("echo " + shq(row) + " >> " + shq(tsv_path))
+                println("    [" + str(item_idx+1) + "/" + str(total) + "] n=" + expected + " s=" + str(si) +
+                        " img=" + img_base + " -> correct=" + correct + " ans=" + snippet.substr(0, 24))
+                si = si + 1
+                item_idx = item_idx + 1
+            }
+            ci = ci + 1
+        }
+        let mut acc_x100 = 0
+        if total > 0 { acc_x100 = (n_correct * 10000) / total }
+        println("    RUNG " + rname + " : " + str(n_correct) + "/" + str(total) +
+                " (" + str(acc_x100 / 100) + "." + str(acc_x100 % 100) + "%)" +
+                "  [n=5 " + str(c_n5) + "/" + str(SAMPLES_PER_COUNT) +
+                "  n=6 " + str(c_n6) + "/" + str(SAMPLES_PER_COUNT) +
+                "  n=7 " + str(c_n7) + "/" + str(SAMPLES_PER_COUNT) +
+                "  n=8 " + str(c_n8) + "/" + str(SAMPLES_PER_COUNT) +
+                "  n=9 " + str(c_n9) + "/" + str(SAMPLES_PER_COUNT) + "]" +
+                "  wall_ms=" + str(total_ms))
+        ladder_names.push(rname)
+        ladder_params.push(rparams)
+        ladder_correct_total.push(str(n_correct))
+        per_n_5.push(str(c_n5))
+        per_n_6.push(str(c_n6))
+        per_n_7.push(str(c_n7))
+        per_n_8.push(str(c_n8))
+        per_n_9.push(str(c_n9))
+        r = r + 1
+    }
+
+    // ── 4-rung counting-axis summary at n=50 (the SE-tightened source-of-truth) ─────
+    println("")
+    println("========================================================================")
+    println("  COUNTING-AXIS LADDER at n=50 (4 rungs) — per-rung × per-count")
+    println("========================================================================")
+    let mut k = 0
+    while k < len(ladder_names) {
+        let nc = int(ladder_correct_total[k])
+        let ax100 = (nc * 10000) / total
+        println("  rung " + str(k) + "  " + ladder_params[k] + "B  " +
+                ladder_correct_total[k] + "/" + str(total) + "  = " + str(ax100 / 100) + "." + str(ax100 % 100) + "%  " +
+                "[n=5 " + per_n_5[k] + "/" + str(SAMPLES_PER_COUNT) +
+                "  n=6 " + per_n_6[k] + "/" + str(SAMPLES_PER_COUNT) +
+                "  n=7 " + per_n_7[k] + "/" + str(SAMPLES_PER_COUNT) +
+                "  n=8 " + per_n_8[k] + "/" + str(SAMPLES_PER_COUNT) +
+                "  n=9 " + per_n_9[k] + "/" + str(SAMPLES_PER_COUNT) + "]  " +
+                ladder_names[k])
+        k = k + 1
+    }
+
+    // 2-way refined falsifier (printed for human verdict-trail; per cx_paper_sections
+    // the verdict will link to the .verdicts/sandbox/p1_subitizing_50item_summary.txt
+    // numeric keys, not this stdout narrative).
+    let rung3_count = int(ladder_correct_total[3])
+    let mut falsifier = "PENDING"
+    let mut falsifier_text = ""
+    if rung3_count >= 40 {
+        falsifier = "A_POSITIVE_REPLICATES"
+        falsifier_text = "(A) rung3 counting " + str(rung3_count) + "/50 >= 40/50 (>=80%) -> cycle-23c POSITIVE HARDENS (SE 22%->7%)"
+    } else {
+        falsifier = "B_POSITIVE_RETRACTS"
+        falsifier_text = "(B) rung3 counting " + str(rung3_count) + "/50 < 40/50 -> cycle-23c rung3 5/5 was n=5 artifact; POSITIVE RETRACTS"
+    }
+    println("")
+    println("  2-WAY REFINED FALSIFIER (cycle-24 P1):")
+    println("    (A) rung3 counting >= 40/50 (>=80%) -> subitizing recovery REPLICATES at n=50 (cycle-23c POSITIVE hardens)")
+    println("    (B) rung3 counting <  40/50         -> cycle-23c was n=5 small-sample artifact (POSITIVE retracts)")
+    println("    -> rung3 (7B) measured: counting=" + str(rung3_count) + "/50  =>  " + falsifier)
+    println("    " + falsifier_text)
+
+    // ── persist summary (NUMBERS ONLY per spec — no narrative inside the keys) ──────
+    let summary_path = OUT_DIR + "/" + OUT_PREFIX + "_summary.txt"
+    exec("rm -f " + shq(summary_path))
+    exec("echo " + shq("# bench=sandbox_p1_subitizing_50item (SANDBOX P1 counting-axis SE refinement, cycle-24)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# spec=.discoveries/sandbox-p1-vl-7b-rung.tape @C d_p1_test_set_scale_for_subitizing") + " >> " + shq(summary_path))
+    exec("echo " + shq("# baseline=cycle-23c 4-rung ladder rung3 (Qwen2.5-VL-7B-Q4_K_M) counting=5/5 (n=5, SE ~22%)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# rungs=4  params_b=0.5,2.2,3.0,7.0  tool=llama-mtmd-cli (stock brew llama.cpp, CLIP on MTL0 Metal/UMA)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# manifest=50 synthetic PIL count images (5 counts [5-9] x 10 seed-pinned samples per count); counting axis ONLY") + " >> " + shq(summary_path))
+    exec("echo " + shq("# scorer=byte_exact_subset (case-insensitive substring on expected count digit; NO LLM self-judge; same family as cycle-23c)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# decode=greedy --temp 0 -s " + str(SEED) + " -n " + str(MAX_TOK) + " (seed-pinned byte-exact replay)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# host=mac-mini-m3 (Apple M3, 24GB UMA; PRE-M5 Metal, MTL0 backend active); cost_usd=0") + " >> " + shq(summary_path))
+    exec("echo " + shq("# total_items=" + str(total) + "  samples_per_count=" + str(SAMPLES_PER_COUNT)) + " >> " + shq(summary_path))
+    let mut k2 = 0
+    while k2 < len(ladder_names) {
+        let nc = int(ladder_correct_total[k2])
+        let ax100 = (nc * 10000) / total
+        exec("echo " + shq("# rung" + str(k2) + "_name=" + ladder_names[k2]) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_params_b=" + ladder_params[k2]) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_counting_correct=" + ladder_correct_total[k2] + "/" + str(total)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_counting_accuracy_pct=" + str(ax100 / 100) + "." + str(ax100 % 100)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_n5_correct=" + per_n_5[k2] + "/" + str(SAMPLES_PER_COUNT)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_n6_correct=" + per_n_6[k2] + "/" + str(SAMPLES_PER_COUNT)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_n7_correct=" + per_n_7[k2] + "/" + str(SAMPLES_PER_COUNT)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_n8_correct=" + per_n_8[k2] + "/" + str(SAMPLES_PER_COUNT)) + " >> " + shq(summary_path))
+        exec("echo " + shq("# rung" + str(k2) + "_n9_correct=" + per_n_9[k2] + "/" + str(SAMPLES_PER_COUNT)) + " >> " + shq(summary_path))
+        k2 = k2 + 1
+    }
+    exec("echo " + shq("# rung3_counting_threshold_pos=40") + " >> " + shq(summary_path))
+    exec("echo " + shq("# rung3_counting_measured=" + str(rung3_count)) + " >> " + shq(summary_path))
+    exec("echo " + shq("# falsifier=" + falsifier) + " >> " + shq(summary_path))
+    exec("echo " + shq("# falsifier_text=" + falsifier_text) + " >> " + shq(summary_path))
+    exec("echo " + shq("# model_sources=ggml-org/SmolVLM-500M-Instruct-GGUF · ggml-org/SmolVLM2-2.2B-Instruct-GGUF · ggml-org/Qwen2.5-VL-3B-Instruct-GGUF · ggml-org/Qwen2.5-VL-7B-Instruct-GGUF (HF)") + " >> " + shq(summary_path))
+    exec("echo " + shq("# fit_consumer=verify/numerics_substrate_multimodal_fit.hexa (counting-axis n=50 source-of-truth; SE 22%->7%)") + " >> " + shq(summary_path))
+
+    println("")
+    println("  tsv     persisted: " + tsv_path)
+    println("  summary persisted: " + summary_path)
+    println("__HEXA_CODEX_BENCH_SUBITIZING_50__ DONE")
+    exit(0)
+}

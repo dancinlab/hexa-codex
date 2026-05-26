@@ -2751,3 +2751,50 @@ figure 없음 ✗. OPS/substrate paper와 동일하게 figure 패딩/10-page 강
 
 **M4.SAFETY 체크박스 `[ ]`→`[x]`** — SAFETY 도메인 캐노니컬 paper 4/4 🟢 졸업.
 CLAIMS.tape에 safety-refusal-direction slug 등록.
+
+## cycle-21 — 영구 축 P1-P4 first sweep (post-v1.4.0 first-arc closure)
+
+**컨텍스트.** v1.4.0 (2026-05-25) 으로 M1–M5 매트릭스 첫 arc 가 닫혔다 (20/20 cell `[x]`).
+SANDBOX.md `## 영구 축` 의 P1–P4 4개 lane 은 설계상 "끝"이 없는 frontier — 첫 arc 가
+닫히면 다음 tier 로 재개방되는 perpetual 축이다 ([[feedback_closure_is_physical_limit]]).
+이번 cycle 은 4축 모두 sweep 으로 **scoping + discovery seed 작성** (cx_discovery_log).
+실제 bench 실행은 다음 cycle 부터 — 첫 round 는 정직하게 *측정해야 할 것* 의 명세.
+
+| lane | tape | seed entry | 다음 cycle 진입로 (cheapest) |
+|------|------|------------|------------------------------|
+| **P4** 새 측정축 | `.discoveries/sandbox-p4-new-axes.tape` | 5 × @C seed (energy/token · spec-decoding · vLLM activation · KV-sink · quant ladder) | `d_p4_quantization_band_ladder` 3-band cheap pilot ($0 local) |
+| **P1** higher scale rungs | `.discoveries/sandbox-p1-vl-7b-rung.tape` | 4 × @C seed (Qwen-VL-7B 4th rung · InternVL contingency · text-4B rung · subitizing scale-up) | `d_p1_vl_4th_rung_qwen_vl_7b` ~6GB DL + 16-item bench ($0 local M3) |
+| **P3** multi-node OPS | `.discoveries/sandbox-p3-multinode.tape` | 4 × @C seed (2-host pilot · 3-host gen · heterogeneous-μ · RTT decompose) | `d_p3_2host_homogeneous_pilot` mini+ubu-1 ($0, existing pool) |
+| **P2** prod-scale SAE | `.discoveries/sandbox-p2-prod-sae.tape` | 4 × @C seed (5M corpus×16k dict · Top-K SAE family · multi-layer attr · vast.ai runbook) | `d_p2_top_k_sae_family` lever isolation at 60k ($0 ubu-1) |
+
+**Lint.** 4 tape 모두 `hexa tape` 0 malformed (P4=7 entries · P1/P3/P2=6 entries 각각;
+@V + @I + @C × N 패턴, version 1.2, cx_discovery_log 준수).
+
+**선택 규칙 (g0 Occam + cx_lab_falsifiable).** 각 seed 는 (a) self-hosted 측정만 가능,
+(b) closed-form 또는 statistical recompute 경로, (c) 1-cycle 안에 fit 하는 cheap first
+probe + falsifier 명시. 자체-생성 strawman 회피 — P4 의 spec-decoding seed 는 외부
+Leviathan-Kalman 2023 closed-form, P2 의 SAE 재개방 trigger 는 Bricken/Cunningham 2023
+scale band 외부 anchor (cx_paper_significance 호환 패턴).
+
+**다음 cycle 우선순위 (cheapest-first).**
+1. **P3** 2-host pilot — 기존 pool (mini + ubu-1) 사용, 새 infra 0, 가장 큰 정보량
+   (single-UMA M/M/c 가 distributed에서 functional family 유지하는지의 binary answer)
+2. **P4** quant-band pilot — 3 GGUF (Q3_K_M/Q4_K_M/Q8_0) × N=200 manifest, 1시간 이내
+3. **P1** 7B+ VL rung — 모델 다운로드만 사전 작업이고 bench harness는 cycle-20 sandbox_multimodal_ladder 의 4번째 rung 확장
+4. **P2** Top-K SAE — ubu-1 RTX 5070 60k 활용 (cycle-20 corpus 재사용), lever isolation 의 leading indicator
+
+**SANDBOX.md 업데이트.** 진행도는 `21/25 (84%)` 그대로 — 영구 축 4 cell 의 *seed 작성*
+은 시작이지 close 가 아니다 (definition: closure = 위 seed 들이 GREEN/RED verdict 으로 다음
+arc 의 frontier 를 열 때까지). M5 cell 들은 "release" 키워드 때문에 user-gated 라서
+원래도 미체크 의도였으나 v1.4.0 릴리스로 모두 `[x]`. P1–P4 는 본문 "100% 미도달 = 설계"
+라인이 invariant 임을 다시 확인 — 진행도 표시는 frontier 소진율의 *현재 단면*.
+
+**Honest residual.**
+- 4 개 tape 모두 verdict 는 PENDING — 실측 0건, 정직하게 "다음 cycle 실험 spec" 단계
+- P1 의 InternVL-8B alt 는 ggml-org first-party GGUF 부재로 conversion 필요 (lower priority)
+- P3 의 Akida-NPU lane 은 llama.cpp 미지원, CPU-fallback 으로 heterogeneity 질문은 답할 수
+  있으나 NPU 효율 자체는 별도 infra 작업 필요
+- P2 의 5M-corpus run 은 vast.ai A100 80GB $2–10 budget — 사용자 sign-off 필요
+- P4 의 vLLM activation backend 는 LLMEngine-level API 호출이라 high-level `LLM` 클래스
+  shortcut 없음 (cycle 시작 전에 vLLM 0.7.3 sample code 필요)
+

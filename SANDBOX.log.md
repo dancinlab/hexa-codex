@@ -3094,3 +3094,66 @@ Honest residual:
 진행도 21/25 (84%) 유지 — 영구 축 inner-state 진척. A1 partial이 cycle-23c
 BREAKTHROUGH 해석을 약화 → cycle-25 의 50-item 재실행 + 7B 완주가 진정한
 close 경로. P3, P2 두 lane 의 cycle-25 fire 진입 path 모두 OPEN.
+
+## cycle-25 — sibling-consumer readiness consolidation (5-doc 양방향 reference)
+
+**사용자 요청.** "economy 등 타도메인들 진행할때에 sandbox 통해서 진행할수
+있도록 각 도메인에 기술 및 sandbox 100% 준비". 해석: SANDBOX 가 sibling
+도메인들의 측정 substrate 인데, 각 sibling 입장의 "어떻게 활용하는지" 가
+explicit 하지 않음. 양방향 reference 강화 + entry path readiness 명시.
+
+**중요 invariant** (사용자 강조 [[feedback_closure_is_physical_limit]]):
+"100% 준비" = *fire 진입 path 가 100% 활성* ≠ frontier closure. 영구 축
+자체는 새 모델·새 axis·새 scale 마다 다시 열린다.
+
+### foreground — SANDBOX.md `## Substrate Readiness Matrix` 추가 (+72 lines)
+
+3-tier dispatch surface 명시 + 4 verb-group 별 ready entry points 표 +
+cycle-25 fire-ready next-step quick-reference + stay-honest reminder.
+
+- Dispatch surface: `route_dispatch` · `pool` · `hexa cloud` 모두 활성
+- ECONOMICS row: 6 axes fire-ready (단일 LLM cost · persona ratio · scale-stratified · F-CODEX-2 · 2-component cost · quant-band P4)
+- SAFETY row: 5+1 axes (logit margin · bimodality · activation capture · refusal direction · causal ablation · SAE lever P2)
+- OPS row: 3+1 axes (np 별 p50/p99 · full SLO grid · M/M/c verifier · multi-node Erlang-C P3)
+- SUBSTRATE row: 5+1 axes (text scale ladder · logistic verifier · multimodal smoke · 4-rung ladder · dip-then-recover verifier · 50-item subitizing)
+- cycle-25 quick-reference: 5 lane × 의존 호스트 × 추정 비용 × 진입 명령
+
+### fan-out 4 Agents (B1-B4) — 각 sibling 도메인 consumer section 추가
+
+| lane | file | lines added | placement | 핵심 |
+|------|------|-------------|-----------|------|
+| B1 | ECONOMICS.md | +58 | lines 209-264 | 이미 mature → 명시화 (6 axes 1:1 mirror) |
+| B2 | SAFETY.md | +60 | lines 85-142 | privacy invariant 명시 (cx_hf_safety_private, adversarial PRIVATE 만) |
+| B3 | OPS.md | +38 | lines 86-121 | P3 ubu-1 PR #72 + LAN dispatch 잔여 explicit |
+| B4 | SUBSTRATE.md | +39 | lines 85-121 | 7B+ ggml-org HF GGUF DL 의존 + cycle-23c BREAKTHROUGH/cycle-24 partial 양쪽 인용 |
+
+각 sibling section 동일 구조:
+1. 1-line "왜 SANDBOX 만 가능" (API surface 한계)
+2. Readiness Matrix table (SANDBOX.md 의 own row 1:1 mirror)
+3. Dispatch surface per-axis
+4. Quick-fire commands (3 cycle-25 entry points)
+5. Honest invariant (readiness ≠ frontier closure)
+6. Cross-link to SANDBOX.md Substrate Readiness Matrix
++ Cross-refs 에 sibling pattern pointer 추가
+
+### 종합
+
+| 산출물 | 변경 |
+|--------|------|
+| SANDBOX.md | +72 lines (Substrate Readiness Matrix section) |
+| ECONOMICS.md | +58 lines |
+| SAFETY.md | +60 lines |
+| OPS.md | +38 lines |
+| SUBSTRATE.md | +39 lines |
+| **총** | **5 files, +267 lines, 0 deletions** |
+| SANDBOX.log.md cycle-25 entry | +N lines |
+
+진행도 21/25 (84%) 유지. 영구 축 frontier 닫기 아니라 sibling fire path
+의 entry readiness 강화 — cycle-25 가 sibling-consumer documentation
+완성 단계, cycle-26+ 는 OPS P3 fire + SAFETY P2 fire (entry path 활용)
+부터 진입 가능.
+
+**Drift risk 명시 (B2 honest residual):** SoT 는 SANDBOX.md Substrate
+Readiness Matrix · sibling section 의 표는 빠른 참조용 mirror.
+SANDBOX.md 가 갱신되면 sibling 4 file 도 동기화 필요. cycle-22 commit
+message 패턴 (sibling drift detector test) 가 미작성 — cycle-26 후속 OK.

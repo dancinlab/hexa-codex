@@ -1,0 +1,402 @@
+#!hexa strict
+// hexa-codex/verify/numerics_safety_n1_first_probe_shape.hexa
+// SAFETY axis N1 (NOVEL, cycle-29 spawn) — refusal-direction L19 anchor validity
+// FIRST-PROBE (cycle-29): per-layer Δ-vector ranking over all 28 layers.
+//
+// SPAWN.  cycle-28 N1 first-probe (verify/numerics_safety_n1_cross_family_shape.hexa)
+// looked at L19 alone — confirmed Arditi-style residual-dominance ORDINAL on
+// Qwen at layer 19. But it never asked the *prior* question: is L19 ACTUALLY
+// the peak layer for the refusal direction in Qwen, or did cycle-19/20 just
+// happen to probe layer 19 and find separability there (with many other layers
+// equally good)?  If L19 is one of many peaks, the cycle-19/20 L19 anchor is
+// a coincidence, not a privileged mechanistic site — and the cross-family
+// transferability question (cycle-29+) should NOT be anchored on layer 19 at
+// all (instead, recompute the per-model peak and compare those).
+//
+// PROBE QUESTION (the falsifier).  For each layer L_i (i = 0..27), compute
+//   Δ_i = ( mean(L_i.residual | refused=1, adv=1) - mean(L_i.residual | refused=0, adv=1),
+//           mean(L_i.attn     | refused=1, adv=1) - mean(L_i.attn     | refused=0, adv=1),
+//           mean(L_i.mlp      | refused=1, adv=1) - mean(L_i.mlp      | refused=0, adv=1) )
+// then rank all 28 layers by ||Δ_i||_L2².  Falsifier:
+//   - PASS  (L19 rank ≤ 5 of 28): L19 is a top-5 peak → cycle-19/20 anchor
+//     is legitimately privileged → cross-family probe (cycle-29+) anchored
+//     on L19 is reasonable.
+//   - FAIL  (L19 rank > 5 of 28): L19 is incidental → cycle-19/20 anchor
+//     could be a Qwen-specific scale artifact OR a coincidental probe choice
+//     → cross-family probe should sweep all layers per model, not anchor L19.
+//
+// SCALE.  is_adv==1 FILTER applied (refusal label is only mechanistically
+// meaningful on adversarial-topic prompts; benign refusals are too rare to
+// drive the direction).  Filtered set = 20 rows (19 adv-refused + 1 adv-answered,
+// from .verdicts/sandbox/m2_safety_refusal_norms.tsv label distribution).
+//
+// FRAMEWORK.  Pure-int ×1000 scaling — no float libm.  Parse via .to_float()
+// then immediately × 1000 → int.  All Δ arithmetic on ints.  Use SQUARED L2
+// for ranking (||Δ||² = res_d² + attn_d² + mlp_d², all ints) so ranking is
+// preserved without sqrt.  Deterministic by construction (no PRNG, no
+// permutation — pure recompute).
+//
+// HONEST TIER.  This is a SHAPE-statistic recompute on n=1 model (Qwen).  Per
+// cx_paper_significance + feedback_closure_is_physical_limit: ≥3 non-Qwen
+// cross-family fire is cycle-30+; the SAFETY frontier stays OPEN (axis still
+// `- [ ]` regardless of pass/fail).  This probe only validates whether the
+// L19 anchor itself is well-chosen — a methodology check, not an answer to
+// the cross-family transferability question (axis N1).
+//
+// CONSUMER.  SAFETY.md axis N1 line gets a one-line "cycle-29 first probe:
+// L19 rank=N/28 · dominant=<site>" footnote.  Verdict at
+//   .verdicts/safety/n1_first_probe_shape_verdict.txt
+//
+// PARENT.  feedback_negative_paper_external_claim — this is SELF-INTERNAL
+// (validating our OWN cycle-19/20 anchor choice), so NO paper.  Probe only.
+//
+// RUN.
+//   SIDECAR_NO_POOL_ROUTE=1 hexa run verify/numerics_safety_n1_first_probe_shape.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute on committed Qwen activation-norm TSV — no atlas atoms touched, no model spawn, NUMBERS-ONLY emit per cx_hf_safety_private.")
+
+use "self/runtime/file_pure"
+use "self/runtime/math_pure"
+
+let DATA_PATH = ".verdicts/sandbox/m2_safety_refusal_norms.tsv"
+let OUT_PATH  = ".verdicts/safety/n1_first_probe_shape_verdict.txt"
+
+let N_ROWS  = 40
+let N_FEAT  = 84
+let N_META  = 3        // row_idx, is_adv, label precede the 84 features
+let N_LAYERS = 28      // Qwen2.5-1.5B-Instruct
+let N_KINDS = 3        // residual, attn, mlp per layer
+let L19     = 19
+let TOP_K   = 5        // L19 must be ≤ top-5 to PASS
+let SCALE   = 1000     // int×1000 scaling (norms have ~6 decimals, 3 keep is ample for ranking)
+
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+// site-name decoder for the dominant-kind report
+fn site_name(k: int) -> str {
+    if k == 0 { return "residual" }
+    if k == 1 { return "attn" }
+    if k == 2 { return "mlp" }
+    return "?"
+}
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex SAFETY N1 — cycle-29 first probe (L19 anchor validity)")
+    println("  per-layer Δ-vector ranking over all 28 Qwen2.5-1.5B-Instruct layers")
+    println("  question: is L19 in the top-5 by ||Δ||² (is the cycle-19/20 anchor")
+    println("            a privileged mechanistic site, or incidental?)")
+    println("========================================================================")
+    println("  source = " + DATA_PATH + "  (NUMBERS ONLY, cx_hf_safety_private)")
+    println("  scaling = pure-int ×" + to_string(SCALE) + "  (no float libm; squared-L2 ranking, no sqrt)")
+    println("  filter  = is_adv==1  (refusal label only meaningful on adversarial prompts)")
+    println("")
+
+    // ── load committed matrix into RAW float, then immediately ×SCALE → int ──
+    let txt = read_file_pure(DATA_PATH)
+    let lines = txt.split("\n")
+    let mut Xi = []        // int[N][D]  (raw_norm × SCALE), truncated to int
+    let mut labels = []
+    let mut is_adv = []
+    let mut li = 0
+    while li < lines.len() {
+        let ln = lines[li]
+        if ln.len() > 0 && !ln.starts_with("#") && !ln.starts_with("row_idx") {
+            let cells = ln.split("\t")
+            if cells.len() == (N_META + N_FEAT) {
+                is_adv.push(if cells[1].to_float() > 0.5 { 1 } else { 0 })
+                labels.push(if cells[2].to_float() > 0.5 { 1 } else { 0 })
+                let mut row = []
+                let mut j = 0
+                while j < N_FEAT {
+                    let f = cells[N_META + j].to_float()
+                    // ×SCALE then truncate (parse-time conversion only; all later
+                    // arithmetic is pure int, no libm).
+                    let iv = to_int(f * (SCALE as float))
+                    row.push(iv)
+                    j = j + 1
+                }
+                Xi.push(row)
+            }
+        }
+        li = li + 1
+    }
+    let n = Xi.len()
+
+    // ── check 1: parsed 40 rows × 84 features ────────────────────────────────
+    let d_ok = (n > 0) && (Xi[0].len() == N_FEAT)
+    _check((n == N_ROWS) && d_ok,
+           "parsed committed TSV — 40 rows × 84 features",
+           "n=" + to_string(n) + " d=" + (if n > 0 { to_string(Xi[0].len()) } else { "0" }))
+
+    // ── apply is_adv==1 filter; bucket by refused vs answered (within adv) ───
+    let mut nAdv = 0
+    let mut nAdvR = 0
+    let mut nAdvA = 0
+    let mut ai = 0
+    while ai < n {
+        if is_adv[ai] == 1 {
+            nAdv = nAdv + 1
+            if labels[ai] == 1 { nAdvR = nAdvR + 1 } else { nAdvA = nAdvA + 1 }
+        }
+        ai = ai + 1
+    }
+    println("  is_adv==1 subset: n=" + to_string(nAdv) +
+            "  (refused=" + to_string(nAdvR) + " answered=" + to_string(nAdvA) + ")")
+
+    // ── per-layer Δ vector + squared-L2 (all int arithmetic) ─────────────────
+    // For each layer L_i (i=0..27) and each kind k ∈ {residual, attn, mlp}:
+    //   col = i * N_KINDS + k    (column within the 84-feature block)
+    //   d_ik = mean_int(refused, col) - mean_int(answered, col)         [int×SCALE]
+    //   ||Δ_i||² = d_i0² + d_i1² + d_i2²                                 [int]
+    //
+    // Mean as int: sum_int / count_int, both already in ×SCALE space →
+    // result is in ×SCALE space. Diff stays in ×SCALE space. Square moves
+    // to ×SCALE² but that's a monotone transform — ranking preserved.
+
+    let mut sqL2 = []          // int[28] = ||Δ_i||²
+    let mut d_components = []  // int[28][3] for L19 dominant-site report
+    let mut i = 0
+    while i < N_LAYERS {
+        let mut comps = []
+        let mut k = 0
+        while k < N_KINDS {
+            let col = i * N_KINDS + k
+            let mut sumR = 0
+            let mut cntR = 0
+            let mut sumA = 0
+            let mut cntA = 0
+            let mut r = 0
+            while r < n {
+                if is_adv[r] == 1 {
+                    let v = Xi[r][col]
+                    if labels[r] == 1 {
+                        sumR = sumR + v
+                        cntR = cntR + 1
+                    } else {
+                        sumA = sumA + v
+                        cntA = cntA + 1
+                    }
+                }
+                r = r + 1
+            }
+            // Integer mean (truncating division — fine for ranking; magnitudes
+            // are O(10–10000) × SCALE so truncation error << signal).
+            let mR = if cntR > 0 { sumR / cntR } else { 0 }
+            let mA = if cntA > 0 { sumA / cntA } else { 0 }
+            let diff = mR - mA
+            comps.push(diff)
+            k = k + 1
+        }
+        d_components.push(comps)
+        let sq = comps[0] * comps[0] + comps[1] * comps[1] + comps[2] * comps[2]
+        sqL2.push(sq)
+        i = i + 1
+    }
+
+    // ── check 2: L19 squared-norm computed (sanity: int, non-negative) ───────
+    let L19_sq = sqL2[L19]
+    _check((sqL2.len() == N_LAYERS) && (L19_sq >= 0),
+           "L19 squared-L2 norm computed (int, non-negative)",
+           "||Δ_19||² = " + to_string(L19_sq) +
+           "  (in (×" + to_string(SCALE) + ")² units; comps_int×SCALE = [" +
+           to_string(d_components[L19][0]) + "," +
+           to_string(d_components[L19][1]) + "," +
+           to_string(d_components[L19][2]) + "])")
+
+    // ── rank all 28 layers by sqL2 (descending; rank 1 = largest ||Δ||²) ─────
+    // Simple selection sort on a copy — N=28, irrelevant complexity.
+    let mut order = []
+    let mut o = 0
+    while o < N_LAYERS { order.push(o); o = o + 1 }
+    // bubble sort descending on sqL2
+    let mut p = 0
+    while p < N_LAYERS - 1 {
+        let mut q = 0
+        while q < N_LAYERS - 1 - p {
+            if sqL2[order[q]] < sqL2[order[q + 1]] {
+                let tmp = order[q]
+                order[q] = order[q + 1]
+                order[q + 1] = tmp
+            }
+            q = q + 1
+        }
+        p = p + 1
+    }
+    // Find L19's rank (1-indexed)
+    let mut L19_rank = -1
+    let mut s = 0
+    while s < N_LAYERS {
+        if order[s] == L19 { L19_rank = s + 1 }
+        s = s + 1
+    }
+
+    // ── check 3: all 28 layers ranked (rank uniqueness + L19 found) ──────────
+    let mut rank_ok = (L19_rank >= 1) && (L19_rank <= N_LAYERS) && (order.len() == N_LAYERS)
+    _check(rank_ok,
+           "all 28 layers ranked by ||Δ||² (L19 located in the ranking)",
+           "L19_rank = " + to_string(L19_rank) + " / " + to_string(N_LAYERS) +
+           "  (1 = strongest refusal-direction layer)")
+
+    // Print the full ranked table (audit surface)
+    println("")
+    println("  ranked per-layer ||Δ||² (descending):")
+    println("    rank  layer  ||Δ||²(×" + to_string(SCALE) + "²)  d_residual  d_attn  d_mlp")
+    let mut tt = 0
+    while tt < N_LAYERS {
+        let Li = order[tt]
+        let marker = if Li == L19 { "  ← L19" } else { "" }
+        println("    " + to_string(tt + 1) + "    L" + to_string(Li) +
+                "    " + to_string(sqL2[Li]) +
+                "    " + to_string(d_components[Li][0]) +
+                "    " + to_string(d_components[Li][1]) +
+                "    " + to_string(d_components[Li][2]) +
+                marker)
+        tt = tt + 1
+    }
+    println("")
+
+    // ── check 4: L19 rank ≤ top-5 (the FALSIFIER) ───────────────────────────
+    _check(L19_rank <= TOP_K,
+           "L19 rank ≤ " + to_string(TOP_K) + " of " + to_string(N_LAYERS) +
+           " (cycle-19/20 anchor is a privileged mechanistic site)",
+           "L19_rank=" + to_string(L19_rank) + "  threshold=" + to_string(TOP_K) +
+           "  verdict=" + (if L19_rank <= TOP_K { "🟢 L19 IS top-5" } else { "🟠 L19 INCIDENTAL — cycle-30+ should sweep all layers per model" }))
+
+    // ── check 5: L19 dominant site (residual / attn / mlp) ───────────────────
+    let absR = if d_components[L19][0] < 0 { -d_components[L19][0] } else { d_components[L19][0] }
+    let absT = if d_components[L19][1] < 0 { -d_components[L19][1] } else { d_components[L19][1] }
+    let absM = if d_components[L19][2] < 0 { -d_components[L19][2] } else { d_components[L19][2] }
+    let mut dom = 0
+    let mut dom_abs = absR
+    if absT > dom_abs { dom = 1; dom_abs = absT }
+    if absM > dom_abs { dom = 2; dom_abs = absM }
+    _check(dom_abs > 0,
+           "L19 dominant site reported (residual/attn/mlp)",
+           "dominant=" + site_name(dom) +
+           "  |d_residual|=" + to_string(absR) +
+           "  |d_attn|=" + to_string(absT) +
+           "  |d_mlp|=" + to_string(absM))
+
+    // ── check 6: determinism — re-rank from same input gives same answer ────
+    // Recompute L19 sqL2 fresh and compare bit-for-bit.
+    let mut sq_recheck = 0
+    let mut kk = 0
+    while kk < N_KINDS {
+        let col2 = L19 * N_KINDS + kk
+        let mut sR2 = 0
+        let mut cR2 = 0
+        let mut sA2 = 0
+        let mut cA2 = 0
+        let mut r2 = 0
+        while r2 < n {
+            if is_adv[r2] == 1 {
+                let v2 = Xi[r2][col2]
+                if labels[r2] == 1 { sR2 = sR2 + v2; cR2 = cR2 + 1 }
+                else                { sA2 = sA2 + v2; cA2 = cA2 + 1 }
+            }
+            r2 = r2 + 1
+        }
+        let mR2 = if cR2 > 0 { sR2 / cR2 } else { 0 }
+        let mA2 = if cA2 > 0 { sA2 / cA2 } else { 0 }
+        let dd = mR2 - mA2
+        sq_recheck = sq_recheck + dd * dd
+        kk = kk + 1
+    }
+    _check(sq_recheck == L19_sq,
+           "deterministic — re-run yields identical L19 ||Δ||²",
+           "first_pass=" + to_string(L19_sq) + "  recheck=" + to_string(sq_recheck))
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + to_string(pass_n) + "/" + to_string(RUN) + " checks passed")
+
+    // ── persist verdict (verbatim NUMBERS-ONLY block per cx_hf_safety_private) ─
+    let l19_top5 = L19_rank <= TOP_K
+    let reading = if l19_top5 {
+        "L19 IS a top-" + to_string(TOP_K) + " refusal-direction layer in Qwen2.5-1.5B-Instruct (rank=" + to_string(L19_rank) + "/" + to_string(N_LAYERS) + "). cycle-19/20 anchor is privileged, not incidental — cross-family probe on L19 (cycle-30+) is methodologically justified. Open frontier: this is n=1 model; ≥3 non-Qwen activation capture + L-peak recompute still required for transferability verdict."
+    } else {
+        "L19 is INCIDENTAL in Qwen2.5-1.5B-Instruct (rank=" + to_string(L19_rank) + "/" + to_string(N_LAYERS) + ", outside top-" + to_string(TOP_K) + "). cycle-19/20 may have anchored on L19 by probe choice, not mechanistic dominance — cycle-30+ cross-family probe MUST sweep all layers per model and compare per-model peak, NOT anchor L19. Open frontier."
+    }
+
+    let mut content = ""
+    content = content + "# SAFETY axis N1 — cycle-29 first probe (L19 anchor validity)\n"
+    content = content + "# source=" + DATA_PATH + "\n"
+    content = content + "# verifier=verify/numerics_safety_n1_first_probe_shape.hexa\n"
+    content = content + "# scaling=int×" + to_string(SCALE) + "  (no float libm; squared-L2 ranking, no sqrt)\n"
+    content = content + "# filter=is_adv==1  (n_adv=" + to_string(nAdv) + " refused=" + to_string(nAdvR) + " answered=" + to_string(nAdvA) + ")\n"
+    content = content + "# checks=" + to_string(pass_n) + "/" + to_string(RUN) + "\n"
+    content = content + "# L19_rank=" + to_string(L19_rank) + "/" + to_string(N_LAYERS) + "\n"
+    content = content + "# L19_sq_L2=" + to_string(L19_sq) + "  (×" + to_string(SCALE) + "² units)\n"
+    content = content + "# L19_d_residual=" + to_string(d_components[L19][0]) + "  (×" + to_string(SCALE) + " units)\n"
+    content = content + "# L19_d_attn=" + to_string(d_components[L19][1]) + "  (×" + to_string(SCALE) + " units)\n"
+    content = content + "# L19_d_mlp=" + to_string(d_components[L19][2]) + "  (×" + to_string(SCALE) + " units)\n"
+    content = content + "# L19_dominant_site=" + site_name(dom) + "\n"
+    content = content + "# top_5_threshold=" + to_string(TOP_K) + "\n"
+    content = content + "# l19_top5_pass=" + (if l19_top5 { "true" } else { "false" }) + "\n"
+    content = content + "# axis_open=true  (per feedback_closure_is_physical_limit — first probe = SHAPE only; ≥3 non-Qwen fire is cycle-30+)\n"
+    content = content + "# verdict_tier=🟡 supported-by-citation  (n=1 model — methodology check, NOT transferability)\n"
+    content = content + "# self_internal=true  (validates cycle-19/20 own anchor — NO paper per feedback_negative_paper_external_claim)\n"
+    content = content + "# reading=" + reading + "\n"
+    content = content + "# top_5_layers=["
+    let mut tk = 0
+    while tk < TOP_K {
+        content = content + "L" + to_string(order[tk]) + ":" + to_string(sqL2[order[tk]])
+        if tk < TOP_K - 1 { content = content + "," }
+        tk = tk + 1
+    }
+    content = content + "]\n"
+    content = content + "# next_probe=cycle-30+ activation capture per non-Qwen model (Llama-3-8B, Mistral-7B, Gemma-2-2b, SmolLM2-1.7B) on ubu-1 HF → per-model L-peak recompute → .verdicts/safety/n1_cross_family_peaks.tsv\n"
+    let wrote = write_file(OUT_PATH, content)
+    if wrote {
+        println("  verdict written: " + OUT_PATH)
+    } else {
+        println("  WARN: failed to write verdict file: " + OUT_PATH)
+    }
+
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for ff in FAILURES { println("    ✗ " + ff) }
+        // Note: the L19-not-top-5 case is still a successful PROBE (axis stays
+        // open per feedback_closure_is_physical_limit); only INFRASTRUCTURE
+        // failures (parse, det) should non-zero exit. Reading is emitted either
+        // way. But if check 4 falsifies, we surface it as exit 0 with reading.
+        // Decision: only exit 1 on parse/det failures (checks 1,2,3,5,6).
+        let infra_fail = false
+        let mut ff_idx = 0
+        let mut had_infra = false
+        while ff_idx < FAILURES.len() {
+            let fmsg = FAILURES[ff_idx]
+            // any failure other than the "top-5" L19 falsifier counts as infra
+            if fmsg.find("L19 rank ≤") < 0 { had_infra = true }
+            ff_idx = ff_idx + 1
+        }
+        if had_infra {
+            println("  🔴 INFRASTRUCTURE FAIL — parse/determinism check failed")
+            println("__HEXA_CODEX_NUMERICS_SAFETY_N1_FIRST_PROBE_SHAPE__ FALSIFIED")
+            exit(1)
+        }
+    }
+
+    println("")
+    println("  reading: " + reading)
+    println("__HEXA_CODEX_NUMERICS_SAFETY_N1_FIRST_PROBE_SHAPE__ DONE")
+    exit(0)
+}

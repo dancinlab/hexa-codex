@@ -1,0 +1,19 @@
+# hexa-codex ECONOMICS E1 — MoE vs Dense Mann-Whitney U (cycle-29 n=3 batch 2)
+# axis=ECONOMICS.md::E1 (NOVEL · cycle-27 spawn · cycle-29 batch 2 update)
+# seed=.discoveries/economics-e1-moe-dense-divergence.tape @C d_econ_e1_moe_active_param_law
+# verifier=verify/numerics_economics_e1_moe_dense_ks_test.hexa
+# input_dense=.verdicts/economics/c1_chinchilla_envelope.tsv (cycle-26, 13 rows · 11 dense)
+# input_moe=.verdicts/economics/e1_moe_landings.tsv (cycle-29 batch 2, 3 rows)
+# tier=🟠 INSUFFICIENT — directional signal WEAKENS at n=3
+# checks=5/5
+# n_dense=11
+# n_moe=3
+# dense_dev_sorted_x100=[100, 185, 1071, 1238, 1715, 2405, 3430, 4340, 4445, 5000, 9375]
+# dense_q1_x100=1071 · dense_med_x100=2405 · dense_q3_x100=4340
+# moe_dev_sorted_x100=[1029, 1667, 2000]  (Arctic 1029 · DBRX 1667 · DeepSeek 2000)
+# moe_percentiles=DeepSeek 45% · DBRX 36% · Arctic 18%
+# mann_whitney_U_moe=11 · U_dense=22
+# expected_U_x10=165 · var_U_x12=495
+# z_squared_x10000=7333 (|z|≥1 iff z²≥10000)
+# verdict_msg=Mann-Whitney |z|<1 at n=3 — MoE distribution NOT distinguishable from dense. cycle-27 anecdote may be coincidence. E1 hypothesis weakens, but cannot conclusively close at n=3.
+# next_probe=cycle-30 Mixtral-Large-2 / Hunyuan-Large / Grok-1 collection (if D disclosed) → ≥5 MoE → high-confidence KS

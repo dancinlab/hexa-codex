@@ -1,0 +1,9 @@
+# hexa-codex/.verdicts/economics/e1_moe_landings.tsv
+# ECONOMICS axis E1 (NOVEL, cycle-29 batch 2) — MoE active-param landings
+# fields: model	N_total_params	N_active_params	D_tokens	loss_pretrain	loss_eval	gpu_hours	gpu_type	flops_train	d_over_n_active	dev_factor_active	citation_url
+# load-bearing: N_active + D + dev_factor_active (= D/N_active / 20)
+# loss columns = -1.0 (citation-only 🟡 tier — pretraining loss not disclosed by Mistral/Databricks/Snowflake/DeepSeek)
+# anchor row: chinchilla-70B (dense) FROM cycle-26 c1_chinchilla_envelope.tsv for inclusion-by-reference in cycle-29 KS-test
+deepseekv3-37B-act	6.71e11	3.7e10	1.48e13	-1.0	-1.0	2.788e6	H800	1.342e13	400.00	20.00	https://arxiv.org/abs/2412.19437
+dbrx-36B-act	1.32e11	3.6e10	1.2e13	-1.0	-1.0	-1.0	H100	-1.0	333.33	16.67	https://www.databricks.com/blog/introducing-dbrx-new-state-art-open-llm
+arctic-17B-act	4.8e11	1.7e10	3.5e12	-1.0	-1.0	-1.0	H100	-1.0	205.88	10.29	https://www.snowflake.com/en/blog/arctic-open-efficient-foundation-language-models-snowflake/

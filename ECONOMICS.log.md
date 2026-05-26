@@ -916,3 +916,57 @@ train-compute is the only cost being optimized.
 - NEW `.verdicts/economics/c1_chinchilla_envelope_verdict.txt` (verdict stdout verbatim)
 - EDIT `ECONOMICS.md` axis C1 line — sub-bullet w/ cycle-26 batch 1 summary
 - EDIT `ECONOMICS.log.md` — this entry
+
+## cycle-27 — NOVEL 축 E1 spawn (포그라운드, sequential)
+
+**사용자 지시:** "NOVEL 축 만들고 진행하자" (포그라운드). cycle-26 C1 cross-cycle finding 에서 spawn 한 영구 axis E (MoE vs Dense scaling law divergence) 추가.
+
+### 진행
+
+| step | 산출물 | 결과 |
+|------|--------|------|
+| 1 | `ECONOMICS.md` §축 E + milestone E1 추가 | +5 line, axis E framework 명시 |
+| 2 | `.discoveries/economics-e1-moe-dense-divergence.tape` 작성 | 5 entries (3 seeds + V/I), `hexa tape` 0 malformed ✅ |
+| 3 | `verify/numerics_economics_e1_moe_dense_divergence.hexa` 작성 | parse PASS, 5/5 checks PASS |
+| 4 | `.verdicts/economics/e1_moe_dense_divergence_verdict.txt` 자동 emit | verdict tier + statistics + honest residual |
+| 5 | 본 log entry | (이 entry) |
+| 6 | commit + PR | (다음) |
+
+### E1 first-probe 결과 (🟢 SUPPORTED-NUMERICAL, directional, n=1)
+
+dense distribution (cycle-26 11 rows, sorted asc, D/N×10^-3):
+
+```
+[20000, 37000, 214000, 247600, 343000, 481000, 686000, 868000, 889000, 1000000, 1875000]
+  ↑                                                                                
+  chinchilla-70B-anchor (D/N=20, 정확 Chinchilla rule)
+  Q1=214000 · median=481000 · Q3=868000
+```
+
+MoE landing (DeepSeek-V3 active-37B/14.8T): **D/N = 20000** (= 20.000 정확)
+- empirical percentile in dense distribution = **0** (lower bound, chinchilla-anchor 와 동일 위치)
+- MoE ≤ dense Q1 (214000) → **directional evidence for MoE-as-distinct-family** ✅
+- check 4 PASS: divergence 가설 강화 (anecdotal at n=1, KS-test 는 cycle-28+ 후속)
+
+### 의미 있는 dual reading
+
+dense 11 rows 중 D/N=20 = chinchilla-70B-anchor (historical, 2022) + **DeepSeek-V3 active**.
+즉 modern dense 10/10 은 D/N ∈ [37, 1875] (모두 overtrain), Chinchilla rule 정확 hit
+은 (1) historical anchor (2) MoE active-param 둘뿐. **이게 cycle-26 C1 finding 의
+재해석:** "MoE active 가 dense 처럼 행동하지 않는다"가 아니라 **"MoE active 가
+historical Chinchilla 처럼 행동한다"**. dense modern 은 Sardana inference-amortization
+신호로 overtraining, MoE 는 active-param 만 Chinchilla 그대로.
+
+### Honest residual (cycle-27 limits)
+
+- **n=1 MoE = anecdote, NOT 통계적 evidence.** KS-test 는 ≥3 MoE 필요.
+- cycle-28 cheapest probe: WebFetch Mixtral 8x7B (arXiv:2401.04088) + Qwen3-MoE
+  technical report → TSV 확장 → KS-test enable.
+- Per-row loss 미공개 (🟡 tier) — E1 은 D/N ratio 만 다루므로 영향 없음.
+- chinchilla-70B-anchor 가 dense distribution 에 포함된 honest design — 이 row 가
+  Chinchilla bottom 의 anchor 역할 (2022 historical baseline).
+
+### 후속 seeds (E1 tape 의 다른 2 seed)
+
+- `d_econ_e1_moe_inference_cost_per_token` — Mixtral 8x7B fire on mac M3 24GB UMA (Q4_K_M ~13GB) + active-param $/tok 측정 → routing overhead 평가. cycle-29+ 후속.
+- `d_econ_e1_moe_sardana_envelope` — Sardana 2024 envelope active-substituted variant closed-form recompute (D1 seed 5 와 자연 묶음). $0, cycle-28 cheapest.

@@ -9,3 +9,5 @@ dbrx-36B-act	1.32e11	3.6e10	1.2e13	-1.0	-1.0	-1.0	H100	-1.0	333.33	16.67	https:/
 arctic-17B-act	4.8e11	1.7e10	3.5e12	-1.0	-1.0	-1.0	H100	-1.0	205.88	10.29	https://www.snowflake.com/en/blog/arctic-open-efficient-foundation-language-models-snowflake/
 deepseekv2-21B-act	2.36e11	2.1e10	8.1e12	-1.0	-1.0	-1.0	H800	-1.0	385.71	19.29	https://arxiv.org/abs/2405.04434
 phi3.5-moe-6.6B-act	6.08e10	6.6e9	4.9e12	-1.0	-1.0	-1.0	H100-80GB	-1.0	742.42	37.12	https://huggingface.co/microsoft/Phi-3.5-MoE-instruct
+deepseekv2-lite-2.4B-act	1.6e10	2.4e9	5.7e12	-1.0	-1.0	-1.0	H800	-1.0	2375.00	118.75	https://huggingface.co/deepseek-ai/DeepSeek-V2-Lite
+granite-3.0-3B-a800m-act	3.3e9	8.0e8	1.0e13	-1.0	-1.0	-1.0	H100	-1.0	12500.00	625.00	https://huggingface.co/ibm-granite/granite-3.0-3b-a800m-instruct

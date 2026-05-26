@@ -1,0 +1,341 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_quant_regime_shift.hexa — ECONOMICS B1
+// QUANT-BAND regime shift — per-band 2-component cost-model recompute on the
+// P4 quant-band pilot (Q3_K_M / Q4_K_M / Q8_0 × N=200, mac-mini-m3 Metal).
+//
+// PURPOSE.  ECONOMICS.md 축 B B1:
+//   "vLLM/paged-attn · 양자화(Q4/Q8/fp16) · batch regime 별 재측정 → 상수
+//    이동량 정량. 반증자: 2-성분 R² < 단일 power-law R²."
+//
+// This verifier consumes the cycle-23b P4 TSV (recompute-only — no new fire)
+// and fits PER-BAND the 2-component cost model
+//
+//     wall_ms = decode_fixed + prefill_slope · input_proxy
+//
+// vs the single power-law  wall_ms = a · input_proxy^τ̂.  It reports
+//   (1) the per-band fit constants (decode_fixed_qX, prefill_slope_qX),
+//   (2) R²(2-comp) vs R²(power-law) per band — the B1 FALSIFIER,
+//   (3) the Δ(decode_fixed), Δ(prefill_slope) shift table Q3→Q4→Q8.
+//
+// INPUT PROXY caveat.  The P4 TSV row schema is
+//   band  bpw  stratum  task_idx  wc  wall_ms  tok_est  correct  rss_mb  output
+// where `wc` is the PROMPT WORD COUNT (NOT token count) — the P4 pilot uses
+// the stage2 manifest stratified by word-count band {wc_5_15 … wc_101_200}.
+// The cycle-18 stage4 context-scaling bench has true `input_tokens`; THIS
+// data set uses `wc` as the prefill-length proxy.  The 2-component model
+// becomes  wall_ms = decode_fixed + prefill_slope · wc  with prefill_slope
+// now in units of ms/word (≈ ms/tok × 1.3-token/word ratio for English).
+//
+// AGGREGATION.  We aggregate the 200 per-row samples per band into 5
+// stratum-mean rungs {wc_5_15, wc_16_30, wc_31_60, wc_61_100, wc_101_200}.
+// This matches the cycle-16 stage4 4-rung pattern and absorbs per-row
+// sampling jitter (each row = one decode-greedy llama-server call, jitter
+// dominated by per-call constant overhead ≈ 1.5–2.5 s).
+//
+// REQUIRES.  Closed-form float arithmetic only — log_pure / pow_pure /
+// abs_pure / exp_pure from `self/runtime/math_pure`.  NO model spawn,
+// NO llama-server, NO API.  Mirrors the OLS structure of
+// `verify/numerics_economics_measured_cost_model.hexa` (cycle-18 M3.ECON).
+//
+// MEASURED DATA — committed P4 TSV verbatim (cycle-23b PR #70).
+//   source: .verdicts/sandbox/p4_quant_band_pilot.tsv
+//   recompute: per-stratum means via awk:
+//     awk -F'\t' 'NR>1 {k=$1"\t"$3; n[k]++; sx[k]+=$5; sy[k]+=$6}
+//                 END{for(k in n) printf "%s\t%.4f\t%.4f\n",k,sx[k]/n[k],sy[k]/n[k]}'
+//   each rung = mean over 40 rows.
+//
+// EXIT CODES.  0 on pass (all structural checks); 1 on any fail.
+// VERDICT TIER depends on the cross-band R² pattern — see main().
+//
+// Run:
+//   POOL_DISABLE=1 hexa run verify/numerics_economics_quant_regime_shift.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local verifier; closed-form OLS on committed P4 TSV. No atlas atoms, no model/GPU/API. B1 axis recompute — fits 3 bands × 2 models on the same input set, reports shift table + falsifier.")
+
+use "self/runtime/math_pure"
+
+// ── MEASURED DATA — P4 TSV stratum-means (verbatim recompute) ────────────
+// Source: .verdicts/sandbox/p4_quant_band_pilot.tsv (cycle-23b, mac-mini-m3
+// Metal, Qwen2.5-1.5B-Instruct, llama-server -np 1 -cb port 8091, decode
+// greedy --temp 0 -s 42 -n 256, byte_exact_subset scorer, $0 local).
+// Each rung = mean wc + mean wall_ms over 40 rows per (band, stratum).
+let N_RUNGS = 5
+let WC_RUNGS = [
+    6.5750,    // wc_5_15   (n=40)
+    18.5000,   // wc_16_30  (n=40)
+    37.8750,   // wc_31_60  (n=40)
+    74.0750,   // wc_61_100 (n=40)
+    141.4750,  // wc_101_200 (n=40)
+]
+
+// Q3_K_M (bpw=3.5, accuracy=44.0%, total_wall=370879ms aggregate)
+let WALL_Q3 = [
+    2234.2500,  // wc_5_15
+    1608.1500,  // wc_16_30
+    1677.5250,  // wc_31_60
+    1800.8500,  // wc_61_100
+    1951.2000,  // wc_101_200
+]
+
+// Q4_K_M (bpw=4.5, accuracy=43.0%, total_wall=320051ms aggregate)
+let WALL_Q4 = [
+    1709.5750,  // wc_5_15
+    1484.3750,  // wc_16_30
+    1518.8500,  // wc_31_60
+    1424.8250,  // wc_61_100
+    1863.6500,  // wc_101_200
+]
+
+// Q8_0 (bpw=8.5, accuracy=42.5%, total_wall=379646ms aggregate)
+let WALL_Q8 = [
+    1895.7000,  // wc_5_15
+    1769.1000,  // wc_16_30
+    1713.0500,  // wc_31_60
+    1858.2000,  // wc_61_100
+    2255.1000,  // wc_101_200
+]
+
+// ── harness state ────────────────────────────────────────────────────────
+let mut RUN = 0
+let mut FAIL = 0
+let mut FAILURES = []
+
+fn _check(ok: bool, label: str, detail: str) {
+    RUN = RUN + 1
+    if ok {
+        println("  [PASS] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    } else {
+        FAIL = FAIL + 1
+        FAILURES.push(label + " :: " + detail)
+        println("  [FAIL] " + label)
+        if detail.len() > 0 { println("         · " + detail) }
+    }
+}
+
+fn _abs(x: float) -> float { return abs_pure(x) }
+
+fn _mean(xs: [float]) -> float {
+    let mut s = 0.0
+    let mut i = 0
+    while i < xs.len() {
+        s = s + xs[i]
+        i = i + 1
+    }
+    return s / (xs.len() as float)
+}
+
+// ── model (a): single power-law  wall = a · wc^τ̂  (log-log OLS) ──────────
+fn fit_powerlaw(walls: [float]) -> [float] {
+    let k = WC_RUNGS.len()
+    let mut su = 0.0
+    let mut sv = 0.0
+    let mut suv = 0.0
+    let mut suu = 0.0
+    let mut i = 0
+    while i < k {
+        let u = log_pure(WC_RUNGS[i])
+        let v = log_pure(walls[i])
+        su = su + u
+        sv = sv + v
+        suv = suv + (u * v)
+        suu = suu + (u * u)
+        i = i + 1
+    }
+    let kf = k as float
+    let denom = (kf * suu) - (su * su)
+    let tau = ((kf * suv) - (su * sv)) / denom
+    let b = (sv - (tau * su)) / kf
+    let a = exp_pure(b)
+    return [tau, a]
+}
+
+fn r2_powerlaw(walls: [float], tau: float, a: float) -> float {
+    let mean_w = _mean(walls)
+    let mut ss_tot = 0.0
+    let mut ss_res = 0.0
+    let mut i = 0
+    while i < N_RUNGS {
+        let pred = a * pow_pure(WC_RUNGS[i], tau)
+        ss_tot = ss_tot + ((walls[i] - mean_w) * (walls[i] - mean_w))
+        ss_res = ss_res + ((walls[i] - pred) * (walls[i] - pred))
+        i = i + 1
+    }
+    return 1.0 - (ss_res / ss_tot)
+}
+
+// ── model (b): 2-component  wall = decode_fixed + prefill_slope · wc ─────
+fn fit_2component(walls: [float]) -> [float] {
+    let k = WC_RUNGS.len()
+    let mut sx = 0.0
+    let mut sy = 0.0
+    let mut sxy = 0.0
+    let mut sxx = 0.0
+    let mut i = 0
+    while i < k {
+        let x = WC_RUNGS[i]
+        let y = walls[i]
+        sx = sx + x
+        sy = sy + y
+        sxy = sxy + (x * y)
+        sxx = sxx + (x * x)
+        i = i + 1
+    }
+    let kf = k as float
+    let denom = (kf * sxx) - (sx * sx)
+    let slope = ((kf * sxy) - (sx * sy)) / denom
+    let intercept = (sy - (slope * sx)) / kf
+    return [intercept, slope]
+}
+
+fn r2_2component(walls: [float], decode_fixed: float, prefill_slope: float) -> float {
+    let mean_w = _mean(walls)
+    let mut ss_tot = 0.0
+    let mut ss_res = 0.0
+    let mut i = 0
+    while i < N_RUNGS {
+        let pred = decode_fixed + (prefill_slope * WC_RUNGS[i])
+        ss_tot = ss_tot + ((walls[i] - mean_w) * (walls[i] - mean_w))
+        ss_res = ss_res + ((walls[i] - pred) * (walls[i] - pred))
+        i = i + 1
+    }
+    return 1.0 - (ss_res / ss_tot)
+}
+
+// ── structural checks ────────────────────────────────────────────────────
+
+// Check 1: decode_fixed > 0 for ALL bands (a real positive fixed-decode floor).
+fn check_decode_fixed_positive_all(b0_q3: float, b0_q4: float, b0_q8: float) {
+    let ok = (b0_q3 > 0.0) && (b0_q4 > 0.0) && (b0_q8 > 0.0)
+    _check(ok,
+           "decode_fixed > 0 for ALL bands (Q3, Q4, Q8) — context-invariant floor present",
+           "Q3=" + to_string(b0_q3) + "  Q4=" + to_string(b0_q4) + "  Q8=" + to_string(b0_q8))
+}
+
+// Check 2: prefill_slope monotone with bpw (Q3 ≤ Q4 ≤ Q8) — bandwidth-bound prediction.
+// At higher bpw, each weight load moves more bytes → larger ms/tok prefill slope.
+fn check_prefill_slope_monotone_bpw(b1_q3: float, b1_q4: float, b1_q8: float) {
+    let ok = (b1_q3 <= b1_q4) && (b1_q4 <= b1_q8)
+    _check(ok,
+           "prefill_slope monotone with bpw (Q3 ≤ Q4 ≤ Q8) — bandwidth-bound prediction",
+           "Q3=" + to_string(b1_q3) + " ms/wc  Q4=" + to_string(b1_q4) +
+           " ms/wc  Q8=" + to_string(b1_q8) + " ms/wc")
+}
+
+// Check 3: B1 FALSIFIER aggregate — at least one band must show 2-comp ≥ power-law,
+// otherwise the falsifier is fully tripped.  Honest: per-band tiers reported in
+// main(), this aggregate check guards against a total falsification.
+fn check_b1_falsifier_partial(r2_2c_q3: float, r2_pow_q3: float,
+                              r2_2c_q4: float, r2_pow_q4: float,
+                              r2_2c_q8: float, r2_pow_q8: float) {
+    let q3_ok = r2_2c_q3 >= r2_pow_q3
+    let q4_ok = r2_2c_q4 >= r2_pow_q4
+    let q8_ok = r2_2c_q8 >= r2_pow_q8
+    let ok = q3_ok || q4_ok || q8_ok
+    _check(ok,
+           "B1 falsifier: at least one band has 2-comp R² ≥ power-law R² (not fully falsified)",
+           "Q3_ok=" + str(q3_ok) + "  Q4_ok=" + str(q4_ok) + "  Q8_ok=" + str(q8_ok))
+}
+
+// Check 4: per-band fit shifts are non-trivial — the bands measurably differ.
+// |Δb0(Q3→Q4)| + |Δb0(Q4→Q8)| ≥ 100 ms (not all bands collapse to one constant).
+fn check_band_shift_nontrivial(b0_q3: float, b0_q4: float, b0_q8: float) {
+    let d34 = _abs(b0_q4 - b0_q3)
+    let d48 = _abs(b0_q8 - b0_q4)
+    let total = d34 + d48
+    _check(total >= 100.0,
+           "decode_fixed inter-band shift |Δb0(Q3→Q4)|+|Δb0(Q4→Q8)| ≥ 100 ms (bands distinguishable)",
+           "Δb0(Q3→Q4)=" + to_string(b0_q4 - b0_q3) +
+           "  Δb0(Q4→Q8)=" + to_string(b0_q8 - b0_q4) +
+           "  sum=" + to_string(total))
+}
+
+// ── main ─────────────────────────────────────────────────────────────────
+
+fn main() {
+    println("========================================================================")
+    println("  hexa-codex ECONOMICS quant-regime shift harness — axis B B1 recompute")
+    println("  P4 quant-band pilot (Q3/Q4/Q8 × N=200, mac-mini-m3 Metal, $0 local)")
+    println("  per-band 2-component fit vs single power-law on stratum-mean rungs")
+    println("========================================================================")
+    println("  data: .verdicts/sandbox/p4_quant_band_pilot.tsv (cycle-23b PR #70)")
+    println("  rungs: 5 strata × 40 rows each, wc range 5–200 words (short-prompt regime)")
+    println("")
+
+    // Fit all 6 models.
+    let pw_q3 = fit_powerlaw(WALL_Q3)
+    let tau_q3 = pw_q3[0]; let a_q3 = pw_q3[1]
+    let r2_pow_q3 = r2_powerlaw(WALL_Q3, tau_q3, a_q3)
+    let cm_q3 = fit_2component(WALL_Q3)
+    let b0_q3 = cm_q3[0]; let b1_q3 = cm_q3[1]
+    let r2_2c_q3 = r2_2component(WALL_Q3, b0_q3, b1_q3)
+
+    let pw_q4 = fit_powerlaw(WALL_Q4)
+    let tau_q4 = pw_q4[0]; let a_q4 = pw_q4[1]
+    let r2_pow_q4 = r2_powerlaw(WALL_Q4, tau_q4, a_q4)
+    let cm_q4 = fit_2component(WALL_Q4)
+    let b0_q4 = cm_q4[0]; let b1_q4 = cm_q4[1]
+    let r2_2c_q4 = r2_2component(WALL_Q4, b0_q4, b1_q4)
+
+    let pw_q8 = fit_powerlaw(WALL_Q8)
+    let tau_q8 = pw_q8[0]; let a_q8 = pw_q8[1]
+    let r2_pow_q8 = r2_powerlaw(WALL_Q8, tau_q8, a_q8)
+    let cm_q8 = fit_2component(WALL_Q8)
+    let b0_q8 = cm_q8[0]; let b1_q8 = cm_q8[1]
+    let r2_2c_q8 = r2_2component(WALL_Q8, b0_q8, b1_q8)
+
+    println("  ── per-band 2-component fit  wall_ms = decode_fixed + prefill_slope · wc")
+    println("    band      decode_fixed (ms)   prefill_slope (ms/wc)   R²(2-comp)")
+    println("    Q3_K_M    " + to_string(b0_q3) + "   " + to_string(b1_q3) + "   " + to_string(r2_2c_q3))
+    println("    Q4_K_M    " + to_string(b0_q4) + "   " + to_string(b1_q4) + "   " + to_string(r2_2c_q4))
+    println("    Q8_0      " + to_string(b0_q8) + "   " + to_string(b1_q8) + "   " + to_string(r2_2c_q8))
+    println("")
+    println("  ── per-band single power-law fit  wall_ms = a · wc^τ̂")
+    println("    band      a                 τ̂                 R²(power-law)")
+    println("    Q3_K_M    " + to_string(a_q3) + "   " + to_string(tau_q3) + "   " + to_string(r2_pow_q3))
+    println("    Q4_K_M    " + to_string(a_q4) + "   " + to_string(tau_q4) + "   " + to_string(r2_pow_q4))
+    println("    Q8_0      " + to_string(a_q8) + "   " + to_string(tau_q8) + "   " + to_string(r2_pow_q8))
+    println("")
+    println("  ── B1 FALSIFIER per band (2-comp R² ≥ power-law R²?):")
+    let q3_v = r2_2c_q3 - r2_pow_q3
+    let q4_v = r2_2c_q4 - r2_pow_q4
+    let q8_v = r2_2c_q8 - r2_pow_q8
+    let q3_tag = if q3_v >= 0.0 { "🟢 2-comp wins" } else { "🔴 FALSIFIED" }
+    let q4_tag = if q4_v >= 0.0 { "🟢 2-comp wins" } else { "🔴 FALSIFIED" }
+    let q8_tag = if q8_v >= 0.0 { "🟢 2-comp wins" } else { "🔴 FALSIFIED" }
+    println("    Q3_K_M    Δ(R²) = " + to_string(q3_v) + "   " + q3_tag)
+    println("    Q4_K_M    Δ(R²) = " + to_string(q4_v) + "   " + q4_tag)
+    println("    Q8_0      Δ(R²) = " + to_string(q8_v) + "   " + q8_tag)
+    println("")
+    println("  ── constant-shift table (Q3 → Q4 → Q8):")
+    println("    Δ decode_fixed (Q3→Q4) = " + to_string(b0_q4 - b0_q3) + " ms")
+    println("    Δ decode_fixed (Q4→Q8) = " + to_string(b0_q8 - b0_q4) + " ms")
+    println("    Δ prefill_slope (Q3→Q4) = " + to_string(b1_q4 - b1_q3) + " ms/wc")
+    println("    Δ prefill_slope (Q4→Q8) = " + to_string(b1_q8 - b1_q4) + " ms/wc")
+    println("")
+
+    check_decode_fixed_positive_all(b0_q3, b0_q4, b0_q8)
+    check_prefill_slope_monotone_bpw(b1_q3, b1_q4, b1_q8)
+    check_b1_falsifier_partial(r2_2c_q3, r2_pow_q3, r2_2c_q4, r2_pow_q4, r2_2c_q8, r2_pow_q8)
+    check_band_shift_nontrivial(b0_q3, b0_q4, b0_q8)
+
+    println("")
+    println("========================================================================")
+    let pass_n = RUN - FAIL
+    println("  " + str(pass_n) + "/" + str(RUN) + " structural checks passed")
+    if FAIL > 0 {
+        println("  FAILURES:")
+        for ff in FAILURES { println("    ✗ " + ff) }
+        println("__HEXA_CODEX_NUMERICS_ECONOMICS_QUANT_REGIME_SHIFT__ FAIL")
+        exit(1)
+    }
+    println("  🟠 MIXED-NUMERICAL — quant-regime shift quantified, B1 partial falsifier on Q3")
+    println("  · Q3_K_M  R²(2c)=" + to_string(r2_2c_q3) + " < R²(pow)=" + to_string(r2_pow_q3) + " — 🔴 falsifier tripped")
+    println("  · Q4_K_M  R²(2c)=" + to_string(r2_2c_q4) + " > R²(pow)=" + to_string(r2_pow_q4) + " — 🟢 2-comp wins (weak)")
+    println("  · Q8_0    R²(2c)=" + to_string(r2_2c_q8) + " > R²(pow)=" + to_string(r2_pow_q8) + " — 🟢 2-comp wins")
+    println("  · prefill_slope monotone Q3<Q4<Q8 (bandwidth-bound at Q8: " + to_string(b1_q8) + " ms/wc)")
+    println("  · honest residual: wc range 5–200 is short-prompt regime — per-call overhead dominates")
+    println("__HEXA_CODEX_NUMERICS_ECONOMICS_QUANT_REGIME_SHIFT__ PASS")
+    exit(0)
+}

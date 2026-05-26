@@ -6,6 +6,43 @@
 
 ---
 
+## 2026-05-26 — cycle-26 E1: 영구축 A1 4-rung 재확인 · F-CODEX-2 🔴 FALSIFIED 유지
+
+@D 영구축 A1 ("1.5B/3B/7B Stage-2 rung 측정 → ch.8 residual ≤ 0.10") 의 현재 상태를
+사이클-26 재계산으로 확인. **데이터 갭 없음** — 4-rung 사다리는 이미 모두 LIVE.
+
+- 0.5B → `.verdicts/sandbox/stage2_persona_scaled_summary.txt` (cycle-6, per-stratum max{persona} 평균 = 0.3667)
+- 1.5B → `.verdicts/sandbox/stage2_persona_scaled_1_5b_summary.txt` (cycle-9, 평균 = 0.4667)
+- 3B   → `.verdicts/sandbox/stage2_persona_scaled_3b_summary.txt`   (cycle-14, 평균 = 0.4600)
+- 7B   → `.verdicts/sandbox/stage2_persona_scaled_7b_summary.txt`   (cycle-14, 평균 = 0.6000 · `cleared_wc_31_60=true`)
+
+`verify/numerics_economics_empirical_landing.hexa` 재계산 (cycle-26, hexa.real verbatim):
+- `k_active = 4 / 4` (모든 rung LIVE)
+- F-CODEX-1 measured_slope = **0.17207**, lattice_ref = 0.96, lattice_residual = **0.78793**
+  (LATTICE_POLICY-lifted: disclosure-only, NOT gating — Qwen 2.5 외부 substrate 가 lattice
+  의 N^(24/25) 를 따를 의무 없음)
+- F-CODEX-2 measured_tau   = **0.523982** (substrate 자체 latency curve), lattice_tau = 4.0,
+  residual = **3.47602** ≫ ε = 0.10 → 🔴 FALSIFIED gate
+- 10/10 checks PASS, 최종 verdict = `🔴 FALSIFIED — F-CODEX-2 residual exceeds ε=0.1`
+
+A1 "residual ≤ 0.10" 게이트 해석: **F-CODEX-1 잔차는 disclosure-only 라 더 이상
+load-bearing 아님**; 진짜로 load-bearing 인 것은 F-CODEX-2 (substrate-internal latency
+law). 그리고 그것이 닫힘-부정 (3.476) 으로 떨어졌으므로 — 이는 데이터 부족이 아니라
+**lattice prediction 의 명백한 기각** ([[feedback_negative_paper_external_claim.md]]
+적용 가능: substrate 자신의 측정 곡선이 외부 주장을 반증, strawman 아님).
+
+다음 호 (next-arc) 옵션 (@D 영구축 그대로):
+- **축 B** — v1.4.0 의 2-성분 모델 (decode_fixed 370ms + prefill_slope 0.168ms/tok, R²=0.997)
+  이 다른 substrate (vLLM/paged-attn · Q3/Q8/fp16 · batch regime) 에서도 성립하는가?
+- **축 C** — 새 모델 landing 마다 Pareto envelope 재적합
+- **축 D** — 토큰당 에너지/$, KV-cache 비용곡선, speculative-decoding 새 falsifiable seed
+
+A1 의 첫 arc 자체는 cycle-14/16 에서 4-rung × F-CODEX-2 latency 가 닫히면서 사실상
+종결 — cycle-26 는 그 결과를 verbatim 재확인 (sticky-FALSIFIED). 갱신본은
+`.verdicts/sandbox/m3_econ_empirical_landing.txt` 에 cycle-26 stamp 로 persist.
+
+---
+
 ## 2026-05-24 — SANDBOX substrate revives 3 routing-savings BLOCKED levers (cross-domain)
 
 Cross-domain link recorded from the ECONOMICS side. Three cycle-1/2
@@ -781,3 +818,101 @@ look like.
 F-CODEX-1 claim (greps clean). The substrate-capability-evals scaffold
 inherits the FALSIFIED status — its §formula cannot pass
 `cx_paper_gate` until a replacement formula lands.
+
+---
+
+## 2026-05-26 cycle-26 — C1 envelope landings batch 1 (12 modern + Chinchilla anchor)
+
+**Lane.** ECONOMICS axis C1 영구 축 — "새 모델 landing 마다 (N,D)↔(loss,cost) 측정점 추가 → 닫힌형 envelope vs 측정 재적합. 반증자: Lagrangian 최적 (N/D)^α ≠ A/B." (cycle-26 lane E3)
+
+**Data — 12 modern landings + 1 historical anchor.** Hand-curated TSV at
+`.verdicts/economics/c1_chinchilla_envelope.tsv`, citation URL per row, all
+🟡 SUPPORTED-BY-CITATION (we did NOT recompute loss; per-row loss column
+is `-1.0` sentinel where source did not disclose):
+
+| model | N (params) | D (tokens) | D/N | dev (=D/N/20) | GPU-h | source |
+|---|---:|---:|---:|---:|---:|---|
+| llama3-8B | 8.0e9 | 1.5e13 | 1875 | 93.75 | 1.3M H100 | HF model card |
+| llama3-70B | 7.0e10 | 1.5e13 | 214.3 | 10.71 | 6.4M H100 | HF model card |
+| llama3.1-405B | 4.05e11 | 1.5e13 | 37.0 | 1.85 | 30.84M H100 | HF model card |
+| qwen2.5-72B | 7.27e10 | 1.8e13 | 247.6 | 12.38 | n/d | qwenlm blog |
+| deepseekv3-671B (total) | 6.71e11 | 1.48e13 | 22.1 | 1.10 | 2.788M H800 | arXiv:2412.19437 |
+| deepseekv3-37B (active) | 3.7e10 | 1.48e13 | 400 | 20.00 | (same) | arXiv:2412.19437 |
+| phi3-mini-3.8B | 3.8e9 | 3.3e12 | 868 | 43.42 | n/d | arXiv:2404.14219 |
+| phi3-small-7B | 7.0e9 | 4.8e12 | 686 | 34.29 | n/d | arXiv:2404.14219 |
+| phi3-medium-14B | 1.4e10 | 4.8e12 | 343 | 17.14 | n/d | arXiv:2404.14219 |
+| gemma2-2B | 2.0e9 | 2.0e12 | 1000 | 50.00 | TPU n/d | HF model card |
+| gemma2-9B | 9.0e9 | 8.0e12 | 889 | 44.44 | TPU n/d | HF model card |
+| gemma2-27B | 2.7e10 | 1.3e13 | 481 | 24.07 | TPU n/d | HF model card |
+| **chinchilla-70B (anchor)** | 7.0e10 | 1.4e12 | **20.0** | **1.00** | n/d | arXiv:2203.15556 |
+
+**Closed-form verifier** `verify/numerics_economics_c1_envelope.hexa` —
+10/10 PASS at `.verdicts/economics/c1_chinchilla_envelope_verdict.txt`:
+
+- ch.1 — Hoffmann D_opt(N) = 20·N identity (13 rows)
+- ch.2 — deviation_factor = (D/N)/20 closed-form identity (13 rows)
+- ch.3 — n=6 Lagrangian D/N opt = (B/A)^6 ≈ 1.065 (near-symmetric)
+- ch.4 — n=6 vs Chinchilla gap |20 − 1.065| = 18.93 > 18 (distinct envelopes)
+- ch.5 — 12/12 modern landings overtrain (dev > 1; min = DeepSeek-V3 671B = 1.10)
+- ch.6 — Chinchilla anchor at dev = 1.000 exactly (by construction)
+- ch.7 — max modern dev = llama3-8B = 93.75 ≥ 50 (extreme overtraining floor)
+- ch.8 — DeepSeek-V3 total (671B/14.8T) dev ≤ 1.5 (compute-optimal-aware MoE)
+- ch.9 — DeepSeek-V3 ACTIVE (37B/14.8T) dev = 20.000 EXACTLY (emergent Chinchilla-on-active)
+- ch.10 — Llama3 family monotone-inverse: d(8B)=93.75 > d(70B)=10.71 > d(405B)=1.85
+
+**Falsifier evaluation.** C1's falsifier reads "Lagrangian 최적 (N/D)^α ≠ A/B".
+At the closed-form level this is an IDENTITY (already verified by
+`verify/numerics_economics_pareto.hexa` check 2). The EMPIRICAL flavour
+— "no modern landing sits at the closed-form Lagrangian optimum" —
+holds: every modern (D/N) ∈ [22.1, 1875] is far from both the n=6
+optimum 1.07 AND the Chinchilla rule-of-thumb 20. So the Hoffmann
+CLOSED-FORM envelope L(N,D) is NOT falsified (it remains a well-defined
+surface at every (N,D)); what IS falsified is the ASSUMPTION that
+train-compute is the only cost being optimized.
+
+**Honest interpretation — "overtraining trend" + 3rd envelope term.**
+
+1. Universal overtraining (12/12). Chinchilla rule-of-thumb is broken
+   across the 2024-26 dense set. Modern average dev ≈ 30 (median ≈ 20).
+2. Inverse-N pattern. Inside the Llama3 family the smallest model gets
+   the most tokens-per-param (8B=1875, 70B=214, 405B=37); same shape in
+   Gemma-2 (2B=1000 > 9B=889 > 27B=481) and Phi-3 (mini=868 > small=686
+   > medium=343). This is the inference-amortization signature
+   (Sardana+Chen 2023, arXiv:2401.00448): small models pay back train
+   compute over more inference calls, so their train-optimal D shifts
+   above the train-compute-only optimum.
+3. DeepSeek-V3 emergent identity. By TOTAL params dev = 1.10 (closest
+   to Chinchilla); by ACTIVE params dev = 20.000 EXACTLY. The 14.8T-
+   token corpus was sized to Chinchilla-on-active, not Chinchilla-on-
+   total — a deliberate MoE compute-optimal choice.
+4. The envelope NEEDS a 3rd term. The naive Hoffmann L(N,D) +
+   train_cost(N,D) joint optimization can't reproduce any of these
+   landings. Candidate 3rd terms: (i) inference-amortization Σ_calls
+   (Sardana+Chen), (ii) data-quality saturation cap (Phi-3 textbook
+   corpus), (iii) capability-elicitation floor (Llama3 8B sits well
+   above Chinchilla-loss but well below 70B capability).
+
+**Residuals / what's NOT closed.**
+- Per-row **loss** is 🟡 citation-only — none of the sources fetched
+  disclose final pretraining CE. To escalate to 🟢/🔵 the lane needs
+  measured-CE via lm_foundry serving + held-out eval-set (cx_empirical_contact).
+- Phi-3, Qwen2.5, Gemma-2 disclose neither GPU-hours nor FLOPs; the cost-
+  side `(N,D)↔cost` axis is incomplete for 7/12 modern rows.
+- Mistral-7B-v0.1 attempted (HF card NOT DISCLOSED for D and compute) —
+  candidate for cycle-27 batch 2 (try Mistral technical report PDF body).
+
+**Next-cycle seeds (C1 batch 2).**
+- Pull eval-set CE for {llama3-8B, qwen2.5-7B, phi3-mini, gemma2-2B}
+  via local lm_foundry serving → measured-loss column, promote those 4
+  rows to 🟢.
+- Add Claude-Opus-4.5 / Mistral-Large-2 / Gemma-3 rows when public
+  (N, D) disclosure appears.
+- Fit a closed-form 3rd-term envelope (inference-amortized) to the
+  12-row dev pattern — falsifier: residual ≤ 0.10 across the 12 rows.
+
+**Files this round.**
+- NEW `.verdicts/economics/c1_chinchilla_envelope.tsv` (13 rows + comment header)
+- NEW `verify/numerics_economics_c1_envelope.hexa` (10/10 PASS)
+- NEW `.verdicts/economics/c1_chinchilla_envelope_verdict.txt` (verdict stdout verbatim)
+- EDIT `ECONOMICS.md` axis C1 line — sub-bullet w/ cycle-26 batch 1 summary
+- EDIT `ECONOMICS.log.md` — this entry

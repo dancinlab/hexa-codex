@@ -202,6 +202,7 @@ ECONOMICS group.
 
 ### 축 C — Pareto 비용-품질 frontier (영구 재적합)
 - [ ] C1 — 새 모델 landing 마다 (N,D)↔(loss,cost) 측정점 추가 → 닫힌형 envelope vs 측정 재적합. 반증자: Lagrangian 최적 (N/D)^α ≠ A/B.
+  - cycle-26 batch 1: 12 modern landings (Llama3 8B/70B/405B · Qwen2.5-72B · DeepSeek-V3 671B/37B-act · Phi-3 mini/small/medium · Gemma-2 2B/9B/27B) + Chinchilla 70B anchor → `.verdicts/economics/c1_chinchilla_envelope.tsv` (🟡 SUPPORTED-BY-CITATION) + verifier `verify/numerics_economics_c1_envelope.hexa` 10/10 PASS (`.verdicts/economics/c1_chinchilla_envelope_verdict.txt`). 핵심: 12/12 modern dense 모두 overtraining (dev ∈ [1.10, 93.75]), Llama3 family N-역단조 (8B>70B>405B), DeepSeek-V3 active-37B/14.8T = dev 20.000 정확 (Chinchilla-on-active emergence). 반증자 평가: closed-form Lagrangian (N/D)^α = A/B 는 IDENTITY (Pareto verifier check 2) — 닫힌형 envelope는 falsify 안됨. 단 modern 실제 (D/N) ∈ [22, 1875] 가 n=6 lattice 최적 ~1.07 도 Chinchilla rule-of-thumb 20 도 모두 빗나감 → envelope의 ASSUMPTION (train-compute-only) falsified. 잔여: per-row loss 미공개 → 🟢 escalation 위해 lm_foundry serving 측 measured-CE 필요.
 
 ### 축 D — 신규 비용 축 (seed 백로그)
 - [ ] D1 — 토큰당 에너지/$ · KV-cache 비용곡선 · speculative-decoding 비용모델 — 새 falsifiable 축 seed → `.discoveries/`.

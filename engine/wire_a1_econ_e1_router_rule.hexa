@@ -1,0 +1,179 @@
+#!hexa strict
+// hexa-codex/engine/wire_a1_econ_e1_router_rule.hexa
+// ENGINE axis A1 first wire — ECONOMICS E1 finding → train/infer router rule
+//
+// SOURCE FINDING (4-batch sign preservation, cycle-32 → cycle-34):
+//   MoE active-param dev_factor distribution has WIDER spread than dense
+//   ([10.29, 625] vs [1.85, 93.75]) — small-active MoE = MORE overtrained
+//   per active-param (Sardana 2024 inference-amortization directly confirmed
+//   in MoE family). DeepSeek-V3 dev=20 exact = team design choice, NOT a
+//   family-wide law (cycle-27 anecdote fully reframed by cycle-34 n=11
+//   PARITY |z|=0.558 POS).
+//
+// RULE.  For inference-cost-sensitive routing (where token-throughput cost
+// matters more than absolute peak quality), prefer small-active MoE landings
+// in the upper-dev-factor tail (dev_factor > dense median 24.05) over dense
+// large landings.  For max-quality research routing, dense large remains
+// the canonical choice (no E1 evidence overturns dense at the top tier).
+//
+// ENGINE N1 (latency).  Discovery cycle = ECONOMICS cycle-27 (E1 spawn).
+// Wire cycle = ENGINE cycle-1.  Sibling-cycle latency ΔM = 7 (c27→c34
+// finding-mature → wire-cycle-1).  This is the FIRST data point on the
+// N1 axis baseline — measured, not estimated.
+//
+// FALSIFIER (paired verifier).
+//   verify/numerics_engine_a1_wire_econ_e1.hexa asserts:
+//   (1) cost_sensitive_chat top-3 has avg dev_factor > dense_median (24.05)
+//   (2) max_quality_research top-1 ∈ {dense large landings}
+//   (3) rule deterministic (same input → same output) — closed-form
+//   If any fails, rule contradicts E1 finding → FALSIFIED.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry — derived from cycle-26 dense + cycle-34 MoE landings
+// (.verdicts/economics/c1_chinchilla_envelope.tsv + e1_moe_landings.tsv)
+// ────────────────────────────────────────────────────────────────────────
+
+// dev_factor (×100, Chinchilla D/N/20 deviation)
+// per-model: (name, family, n_active_B, dev_factor_x100, kind)
+// kind: 0 = dense, 1 = MoE-active
+
+let MODEL_NAMES = [
+    // dense (from cycle-26 c1 envelope)
+    "llama3-70B-dense", "llama3.1-405B-dense", "qwen2.5-72B-dense",
+    "gemma2-27B-dense",
+    // MoE small-active high-dev (cycle-32→34, dev > dense median 2405)
+    "granite-3.0-3B-a800m", "deepseekv2-lite-2.4B-act", "olmoe-1B-act",
+    "phi3.5-moe-6.6B-act", "jetmoe-8b-act-2.2B",
+    // MoE large-active dense-region (cycle-29→34)
+    "deepseekv3-37B-act", "dbrx-36B-act", "deepseekv2-21B-act",
+    "orion-moe8x7b-act-12.9B",
+]
+
+let MODEL_DEV_x100 = [
+    1071, 185, 1238,
+    2405,
+    62500, 11875, 20350,
+    3712, 2841,
+    2000, 1667, 1929,
+    1938,
+]
+
+let MODEL_KIND = [
+    0, 0, 0,
+    0,
+    1, 1, 1,
+    1, 1,
+    1, 1, 1,
+    1,
+]
+
+let MODEL_ACTIVE_B_x10 = [    // active params in B × 10
+    700, 4050, 720,
+    270,
+    8, 24, 10,
+    66, 22,
+    370, 360, 210,
+    129,
+]
+
+let DENSE_MEDIAN_x100 = 2405   // cycle-34 verifier output: dense median dev = 24.05
+
+// ────────────────────────────────────────────────────────────────────────
+// Routing rule — pure dispatch on class label
+// ────────────────────────────────────────────────────────────────────────
+
+fn econ_e1_route(class_label: str) -> list[int] {
+    // returns indices into MODEL_NAMES, ranked best→worst for class
+    let n = MODEL_NAMES.len()
+    let mut ranked = []
+
+    if class_label == "cost_sensitive_chat" {
+        // E1 rule: prefer small-active MoE in upper-dev tail
+        // criterion: kind==MoE AND dev_factor > dense_median AND active_B smallest first
+        // ranking: ascending active_B among qualifying MoE
+        let mut i = 0
+        while i < n {
+            if MODEL_KIND[i] == 1 && MODEL_DEV_x100[i] > DENSE_MEDIAN_x100 {
+                ranked = ranked + [i]
+            }
+            i = i + 1
+        }
+        // sort ranked by active_B ascending (smallest = cheapest inference)
+        let m = ranked.len()
+        let mut p = 0
+        while p < m {
+            let mut q = p + 1
+            while q < m {
+                if MODEL_ACTIVE_B_x10[ranked[q]] < MODEL_ACTIVE_B_x10[ranked[p]] {
+                    let tmp = ranked[p]
+                    ranked[p] = ranked[q]
+                    ranked[q] = tmp
+                }
+                q = q + 1
+            }
+            p = p + 1
+        }
+        return ranked
+    }
+
+    if class_label == "max_quality_research" {
+        // no E1 evidence overturns dense at top tier → rank dense by N_active descending
+        let mut i = 0
+        while i < n {
+            if MODEL_KIND[i] == 0 {
+                ranked = ranked + [i]
+            }
+            i = i + 1
+        }
+        let m = ranked.len()
+        let mut p = 0
+        while p < m {
+            let mut q = p + 1
+            while q < m {
+                if MODEL_ACTIVE_B_x10[ranked[q]] > MODEL_ACTIVE_B_x10[ranked[p]] {
+                    let tmp = ranked[p]
+                    ranked[p] = ranked[q]
+                    ranked[q] = tmp
+                }
+                q = q + 1
+            }
+            p = p + 1
+        }
+        return ranked
+    }
+
+    // unknown class → empty (caller must handle explicitly — no silent fallback)
+    return ranked
+}
+
+print("hexa-codex ENGINE A1 — ECONOMICS E1 → router rule wire (cycle-1)")
+print("================================================================")
+print("")
+
+let cost_ranked = econ_e1_route("cost_sensitive_chat")
+print("class=cost_sensitive_chat (E1 rule: small-active MoE upper-dev tail):")
+let mut i = 0
+while i < cost_ranked.len() {
+    let idx = cost_ranked[i]
+    print("  #" + to_string(i + 1) + " " + MODEL_NAMES[idx] +
+          " (active=" + to_string(MODEL_ACTIVE_B_x10[idx]) + "/10 B" +
+          " · dev=" + to_string(MODEL_DEV_x100[idx]) + "/100)")
+    i = i + 1
+}
+print("")
+
+let quality_ranked = econ_e1_route("max_quality_research")
+print("class=max_quality_research (dense large, top-tier):")
+let mut j = 0
+while j < quality_ranked.len() {
+    let idx = quality_ranked[j]
+    print("  #" + to_string(j + 1) + " " + MODEL_NAMES[idx] +
+          " (active=" + to_string(MODEL_ACTIVE_B_x10[idx]) + "/10 B" +
+          " · dev=" + to_string(MODEL_DEV_x100[idx]) + "/100)")
+    j = j + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_A1_ECON_E1_ROUTER_RULE__ DONE")

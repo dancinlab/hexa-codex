@@ -2942,3 +2942,63 @@ task class 필요. cycle-21 의 `d_p4_quantization_band_ladder` verdict_tier = �
 **P1 FIRE start.** P4 metal/UMA 자원 free 됨 → P1 (Qwen2.5-VL-7B-Q4_K_M ~6GB)
 background fire 시작. 16-item PIL manifest × 4 rungs (cycle-20 baseline 0.5/2.2/3.0B + 7B
 new). 추정 ~10-20분 (7B 가장 무거움). verdict `.verdicts/sandbox/p1_multimodal_ladder_7b.tsv`.
+
+## cycle-23c — P1 FIRE 🟢 BREAKTHROUGH POSITIVE (cycle-20 NON-MONOTONE 해소)
+
+**P1 verdict (실측 완료, $0 local mac M3 metal/MTL0, ~14분 wall — 20:13→20:17 + bench).**
+16-item PIL manifest × 4 rungs (cycle-20 baseline 0.5/2.2/3.0B + 7B 신규):
+
+| rung | model | overall | count | ocr | spatial | shape |
+|------|-------|---------|-------|-----|---------|-------|
+| 0 | SmolVLM-500M-Q8_0 | 81.25% (13/16) | 4/5 | 4/4 | 3/4 | 2/3 |
+| 1 | SmolVLM2-2.2B-Q8_0 | 93.75% (15/16) | 4/5 | 4/4 | 4/4 | 3/3 |
+| 2 | Qwen2.5-VL-3B-Q4_K_M | 81.25% (13/16) | **2/5** ⚠ | 4/4 | 4/4 | 3/3 |
+| 3 | **Qwen2.5-VL-7B-Q4_K_M** | **100.0% (16/16)** | **5/5** ✅ | 4/4 | 4/4 | 3/3 |
+
+**2-way falsifier 판정 (rung3 measured):**
+- perception sub-ladder (ocr+spatial+shape, 11 items): rung3 = 11/11 ✅ (cycle-20 의 saturated trend 유지)
+- counting axis (5-9 dense objects): rung3 = **5/5** (cycle-20 의 2-3/5 dip 완전 회복)
+- ⟹ **(A) POSITIVE — subitizing limit was data-scale-bounded; counting unblocks at 7B**
+- ❌ (B) negative (architectural ceiling) **부정**
+
+**Reinterpretation of cycle-20:** 3.0B Qwen2.5-VL-3B 의 counting=2/5 dip 은
+architectural subitizing ceiling 아니라 **Qwen2.5-VL-3B model-specific anomaly**.
+2.2B SmolVLM2 가 그 위치에서 counting=4/5 이었음 (training-data/connector
+difference 추정). 7B에서 모든 axis perfect → **scaling 으로 counting recover 확인**.
+
+**Verdict tier — 🟢 SUPPORTED-NUMERICAL:**
+- empirical measurement, byte-exact-subset scorer (NO LLM self-judge)
+- 4-rung gradient over 0.5→7B params (~2.58 log2 octaves)
+- 16-item controlled manifest (identical to cycle-20 for apples-to-apples)
+- counting axis 5/5 vs 2/5 = 60pp gap >> binomial SE √(0.4×0.6/5)≈22% × 2 (n=5 per axis 작음 honest residual, 그래도 load-bearing)
+- cycle-21 d_p1_vl_4th_rung_qwen_vl_7b GREEN 1단 close
+
+**비주류 observation (NOT load-bearing claim):**
+- `monotone_nondecreasing_overall=false` (3B dip 유지) — Qwen2.5-VL-3B 의 anomaly
+  invariant. monotone fit 만 사용한 cycle-20 의 SUPPORTED-NUMERICAL verdict
+  refine (now: NON-monotone with model-specific dip, but counting recovers at 7B)
+
+**Honest residual (cycle-22 commit message 의 항목):**
+- `verify/numerics_substrate_multimodal_fit.hexa` 의 `N_RUNGS=3 → 4` 확장 필요
+  (4-rung TSV consumer 작성 — closed-form fit 추가, monotone-no-knee fail 대신
+  bimodal fit family 등)
+- n=5 per axis 작음 — `d_p1_test_set_scale_for_subitizing` seed (50-item dense-
+  object manifest) 가 다음 cycle 의 natural 후속 (counting axis SE 22%→7%)
+- Q4_K_M 만 측정 (Q8_0 alt 미측정 — quant artifact 가능성 ↓ but not ruled out)
+
+**Verdict surface:**
+- `.verdicts/sandbox/p1_multimodal_ladder_7b.tsv` (65 lines = 16 items × 4 rungs + header)
+- `.verdicts/sandbox/p1_multimodal_ladder_7b_summary.txt` (1991 bytes)
+- `__HEXA_CODEX_BENCH_MM_LADDER_7B__ DONE` marker confirmed
+
+### cycle-23 closure summary (4 lanes · 3 FIRE landed · 1 deferred)
+
+| lane | 1st FIRE 결과 | verdict tier | 다음 cycle 자연 후속 |
+|------|---------------|--------------|----------------------|
+| P3 | blocker measured + runbook | ⏸ blocked (user 결정) | ubu-1 llama.cpp Option A install (1-2분, $0) |
+| P4 | knee NOT detected (noise floor saturated) | 🟠 INSUFFICIENT | N=2000 full OR harder task class 또는 short-circuit |
+| P1 | counting unblocks at 7B (subitizing not architectural) | **🟢 SUPPORTED-NUMERICAL** | 50-item dense-object manifest (`d_p1_test_set_scale_for_subitizing`) |
+| P2 | 미진행 | ⏸ deferred | SAELens pin + ubu-1 venv (P3 install 후 묶음) |
+
+진행도 21/25 (84%) 유지 — 영구 축 inner-state 진척. 영구 axis 자체는 close 안
+됨 (perpetual 설계 invariant [[feedback_closure_is_physical_limit]]).

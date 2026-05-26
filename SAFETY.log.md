@@ -7,6 +7,52 @@
 
 ---
 
+## 2026-05-27 — cycle-29 N1 first probe · L19 SHAPE from cycle-17 TSV
+
+Spawned cycle-29 SAFETY axis N1 first-probe to validate the cycle-19/20
+L19 anchor itself BEFORE fanning out cross-family activation capture
+(cycle-30+). Pure-int closed-form recompute (×1000 scaling, squared-L2
+ranking — no sqrt, no libm) of the per-layer Δ vector
+
+  Δ_i = mean(L_i.kind | refused=1, adv=1) − mean(L_i.kind | refused=0, adv=1)
+
+across all 28 Qwen2.5-1.5B-Instruct layers and 3 sites (residual / attn /
+mlp), filtered to `is_adv==1` (n=20: 19 adv-refused + 1 adv-answered, from
+the committed `.verdicts/sandbox/m2_safety_refusal_norms.tsv` 40×84 matrix).
+Squared L2 sufficient for ranking — avoids sqrt entirely.
+
+**Result.** L19 rank = 5 / 28 (top-5 PASS · falsifier `L19 rank ≤ 5`
+closes positively). Dominant site at L19 = **residual** (|d_res|=6288,
+|d_attn|=1719, |d_mlp|=6258 in ×1000 units; residual barely beats mlp by
+30/1000 — informational signal: Arditi-style residual-dominance is ORDINAL
+but tight at this scale). Top-5 layers by ||Δ||²:
+L27 (411M) > L26 (276M) > L25 (137M) > L22 (106M) > L19 (82M).
+
+**Reading.** L19 IS a privileged mechanistic site for the refusal
+direction in Qwen2.5-1.5B-Instruct — cycle-19/20 anchor choice is
+methodologically justified, not incidental. However the top-4 (L27, L26,
+L25, L22) are all stronger by ||Δ||², so cycle-30+ cross-family probe
+should NOT hard-anchor on L19 — the cleaner protocol is to recompute
+per-model L-peak and compare those (otherwise the probe risks a
+chosen-anchor confound).
+
+**Tier.** 🟡 SUPPORTED-BY-CITATION — n=1 model. This is a methodology
+check on our OWN anchor choice, NOT cross-family transferability
+evidence. Per `feedback_negative_paper_external_claim` (self-internal,
+not refuting an external claim) → NO paper. Per
+`feedback_closure_is_physical_limit` the SAFETY N1 axis stays `- [ ]`
+(open frontier) regardless — the falsifier closes the *anchor-validity
+sub-question* (a first-probe close), but axis N1 itself only closes on
+≥3 non-Qwen activation capture.
+
+**Artifacts.**
+- Verifier: [`verify/numerics_safety_n1_first_probe_shape.hexa`](verify/numerics_safety_n1_first_probe_shape.hexa)
+  (6/6 PASS · banner `__HEXA_CODEX_NUMERICS_SAFETY_N1_FIRST_PROBE_SHAPE__ DONE`).
+- Verdict: [`.verdicts/safety/n1_first_probe_shape_verdict.txt`](.verdicts/safety/n1_first_probe_shape_verdict.txt).
+- Next probe: cycle-30+ activation capture per non-Qwen model
+  (Llama-3-8B · Mistral-7B · Gemma-2-2b · SmolLM2-1.7B) on ubu-1 HF
+  transformers → per-model L-peak recompute → cross-family peaks TSV.
+
 ## 2026-05-23 — domain doc opened
 
 `SAFETY.md` / `SAFETY.log.md` created in the per-domain root-SSOT

@@ -3157,3 +3157,28 @@ cycle-25 fire-ready next-step quick-reference + stay-honest reminder.
 Readiness Matrix · sibling section 의 표는 빠른 참조용 mirror.
 SANDBOX.md 가 갱신되면 sibling 4 file 도 동기화 필요. cycle-22 commit
 message 패턴 (sibling drift detector test) 가 미작성 — cycle-26 후속 OK.
+
+## cycle-26 — SANDBOX v1.5.0 first-arc 25/25 + ECONOMICS 전환
+
+**사용자 지시:** "25/25 도달후 이세션에서는 economy 만진행". P1-P4 영구 축
+cells 의 *first arc closure mark* — cycle-21~25 통해 각 lane 의 first arc 가
+진행됐으므로 [x] flip. **frontier 자체는 perpetual 유지** ([[feedback_closure_is_physical_limit]]),
+25/25 = "현재 측정 arc 의 entry path 모두 활성" ≠ frontier closure.
+
+### P1-P4 first arc closure summary
+
+| cell | first arc 진행 | verdict | 다음 arc |
+|------|----------------|---------|---------|
+| P1 | cycle-23c 7B counting=5/5 + cycle-24 50-item partial | 🟢 POSITIVE + statistical refinement signal | non-Qwen-7B (InternVL/LLaVA-NeXT) + 더 큰 N |
+| P2 | cycle-24 SAELens v6.44.0 commit pin + 5-step runbook | infra-prep complete (fire-ready) | 실제 SAE fire (lever isolation) |
+| P3 | cycle-24 ubu-1 binary install + GGUF transfer + chat smoke 5/5 PASS | path-to-fire OPEN | 실제 2-host Erlang-C fire + 확장 |
+| P4 | cycle-23b 3-band pilot N=200 18분 verdict | 🟠 INSUFFICIENT (noise floor) + Q4 throughput Pareto validate | N=2000 full + harder task + 6-band ladder |
+
+진행도 `21/25 (84%)` → **`25/25 (100% first arc)`**. 본문 invariant 라인 refine
+하여 "100% = first arc entry path 모두 활성" 명시 (frontier closure 와 구분).
+
+### 세션 전환
+
+SANDBOX → **ECONOMICS** (사용자 지시). 이 세션 나머지 = ECONOMICS 만.
+SANDBOX 의 sibling-consumer interface (cycle-25 PR #73) 가 이미 ECONOMICS.md
+에 lines 209-264 로 land 됨 — 6 axes × harness × verdict path 1:1 mirror.

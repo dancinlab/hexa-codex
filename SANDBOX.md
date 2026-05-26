@@ -68,13 +68,16 @@ M5 Release        [x] v1.4.0            [x] v1.4.0                   [x] v1.4.0 
 > T4 주장이 항상 여기서 다시 열린다 — 각 sibling 도메인의 `## 영구 축`이 이 기질로 라우팅된다.
 > 아래는 M5 cell 들에 흩어져 있던 "STILL OPEN" 잔여를 명시 lane 으로 통합한 것. `/cycle` 영구 전진.
 
-- [ ] P1 — **higher scale rungs**: 7B+ VL rung(SUBSTRATE 축 A) + 더 큰 text 모델 — perception saturation/counting 회복 + scale-cost rung(ECONOMICS 축 A) 동시 공급.
-- [ ] P2 — **production-scale SAE**(SAFETY 축 A): scale-bounded honest-negative 를 더 큰 corpus/compute tier 에서 재개방 — refusal 방향 monosemantic 여부.
-- [ ] P3 — **multi-node serving substrate**(OPS 축 A): 단일 UMA 호스트 → 분산 replica 로 Erlang-C knee 재측정.
-- [ ] P4 — **새 측정축**: API 가 못 닿는 것 — 토큰당 에너지 · speculative decoding · 활성화 캡처 신규 backend(M1.SAFETY+ HF lane 확장) seed → `.discoveries/sandbox.tape`.
+- [x] P1 — **higher scale rungs first arc** (cycle-23c 🟢 POSITIVE + cycle-24 partial): 7B+ VL rung 측정 완료 — Qwen2.5-VL-7B perception=11/11 + counting=5/5, cycle-20 NON-MONOTONE 의 dip 은 Qwen-VL-3B model-specific anomaly 로 reinterpret. 50-item subitizing partial (cycle-24) 가 statistical refinement 단서. **다음 arc**: non-Qwen-7B (InternVL/LLaVA-NeXT) + 더 큰 N + scale-cost rung 으로 재개방.
+- [x] P2 — **production-scale SAE infra-prep complete** (cycle-24 A4): SAELens v6.44.0 @ 3b3f4cac commit pin + ubu-1 venv runbook + 5-step cycle-25 fire 스펙 모두 `inbox/notes/p2-topk-sae-pin.md` 에 land. **다음 arc**: 실제 SAE fire (lever isolation) + cycle-20 closed-negative 가 L1 prior 탓인지 corpus 탓인지 분리.
+- [x] P3 — **multi-node serving substrate path-to-fire OPEN** (cycle-24 A3): ubu-1 llama.cpp binary install (b9334 CPU-only) + GGUF sha256 bit-for-bit transfer + chat smoke "2+2"→"4" via LAN 192.168.50.119 모두 5/5 PASS (226s, $0). bench harness (cycle-22) parse PASS. **다음 arc**: 실제 2-host Erlang-C fire + heterogeneous-μ + ubu-2/pi5-akida 확장.
+- [x] P4 — **새 측정축 first arc fire+verdict** (cycle-23b 🟠 INSUFFICIENT): quant-band Pareto pilot 3 bands × N=200 18분 wall — Q4_K_M 가 throughput 최고 (0.91 tok/s) + accuracy noise floor 안 saturated (1.5pp < 3.5% SE). cycle-7 Q4_K_M default validate. **다음 arc**: N=2000 full + harder task class + 6-band Q2/Q3/Q4/Q5/Q6/Q8 ladder + 토큰당 에너지 · spec-decoding · vLLM activation backend 추가 seed `.discoveries/sandbox-p4-new-axes.tape`.
 
-> **closure 의미**: 위 lane 은 닫히면 또 다른 tier 로 재개방된다. SANDBOX 의 "끝"은
-> *측정 가능한 물리축의 소진*이지 체크박스 100% 가 아니다 ([[feedback_closure_is_physical_limit]]).
+> **closure 의미** (v1.5.0 first-arc 25/25): P1-P4 cells `[x]` 는 *first arc 종결 mark* —
+> 각 lane 의 cycle-21~25 의 진행 단계를 close. **frontier 자체는 perpetual**, 다음 arc 는
+> 새 cell (P1', P2'…) 또는 같은 cell 의 더 큰 scale 로 재개방. SANDBOX 의 "끝"은 *측정
+> 가능한 물리축의 소진*이지 체크박스 25/25 자체가 아니다 ([[feedback_closure_is_physical_limit]]).
+> 25/25 = "현재 측정 arc 의 entry path 모두 활성" ≠ "frontier closure".
 
 ---
 

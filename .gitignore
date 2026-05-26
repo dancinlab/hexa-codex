@@ -37,6 +37,7 @@ PAPER/**/*.fdb_latexmk
 PAPER/**/*.synctex.gz
 PAPER/**/*.toc
 PAPER/**/build/
+ENGINE/build/
 papers/**/*.aux
 papers/**/*.bbl
 papers/**/*.blg

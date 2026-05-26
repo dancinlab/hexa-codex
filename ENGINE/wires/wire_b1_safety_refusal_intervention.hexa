@@ -1,5 +1,5 @@
 #!hexa strict
-// hexa-codex/engine/wire_b1_safety_refusal_intervention.hexa
+// hexa-codex/ENGINE/wires/wire_b1_safety_refusal_intervention.hexa
 // ENGINE axis B1 wire — SAFETY refusal-direction finding → inference-time intervention SPEC
 //
 // SOURCE FINDING (SAFETY cycle-19/20, v1.4.0 release-anchored):

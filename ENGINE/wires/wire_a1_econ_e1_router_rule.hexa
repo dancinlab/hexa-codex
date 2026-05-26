@@ -1,5 +1,5 @@
 #!hexa strict
-// hexa-codex/engine/wire_a1_econ_e1_router_rule.hexa
+// hexa-codex/ENGINE/wires/wire_a1_econ_e1_router_rule.hexa
 // ENGINE axis A1 first wire — ECONOMICS E1 finding → train/infer router rule
 //
 // SOURCE FINDING (4-batch sign preservation, cycle-32 → cycle-34):

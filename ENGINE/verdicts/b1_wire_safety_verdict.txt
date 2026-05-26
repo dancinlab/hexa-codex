@@ -1,8 +1,8 @@
 # hexa-codex ENGINE B1 — wire verifier (cycle-2)
-# axis=ENGINE.md::B1 (SAFETY finding → inference-time intervention SPEC)
+# axis=ENGINE/ENGINE.md::B1 (SAFETY finding → inference-time intervention SPEC)
 # source_finding=SAFETY.md cycle-19/20 (L19 difference-of-means, AUROC 0.98, causal 95→0)
-# wire=engine/wire_b1_safety_refusal_intervention.hexa (SPEC-only, no runtime call)
-# verifier=verify/numerics_engine_b1_wire_safety.hexa
+# wire=ENGINE/wires/wire_b1_safety_refusal_intervention.hexa (SPEC-only, no runtime call)
+# verifier=ENGINE/verify/numerics_engine_b1_wire_safety.hexa
 # tier=🟢 SUPPORTED-NUMERICAL — ENGINE B1 wire SPEC faithfully encodes SAFETY cycle-19/20 finding (6/6 checks)
 # checks=6/6
 # spec_layer_index=19

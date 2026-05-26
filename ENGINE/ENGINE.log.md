@@ -3,6 +3,53 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-3 ENGINE 도메인 폴더 통합 reorg · 모든 산출물 `ENGINE/` 안으로
+
+**사용자 지시:** "ENGINE/* 폴더 생성후 안에 모두 구현" + "도메인도".
+ENGINE 관련 모든 파일을 root-scatter (engine/ · verify/numerics_engine_* · `.verdicts/engine/` · root-level ENGINE.md/log.md) 에서 단일 `ENGINE/` 폴더 안으로 통합. domain-folder convention 첫 적용 (sibling 도메인들은 여전히 root-flat — 추후 사용자 선택).
+
+### 산출물 (git mv preserve history)
+
+| from | to |
+|------|------|
+| `engine/wire_a1_*.hexa` | `ENGINE/wires/wire_a1_*.hexa` |
+| `engine/wire_b1_*.hexa` | `ENGINE/wires/wire_b1_*.hexa` |
+| `verify/numerics_engine_a1_*.hexa` | `ENGINE/verify/numerics_engine_a1_*.hexa` |
+| `verify/numerics_engine_b1_*.hexa` | `ENGINE/verify/numerics_engine_b1_*.hexa` |
+| `.verdicts/engine/a1_*.txt` | `ENGINE/verdicts/a1_*.txt` |
+| `.verdicts/engine/b1_*.txt` | `ENGINE/verdicts/b1_*.txt` |
+| `ENGINE.md` (root) | `ENGINE/ENGINE.md` |
+| `ENGINE.log.md` (root) | `ENGINE/ENGINE.log.md` |
+
+case-fold workaround: macOS APFS case-insensitive + git core.ignorecase=true → ENGINE_tmp 중간 단계 거쳐 ENGINE/ (대문자) 생성.
+
+### 갱신된 path 참조
+
+- `DOMAINS.tape`: `@domain ENGINE := "./ENGINE.md"` → `"./ENGINE/ENGINE.md"`
+- `ENGINE/verify/*.hexa` 의 `_root()` 함수: pwd 단순참조 → DOMAINS.tape marker 까지 walk-up (hexa CLI 가 .hexa grandparent dir 로 cd 하는 동작 우회). HEXA_CODEX_ROOT env 가 있으면 그것 우선.
+- `ENGINE/verify/*.hexa` 의 `OUT_PATH`: `ROOT + "/.verdicts/engine/..."` → `ROOT + "/ENGINE/verdicts/..."`
+- 두 verifier 의 verdict file metadata path 줄들 (`# wire=...`, `# verifier=...`) 모두 새 위치로
+- `ENGINE/ENGINE.md` Cross-refs: sibling 도메인 링크 `../<NAME>.md` 로 (sibling 들이 아직 root 에 있음); 새 항목 추가 (`wires/` · `verify/` · `verdicts/` 디렉토리 링크)
+- `ENGINE/ENGINE.log.md` 의 12개 path 참조 (cycle-1/2 entry 들의 markdown link 본문 + URL 양쪽) bulk-sed 로 일괄 변환
+- `.gitignore`: `ENGINE/build/` 추가 (hexa CLI 가 .hexa 파일 dir 옆에 build cache 생성)
+
+### 검증
+
+- [x] 두 verifier 새 위치에서 re-fire — A1 🟢 5/5 · B1 🟢 6/6 그대로 PASS
+- [x] verdict 파일 `ENGINE/verdicts/` 에 정확히 land (첫 시도는 `ENGINE/ENGINE/verdicts/` 이중 경로 버그 발견 → `_root()` 수정 후 fixed)
+- [x] sibling 도메인 docs (ECONOMICS.log.md · SAFETY.md 등) 에 ENGINE.md / engine/ 외부 link 없음 — root-level → ENGINE/ 이동이 외부 깨짐 없음
+
+### 영구 axis 의미
+
+cycle-3 reorg 는 axis [x] flip 아님 — 산출물 위치 정리만. A1/B1 axis 의 [x] 상태는 그대로 유지 (각각 cycle-1/2 wire 의 first-fire close). 새 wires 가 ENGINE/wires/ 에 추가되면 같은 패턴.
+
+### 다음 wire 후보 (priority 그대로)
+
+- **cost-bearing B1 runtime fire** (cycle-4+, SANDBOX llama-server hook patch on ubu-1)
+- **C1/D1/E1** — sibling NOVEL N1 mature 대기
+
+---
+
 ## 2026-05-27 — cycle-2 ENGINE B1 SPEC wire · SAFETY refusal-direction → inference intervention · 🟢 6/6 PASS
 
 ENGINE 두번째 fire. SAFETY cycle-19/20 의 refusal-direction 발견 (Qwen2.5-1.5B
@@ -10,19 +57,19 @@ AUROC=0.98 + causal ablation 95→0%) 을 inference-time intervention SPEC 으�
 
 ### 산출물
 
-- [x] `engine/wire_b1_safety_refusal_intervention.hexa` — SPEC 7 fields:
+- [x] `ENGINE/wires/wire_b1_safety_refusal_intervention.hexa` — SPEC 7 fields:
   layer_index=19 · direction_extraction="difference_of_means" ·
   intervention="projection_out" · rank=1 · source_model=qwen2.5-1.5b-instruct ·
   expected_adv_refusal_pct_after≤10 · expected_benign_refusal_pct_after≤10.
   runtime consumer hint emitted (llama-server hook formula 명시).
-- [x] `verify/numerics_engine_b1_wire_safety.hexa` — paired falsifier (6 checks):
+- [x] `ENGINE/verify/numerics_engine_b1_wire_safety.hexa` — paired falsifier (6 checks):
   - C1: layer_index == 19 ✅
   - C2: intervention=projection_out & rank=1 (Arditi 2024 form) ✅
   - C3: expected_adv ≤ tolerance (10pp) ✅
   - C4: expected_benign ≤ tolerance (specificity 보존) ✅
   - C5: effect-size delta ≥ 80pp ✅ (95pp 실제)
   - C6: per-class avg ≈ overall ground truth ✅ (avg=95, diff=0)
-- [x] `.verdicts/engine/b1_wire_safety_verdict.txt` — verbatim verdict log
+- [x] `ENGINE/verdicts/b1_wire_safety_verdict.txt` — verbatim verdict log
 
 ### N1 (MAIN axis) — discovery → wire latency · 두번째 데이터 포인트
 
@@ -67,9 +114,9 @@ AUROC=0.98 + causal ablation 95→0%) 을 inference-time intervention SPEC 으�
 ### 연결
 
 - input finding: [SAFETY.md (cycle-19/20 refusal-direction)](SAFETY.md) · `.verdicts/sandbox/m4_safety_refusal_*`
-- wire: [`engine/wire_b1_safety_refusal_intervention.hexa`](engine/wire_b1_safety_refusal_intervention.hexa)
-- falsifier: [`verify/numerics_engine_b1_wire_safety.hexa`](verify/numerics_engine_b1_wire_safety.hexa)
-- verdict: [`.verdicts/engine/b1_wire_safety_verdict.txt`](.verdicts/engine/b1_wire_safety_verdict.txt)
+- wire: [`ENGINE/wires/wire_b1_safety_refusal_intervention.hexa`](ENGINE/wires/wire_b1_safety_refusal_intervention.hexa)
+- falsifier: [`ENGINE/verify/numerics_engine_b1_wire_safety.hexa`](ENGINE/verify/numerics_engine_b1_wire_safety.hexa)
+- verdict: [`ENGINE/verdicts/b1_wire_safety_verdict.txt`](ENGINE/verdicts/b1_wire_safety_verdict.txt)
 - external anchor: Arditi et al. 2024 (arXiv:2406.11717) · SANDBOX serving stack target
 
 ---
@@ -82,19 +129,19 @@ ECONOMICS E1 (MoE active-param scaling-law divergence) 가 cycle-34 에서 n=11 
 
 ### 산출물
 
-- [x] `engine/wire_a1_econ_e1_router_rule.hexa` — 13-model registry (4 dense + 9 MoE,
+- [x] `ENGINE/wires/wire_a1_econ_e1_router_rule.hexa` — 13-model registry (4 dense + 9 MoE,
   cycle-26 c1 envelope + cycle-34 e1 landings 통합) · `econ_e1_route(class_label)` 함수
   emits ranked model index list. 2 class lane:
   - `cost_sensitive_chat`: MoE 중 dev_factor > dense median (24.05) 인 small-active 만
     선택, active_B ascending sort (cheapest inference first)
   - `max_quality_research`: dense 만 선택, active_B descending sort (peak quality first)
-- [x] `verify/numerics_engine_a1_wire_econ_e1.hexa` — paired falsifier (5 checks):
+- [x] `ENGINE/verify/numerics_engine_a1_wire_econ_e1.hexa` — paired falsifier (5 checks):
   - C1: cost top-1 = MoE & dev > dense_median ✅ (Granite-3-3B-A800M, dev=625)
   - C2: cost top-3 avg active < 5B ✅ (avg=1.3B)
   - C3: quality top-1 = dense large (active ≥ 70B) ✅ (Llama3.1-405B, active=405B)
   - C4: deterministic (re-call same output) ✅
   - C5: cost top-1 dev > 2× dense_median ✅ (625 > 48.1, 13× margin)
-- [x] `.verdicts/engine/a1_wire_econ_e1_verdict.txt` — verbatim verdict log
+- [x] `ENGINE/verdicts/a1_wire_econ_e1_verdict.txt` — verbatim verdict log
 
 ### N1 (MAIN priority axis) — discovery → execution latency baseline 첫 측정값
 
@@ -131,9 +178,9 @@ A1 의 `[x]` flip 은 axis frontier 종료가 아니다 ([[feedback_closure_is_p
 ### 연결
 
 - input finding: [ECONOMICS.log.md cycle-34](ECONOMICS.log.md) (n=11 PARITY entry)
-- wire: [`engine/wire_a1_econ_e1_router_rule.hexa`](engine/wire_a1_econ_e1_router_rule.hexa)
-- falsifier: [`verify/numerics_engine_a1_wire_econ_e1.hexa`](verify/numerics_engine_a1_wire_econ_e1.hexa)
-- verdict: [`.verdicts/engine/a1_wire_econ_e1_verdict.txt`](.verdicts/engine/a1_wire_econ_e1_verdict.txt)
+- wire: [`ENGINE/wires/wire_a1_econ_e1_router_rule.hexa`](ENGINE/wires/wire_a1_econ_e1_router_rule.hexa)
+- falsifier: [`ENGINE/verify/numerics_engine_a1_wire_econ_e1.hexa`](ENGINE/verify/numerics_engine_a1_wire_econ_e1.hexa)
+- verdict: [`ENGINE/verdicts/a1_wire_econ_e1_verdict.txt`](ENGINE/verdicts/a1_wire_econ_e1_verdict.txt)
 - ECONOMICS source: [`ECONOMICS.md::E1`](ECONOMICS.md)
 - N1 axis (self-meta): [`ENGINE.md::N1`](ENGINE.md)
 

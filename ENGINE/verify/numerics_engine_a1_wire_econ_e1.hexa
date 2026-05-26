@@ -1,5 +1,5 @@
 #!hexa strict
-// hexa-codex/verify/numerics_engine_a1_wire_econ_e1.hexa
+// hexa-codex/ENGINE/verify/numerics_engine_a1_wire_econ_e1.hexa
 // ENGINE axis A1 — falsifier verifier for ECONOMICS E1 → router rule wire.
 //
 // Asserts the wire emits routing decisions consistent with the E1 finding:
@@ -182,20 +182,29 @@ print("__HEXA_CODEX_NUMERICS_ENGINE_A1_WIRE_ECON_E1__ " + (if checks_passed == c
 
 let HOME = env("HOME")
 fn _root() -> str {
+    // explicit env wins
     let r = env("HEXA_CODEX_ROOT")
     if r.len() > 0 { return r }
-    let pwd = exec("pwd").trim()
-    if pwd.len() > 0 { return pwd }
+    // hexa CLI cd's to the .hexa file's grandparent — when invoked from
+    // ENGINE/verify/<file>.hexa that's ENGINE/, NOT repo root. detect by
+    // walking up to find DOMAINS.tape marker.
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
     return HOME + "/core/hexa-codex"
 }
 let ROOT = _root()
-let OUT_PATH = ROOT + "/.verdicts/engine/a1_wire_econ_e1_verdict.txt"
+let OUT_PATH = ROOT + "/ENGINE/verdicts/a1_wire_econ_e1_verdict.txt"
 
 let mut content = "# hexa-codex ENGINE A1 — wire verifier (cycle-1)\n"
-content = content + "# axis=ENGINE.md::A1 (ECONOMICS finding → train/infer router driving)\n"
+content = content + "# axis=ENGINE/ENGINE.md::A1 (ECONOMICS finding → train/infer router driving)\n"
 content = content + "# source_finding=ECONOMICS.md::E1 (cycle-27 spawn → cycle-34 n=11 PARITY mature)\n"
-content = content + "# wire=engine/wire_a1_econ_e1_router_rule.hexa\n"
-content = content + "# verifier=verify/numerics_engine_a1_wire_econ_e1.hexa\n"
+content = content + "# wire=ENGINE/wires/wire_a1_econ_e1_router_rule.hexa\n"
+content = content + "# verifier=ENGINE/verify/numerics_engine_a1_wire_econ_e1.hexa\n"
 content = content + "# tier=" + verdict_tier + "\n"
 content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
 content = content + "# cost_top1=" + MODEL_NAMES[cost_top1] + " (active_B_x10=" + to_string(MODEL_ACTIVE_B_x10[cost_top1]) + " · dev_x100=" + to_string(MODEL_DEV_x100[cost_top1]) + ")\n"

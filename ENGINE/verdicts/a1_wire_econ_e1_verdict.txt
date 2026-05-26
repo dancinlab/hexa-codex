@@ -1,8 +1,8 @@
 # hexa-codex ENGINE A1 — wire verifier (cycle-1)
-# axis=ENGINE.md::A1 (ECONOMICS finding → train/infer router driving)
+# axis=ENGINE/ENGINE.md::A1 (ECONOMICS finding → train/infer router driving)
 # source_finding=ECONOMICS.md::E1 (cycle-27 spawn → cycle-34 n=11 PARITY mature)
-# wire=engine/wire_a1_econ_e1_router_rule.hexa
-# verifier=verify/numerics_engine_a1_wire_econ_e1.hexa
+# wire=ENGINE/wires/wire_a1_econ_e1_router_rule.hexa
+# verifier=ENGINE/verify/numerics_engine_a1_wire_econ_e1.hexa
 # tier=🟢 SUPPORTED-NUMERICAL — ENGINE A1 wire faithfully encodes ECONOMICS E1 finding (5/5 checks)
 # checks=5/5
 # cost_top1=granite-3.0-3B-a800m (active_B_x10=8 · dev_x100=62500)

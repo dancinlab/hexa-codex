@@ -1,5 +1,5 @@
 #!hexa strict
-// hexa-codex/verify/numerics_engine_b1_wire_safety.hexa
+// hexa-codex/ENGINE/verify/numerics_engine_b1_wire_safety.hexa
 // ENGINE axis B1 — falsifier verifier for SAFETY refusal-direction → intervention SPEC.
 //
 // Asserts the wire SPEC matches SAFETY cycle-19/20 measured ground truth +
@@ -144,20 +144,29 @@ print("__HEXA_CODEX_NUMERICS_ENGINE_B1_WIRE_SAFETY__ " + (if checks_passed == ch
 
 let HOME = env("HOME")
 fn _root() -> str {
+    // explicit env wins
     let r = env("HEXA_CODEX_ROOT")
     if r.len() > 0 { return r }
-    let pwd = exec("pwd").trim()
-    if pwd.len() > 0 { return pwd }
+    // hexa CLI cd's to the .hexa file's grandparent — when invoked from
+    // ENGINE/verify/<file>.hexa that's ENGINE/, NOT repo root. detect by
+    // walking up to find DOMAINS.tape marker.
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
     return HOME + "/core/hexa-codex"
 }
 let ROOT = _root()
-let OUT_PATH = ROOT + "/.verdicts/engine/b1_wire_safety_verdict.txt"
+let OUT_PATH = ROOT + "/ENGINE/verdicts/b1_wire_safety_verdict.txt"
 
 let mut content = "# hexa-codex ENGINE B1 — wire verifier (cycle-2)\n"
-content = content + "# axis=ENGINE.md::B1 (SAFETY finding → inference-time intervention SPEC)\n"
+content = content + "# axis=ENGINE/ENGINE.md::B1 (SAFETY finding → inference-time intervention SPEC)\n"
 content = content + "# source_finding=SAFETY.md cycle-19/20 (L19 difference-of-means, AUROC 0.98, causal 95→0)\n"
-content = content + "# wire=engine/wire_b1_safety_refusal_intervention.hexa (SPEC-only, no runtime call)\n"
-content = content + "# verifier=verify/numerics_engine_b1_wire_safety.hexa\n"
+content = content + "# wire=ENGINE/wires/wire_b1_safety_refusal_intervention.hexa (SPEC-only, no runtime call)\n"
+content = content + "# verifier=ENGINE/verify/numerics_engine_b1_wire_safety.hexa\n"
 content = content + "# tier=" + verdict_tier + "\n"
 content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
 content = content + "# spec_layer_index=" + to_string(SPEC_LAYER_INDEX) + "\n"

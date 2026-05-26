@@ -4,16 +4,16 @@
 # verifier=verify/numerics_economics_e1_moe_dense_ks_test.hexa
 # input_dense=.verdicts/economics/c1_chinchilla_envelope.tsv (cycle-26, 13 rows · 11 dense)
 # input_moe=.verdicts/economics/e1_moe_landings.tsv (cycle-29 batch 2, 3 rows)
-# tier=🟠 INSUFFICIENT — no directional signal at n=7 (cycle-33 batch 5)
+# tier=🟠 INSUFFICIENT (|z|<1) BUT directional sign PRESERVED at n=11 PARITY (cycle-34 batch 6)
 # checks=5/5
 # n_dense=11
-# n_moe=9
+# n_moe=11
 # dense_dev_sorted_x100=[100, 185, 1071, 1238, 1715, 2405, 3430, 4340, 4445, 5000, 9375]
 # dense_q1_x100=1071 · dense_med_x100=2405 · dense_q3_x100=4340
-# moe_dev_sorted_x100=[833, 1029, 1667, 1929, 2000, 3712, 11875, 20350, 62500]  (cycle-33 batch 5: Arctic 1029 · DBRX 1667 · DS-V2 1929 · DS-V3 2000 · Phi-3.5-MoE 3712 · DS-V2-Lite 11875 · Granite-3 62500)
+# moe_dev_sorted_x100=[833, 1029, 1667, 1929, 1938, 2000, 2841, 3712, 11875, 20350, 62500]  (cycle-33 batch 5: Arctic 1029 · DBRX 1667 · DS-V2 1929 · DS-V3 2000 · Phi-3.5-MoE 3712 · DS-V2-Lite 11875 · Granite-3 62500)
 # moe_percentiles=DS-V3 45% · DBRX 36% · Arctic 18% · DS-V2 45% · Phi-3.5-MoE 63% · DS-V2-Lite 100% · Granite-3 100%
-# mann_whitney_U_moe=58 · U_dense=41
-# expected_U_x10=495 · var_U_x12=2079
-# z_squared_x10000=4170 (|z|≥1 iff z²≥10000)
-# verdict_msg=Mann-Whitney |z|<1 at n=7 — MoE + dense distribution overlap large. 가장 honest reading: MoE D/N range = [10.29, 625] 가 dense [1.85, 93.75] 보다 spread 큼, 양극 모두 도달. Granite (625) + DeepSeek-V2-Lite (118.75) extreme overtrain 이 cycle-27 anecdote 완전 reframe — DeepSeek-V3 정확 20 = DeepSeek 팀 design choice (intentional active-Chinchilla), 다른 MoE 는 size-dependent training policy.
+# mann_whitney_U_moe=69 · U_dense=52
+# expected_U_x10=605 · var_U_x12=2783
+# z_squared_x10000=3115 (|z|≥1 iff z²≥10000)
+# verdict_msg=Mann-Whitney |z|<1 at n=11 PARITY — MoE + dense distribution overlap still large, but POS sign (U_moe>E[U]) PRESERVED across cycle-32→34 (4 consecutive batches). cycle-34 batch 6 (JetMoE 54% · Orion 45%) landed near dense median 으로 |z| slight dilution (0.646 → 0.558) but sign unchanged. 가장 honest reading: MoE D/N range = [10.29, 625] 가 dense [1.85, 93.75] 보다 spread 큼, 양극 모두 도달. Granite (625) + DS-V2-Lite (118.75) extreme overtrain 이 cycle-27 anecdote 완전 reframe — DeepSeek-V3 정확 20 = DeepSeek 팀 design choice (intentional active-Chinchilla), 다른 MoE 는 size-dependent training policy. p<0.05 위해서는 n≥20 또는 effect size 큰 extreme MoE 추가 필요.
 # next_probe=cycle-30 Mixtral-Large-2 / Hunyuan-Large / Grok-1 collection (if D disclosed) → ≥5 MoE → high-confidence KS

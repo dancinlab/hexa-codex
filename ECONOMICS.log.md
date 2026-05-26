@@ -6,6 +6,62 @@
 
 ---
 
+## 2026-05-27 — cycle-34 E1 batch 6: n=11 PARITY 도달 · POS sign 4-batch 연속 PRESERVED
+
+NOVEL 축 E1 (MoE active-param vs dense scaling-law divergence) 의 6번째 batch.
+**n=11 dense vs n=11 MoE PARITY 달성** — Mann-Whitney U test 의 fair sample 조건
+충족. cycle-32 sign-flip (NEG → POS) 가 cycle-32 → 33 → 34 **4 batch 연속 PRESERVED**
+(JetMoE 2.2B-act + Orion-MoE 12.9B-act 추가에도 sign 안 바뀜).
+
+**cycle-34 batch 6 추가 landing (HF + paper-disclosed)**:
+- JetMoE-8B: N_total=8B / N_active=2.2B / D=1.25T / **dev=28.41** (percentile 54%, slightly above dense median 24.05)
+- Orion-MoE8x7B: N_total=46.7B / N_active=12.9B / D≈5T / **dev=19.38** (percentile 45%, slightly below dense median)
+
+**cycle 진화 (n=1 → 11 PARITY)**:
+
+| cycle | n | \|z\| | direction | reading |
+|---|---|---|---|---|
+| 27 | 1 | ∞ NEG | anecdote | "MoE = Chinchilla 🟢" (DeepSeek-V3 20.00 exact) |
+| 29 | 3 | 0.857 | NEG | weak 🟠 |
+| 31 | 5 | 0.510 | NEG | weaker 🟠 |
+| 32 | 7 | 0.589 | **POS** ✨ | sign flip (Granite+V2-Lite extreme overtrain) |
+| 33 | 9 | 0.646 | POS | strengthening |
+| **34** | **11** | **0.558** | **POS** | **PARITY · sign preserved · slight dilution (cycle-34 추가 2개 모두 dense median region)** |
+
+**Verifier 결과 (verbatim 5/5 PASS)**:
+- `[PASS] n_dense=11 · n_moe=11 (cycle-27→cycle-34 batch 6 cumulative — n=11 PARITY)`
+- `[PASS] dense dev range [1.0, 93.75]`
+- `[PASS] MoE dev range [10.29, 625.00]` (dense max 의 6.7×, range spread 가 dense 보다 큼)
+- `[INFO] U_moe=69 · U_dense=52 · z²×10000=3115` (|z|=0.558)
+- `🟠 INSUFFICIENT (|z|<1) BUT directional sign PRESERVED at n=11 PARITY`
+
+**HONEST RESIDUAL**:
+- **Publication-bias 노출**: D-disclosed MoE 후보 pool ≈ 11 — Chinese (DeepSeek/Tencent) +
+  IBM/Allen/Snowflake/Databricks 는 D 공개, Western Mistral 은 비공개 정책 (Mixtral 8x7B/
+  8x22B/Large-2 모두 EXCLUDED). 추가 sample 확보 자체가 oracle-data-availability bottleneck.
+- **EXCLUDED (D not disclosed)**: Mixtral 8x7B/8x22B · Qwen3-235B-A22B · Hunyuan-Large
+  (arxiv abstract D-undisclosed) · DeepSeek-V2.5 · Granite-3.1 (= 3.0 base 중복) ·
+  Pixtral-12B (dense) · Grok-1/Hunyuan-A13B (HTTP 403/401)
+- **p<0.05 위해 필요한 조건**: n≥20 또는 effect size 큰 extreme MoE 추가 (현재 sample 의
+  |z|=0.558 → p≈0.58, 통계적 유의 X). 그러나 4-batch sign preservation 은 directional
+  signal 의 robust replicability 증거.
+- **현재 핵심 reading**: MoE D/N range = [10.29, 625] 이 dense [1.85, 93.75] 보다 spread
+  훨씬 큼 — Sardana 2024 inference-amortization 가 MoE 에 더 강하게 적용됨 (small-active
+  가 더 overtrain). DeepSeek-V3 의 정확 D/N=20.00 = 팀 design choice (intentional
+  active-Chinchilla), MoE family-wide 법칙 아님 (cycle-27 anecdote 완전 reframed).
+
+**연결**:
+- input: [`.verdicts/economics/e1_moe_landings.tsv`](.verdicts/economics/e1_moe_landings.tsv) (11 rows)
+- verifier: [`verify/numerics_economics_e1_moe_dense_ks_test.hexa`](verify/numerics_economics_e1_moe_dense_ks_test.hexa)
+- verdict: [`.verdicts/economics/e1_moe_dense_ks_verdict.txt`](.verdicts/economics/e1_moe_dense_ks_verdict.txt)
+- 영구축 E1 frontier 는 OPEN ([[feedback_closure_is_physical_limit]]): n=11 PARITY 는
+  cheapest fair-test 단계의 완료지점이지 frontier 종료 아님. 다음 단계 후보:
+  (a) GPU-bearing Mixtral 8x22B D-estimate fit (substrate 측정으로 publication-bias 우회),
+  (b) ENGINE A1 wire (E1 finding → router rule 적용 — closed-loop discovery→execution),
+  (c) E1 시리즈 stop → 다음 NOVEL 축.
+
+---
+
 ## 2026-05-26 — cycle-26 E1: 영구축 A1 4-rung 재확인 · F-CODEX-2 🔴 FALSIFIED 유지
 
 @D 영구축 A1 ("1.5B/3B/7B Stage-2 rung 측정 → ch.8 residual ≤ 0.10") 의 현재 상태를

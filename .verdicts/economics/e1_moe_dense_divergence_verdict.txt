@@ -1,0 +1,20 @@
+# hexa-codex ECONOMICS E1 — MoE vs Dense scaling-law divergence (cycle-27 first probe)
+# axis=ECONOMICS.md::E1 (NOVEL · cycle-27)
+# seed=.discoveries/economics-e1-moe-dense-divergence.tape @C d_econ_e1_moe_active_param_law
+# verifier=verify/numerics_economics_e1_moe_dense_divergence.hexa
+# input=.verdicts/economics/c1_chinchilla_envelope.tsv (cycle-26, 13 rows)
+# tier=🟢 SUPPORTED-NUMERICAL (directional, n=1)
+# checks=5/5
+# dense_n=11  (10 modern + 1 Chinchilla anchor)
+# dense_d_over_n_x1000_sorted=[20000, 37000, 214000, 247600, 343000, 481000, 686000, 868000, 889000, 1000000, 1875000]
+# dense_q1_x1000=214000
+# dense_median_x1000=481000
+# dense_q3_x1000=868000
+# dense_min_x1000=20000
+# dense_max_x1000=1875000
+# moe_n=1
+# moe_landing=deepseekv3-37B-active
+# moe_d_over_n_x1000=20000  (= exactly 20.000, Chinchilla rule-of-thumb)
+# moe_empirical_pct_in_dense=0
+# verdict_msg=DeepSeek-V3 active-37B sits at lower-tail of dense distribution (≤Q1). Directional evidence for MoE-as-distinct-family. Hardens cycle-28+ collection (Mixtral 8x7B, Qwen3-MoE, etc.) for KS-test confirmation.
+# next_probe=cycle-28 Mixtral 8x7B + Qwen3-MoE WebFetch → ≥3 MoE → KS-test enabled

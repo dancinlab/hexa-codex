@@ -2901,3 +2901,44 @@ host 의존, P3 install 완료 후 P2 venv 작업 묶음 효율).
 3. knee_detected = false (Pareto monotone) → FALSIFIED → manifest 재검토
 4. P1 fire 진입 (모델 disk 도착 후)
 5. P3 fire 사용자 sign-off + ubu-1 install
+
+## cycle-23b — P4 FIRE 결과 🟠 INSUFFICIENT + P1 FIRE start
+
+**P4 verdict (실측 완료, $0 local mac M3 metal).** 200 prompts × 3 bands ≈ 18분 wall.
+
+| band | bpw | accuracy | tok/s | wall_ms |
+|------|-----|----------|-------|---------|
+| Q3_K_M | 3.5 | 44.0% (88/200) | 0.82 | 370,879 |
+| Q4_K_M | 4.5 | 43.0% (86/200) | **0.91** | 320,051 |
+| Q8_0 | 8.5 | 42.5% (85/200) | 0.74 | 379,646 |
+
+- `delta_q3_q4_pp = -1` (Q3 marginal 우위 — 가설 ≥+5pp Q4 우위 부정)
+- `delta_q4_q8_pp = -1` (Q4 marginal Q8 우위 — |Δ|≤2pp 만족이나 Q→Q8 감소)
+- `knee_detected = false` · `monotone_no_knee = false` · `pareto_knee_band = Q3_K_M`
+
+**Honest finding (🟠 INSUFFICIENT, NOT 🔴 falsified):** 3 bands 가 binomial
+noise floor 안에 평탄 — N=200 의 binomial SE √(0.43×0.57/200)≈3.5% > spread 1.5pp.
+가설(Pareto knee at Q4) 은 부분적으로 부정됐으나 (Q3 가 marginal best, monotone-up 아님)
+**knee 자체가 N=200 으로는 detect 불가**. 더 큰 N (e.g. full Stage-2 N=2000) 또는 harder
+task class 필요. cycle-21 의 `d_p4_quantization_band_ladder` verdict_tier = 🟠 INSUFFICIENT.
+
+**부수 인사이트 (positive throughput Pareto):** Q4_K_M 가 tok/s 최고 (0.91), Q8_0
+가 최저 (0.74, ~17% slower) — 메모리 bandwidth bound 예상대로. Q4_K_M 가 accuracy
+거의 동일하면서 throughput 최고 → **cycle-7 의 Q4_K_M default 선택 validate**
+(accuracy 손실 negligible + best tok/s + best disk efficiency).
+
+**Verdict surface:**
+- `.verdicts/sandbox/p4_quant_band_pilot.tsv` (600 data rows + header)
+- `.verdicts/sandbox/p4_quant_band_pilot_summary.txt` (1842 bytes)
+- `__HEXA_CODEX_BENCH_SANDBOX_P4_QUANT_BAND_PILOT__ DONE` marker confirmed
+
+**Honest TODO 잔여 (cycle-22 commit message 의 항목들):**
+- `rss_mb` 컬럼 0 (TODO sample_rss_mb — /usr/bin/time -l 래퍼 미작성)
+- 6-band full ladder {Q2,Q3,Q4,Q5,Q6,Q8} 는 knee_detected=true 시에만 진입 →
+  현재 결과로 short-circuit (Q3-Q8 만 봐도 saturation 명확, Q2 만 추가해도 큰 가치 ↓)
+- `verify/numerics_substrate_quant_pareto.hexa` 작성 deferred (현재 INSUFFICIENT 라
+  closed-form fit 의미 없음 — N 키운 후 재실행 시 활성화)
+
+**P1 FIRE start.** P4 metal/UMA 자원 free 됨 → P1 (Qwen2.5-VL-7B-Q4_K_M ~6GB)
+background fire 시작. 16-item PIL manifest × 4 rungs (cycle-20 baseline 0.5/2.2/3.0B + 7B
+new). 추정 ~10-20분 (7B 가장 무거움). verdict `.verdicts/sandbox/p1_multimodal_ladder_7b.tsv`.

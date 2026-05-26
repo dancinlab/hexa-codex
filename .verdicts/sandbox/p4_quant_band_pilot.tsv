@@ -1,0 +1,601 @@
+band	bpw	stratum	task_idx	wc	wall_ms	tok_est	correct	rss_mb	output_snippet
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	1	5	2180	5	1	0	1 + 1 is 2.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	11	5	2192	5	1	0	1 plus 11 is 12.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	21	5	2202	5	1	0	2 plus 1 is 3.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	31	5	1692	5	1	0	2 plus 11 is 13.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	41	5	2285	5	1	0	3 plus 1 is 4.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	51	5	2210	5	1	0	3 plus 11 is 14.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	61	5	2184	5	1	0	4 plus 1 is 5.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	71	5	2684	5	1	0	4 plus 11 is 15.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	81	5	1651	5	1	0	5 plus 1 is 6.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	91	5	1657	5	1	0	5 plus 11 is 16.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	101	5	1717	5	1	0	6 plus 1 is 7.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	111	5	1725	5	1	0	6 plus 11 is 17.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	121	5	1704	5	1	0	7 plus 1 is 8.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	131	5	2239	5	1	0	7 plus 11 is 18.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	141	5	1685	5	1	0	8 plus 1 is 9.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	151	5	2395	5	1	0	8 plus 11 is 19.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	161	5	2433	5	1	0	9 plus 1 is 10.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	171	5	1901	5	1	0	9 plus 11 is 20.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	181	5	2754	5	1	0	10 plus 1 is 11.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	191	5	2707	5	1	0	10 plus 11 is 21.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	201	7	1751	5	1	0	2 times 2 is 4.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	211	7	1678	1	1	0	6
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	221	7	1676	1	1	0	8
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	231	7	1679	1	1	0	10
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	241	7	1683	1	1	0	12
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	251	7	2200	1	1	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	261	7	2735	1	1	0	16
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	271	7	1671	1	1	0	18
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	281	7	2362	1	1	0	20
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	291	7	2206	5	1	0	11 times 2 is 22.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	301	5	2269	1	1	0	Paris
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	311	5	2763	1	1	0	Athens.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	321	6	2727	1	1	0	olleh
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	331	11	3226	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	341	11	3790	1	1	0	23
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	351	11	2747	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	361	11	2266	1	1	0	25
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	371	11	2736	1	1	0	26
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	381	11	2782	1	1	0	27
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_5_15	391	11	2226	1	1	0	28
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	401	19	2255	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	411	19	2234	1	1	0	32
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	421	19	1705	1	1	0	23
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	431	19	2172	1	1	0	33
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	441	19	1667	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	451	19	1132	1	1	0	34
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	461	19	1164	1	1	0	25
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	471	19	1759	1	1	0	35
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	481	19	2225	1	1	0	26
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	491	19	1655	1	1	0	36
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	501	19	1141	1	1	0	27
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	511	19	1667	1	1	0	37
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	521	19	1663	1	1	0	28
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	531	19	2536	1	1	0	38
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	541	19	1700	1	1	0	29
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	551	19	1687	1	1	0	39
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	561	19	1148	1	1	0	30
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	571	19	1661	8	1	0	The sum of 19 and 21 is 40.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	581	19	2308	1	1	0	31
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	591	19	1659	8	1	0	The sum of 20 and 21 is 41.
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	601	18	1733	1	1	0	4
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	611	18	1663	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	621	18	1125	1	1	0	6
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	631	18	1627	1	1	0	36
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	641	18	1625	1	1	0	8
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	651	18	1834	1	1	0	48
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	661	18	1793	1	1	0	10
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	671	18	1119	1	1	0	60
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	681	18	1677	1	1	0	12
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	691	18	1132	1	1	0	72
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	701	18	1129	1	1	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	711	18	2159	1	1	0	84
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	721	18	1138	1	1	0	16
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	731	18	1132	1	1	0	96
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	741	18	1148	1	1	0	18
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	751	18	1147	1	1	0	108
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	761	18	1630	1	1	0	20
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	771	18	1640	1	1	0	120
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	781	18	1103	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_16_30	791	18	1634	1	1	0	132
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	801	33	1136	1	1	0	48
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	811	42	1125	1	0	0	50
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	821	36	1104	1	0	0	18
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	831	42	1674	1	0	0	345
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	841	31	2144	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	851	43	1618	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	861	33	1119	1	1	0	20
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	871	42	2113	1	0	0	120
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	881	36	1639	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	891	42	1143	1	0	0	124
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	901	31	1651	1	0	0	84
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	911	43	1633	1	0	0	114
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	921	33	1632	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	931	42	1673	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	941	36	2121	1	1	0	36
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	951	42	1644	1	0	0	311
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	961	31	1655	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	971	43	1627	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	981	33	1627	1	1	0	44
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	991	42	1654	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1001	36	1154	1	1	0	48
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1011	42	1854	1	0	0	28
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1021	31	2169	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1031	43	1628	1	0	0	146
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1041	33	2136	1	0	0	70
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1051	42	1669	1	0	0	45
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1061	36	2130	1	0	0	102
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1071	42	1730	1	0	0	123
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1081	31	1672	1	0	0	156
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1091	43	1144	1	0	0	123
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1101	33	2186	5	0	0	174 * 3 = 522
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1111	42	1737	1	0	0	120
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1121	36	1694	1	0	0	138
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1131	42	2556	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1141	31	1662	1	0	0	237
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1151	43	1650	1	0	0	126
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1161	33	1649	1	0	0	243
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1171	42	1663	1	0	0	111
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1181	36	1668	1	0	0	72
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_31_60	1191	42	1618	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1201	63	1889	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1211	74	2165	1	0	0	110
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1221	84	2180	1	0	0	140
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1231	66	1705	1	1	0	240
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1241	72	1679	1	0	0	74
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1251	87	1967	1	0	0	118
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1261	63	1134	1	0	0	30
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1271	74	1904	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1281	84	1616	1	0	0	114
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1291	66	1790	1	0	0	240
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1301	72	1662	1	0	0	156
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1311	87	1653	1	0	0	192
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1321	63	1654	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1331	74	2153	1	0	0	140
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1341	84	1630	1	0	0	142
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1351	66	1852	1	0	0	117
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1361	72	1686	1	0	0	162
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1371	87	2120	1	0	0	142
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1381	63	2166	1	0	0	114
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1391	74	1638	1	0	0	120
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1401	84	1673	1	0	0	48
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1411	66	1853	1	0	0	105
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1421	72	1657	1	0	0	432
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1431	87	1628	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1441	63	2186	1	0	0	45
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1451	74	2203	1	0	0	150
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1461	84	2245	1	0	0	210
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1471	66	1670	1	0	0	147
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1481	72	1651	1	0	0	111
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1491	87	1671	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1501	63	1695	1	0	0	147
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1511	74	1637	1	0	0	117
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1521	84	1635	1	0	0	156
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1531	66	1634	1	0	0	105
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1541	72	1659	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1551	87	1864	1	0	0	198
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1561	63	1663	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1571	74	2291	1	0	0	198
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1581	84	1652	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_61_100	1591	66	1624	1	0	0	272
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1601	108	1625	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1611	114	1685	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1621	125	1682	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1631	134	1649	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1641	144	1658	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1651	152	2160	1	0	0	244
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1661	164	1631	1	0	0	120
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1671	173	2177	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1681	184	1745	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1691	102	1672	1	0	0	145
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1701	113	2376	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1711	121	1652	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1721	137	1636	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1731	144	1666	1	0	0	120
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1741	155	1676	1	0	0	105
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1751	161	2186	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1761	171	2657	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1771	187	2168	1	0	0	145
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1781	108	2183	1	0	0	44
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1791	114	2168	1	0	0	33
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1801	125	1663	1	0	0	243
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1811	134	1654	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1821	144	2155	1	0	0	445
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1831	152	1677	1	0	0	345
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1841	164	1661	1	0	0	142
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1851	173	1660	1	0	0	243
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1861	184	2166	1	0	0	145
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1871	102	2189	1	0	0	145
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1881	113	1637	1	0	0	341
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1891	121	1654	1	0	0	280
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1901	137	1668	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1911	144	2698	1	0	0	54
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1921	155	2206	1	0	0	440
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1931	161	2160	1	0	0	34
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1941	171	2707	1	0	0	224
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1951	187	2187	1	0	0	60
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1961	108	2218	1	0	0	44
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1971	114	2165	1	0	0	345
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1981	125	1663	1	0	0	240
+Qwen2.5-1.5B-Instruct-Q3_K_M	3.5	wc_101_200	1991	134	2208	1	0	0	12
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	1	5	2283	5	1	0	1 plus 1 is 2.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	11	5	1717	5	1	0	1 plus 11 is 12.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	21	5	1132	5	1	0	2 plus 1 is 3.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	31	5	1665	5	1	0	2 plus 11 is 13.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	41	5	1706	5	1	0	3 plus 1 is 4.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	51	5	1765	5	1	0	3 plus 11 is 14.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	61	5	1630	5	1	0	4 plus 1 is 5.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	71	5	1669	5	1	0	4 plus 11 is 15.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	81	5	1130	5	1	0	5 plus 1 is 6.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	91	5	2236	5	1	0	5 plus 11 is 16.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	101	5	1710	5	1	0	6 plus 1 is 7.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	111	5	1106	5	1	0	6 plus 11 is 17.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	121	5	1121	5	1	0	7 plus 1 is 8.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	131	5	1650	5	1	0	7 plus 11 is 18.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	141	5	1632	5	1	0	8 plus 1 is 9.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	151	5	1623	5	1	0	8 plus 11 is 19.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	161	5	1130	5	1	0	9 plus 1 is 10.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	171	5	2180	5	1	0	9 plus 11 is 20.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	181	5	1693	5	1	0	10 plus 1 is 11.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	191	5	1781	5	1	0	10 plus 11 is 21.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	201	7	1774	5	1	0	2 times 2 is 4.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	211	7	1159	1	1	0	6
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	221	7	1748	1	1	0	8
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	231	7	2707	1	1	0	10
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	241	7	1721	5	1	0	6 times 2 is 12.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	251	7	1607	1	1	0	14
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	261	7	2695	1	1	0	16
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	271	7	2197	1	1	0	18
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	281	7	3735	1	1	0	20
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	291	7	2996	5	1	0	11 times 2 is 22.
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	301	5	1120	1	1	0	Paris
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	311	5	1651	1	1	0	Athens
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	321	6	1708	1	1	0	olleh
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	331	11	1672	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	341	11	1116	1	1	0	23
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	351	11	1109	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	361	11	1722	1	1	0	25
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	371	11	1123	1	1	0	26
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	381	11	1100	1	1	0	27
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_5_15	391	11	1164	1	1	0	28
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	401	19	1750	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	411	19	1760	1	1	0	32
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	421	19	1747	1	1	0	23
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	431	19	3217	1	1	0	33
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	441	19	1629	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	451	19	1621	1	1	0	34
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	461	19	1113	1	1	0	25
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	471	19	1131	1	1	0	35
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	481	19	1852	1	1	0	26
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	491	19	1695	1	1	0	36
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	501	19	1117	1	1	0	27
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	511	19	1128	1	1	0	37
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	521	19	1147	1	1	0	28
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	531	19	1246	1	1	0	38
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	541	19	1632	1	1	0	29
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	551	19	1422	1	1	0	39
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	561	19	1099	1	1	0	30
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	571	19	1111	1	1	0	40
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	581	19	1659	1	1	0	31
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	591	19	1649	1	1	0	41
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	601	18	1115	1	1	0	4
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	611	18	1110	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	621	18	1629	1	1	0	6
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	631	18	1116	1	1	0	36
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	641	18	1112	1	1	0	8
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	651	18	1682	1	1	0	48
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	661	18	1153	1	1	0	10
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	671	18	1641	1	1	0	60
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	681	18	1615	1	1	0	12
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	691	18	1110	1	1	0	72
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	701	18	1110	1	1	0	14
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	711	18	1595	1	1	0	84
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	721	18	1112	1	1	0	16
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	731	18	1094	1	1	0	96
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	741	18	1611	1	1	0	18
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	751	18	1625	1	1	0	108
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	761	18	1170	1	1	0	20
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	771	18	2653	1	1	0	120
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	781	18	1690	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_16_30	791	18	1707	1	1	0	132
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	801	33	1171	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	811	42	1138	1	0	0	30
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	821	36	1098	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	831	42	1138	1	0	0	60
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	841	31	1111	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	851	43	1609	1	0	0	70
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	861	33	1707	1	1	0	20
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	871	42	1670	1	0	0	70
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	881	36	1617	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	891	42	1772	1	0	0	118
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	901	31	2168	1	1	0	28
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	911	43	1136	1	0	0	118
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	921	33	1721	1	0	0	128
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	931	42	1625	1	0	0	70
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	941	36	1675	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	951	42	1691	1	0	0	118
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	961	31	1682	1	1	0	400
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	971	43	2694	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	981	33	1765	1	1	0	44
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	991	42	1671	1	0	0	16
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1001	36	1665	1	0	0	192
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1011	42	1773	1	0	0	28
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1021	31	1651	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1031	43	1094	1	0	0	146
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1041	33	1622	1	0	0	70
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1051	42	1108	1	0	0	45
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1061	36	1100	1	0	0	132
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1071	42	1093	1	0	0	15
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1081	31	1589	1	0	0	153
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1091	43	1108	1	0	0	153
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1101	33	1607	1	0	0	153
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1111	42	1127	1	0	0	99
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1121	36	1703	1	0	0	174
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1131	42	1694	1	0	0	177
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1141	31	1677	1	0	0	219
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1151	43	2328	1	0	0	197
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1161	33	1628	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1171	42	1133	1	0	0	105
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1181	36	1088	1	0	0	174
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_31_60	1191	42	1107	1	0	0	117
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1201	63	1107	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1211	74	1096	1	0	0	110
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1221	84	1096	1	0	0	44
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1231	66	1125	1	0	0	128
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1241	72	1104	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1251	87	1599	1	0	0	118
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1261	63	1126	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1271	74	1104	1	0	0	42
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1281	84	1100	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1291	66	1105	1	0	0	128
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1301	72	1104	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1311	87	1131	1	1	0	40
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1321	63	1650	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1331	74	1102	1	0	0	140
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1341	84	1128	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1351	66	1644	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1361	72	1625	1	0	0	80
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1371	87	1666	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1381	63	1102	1	0	0	48
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1391	74	1103	1	0	0	15
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1401	84	1626	1	0	0	48
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1411	66	1645	1	0	0	177
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1421	72	1911	1	0	0	174
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1431	87	1600	1	0	0	156
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1441	63	1653	1	0	0	45
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1451	74	1628	1	0	0	150
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1461	84	1652	1	0	0	156
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1471	66	1117	1	0	0	174
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1481	72	1624	1	0	0	54
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1491	87	1625	1	0	0	174
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1501	63	1603	1	0	0	177
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1511	74	1619	1	0	0	15
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1521	84	1623	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1531	66	1637	1	0	0	273
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1541	72	1653	1	0	0	54
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1551	87	1627	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1561	63	1094	1	0	0	54
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1571	74	1975	1	0	0	156
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1581	84	1628	1	0	0	240
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_61_100	1591	66	1636	1	0	0	116
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1601	108	1684	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1611	114	1661	1	0	0	26
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1621	125	1625	1	0	0	16
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1631	134	1791	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1641	144	1660	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1651	152	1631	1	0	0	26
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1661	164	1648	1	0	0	18
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1671	173	1639	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1681	184	1603	1	0	0	26
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1691	102	1645	1	0	0	260
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1701	113	1618	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1711	121	1606	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1721	137	1607	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1731	144	1646	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1741	155	1626	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1751	161	1635	1	0	0	26
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1761	171	1685	1	0	0	17
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1771	187	1637	1	0	0	66
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1781	108	1633	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1791	114	1695	1	0	0	25
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1801	125	2138	1	0	0	145
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1811	134	2359	1	0	0	15
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1821	144	2193	1	0	0	35
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1831	152	1690	1	0	0	260
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1841	164	2725	1	0	0	142
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1851	173	2177	1	0	0	164
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1861	184	1628	1	0	0	115
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1871	102	1792	1	0	0	115
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1881	113	2732	1	0	0	164
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1891	121	2234	1	0	0	240
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1901	137	2196	1	0	0	12
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1911	144	1651	1	0	0	544
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1921	155	2176	1	0	0	40
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1931	161	2197	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1941	171	1695	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1951	187	2175	1	0	0	30
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1961	108	1692	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1971	114	1688	1	0	0	344
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1981	125	2223	1	0	0	140
+Qwen2.5-1.5B-Instruct-Q4_K_M	4.5	wc_101_200	1991	134	2210	1	0	0	12
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	1	5	2720	5	1	0	1 plus 1 is 2.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	11	5	2232	5	1	0	1 plus 11 is 12.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	21	5	2205	5	1	0	2 plus 1 equals 3.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	31	5	1699	5	1	0	2 plus 11 is 13.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	41	5	2203	5	1	0	3 plus 1 is 4.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	51	5	2233	5	1	0	3 plus 11 is 14.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	61	5	2190	5	1	0	4 plus 1 is 5.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	71	5	2186	5	1	0	4 plus 11 is 15.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	81	5	2184	5	1	0	5 plus 1 is 6.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	91	5	2190	5	1	0	5 plus 11 is 16.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	101	5	1659	5	1	0	6 plus 1 is 7.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	111	5	2191	5	1	0	6 plus 11 is 17.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	121	5	2761	5	1	0	7 plus 1 is 8.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	131	5	1677	5	1	0	7 plus 11 is 18.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	141	5	2189	5	1	0	8 plus 1 is 9.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	151	5	2285	5	1	0	8 plus 11 is 19.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	161	5	1754	5	1	0	9 plus 1 is 10.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	171	5	2211	5	1	0	9 plus 11 is 20.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	181	5	2161	5	1	0	10 plus 1 is 11.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	191	5	2168	5	1	0	10 plus 11 is 21.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	201	7	2687	5	1	0	2 times 2 is 4.
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	211	7	1656	1	1	0	6
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	221	7	1666	1	1	0	8
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	231	7	1899	1	1	0	10
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	241	7	2190	1	1	0	12
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	251	7	1148	1	1	0	14
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	261	7	1143	1	1	0	16
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	271	7	1622	1	1	0	18
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	281	7	1643	1	1	0	20
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	291	7	1646	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	301	5	1659	1	1	0	Paris
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	311	5	1128	1	1	0	Athens
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	321	6	1135	1	1	0	olleh
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	331	11	1668	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	341	11	1636	1	1	0	23
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	351	11	1632	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	361	11	1636	1	1	0	25
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	371	11	1633	1	1	0	26
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	381	11	1656	1	1	0	27
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_5_15	391	11	1647	1	1	0	28
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	401	19	1628	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	411	19	2047	1	1	0	32
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	421	19	1649	1	1	0	23
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	431	19	1659	1	1	0	33
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	441	19	1670	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	451	19	1646	1	1	0	34
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	461	19	1637	1	1	0	25
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	471	19	1627	1	1	0	35
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	481	19	1155	1	1	0	26
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	491	19	1639	1	1	0	36
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	501	19	1642	1	1	0	27
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	511	19	1639	1	1	0	37
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	521	19	1619	1	1	0	28
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	531	19	1689	1	1	0	38
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	541	19	1671	1	1	0	29
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	551	19	1667	1	1	0	39
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	561	19	1659	1	1	0	30
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	571	19	1692	1	1	0	40
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	581	19	1670	1	1	0	31
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	591	19	1655	1	1	0	41
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	601	18	1654	1	1	0	4
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	611	18	1641	1	1	0	24
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	621	18	1136	1	1	0	6
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	631	18	1868	1	1	0	36
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	641	18	2314	1	1	0	8
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	651	18	2194	1	1	0	48
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	661	18	2207	1	1	0	10
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	671	18	3237	1	1	0	60
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	681	18	1699	1	1	0	12
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	691	18	2291	1	1	0	72
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	701	18	2200	1	1	0	14
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	711	18	1685	1	1	0	84
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	721	18	1772	1	1	0	16
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	731	18	1665	1	1	0	96
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	741	18	1806	1	1	0	18
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	751	18	1763	1	1	0	108
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	761	18	1708	1	1	0	20
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	771	18	1640	1	1	0	120
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	781	18	1661	1	1	0	22
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_16_30	791	18	1663	1	1	0	132
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	801	33	1674	1	0	0	20
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	811	42	1635	1	0	0	30
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	821	36	1664	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	831	42	2170	1	0	0	34
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	841	31	1635	1	0	0	72
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	851	43	1639	1	0	0	74
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	861	33	1663	1	0	0	60
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	871	42	1906	1	0	0	160
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	881	36	1632	1	0	0	120
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	891	42	2679	1	0	0	148
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	901	31	1719	1	1	0	28
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	911	43	1652	1	0	0	114
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	921	33	1621	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	931	42	1813	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	941	36	1661	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	951	42	1663	1	0	0	118
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	961	31	1639	1	1	0	400
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	971	43	1642	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	981	33	1645	1	1	0	44
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	991	42	1645	1	0	0	140
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1001	36	1699	1	1	0	48
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1011	42	1625	1	0	0	28
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1021	31	1662	1	1	0	52
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1031	43	1681	1	0	0	146
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1041	33	1681	1	0	0	70
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1051	42	1635	1	0	0	45
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1061	36	1622	1	0	0	132
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1071	42	1986	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1081	31	1704	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1091	43	1652	1	0	0	153
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1101	33	1633	1	0	0	153
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1111	42	1629	1	0	0	126
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1121	36	1640	1	0	0	162
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1131	42	1689	1	0	0	189
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1141	31	1657	1	0	0	219
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1151	43	1662	1	0	0	270
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1161	33	1655	1	0	0	189
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1171	42	1643	1	0	0	105
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1181	36	1669	1	0	0	171
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_31_60	1191	42	1701	1	0	0	117
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1201	63	1673	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1211	74	1682	1	0	0	110
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1221	84	2186	1	0	0	16
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1231	66	1637	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1241	72	2154	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1251	87	2657	1	0	0	118
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1261	63	1631	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1271	74	2141	1	0	0	14
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1281	84	1641	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1291	66	1630	1	0	0	72
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1301	72	1629	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1311	87	1656	1	0	0	138
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1321	63	1675	1	0	0	18
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1331	74	1645	1	0	0	140
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1341	84	1666	1	0	0	146
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1351	66	1646	1	0	0	114
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1361	72	1671	1	0	0	168
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1371	87	1726	1	0	0	146
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1381	63	2198	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1391	74	1677	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1401	84	1749	1	0	0	48
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1411	66	1664	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1421	72	1683	1	0	0	171
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1431	87	1669	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1441	63	2186	1	0	0	15
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1451	74	2171	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1461	84	2172	1	0	0	156
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1471	66	1660	1	0	0	171
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1481	72	2151	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1491	87	1701	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1501	63	1657	1	0	0	171
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1511	74	2179	1	0	0	15
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1521	84	1672	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1531	66	2180	1	0	0	103
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1541	72	2189	1	0	0	108
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1551	87	2176	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1561	63	1711	1	0	0	117
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1571	74	2184	1	0	0	159
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1581	84	1656	1	0	0	444
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_61_100	1591	66	1697	1	0	0	116
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1601	108	2215	1	0	0	26
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1611	114	2535	1	0	0	18
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1621	125	2714	1	0	0	16
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1631	134	2172	1	0	0	60
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1641	144	1690	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1651	152	2170	1	0	0	26
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1661	164	2196	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1671	173	2226	1	0	0	60
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1681	184	2281	1	0	0	54
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1691	102	2184	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1701	113	2200	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1711	121	2181	1	0	0	180
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1721	137	2185	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1731	144	1733	1	0	0	46
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1741	155	2210	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1751	161	2234	1	0	0	26
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1761	171	2753	1	0	0	17
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1771	187	2176	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1781	108	2195	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1791	114	1767	1	0	0	29
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1801	125	1733	1	0	0	24
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1811	134	2196	1	0	0	15
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1821	144	2198	1	0	0	35
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1831	152	2176	1	0	0	285
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1841	164	2157	1	0	0	106
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1851	173	2192	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1861	184	2207	1	0	0	115
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1871	102	2181	1	0	0	115
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1881	113	2164	1	0	0	100
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1891	121	2201	1	0	0	144
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1901	137	2209	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1911	144	2235	1	0	0	444
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1921	155	2197	1	0	0	40
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1931	161	2721	1	0	0	54
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1941	171	2216	1	0	0	104
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1951	187	2721	1	0	0	44
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1961	108	2752	1	0	0	400
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1971	114	2714	1	0	0	344
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1981	125	2218	1	0	0	140
+Qwen2.5-1.5B-Instruct-Q8_0	8.5	wc_101_200	1991	134	2799	1	0	0	12

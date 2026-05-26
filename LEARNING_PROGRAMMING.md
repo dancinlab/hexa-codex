@@ -1,5 +1,8 @@
 # LEARNING_PROGRAMMING.md — what the hexa-forge code-LLM must know
 
+@title: 📚 LEARNING_PROGRAMMING — code-LLM 학습면 (moving frontier · 완료되지 않는 학습 surface)
+@goal: hexa-forge `code` verb 모델이 알아야 할 모든 도메인/스킬의 SSOT. **이 학습면은 완료되지 않는다** — "모델이 할 수 있어야 할 것"은 새 언어·프레임워크·도구가 끊임없이 등장하는 **moving frontier** 라 100% 라는 종착이 없다. closure 표현 = 움직이는 frontier 대비 gap (`## 15. Forge build TODO` · `## 16. idea backlog` 이 영구 lane). **진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
+
 > Master record of every domain / skill the **programming** model (`code` verb)
 > is being trained on, plus the gaps still open. Sister file: `LEARNING_BIO.md`
 > (the genomics / bio model — `airgenome` stack).

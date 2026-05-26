@@ -1,5 +1,8 @@
 # ECONOMICS — hexa-codex economics verb group (domain SSOT)
 
+@title: 💰 ECONOMICS — AI 경제법칙 영구 측정 lane ("멈추지 않는 비용곡선 frontier")
+@goal: **AI 경제법칙(train·infer·quality 비용곡선)을 SANDBOX 기질에서 verify-driven 으로 영구히 재측정·반증하는 lane.** v1.4.0(F-CODEX-2 🔴 τ̂=0.524 반증 + 2-성분 측정 비용모델)은 첫 arc 의 종결일 뿐 도메인의 종결이 아니다 — 새 모델·양자화·serving 기질이 등장할 때마다 비용법칙은 다시 열린다. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
+
 > Domain doc · dancinlab `domain-meta-domain` principle. One of the
 > **4 orthogonal groups** of the hexa-codex 17-verb AI knowledge
 > substrate. Current-state spec only; dated history →
@@ -183,9 +186,30 @@ The M3.ECON SANDBOX.md checkbox flips `[ ] → [x]` only on the GREEN
 branch, which is the v1.2.0 + v1.3.0 release-cut signal for the
 ECONOMICS group.
 
+## 영구 축 (perpetual axes)
+
+> ECONOMICS 는 완료되지 않는다. 위 v1.x State/Roadmap 은 첫 arc 의 측정 잔여이고,
+> 비용곡선 자체는 새 모델·기질·축이 등장할 때마다 다시 열린다. 각 축은 `/cycle` 로
+> SANDBOX 위에서 영구 전진 (`cx_empirical_contact` · `cx_lab_sandbox`).
+
+### 축 A — F-CODEX-1 scale-cost 잔여 (현 🟠 1/4)
+> 측정 scale grid 가 0.5B 1-rung 만 live. 4-rung 채워 `N^σφ` residual 재계산.
+- [ ] A1 — 1.5B/3B/7B Stage-2 정확도 rung 측정 → `numerics_economics_empirical_landing.hexa` ch.8 residual ≤ 0.10 게이트. 반증자: 4-rung live AND residual > 0.10 → 🔴 FALSIFIED.
+
+### 축 B — 측정 비용법칙 일반화 (재측정 영구)
+> v1.4.0 의 2-성분 모델(decode_fixed 370ms + prefill_slope 0.168ms/tok, R²=0.997)이 다른 기질에서도 성립하는가?
+- [ ] B1 — vLLM/paged-attn · 양자화(Q4/Q8/fp16) · batch regime 별 재측정 → 상수 이동량 정량. 반증자: 2-성분 R² < 단일 power-law R².
+
+### 축 C — Pareto 비용-품질 frontier (영구 재적합)
+- [ ] C1 — 새 모델 landing 마다 (N,D)↔(loss,cost) 측정점 추가 → 닫힌형 envelope vs 측정 재적합. 반증자: Lagrangian 최적 (N/D)^α ≠ A/B.
+
+### 축 D — 신규 비용 축 (seed 백로그)
+- [ ] D1 — 토큰당 에너지/$ · KV-cache 비용곡선 · speculative-decoding 비용모델 — 새 falsifiable 축 seed → `.discoveries/`.
+
 ## Cross-refs
 
 - `.roadmap.hexa_codex` §A.4 — falsifier preregister · §A.2 — release cadence
 - `README.md` — Falsifier preregister · Release ladder
 - `verify/falsifier_check.hexa` · `verify/lattice_check.hexa` · `docs/closure_status.md` — runnable verify surface
+- 영구 축 원리: [`SANDBOX.md`](SANDBOX.md) (공유 측정 기질) · [[feedback_closure_is_physical_limit]]
 - Sister groups: [`SAFETY.md`](SAFETY.md) · [`OPS.md`](OPS.md) · [`SUBSTRATE.md`](SUBSTRATE.md)

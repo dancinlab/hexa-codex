@@ -1,5 +1,8 @@
 # ORCHESTRATION — forge runtime layer (pre-7B classifier + tier router + vendor SDKs + cache)
 
+@title: 🎛️ ORCHESTRATION — forge 런타임 frontier (engineering · closure = roofline %)
+@goal: forge code-LLM 을 production-ready 런타임으로 감싸는 시스템(pre-7B classifier + tier router + vendor SDK + cache). **이 도메인은 완료되지 않는다** — 엔지니어링 frontier 의 closure 는 체크박스 100% 가 아니라 **물리 한계 대비 달성률**이다: routing 정확도 vs oracle-router ceiling · 응답 latency vs network/inference 물리 floor · 신규 vendor/tier 흡수는 영구 잔존. 다음 frontier 는 `## 12. v0.6.0+ roadmap`. **진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
+
 > **Domain doc** (per dancinlab-wide `domain-meta-domain` principle: per-topic
 > roadmap as root `UPPERCASE.md`). Current state lives in the spec sections
 > below; chronological build history at `## Log` (bottom) — the full

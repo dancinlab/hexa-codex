@@ -1,0 +1,15 @@
+# hexa-codex ENGINE B1 — runtime PREFLIGHT (cycle-4)
+# axis=ENGINE/ENGINE.md::B1 (SAFETY finding → inference-time intervention)
+# axis_state=[x] unchanged (cycle-2 SPEC wire close; this preflight does NOT flip axis)
+# scope=cycle-5+ runtime-fire readiness survey, READ-ONLY (no model load, no install, no capture)
+# verifier=ENGINE/verify/numerics_engine_b1_runtime_preflight.hexa
+# readiness=🟠 PARTIAL — cycle-5 fire blocked-until: rhat-vector resolved (most are re-runnable in cycle-5 itself)
+# assets=4/5
+# gaps=rhat-vector
+# asset_1_model=PASS (ubu-1:yes mac:no)
+# asset_2_rhat_vector=FAIL · only-norms-and-summary-metadata, full-1536-dim-vector-not-persisted
+# asset_3_prompt_set=PASS · 40-prompt-canonical-cached-in-bench-sources-PRIVATE
+# asset_4_venv=PASS (venv-hf-clean:no sandbox_probe/venv:yes)
+# asset_5_hook_code=PASS (bench/sandbox_m5_safety_causal_ablation.hexa)
+# principle=feedback_closure_is_physical_limit (preflight = readiness measure, not axis-flip)
+# next_cycle_5_fire=run-causal-ablation-with-src-locked-19 · persist-rhat-as-npy · verify-SPEC-tolerance

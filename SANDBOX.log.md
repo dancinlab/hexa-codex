@@ -2845,3 +2845,59 @@ cycle-20 numbers 가 lever 비교의 anchor — 새 family/rung 만 swap, 모든
 진행도 21/25 (84%) 그대로 — harness skeleton land 는 P1-P4 OPEN cell 의
 inner-state 진척이지 새 cell close 가 아니다 (perpetual 설계 invariant).
 
+
+## cycle-23 — P1-P4 FIRE round 진입 (P3 blocker · P4 FIRE active · P1 pre-fetch)
+
+**컨텍스트.** cycle-22 (PR #68) 의 4 bench harness skeleton 을 실제 FIRE.
+cheapest-first 순서 (P3 preflight → P4 → P1 → P2) 로 진입.
+
+### P3 preflight — BLOCKER measured, runbook landed
+
+cheapest 단계 (mini + ubu-1 ssh smoke, $0, 5분) 가 cycle-22 commit message
+의 "ubu-1 brew llama.cpp 9150+ 미확인" 항목을 **measured BLOCKER** 로 확정:
+
+| ubu-1 probe | 결과 |
+|---|---|
+| `which llama-server` | ❌ MISSING |
+| `which brew` (Homebrew · linuxbrew) | ❌ 없음 |
+| `apt list --installed \| grep llama` | ❌ 없음 |
+| `which nvcc` (CUDA RTX 5070) | ❌ 없음 (sm_120 build 불가) |
+| `which cmake gcc` | ✅ source build 가능 |
+| `$HOME/Models/gguf/` | ❌ 비어 있음 |
+
+**결과:** P3 FIRE 막힘. inbox runbook 등록 `inbox/notes/p3-ubu1-llama-cpp-install.md` —
+3 옵션 (A: pre-built binary 1-2분, B: source build 10-15분, C: CUDA build 무거움) +
+GGUF transfer 절차 + 다음 cycle 진입 조건. **CPU-only build 권장** (0.5B Q4_K_M
+throughput 충분, P3 의 Erlang-C 측정에는 GPU 가속 불필요).
+
+### P4 FIRE — N=200 × 3 bands background active
+
+- pre-fetch: ~41초 ✅ (Q3_K_M 882M + Q8_0 1.8G, Q4_K_M 940M 이미 disk)
+- FIRE: `hexa.real run bench/sandbox_p4_quant_band_pilot.hexa` background 시작
+  - llama-server local M3 metal/BLAS backend
+  - 추정 2-3시간 (Q3/Q4 ~60 tok/s · Q8 ~20 tok/s · MAX_TOK=256 · 600 prompts)
+- 진행 신호: `.verdicts/sandbox/p4_quant_band_pilot.tsv` growing (2KB+ at 1분)
+
+### P1 pre-fetch — background, 6GB
+
+- `hf download ggml-org/Qwen2.5-VL-7B-Instruct-GGUF` (Q4_K_M ~4.5GB + mmproj-f16 ~1.4GB)
+- mac IO 동시 진행 (P4 fire 와 network/disk 분리 안 됨 — IO bound 일 때 P4 약간 slow 가능)
+
+### P2 — pending (SAELens pin · ubu-1 venv)
+
+별도 inbox runbook 단위. cycle-23 에 진입 안 함 — P3 ubu-1 install 우선 (같은
+host 의존, P3 install 완료 후 P2 venv 작업 묶음 효율).
+
+### 진행도 + invariant
+
+- 21/25 (84%) 유지 — FIRE 진입 자체가 영구 축 inner-state 진척
+- non-claude CPU sum 234% (project.tape s9 측정) — mac M3 정상 부하 범위
+- FIRE 결과 verdict (Pareto knee detection 등) 는 도착 시 cycle-23 후속 entry
+
+### 다음 cycle 후속 (P4 FIRE 완료 후)
+
+1. P4 verdict 파싱 → `.verdicts/sandbox/p4_quant_band_pilot_summary.txt` 검사
+2. knee_detected = true → cycle-21 의 `d_p4_quantization_band_ladder` GREEN 1단
+3. knee_detected = false (Pareto monotone) → FALSIFIED → manifest 재검토
+4. P1 fire 진입 (모델 disk 도착 후)
+5. P3 fire 사용자 sign-off + ubu-1 install

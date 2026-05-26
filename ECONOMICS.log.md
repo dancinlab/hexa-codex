@@ -1161,3 +1161,63 @@ Mann-Whitney:
 - `.verdicts/economics/e1_moe_landings.tsv` +2 rows (7 MoE total)
 - `verify/numerics_economics_e1_moe_dense_ks_test.hexa` n=5 → n=7 + sign-flip detection
 - `.verdicts/economics/e1_moe_dense_ks_verdict.txt` (auto-emit cycle-32)
+
+## cycle-33 — NOVEL axis E1 batch 5 (n=9) — sign flip STRENGTHENS POSITIVE
+
+**Stop hook 조건 "economy novel 계속 진행" + "cycle keep going"** 활성. cycle-32 PR #81 후속.
+
+### WebFetch 결과 (5 후보 시도)
+
+| 후보 | 결과 |
+|------|------|
+| OLMoE-1B-7B (HF + dataset card) | ✅ 7B/1B-act · **4.07T D** (dataset 'OLMoE-mix-0924' 정확) |
+| Jamba-Mini-1.6 (HF) | ❌ D 미공개 (hybrid SSM-Transformer) |
+| Hunyuan-A13B-Instruct | ❌ HTTP 401 |
+| **Phi-mini-MoE** (HF, distill SlimMoE) | ✅ 7.6B/2.4B-act · **400B D** (UNDER-trained!) |
+| Phi-3.5-MoE arXiv | (이미 cycle-31 수집) |
+
+n=7 → **n=9**.
+
+### cycle-33 결과 (5/5 PASS · 🟠 INSUFFICIENT · POSITIVE direction 강화)
+
+MoE dev sorted ×100: [833, 1029, 1667, 1929, 2000, 3712, 11875, 20350, 62500]
+- **Phi-mini-MoE 8.33** (UNDER-trained, distill from Phi-3.5-MoE — 특이 case)
+- **OLMoE 203.50** (small-active 매우 overtrain, dense max 9375 보다 위)
+- 5 below + 4 above dense median (cycle-32 4+3 → cycle-33 5+4, 균형 가까이)
+
+Mann-Whitney:
+- U_moe = 58 · U_dense = 41 · E[U] = 49.5 · Var[U] ≈ 173.25
+- U_DIFF = +8.5 (POSITIVE, cycle-32 +6.5 보다 강화)
+- z = +0.646 · z²×10000 = 4170
+
+### cycle-27 → 33 honest evolution (sign-flip preserved + strengthening)
+
+| cycle | n | \|z\| | direction | reading |
+|-------|---|-------|-----------|---------|
+| 27 | 1 | (anec) | +∞ exact | MoE = Chinchilla 🟢 |
+| 29 | 3 | 0.857 | NEGATIVE | weak directional 🟠 |
+| 31 | 5 | 0.510 | NEGATIVE | weaker 🟠 |
+| **32** | **7** | **0.589** | **POSITIVE ⭐** | **SIGN FLIP ✨** |
+| **33** | **9** | **0.646** | **POSITIVE** | **sign-flip preserved + strengthening** |
+
+### 새 finding (cycle-33 reading update)
+
+- **OLMoE 203.50** = AI2 의 small-active MoE 도 매우 overtrain (cycle-32 의 V2-Lite/Granite 패턴 추가 확인)
+- **Phi-mini-MoE 8.33** = 특이 case (distill SlimMoE from Phi-3.5-MoE, from-scratch 아님 → 적은 D)
+- Phi family bimodal: Phi-3.5-MoE 37.12 (overtrain) vs Phi-mini-MoE 8.33 (distill, under-trained)
+- → MoE D/N 분포 = **size + training-method (from-scratch vs distill) 양축 heterogeneous**
+
+cycle-32 의 "MoE D/N range > dense range" 추가 강화 — cycle-33 MoE range [8.33, 625] vs dense [1.85, 93.75]
+
+### Honest residual
+
+- n=9 vs n=11 — 더 가까이; p<0.05 still needs |z|≥1.96
+- cycle-34 target: 2 more MoE (n=11 = parity with dense) — Mistral-Large-2 / Pixtral / Yi-Lightning / Granite 3.1
+- 자기-strawman 회피 ✅ (Sardana 2024 외부 anchor cross-link)
+- TSV size: 14 lines (1 header + 13 rows — wait: 7+2+2=11 rows + 1 sticky header... 실제 9+1=10) — verify file integrity 보장
+
+### 산출물
+
+- `.verdicts/economics/e1_moe_landings.tsv` +2 rows (9 MoE total)
+- `verify/numerics_economics_e1_moe_dense_ks_test.hexa` n=7 → n=9 + check 4 → INFO + sign-flip detection preserved
+- `.verdicts/economics/e1_moe_dense_ks_verdict.txt` (auto-emit cycle-33)

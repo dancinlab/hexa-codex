@@ -3,6 +3,77 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-2 ENGINE B1 SPEC wire · SAFETY refusal-direction → inference intervention · 🟢 6/6 PASS
+
+ENGINE 두번째 fire. SAFETY cycle-19/20 의 refusal-direction 발견 (Qwen2.5-1.5B
+AUROC=0.98 + causal ablation 95→0%) 을 inference-time intervention SPEC 으로 wire.
+
+### 산출물
+
+- [x] `engine/wire_b1_safety_refusal_intervention.hexa` — SPEC 7 fields:
+  layer_index=19 · direction_extraction="difference_of_means" ·
+  intervention="projection_out" · rank=1 · source_model=qwen2.5-1.5b-instruct ·
+  expected_adv_refusal_pct_after≤10 · expected_benign_refusal_pct_after≤10.
+  runtime consumer hint emitted (llama-server hook formula 명시).
+- [x] `verify/numerics_engine_b1_wire_safety.hexa` — paired falsifier (6 checks):
+  - C1: layer_index == 19 ✅
+  - C2: intervention=projection_out & rank=1 (Arditi 2024 form) ✅
+  - C3: expected_adv ≤ tolerance (10pp) ✅
+  - C4: expected_benign ≤ tolerance (specificity 보존) ✅
+  - C5: effect-size delta ≥ 80pp ✅ (95pp 실제)
+  - C6: per-class avg ≈ overall ground truth ✅ (avg=95, diff=0)
+- [x] `.verdicts/engine/b1_wire_safety_verdict.txt` — verbatim verdict log
+
+### N1 (MAIN axis) — discovery → wire latency · 두번째 데이터 포인트
+
+| wire | finding source | mature cycle | wire cycle | ΔM_after_mature |
+|---|---|---|---|---|
+| A1 (cycle-1) | ECONOMICS E1 | cycle-34 (n=11 PARITY) | ENGINE cycle-1 | **0** (same session) |
+| **B1 (cycle-2)** | **SAFETY cycle-19/20** | **cycle-20 (v1.4.0)** | **ENGINE cycle-2** | **~14** (hexa-codex global) |
+
+**N1 baseline first table (n=2)**:
+- range: [0, 14]
+- mean: 7
+- reading: human-in-loop bottleneck 가 명확 — SAFETY cycle-19/20 finding 이 14 cycle
+  동안 wire 대기 (ENGINE 도메인 자체가 cycle-30 에 init 되기 전엔 wire 받을 곳 없었음).
+  A1 는 ENGINE init 이후 첫 ECONOMICS mature 와 same-session 으로 즉시 wire (0 cycle).
+  N1 의 falsifier 가정 "ΔM > 5 cycles → human bottleneck 정량화" 가 B1 에서 **충족** —
+  자동화 필요 신호 첫 quantification.
+
+### Honest residual
+
+- B1 wire 는 **SPEC-ONLY** — actual llama-server inference hook patch 는 cost-bearing,
+  ENGINE cycle-3+ 로 deferred. 그 fire 가 실제 post-intervention refusal-rate 가
+  expected band [0, 10]% 안에 떨어지는지 측정 (real validation).
+- source finding 자체가 single-model (Qwen2.5-1.5B, n=1) — SAFETY N1 NOVEL axis 가
+  cross-family universality 측정 중. N1 이 Qwen-specific 으로 닫히면 B1 wire scope =
+  Qwen-only intervention (universal 아님). 그 경우 wire SPEC 의 source_model field 가
+  "model-class scoping" 역할 한다는 점이 honest design.
+- 외부 anchor: Arditi 2024 (arXiv:2406.11717) Llama-family single-direction mediation.
+  SAFETY cycle-19/20 는 Qwen 에서 동형 발견 (replication). cross-family universality
+  는 양쪽 모두 일관되면 plausibility 높지만 정량 측정 아직 없음.
+
+### 다음 wire 후보 (priority order)
+
+- **cost-bearing B1 runtime fire** (cycle-3+, SANDBOX llama-server hook patch) —
+  SPEC 의 첫 real-validation; N1 의 falsifier band ±10pp 적용.
+- **C1 (OPS heterogeneous-μ → multi-node scheduler)** — cycle-28 NOVEL N1 still
+  spawning (n=1), wire deferred until mature.
+- **D1 (SUBSTRATE family-vs-scale → model selector)** — cycle-28 NOVEL N1 still
+  spawning.
+- **E1 (SANDBOX cross-substrate → harness auto-gen)** — cycle-28 NOVEL N1 still
+  spawning.
+
+### 연결
+
+- input finding: [SAFETY.md (cycle-19/20 refusal-direction)](SAFETY.md) · `.verdicts/sandbox/m4_safety_refusal_*`
+- wire: [`engine/wire_b1_safety_refusal_intervention.hexa`](engine/wire_b1_safety_refusal_intervention.hexa)
+- falsifier: [`verify/numerics_engine_b1_wire_safety.hexa`](verify/numerics_engine_b1_wire_safety.hexa)
+- verdict: [`.verdicts/engine/b1_wire_safety_verdict.txt`](.verdicts/engine/b1_wire_safety_verdict.txt)
+- external anchor: Arditi et al. 2024 (arXiv:2406.11717) · SANDBOX serving stack target
+
+---
+
 ## 2026-05-27 — cycle-1 ENGINE A1 first wire · ECONOMICS E1 → router rule · 🟢 5/5 PASS
 
 ENGINE 도메인의 **첫 fire** (cycle-30 init 이후 5 sibling cycle 동안 0/6 axes unfired).

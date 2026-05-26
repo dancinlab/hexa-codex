@@ -159,6 +159,78 @@ serving-cost telemetry.
 | SUBSTRATE capability evals (multimodal · RLHF) | Stage 4 (scale ladder) | needs determinism + scale |
 | `cx_empirical_contact` (every domain's T4 claims) | Stage 1+ | project.tape required |
 
+## Substrate Readiness Matrix (sibling consumer 빠른 진입 표)
+
+> sibling 도메인이 즉시 SANDBOX 통해 측정 시작할 수 있는 entry path 표. **각 lane 의 ✅ ready 는 fire path 가 활성** 이라는 의미이지 영구 frontier 가 close 됐다는 의미가 **아니다** ([[feedback_closure_is_physical_limit]] 유지). frontier 자체는 새 모델·새 axis·새 scale 이 등장할 때마다 다시 열린다.
+
+### Dispatch surface (3-tier)
+
+| surface | scope | invocation | 활성 |
+|---------|-------|-----------|------|
+| `lm_foundry/tool/route_dispatch.hexa` | 단일 LLM call wrapper (model + prompt + stop + max_tok) | `.hexa` 직접 import | ✅ |
+| `pool` CLI | multi-host remote exec (mini · ubu-1 · ubu-2 · pi5-akida) | `pool on <host> <cmd>` | ✅ |
+| `hexa cloud` subverbs | GPU pod dispatch (preflight + nohup + tail) | `hexa cloud run <host> -- <argv>` | ✅ |
+
+### Per-verb-group ready entry points
+
+각 sibling 도메인 의 측정 axis 를 SANDBOX 위에서 fire 할 수 있는 harness · model · verdict path.
+
+#### ECONOMICS (cost-curve fits) — **fire-ready 5+**
+
+| axis | harness | model | verdict path |
+|------|---------|-------|--------------|
+| 단일 LLM call cost | `bench/sandbox_stage0_poc.hexa` | Qwen2.5-0.5B-Q4_K_M | `.verdicts/sandbox/stage0_*` |
+| persona 3-tier ratio | `bench/sandbox_stage1_tier_persona.hexa` | Qwen2.5-0.5B-Q4_K_M | `.verdicts/sandbox/stage1_*` |
+| scale-stratified manifest | `bench/sandbox_stage2_persona_scaled*.hexa` | Qwen2.5-{0.5B,1.5B}-Q4_K_M | `.verdicts/sandbox/stage2_*` |
+| context cost (F-CODEX-2) | `bench/sandbox_stage4_context_scaling.hexa` | Qwen2.5-1.5B-Q4_K_M | `.verdicts/sandbox/m3_econ_fcodex2_*` |
+| measured 2-component cost | `verify/numerics_economics_measured_cost_model.hexa` | (recompute only) | `.verdicts/sandbox/m3_econ_measured_*` |
+| quant-band Pareto (P4) | `bench/sandbox_p4_quant_band_pilot.hexa` | Qwen2.5-1.5B {Q3_K_M,Q4_K_M,Q8_0} | `.verdicts/sandbox/p4_quant_band_*` |
+
+#### SAFETY (interpretability probes) — **fire-ready 4 + GPU 1**
+
+| axis | harness | model | verdict path |
+|------|---------|-------|--------------|
+| logit/logprob refusal margin | `bench/sandbox_stage4_refusal_matrix.hexa` | Qwen2.5-1.5B (port 8092) | `.verdicts/sandbox/stage4_refusal_matrix_*` |
+| margin bimodality (variance-controlled) | `bench/sandbox_stage4_refusal_bimodal_tighter.hexa` | Qwen2.5-1.5B | `.verdicts/sandbox/m2_safety_bimodality_*` |
+| activation capture (HF transformers + hooks) | `lm_foundry/tool/activation_capture_hf.hexa` | Qwen2.5-1.5B fp32 (ubu-1 RTX 5070) | TSV emit per-(token, layer, kind) |
+| refusal direction recompute | `verify/numerics_safety_refusal_direction.hexa` | (recompute only) | `.verdicts/sandbox/m4_safety_refusal_*` |
+| causal direction ablation | `bench/sandbox_m5_safety_causal_ablation.hexa` | Qwen2.5-1.5B fp32 (ubu-1) | `.verdicts/sandbox/m5_safety_causal_ablation*` |
+| SAE family lever isolation (P2) | `bench/sandbox_p2_topk_sae_lever.hexa` + `inbox/notes/p2-topk-sae-pin.md` | ubu-1 venv (cycle-25 fire) | `.verdicts/sandbox/p2_topk_sae_lever*` |
+
+#### OPS (SLO checks) — **fire-ready 3 + multi-node 1**
+
+| axis | harness | model | verdict path |
+|------|---------|-------|--------------|
+| -np 별 처음 p50/p99 | `bench/sandbox_stage4_slo_under_load.hexa` | Qwen2.5-0.5B (port 8090) | `.verdicts/sandbox/stage4_slo_under_load_*` |
+| full SLO grid (3 np × 6 rate) | `bench/sandbox_stage4_slo_full_grid.hexa` | Qwen2.5-0.5B (Stage-2 N=2000) | `.verdicts/sandbox/m3_ops_full_slo_grid*` |
+| M/M/c knee 검증자 | `verify/numerics_ops_mmc_knee.hexa` | (recompute only) | `.verdicts/sandbox/m4_ops_formula_fit.txt` |
+| 분산 replica Erlang-C (P3) | `bench/sandbox_p3_multinode_2host.hexa` + `inbox/notes/p3-ubu1-llama-cpp-install.md` | mini + ubu-1 (cycle-25 fire, **ubu-1 install 완료** PR #72) | `.verdicts/sandbox/p3_multinode_2host*` |
+
+#### SUBSTRATE (capability evals) — **fire-ready 5+**
+
+| axis | harness | model | verdict path |
+|------|---------|-------|--------------|
+| 4-rung text scale ladder | `bench/sandbox_stage2_persona_scaled_*.hexa` | Qwen2.5-{0.5,1.5,3,7}B-Q4_K_M | `.verdicts/sandbox/stage2_persona*` |
+| 2-param logistic 검증자 | `verify/numerics_substrate_cliff_logistic.hexa` | (recompute only) | `.verdicts/sandbox/m4_substrate_formula_fit.txt` |
+| multimodal 3-rung smoke | `bench/sandbox_multimodal_smoke.hexa` | SmolVLM-500M | `.verdicts/sandbox/m5_substrate_multimodal_smoke*` |
+| multimodal 4-rung ladder | `bench/sandbox_multimodal_ladder.hexa` + `bench/sandbox_p1_multimodal_ladder_7b.hexa` | SmolVLM 0.5/2.2B + Qwen-VL 3/7B | `.verdicts/sandbox/m5_substrate_multimodal_fit*` + `p1_multimodal_ladder_7b*` |
+| 4-rung dip-then-recover 검증자 (cycle-24) | `verify/numerics_substrate_multimodal_fit.hexa` (extended 304→499) | (recompute only) | `.verdicts/sandbox/m5_substrate_multimodal_fit_4rung.txt` |
+| 50-item subitizing 정교화 (P1 ↑) | `bench/sandbox_p1_subitizing_50item.hexa` | 4-rung VL (mac M3, cycle-25 재실행) | `.verdicts/sandbox/p1_subitizing_50item*` |
+
+### Cycle-25 fire-ready summary (next-step quick-reference)
+
+| lane | sibling-consumer | 의존 호스트 | 추정 비용 | 진입 명령 |
+|------|------------------|------------|-----------|-----------|
+| P3 multi-node | OPS | mini + ubu-1 (✅ install 완료) | $0, ~30분 | `hexa.real run bench/sandbox_p3_multinode_2host.hexa` (LAN 192.168.50.119 dispatch) |
+| P2 SAELens | SAFETY | ubu-1 (✅ runbook 완료) | $0, GPU ~1-2h | `inbox/notes/p2-topk-sae-pin.md` 5-step |
+| P1 50-item 재실행 | SUBSTRATE | mac M3 (smaller subset + wall-cap) | $0, ~20분 | `bench/sandbox_p1_subitizing_50item.hexa` (TIME-CAPPED 변형) |
+| P4 N=2000 full | ECONOMICS | mac M3 (긴 fire) | $0, ~6-10h | `bench/sandbox_p4_quant_band_pilot.hexa` (PER_STRATUM_N 40→400) |
+| non-Qwen-7B VL | SUBSTRATE | mac M3 (모델 DL ~5GB) | $0 + DL, ~30분 | InternVL-7B / LLaVA-NeXT-7B 신규 rung |
+
+### Stay-honest reminder
+
+위 표 의 `✅` 는 **fire 진입 path 활성** 신호일 뿐. 각 lane 의 verdict 가 GREEN 으로 닫혀도 그 sibling 도메인의 frontier 가 close 되는 것이 아니라 *현재 arc 의 한 단면* 이 닫히는 것 — 다음 arc 는 더 큰 N · 새 모델 · 새 axis 로 다시 열린다. SANDBOX 의 "100% 준비" 정의 = *모든 sibling 의 다음-단계 fire 가 즉시 진입 가능* (substrate readiness ≠ frontier closure, [[feedback_closure_is_physical_limit]]).
+
 ## Honesty rules (g5 corollary)
 
 - **No self-judge.** Scorer stays byte-exact_subset on gold strings;

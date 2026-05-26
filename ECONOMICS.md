@@ -206,10 +206,68 @@ ECONOMICS group.
 ### 축 D — 신규 비용 축 (seed 백로그)
 - [ ] D1 — 토큰당 에너지/$ · KV-cache 비용곡선 · speculative-decoding 비용모델 — 새 falsifiable 축 seed → `.discoveries/`.
 
+## SANDBOX 활용 (consumer 입장)
+
+ECONOMICS 의 모든 T4 (empirical) 측정은 SANDBOX 위에서 fire — API surface 가 cache/stop/max-tok/batch knob 없음, 측정 불가.
+
+> 본 섹션은 [`SANDBOX.md`](SANDBOX.md) "Substrate Readiness Matrix" 의 ECONOMICS row 를
+> consumer 도메인 입장에서 그대로 미러링한 entry-point 표다. SANDBOX 가 substrate-side
+> SSOT 이고 본 섹션은 ECONOMICS group 의 consumer-side SSOT — 두 표는 1:1 sync 유지.
+
+### Readiness — ECONOMICS axes (mirrors `SANDBOX.md` Readiness Matrix · 6 axes)
+
+| axis | harness | model | verdict path |
+|------|---------|-------|--------------|
+| 단일 LLM call cost | `bench/sandbox_stage0_poc.hexa` | Qwen2.5-0.5B-Q4_K_M | `.verdicts/sandbox/stage0_*` |
+| persona 3-tier ratio | `bench/sandbox_stage1_tier_persona.hexa` | Qwen2.5-0.5B-Q4_K_M | `.verdicts/sandbox/stage1_*` |
+| scale-stratified manifest | `bench/sandbox_stage2_persona_scaled*.hexa` | Qwen2.5-{0.5B,1.5B}-Q4_K_M | `.verdicts/sandbox/stage2_*` |
+| context cost (F-CODEX-2) | `bench/sandbox_stage4_context_scaling.hexa` | Qwen2.5-1.5B-Q4_K_M | `.verdicts/sandbox/m3_econ_fcodex2_*` |
+| measured 2-component cost | `verify/numerics_economics_measured_cost_model.hexa` | (recompute only) | `.verdicts/sandbox/m3_econ_measured_*` |
+| quant-band Pareto (P4) | `bench/sandbox_p4_quant_band_pilot.hexa` | Qwen2.5-1.5B {Q3_K_M,Q4_K_M,Q8_0} | `.verdicts/sandbox/p4_quant_band_*` |
+
+### Dispatch surface (어느 axis 가 어느 dispatch lane 쓰는가)
+
+| ECONOMICS axis | `route_dispatch` | `pool` | `hexa cloud` |
+|---|:---:|:---:|:---:|
+| 단일 LLM call cost | ✅ | — | — |
+| persona 3-tier ratio | ✅ | — | — |
+| scale-stratified manifest | ✅ | (옵션, ubu-1 GPU rung) | (옵션, 7B rung) |
+| context cost (F-CODEX-2) | ✅ | — | — |
+| measured 2-component cost | (recompute only) | — | — |
+| quant-band Pareto (P4) | ✅ | — | — |
+
+> 대부분 `route_dispatch.hexa` 단일 LLM call wrapper 로 충분 — ECONOMICS 는 process-수준
+> serving knob 측정 (per-call cost · context curve · quant tier) 이라 multi-host / GPU pod
+> 는 옵션. scale rung 이 7B+ 로 올라가거나 분산 측정으로 갈 때만 `pool` / `hexa cloud` 활성.
+
+### Quick-fire commands (cycle-25)
+
+```sh
+# P4 quant-band pilot rerun (PER_STRATUM_N 40→400, 풀 N=2000)
+hexa.real run bench/sandbox_p4_quant_band_pilot.hexa
+
+# F-CODEX-2 context-cost rerun (확장 context grid {1k,2k,4k,8k,16k})
+hexa.real run bench/sandbox_stage4_context_scaling.hexa
+
+# scale-cost rung 추가 측정 (1.5B → 3B → 7B Stage-2 정확도 → 축 A residual)
+hexa.real run bench/sandbox_stage2_persona_scaled_1_5b.hexa
+```
+
+### Honest invariant
+
+위 표 의 `✅` / `fire-ready` 는 **entry path 활성** 신호일 뿐 — 각 lane verdict 가
+GREEN 으로 닫혀도 ECONOMICS frontier (비용곡선 자체) 가 close 되는 것이 아니다.
+@goal line 의 "**종료 조건 없음 · 진행바 100% 미도달 = 설계**" 가 그대로 적용된다
+([[feedback_closure_is_physical_limit]]). readiness ≠ frontier closure — 새 모델 ·
+새 양자화 · 새 serving 기질이 등장하면 비용곡선은 다시 열린다 (`## 영구 축` 참조).
+
+Cross-link: [`SANDBOX.md`](SANDBOX.md) Substrate Readiness Matrix (substrate-side SSOT).
+
 ## Cross-refs
 
 - `.roadmap.hexa_codex` §A.4 — falsifier preregister · §A.2 — release cadence
 - `README.md` — Falsifier preregister · Release ladder
 - `verify/falsifier_check.hexa` · `verify/lattice_check.hexa` · `docs/closure_status.md` — runnable verify surface
 - 영구 축 원리: [`SANDBOX.md`](SANDBOX.md) (공유 측정 기질) · [[feedback_closure_is_physical_limit]]
+- SANDBOX consumer 표: 본 도메인 `## SANDBOX 활용 (consumer 입장)` (sibling 도메인은 [`SAFETY.md`](SAFETY.md) · [`OPS.md`](OPS.md) · [`SUBSTRATE.md`](SUBSTRATE.md) 동일 패턴)
 - Sister groups: [`SAFETY.md`](SAFETY.md) · [`OPS.md`](OPS.md) · [`SUBSTRATE.md`](SUBSTRATE.md)

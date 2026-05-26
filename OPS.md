@@ -83,6 +83,43 @@ empirical conformance PENDING.
 > 물리 한계 표현 = 하드웨어 tier 별 roofline %.
 - [ ] D1 — GPU class(A100/5070/Metal-UMA) 별 mem-bw roofline 대비 달성 token/s % 측정. 닫힘 = roofline %, 100% 아님.
 
+## SANDBOX 활용 (consumer 입장)
+
+OPS 의 SLO · queueing · serving 측정은 SANDBOX 위에서만 — API surface 가 serving process + per-request scheduling 숨김.
+
+### 측정 axis (SANDBOX Readiness Matrix OPS row 1:1)
+
+| axis | harness | model | verdict path |
+|------|---------|-------|--------------|
+| -np 별 처음 p50/p99 | `bench/sandbox_stage4_slo_under_load.hexa` | Qwen2.5-0.5B (port 8090) | `.verdicts/sandbox/stage4_slo_under_load_*` |
+| full SLO grid (3 np × 6 rate) | `bench/sandbox_stage4_slo_full_grid.hexa` | Qwen2.5-0.5B (Stage-2 N=2000) | `.verdicts/sandbox/m3_ops_full_slo_grid*` |
+| M/M/c knee 검증자 | `verify/numerics_ops_mmc_knee.hexa` | (recompute only) | `.verdicts/sandbox/m4_ops_formula_fit.txt` |
+| 분산 replica Erlang-C (P3, **ubu-1 install 완료** PR #72) | `bench/sandbox_p3_multinode_2host.hexa` + `inbox/notes/p3-ubu1-llama-cpp-install.md` | mini + ubu-1 (cycle-25 fire) | `.verdicts/sandbox/p3_multinode_2host*` |
+
+### Dispatch surface
+
+| topology | scope | invocation | 활성 |
+|----------|-------|-----------|------|
+| single-host | mini local (Metal/UMA, port 8090) | `bench/sandbox_stage4_slo_*.hexa` 직접 fire | ✅ |
+| multi-host | mini + ubu-1 LAN `192.168.50.119` (RTX 5070 호스트, llama-server pre-built bin 설치 PR #72) | `hexa.real run bench/sandbox_p3_multinode_2host.hexa` (LAN dispatch) | ✅ install 완료 (tailscale `:8090` timeout 알려진 잔여 — LAN 경로로 우회) |
+
+### Quick-fire commands (cycle-25 entry points)
+
+| lane | 진입 명령 | 추정 |
+|------|-----------|------|
+| P3 2-host pilot fire | `hexa.real run bench/sandbox_p3_multinode_2host.hexa` (LAN 192.168.50.119) | $0, ~30분 |
+| multi-rate 24-cell expanded grid | `bench/sandbox_stage4_slo_full_grid.hexa` 변형 (rate sweep ↑) | $0, ~1–2h |
+| np=8 ceiling probe | `bench/sandbox_stage4_slo_under_load.hexa` (`-np 8` 추가 rung) | $0, ~30분 |
+
+### Honest invariant
+
+위 lane 의 fire-readiness 는 **현재 arc 의 진입 활성** 신호일 뿐 frontier closure 가 아님. SLO/queueing frontier 는 새 host topology (multi-node → multi-rack) · 새 serving stack (vLLM PagedAttention · slice-scheduling) · 새 GPU class 가 등장할 때마다 다시 열린다 (`## 영구 축` 축 A–D, [[feedback_closure_is_physical_limit]]). readiness ≠ frontier closure.
+
+### Cross-link
+
+- [`SANDBOX.md`](SANDBOX.md) "## Substrate Readiness Matrix" → OPS row (4 axes SSOT)
+- `inbox/notes/p3-ubu1-llama-cpp-install.md` — P3 unblock runbook (cycle-23 preflight + cycle-24 install 완료 PR #72)
+
 ## Cross-refs
 
 - `.roadmap.hexa_codex` §A.4 — falsifier preregister · §A.2 — release cadence
@@ -90,3 +127,4 @@ empirical conformance PENDING.
 - `ORCHESTRATION.md` — the live 3-vendor serving runtime (foundry side)
 - Sister groups: [`SAFETY.md`](SAFETY.md) · [`ECONOMICS.md`](ECONOMICS.md) · [`SUBSTRATE.md`](SUBSTRATE.md)
 - 영구 축 원리: [`SANDBOX.md`](SANDBOX.md) · [[feedback_closure_is_physical_limit]]
+- SANDBOX consumer 표: 본 도메인 `## SANDBOX 활용 (consumer 입장)` (sibling: [`ECONOMICS.md`](ECONOMICS.md) · [`SAFETY.md`](SAFETY.md) · [`SUBSTRATE.md`](SUBSTRATE.md))

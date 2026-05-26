@@ -82,6 +82,44 @@ empirical evals PENDING.
 ### 축 D — causal-chain · cog-arch 역량 (`causal` · `cog_arch` verb)
 - [ ] D1 — causal-reasoning eval ladder (DAG 추론 정확도 vs scale). 반증자: causal 정확도가 scale ladder 에서 비단조.
 
+## SANDBOX 활용 (consumer 입장)
+
+> SUBSTRATE 의 capability eval (text scale ladder · multimodal · RLHF) 은 SANDBOX 위에서 — API surface 가 metered + non-deterministic + seed control 없음.
+
+### Readiness Matrix — SUBSTRATE row (SANDBOX.md mirror, 6 axes verbatim)
+
+| axis | harness | model | verdict path |
+|------|---------|-------|--------------|
+| 4-rung text scale ladder | `bench/sandbox_stage2_persona_scaled_*.hexa` | Qwen2.5-{0.5,1.5,3,7}B-Q4_K_M | `.verdicts/sandbox/stage2_persona*` |
+| 2-param logistic 검증자 | `verify/numerics_substrate_cliff_logistic.hexa` | (recompute only) | `.verdicts/sandbox/m4_substrate_formula_fit.txt` |
+| multimodal 3-rung smoke | `bench/sandbox_multimodal_smoke.hexa` | SmolVLM-500M | `.verdicts/sandbox/m5_substrate_multimodal_smoke*` |
+| multimodal 4-rung ladder | `bench/sandbox_multimodal_ladder.hexa` + `bench/sandbox_p1_multimodal_ladder_7b.hexa` | SmolVLM 0.5/2.2B + Qwen-VL 3/7B | `.verdicts/sandbox/m5_substrate_multimodal_fit*` + `p1_multimodal_ladder_7b*` |
+| 4-rung dip-then-recover 검증자 (cycle-24) | `verify/numerics_substrate_multimodal_fit.hexa` (extended 304→499) | (recompute only) | `.verdicts/sandbox/m5_substrate_multimodal_fit_4rung.txt` |
+| 50-item subitizing 정교화 (P1 ↑) | `bench/sandbox_p1_subitizing_50item.hexa` | 4-rung VL (mac M3, cycle-25 재실행) | `.verdicts/sandbox/p1_subitizing_50item*` |
+
+### Dispatch surface (consumer 관점)
+
+| rung | host | runtime | 의존 |
+|------|------|---------|------|
+| 0.5B / 1.5B / 3B text | mac M3 local | llama-server (Metal/UMA) | ggml-org HF GGUF (이미 캐시) |
+| SmolVLM-500M / 2.2B multimodal | mac M3 local | llama-server (Metal/UMA, mmproj 포함) | ggml-org HF GGUF (이미 캐시) |
+| Qwen-VL 3B / 7B multimodal | mac M3 local | llama-server (Metal/UMA, mmproj 포함) | ggml-org HF GGUF — **7B+ rung 은 추가 모델 DL 필요** (~5GB / rung) |
+| non-Qwen-7B VL (InternVL-7B · LLaVA-NeXT-7B) | mac M3 local | llama-server (mmproj) | **신규 DL** — ggml-org 미러 없으면 변환 필요 |
+
+### Quick-fire commands (cycle-25 entry points)
+
+- **P1 50-item 재실행 (smaller subset + wall-cap)** — `hexa.real run bench/sandbox_p1_subitizing_50item.hexa` (mac M3, TIME-CAPPED 변형 — cycle-24 partial → cycle-25 statistical refinement)
+- **non-Qwen-7B VL rung 추가** — InternVL-7B / LLaVA-NeXT-7B 신규 rung 측정 → 4-rung dip-then-recover 의 *Qwen-only* artifact 여부 검증 (mac M3, 모델 DL ~5GB)
+- **4-rung verifier 결과로 closed-form fit 확장** — `verify/numerics_substrate_multimodal_fit.hexa` (cycle-24 extended 304→499) → 5+ rung 일반화 → axis-별 logistic 재적합 (축 B1)
+
+### Honest invariant
+
+readiness ≠ frontier closure. SUBSTRATE 의 capability frontier 는 **영구 개방** — 새 modality(audio · video · 3D) / 더 큰 scale(70B+) / 새 architecture(MoE · SSM · diffusion-LM) 이 등장할 때마다 다시 열린다 ([[feedback_closure_is_physical_limit]]).
+
+cycle-23c 의 **BREAKTHROUGH** (multimodal 4-rung dip-then-recover, perception 11/11 saturating + counting recovery 가 7B 에서 회복 신호) 와 cycle-24 의 **50-item subitizing partial** (`.verdicts/sandbox/p1_subitizing_50item.tsv`, n 확장으로 SE 좁히는 중) 이 **함께 진행** — BREAKTHROUGH 도 더 큰 n 에서 다시 본다. 한 rung 의 GREEN 은 *현재 arc 의 한 단면* 일 뿐.
+
+cross-link: [`SANDBOX.md`](SANDBOX.md) — `## Substrate Readiness Matrix`.
+
 ## Cross-refs
 
 - `.roadmap.hexa_codex` §A.4 — falsifier preregister · §A.2 — release cadence
@@ -89,3 +127,4 @@ empirical evals PENDING.
 - `verify/falsifier_check.py` · `verify/n6_arithmetic.py`
 - Sister groups: [`SAFETY.md`](SAFETY.md) · [`ECONOMICS.md`](ECONOMICS.md) · [`OPS.md`](OPS.md)
 - 영구 축 원리: [`SANDBOX.md`](SANDBOX.md) · [[feedback_closure_is_physical_limit]]
+- SANDBOX consumer 표: 본 도메인 `## SANDBOX 활용 (consumer 입장)` (sibling: [`ECONOMICS.md`](ECONOMICS.md) · [`SAFETY.md`](SAFETY.md) · [`OPS.md`](OPS.md))

@@ -6,6 +6,45 @@
 
 ---
 
+## 2026-05-27 — cycle-35 F NOVEL axis spawn · inference-substrate efficiency scaling laws · 4 seeds
+
+cycle-34 E1 (MoE vs dense Chinchilla divergence) 가 n=11 PARITY 에서
+**publication-bias bottleneck** 에 부딪힘 — D-disclosed MoE pool ≈ 11 이
+sample 확보 한계 (Mistral 가 D 비공개, Grok-1/Hunyuan-A13B HTTP 차단).
+n≥20 for KS p<0.05 가 vendor-disclosure 의존이 되므로 cheapest-next-step
+이 compute-blocked 가 아니라 oracle-blocked. 영구 frontier 원칙
+([[feedback_closure_is_physical_limit]]) 에 따라 E1 계속 OPEN 이지만
+forward progress 를 위한 **orthogonal axis spawn** 결정.
+
+**F axis = inference-substrate efficiency scaling laws** — A-E 가 모두
+training-time scaling law / Chinchilla family 인 반면 F 는 inference-side
+substrate 효율 측정. 모든 seed 가 **SANDBOX 위에서 측정 가능** (vendor
+D-disclosure 비의존 — publication-bias 우회).
+
+**4 seeds (모두 cheapest first probe $0 closed-form recompute)**:
+- **F1 — J/tok ∝ N^k_energy** (Patterson 2021 + MLPerf v4.0 anchor) —
+  memory-bandwidth regime 가설 k_energy ≈ 0.5–0.7 vs FLOP-floor k=1.0
+- **F2 — KV-cache bytes 닫힌형** (Ainslie 2023 GQA anchor) — 세 지수
+  (ctx, batch, n_kv_heads) 모두 1.0 EXACT 가정, GQA/MQA 가 계수만 변경
+- **F3 — Leviathan-Kalman s(α,c,N) production α-distribution**
+  (Leviathan 2023 ICML anchor) — production-mix α ≈ 0.5 hypothesis →
+  realistic speedup 1.5–2.0× (headline 2.5–3.0× OVERSTATED ~1.5×)
+- **F5 — Quality(b_bits) saturation curve** (Dettmers 2023 anchor) —
+  γ ≈ 0.5–0.7/bit, b_cliff = 3, Q4 Pareto-optimal 재확인
+
+**F4 (Sardana envelope) SKIP** — D1 seed 5 + E1 seed 3 가 이미 cover.
+**F6/F7/F8 DEFERRED** — F6 routing overhead 는 E1 inference probe 와 자연
+fusion, F7 distillation 은 외부 anchor 약함 (point-pair 만), F8 cold-warm
+TFTT 는 SUBSTRATE 도메인 axis (P4/P5 family).
+
+**연결**:
+- spawn tape: [`.discoveries/economics-f-cost-axis-spawn.tape`](.discoveries/economics-f-cost-axis-spawn.tape) (4 `@C` seed entries)
+- ECONOMICS.md §축 F 4 milestones 추가
+- 영구축 F frontier OPEN: 첫 batch closure 이후에도 새 hardware (B200, MI300X, TPU v5p) + 새 attention variant (sliding window, MLA, latent attention) 마다 재오픈
+- 다음 cycle (cycle-36): F1-F5 첫 probe 4-fan-out (모두 $0, no substrate fire)
+
+---
+
 ## 2026-05-27 — cycle-34 E1 batch 6: n=11 PARITY 도달 · POS sign 4-batch 연속 PRESERVED
 
 NOVEL 축 E1 (MoE active-param vs dense scaling-law divergence) 의 6번째 batch.

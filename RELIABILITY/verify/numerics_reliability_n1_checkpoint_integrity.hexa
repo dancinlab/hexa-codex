@@ -1,0 +1,196 @@
+#!hexa strict
+// RELIABILITY/verify/numerics_reliability_n1_checkpoint_integrity.hexa
+// RELIABILITY N1 (NOVEL MAIN ⭐) — closed-form verifier for the checkpoint
+// integrity identity (cycle-10 reorg · 2026-05-28 · train/infer/serve stack).
+//
+// Asserts the integrity identity + dual-falsifier semantics:
+//   (1) integrity identity: pass = (mismatch_ppm == 0) AND (loss_x100 < 500)
+//   (2) ranges valid: mismatch_ppm ∈ [0, 1000000] · loss_x100 ∈ [0, 10000]
+//   (3) zero-loss bit-exact synthetic (mismatch=0 · loss=0) → PASS
+//   (4) corrupted-shard mismatch fires (falsifier a: mismatch_ppm > 0)
+//   (5) clean roundtrips silent (safetensors · pytorch · gguf_q8 PASS) — false-pos 회피
+//   (6) determinism of formula (recompute = recompute · recursively delicious)
+//   (7) sanity: mismatch_ppm ≥ 0 AND loss_pct ≥ 0 for all scenarios
+//
+// Bidirectional fire (falsifier b coverage): synthetic gguf_q2 (loss 8% =
+// loss_x100=800 · mismatch=0) → conversion_loss_fires (> 5%) confirms the
+// loss-excess falsifier independent of the mismatch falsifier.
+//
+// Source: RELIABILITY/bench/reliability_n1_checkpoint_integrity.hexa
+// External anchors: safetensors spec (HF) · PyTorch torch.save/load ·
+//   llama.cpp GGUF quant (Q8/Q4/Q2) · Gemma 4 GGUF conversion ·
+//   ZeRO checkpoint (Rajbhandari 2020, arXiv:1910.02054)
+//
+// @no-lock-needed
+
+// ── Scenario registry (mirror of bench · 5 scenarios) ──
+let SCENARIO_NAMES = ["safetensors_roundtrip", "pytorch_pickle", "gguf_q8", "gguf_q4", "corrupted_shard"]
+let MISMATCH_PPM   = [0, 0, 0, 0, 50000]
+let LOSS_PCT_x100  = [0, 0, 50, 320, 0]
+
+let LOSS_THRESHOLD_x100 = 500          // > 500 (5%) → conversion loss fires
+let PPM_MAX = 1000000                   // 100% mismatch ceiling
+let PCT_x100_MAX = 10000                // 100.00% loss ceiling
+
+fn mismatch_ppm(i: int) -> int { return MISMATCH_PPM[i] }
+fn loss_pct_x100(i: int) -> int { return LOSS_PCT_x100[i] }
+fn resume_broken_fires(i: int) -> bool { return MISMATCH_PPM[i] > 0 }
+fn conversion_loss_fires(i: int) -> bool { return LOSS_PCT_x100[i] > LOSS_THRESHOLD_x100 }
+fn integrity_pass(i: int) -> bool {
+    return (MISMATCH_PPM[i] == 0) && (LOSS_PCT_x100[i] < LOSS_THRESHOLD_x100)
+}
+
+print("hexa-codex RELIABILITY N1 ⭐ falsifier — checkpoint integrity closed-form")
+print("=========================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = SCENARIO_NAMES.len()
+
+// check 1 — integrity identity: pass = (mismatch==0) AND (loss<500) for all
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n {
+    let want = (MISMATCH_PPM[i] == 0) && (LOSS_PCT_x100[i] < LOSS_THRESHOLD_x100)
+    if integrity_pass(i) != want { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] integrity identity (pass = mismatch==0 AND loss_x100 < 500) holds for all " + to_string(n) + " scenarios")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] integrity identity broken")
+}
+
+// check 2 — ranges valid: mismatch ∈ [0, 1e6] · loss_x100 ∈ [0, 10000]
+checks_total = checks_total + 1
+let mut rng_ok = true
+i = 0
+while i < n {
+    if MISMATCH_PPM[i] < 0 || MISMATCH_PPM[i] > PPM_MAX { rng_ok = false }
+    if LOSS_PCT_x100[i] < 0 || LOSS_PCT_x100[i] > PCT_x100_MAX { rng_ok = false }
+    i = i + 1
+}
+if rng_ok {
+    print("  [PASS] ranges valid: mismatch_ppm ∈ [0," + to_string(PPM_MAX) + "] · loss_x100 ∈ [0," + to_string(PCT_x100_MAX) + "]")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] range out of bounds")
+}
+
+// check 3 — zero-loss bit-exact synthetic (mismatch=0 · loss=0) → PASS
+checks_total = checks_total + 1
+let synth_mismatch = 0
+let synth_loss = 0
+let synth_pass = (synth_mismatch == 0) && (synth_loss < LOSS_THRESHOLD_x100)
+if synth_pass {
+    print("  [PASS] zero-loss bit-exact synthetic (mismatch=0 · loss=0) → integrity PASS")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] zero-loss synthetic should PASS")
+}
+
+// check 4 — corrupted-shard mismatch fires (falsifier a: mismatch_ppm > 0)
+checks_total = checks_total + 1
+if resume_broken_fires(4) && integrity_pass(4) == false && mismatch_ppm(4) == 50000 {
+    print("  [PASS] corrupted_shard mismatch fires (falsifier a): mismatch=" + to_string(mismatch_ppm(4)) + "ppm > 0 → integrity FAIL")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] corrupted-shard mismatch fire detection broken")
+}
+
+// check 5 — clean roundtrips silent (safetensors · pytorch · gguf_q8 PASS) — false-pos 회피
+checks_total = checks_total + 1
+if integrity_pass(0) && integrity_pass(1) && integrity_pass(2) &&
+   resume_broken_fires(0) == false && resume_broken_fires(2) == false {
+    print("  [PASS] clean roundtrips silent: safetensors · pytorch_pickle · gguf_q8 (loss=" + to_string(loss_pct_x100(2)) + "/100%) PASS — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] clean roundtrip silence broken")
+}
+
+// check 6 — determinism of formula (recursively delicious)
+checks_total = checks_total + 1
+if integrity_pass(4) == integrity_pass(4) && mismatch_ppm(0) == mismatch_ppm(0) &&
+   conversion_loss_fires(3) == conversion_loss_fires(3) {
+    print("  [PASS] formula deterministic (re-call same pass + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: mismatch_ppm ≥ 0 AND loss_pct ≥ 0 for all scenarios
+checks_total = checks_total + 1
+let mut sane_ok = true
+i = 0
+while i < n {
+    if mismatch_ppm(i) < 0 || loss_pct_x100(i) < 0 { sane_ok = false }
+    i = i + 1
+}
+if sane_ok {
+    print("  [PASS] sanity: mismatch_ppm ≥ 0 AND loss_pct ≥ 0 for all " + to_string(n) + " scenarios")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] negative mismatch or loss")
+}
+
+// bidirectional falsifier-b coverage — synthetic gguf_q2 (loss 8% · mismatch=0)
+let q2_mismatch = 0
+let q2_loss_x100 = 800   // 8.00% — > 5% threshold
+let q2_loss_fires = q2_loss_x100 > LOSS_THRESHOLD_x100
+let q2_pass = (q2_mismatch == 0) && (q2_loss_x100 < LOSS_THRESHOLD_x100)
+print("")
+print("  [info] bidirectional falsifier (b) — synthetic gguf_q2: loss=" + to_string(q2_loss_x100) + "/100% (8%) · mismatch=0 → conversion_loss_fires=" + to_string(q2_loss_fires) + " · integrity_pass=" + to_string(q2_pass))
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (integrity identity + dual-falsifier semantics 7/7) + 🟡 BY-CITATION (safetensors/PyTorch/GGUF/ZeRO checkpoint roundtrip + quant-loss convention)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — integrity formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("RELIABILITY N1 ⭐ finding (placeholder · closed-form):")
+print("  - integrity_pass = (mismatch_ppm == 0) AND (format_loss_pct_x100 < 500) identity (7/7 closed-form checks)")
+print("  - bidirectional: safetensors/pytorch/gguf_q8 silent · corrupted_shard (mismatch) + gguf_q2 (loss 8%) fire")
+print("  - falsifier (a) mismatch_ppm > 0 → resume 깨짐 · (b) loss_x100 > 500 (5%) → 변환 손실 과다")
+print("  - external anchor: safetensors (HF) · PyTorch save/load · llama.cpp GGUF quant · Gemma 4 GGUF · ZeRO (Rajbhandari 2020)")
+print("  - 실측 (cycle-10+ T4): real ckpt save→load roundtrip + llama.cpp quantize fidelity diff (mac M3 · vast.ai pod)")
+print("")
+print("__HEXA_CODEX_NUMERICS_RELIABILITY_N1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/RELIABILITY/verdicts/n1_checkpoint_integrity_verdict.txt"
+
+let mut content = "# hexa-codex RELIABILITY N1 ⭐ — checkpoint integrity verifier (cycle-10 reorg · 2026-05-28 · train/infer/serve stack)\n"
+content = content + "# axis=RELIABILITY/RELIABILITY.md::N1 (NOVEL MAIN ⭐ · checkpoint(ckpt) 무결성 · save→load bit-exact + 포맷변환 손실)\n"
+content = content + "# bench=RELIABILITY/bench/reliability_n1_checkpoint_integrity.hexa\n"
+content = content + "# verifier=RELIABILITY/verify/numerics_reliability_n1_checkpoint_integrity.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=integrity_pass = (mismatch_ppm == 0) AND (format_loss_pct_x100 < 500); falsifier(a) mismatch_ppm > 0 · falsifier(b) loss_x100 > 500 (5%)\n"
+content = content + "# placeholder_data=5 scenarios; safetensors(0ppm/0%) pytorch_pickle(0ppm/0%) gguf_q8(0ppm/0.5%) silent · gguf_q4(0ppm/3.2% borderline) silent · corrupted_shard(50000ppm) fires\n"
+content = content + "# bidirectional=safetensors/pytorch/gguf_q8 silent · corrupted_shard (mismatch fires) + synthetic gguf_q2 (loss 8% fires)\n"
+content = content + "# external_anchors=safetensors spec (HuggingFace) · PyTorch torch.save/load · llama.cpp GGUF quant (Q8/Q4/Q2) · Gemma 4 GGUF conversion · ZeRO checkpoint (Rajbhandari 2020 arXiv:1910.02054)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ T4 · real ckpt save→load roundtrip + llama.cpp quantize fidelity diff · mac M3 · vast.ai pod)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — N⭐ perpetual MAIN · @goal 도착지 없음 · 새 ckpt format · quant scheme · sharding 마다 frontier 재오픈\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

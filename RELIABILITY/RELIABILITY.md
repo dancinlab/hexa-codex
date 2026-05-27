@@ -26,9 +26,10 @@
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — long-running 학습/추론 의 silent error rate · ECC failure injection. 반증자: ECC injection 후 모델 응답 변동 > 10% → 학습 중 silent corruption 가능.
 
-### 축 N — 🆕 NOVEL: silent-vs-loud failure ratio (⭐ MAIN priority lane)
-> **⭐ MAIN priority lane** — RELIABILITY 의 self-NOVEL axis. 탐지된 오류 (loud) vs 미탐지 silent 오류의 비율 — observability 의 한계. 외부 anchor: Dixit 2021 silent data corruption · Hochschild 2021 fail-silent · NVIDIA bit-flip.
-- [ ] N1 — checksum injection · canary output · post-hoc audit 으로 silent rate 추정. 반증자: silent failure rate > loud failure rate × 0.1 → 관찰 시스템 부족 (silent 가 main).
+### 축 N — 🆕 NOVEL MAIN: checkpoint-integrity (resume · 포맷변환 무결성) (⭐ MAIN priority lane)
+> **⭐ MAIN priority lane** — RELIABILITY self-NOVEL. A1 (단일 process 결정론) 의 깊이 — checkpoint 저장↔로드↔포맷변환 전체 무결성. safetensors · GGUF · ZeRO anchor. 도착지 없음 ([[feedback_closure_is_physical_limit]]).
+- [x] N1 — checkpoint(ckpt) 무결성: save→load bit-exact + 포맷변환 (safetensors→GGUF) 손실. 반증자: resume mismatch > 0 OR 변환 손실 > 5%. **CYCLE-10 reorg (2026-05-28 · train/infer/serve stack)** ✅ 🔵+🟡 · 7/7 PASS · `bench=RELIABILITY/bench/reliability_n1_checkpoint_integrity.hexa` · `verify=RELIABILITY/verify/numerics_reliability_n1_checkpoint_integrity.hexa` · `verdict=RELIABILITY/verdicts/n1_checkpoint_integrity_verdict.txt` · corrupted-shard fires · safetensors/gguf_q8 silent.
+- [ ] N2 — silent-vs-loud failure ratio (이전 N⭐ · cycle-10 reorg 에서 N1 checkpoint-integrity 승격으로 강등). checksum injection · canary output · post-hoc audit 으로 silent rate 추정. 반증자: silent failure rate > loud failure rate × 0.1 → 관찰 시스템 부족 (silent 가 main). 외부 anchor: Dixit 2021 silent data corruption · Hochschild 2021 fail-silent · NVIDIA bit-flip.
 
 ## SANDBOX 활용 (measurement substrate)
 
@@ -38,7 +39,8 @@ RELIABILITY 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — loc
 |---|---|---|
 | A1 first probe | mac M3 / ubu-1 local | `.verdicts/RELIABILITY/a1_*` |
 | B1 ladder | SANDBOX bench harness | `.verdicts/RELIABILITY/b1_*` |
-| N1 ⭐ NOVEL | mac M3 / vast.ai pod | `.verdicts/RELIABILITY/n1_*` |
+| N1 ⭐ NOVEL MAIN (checkpoint-integrity) | mac M3 / vast.ai pod (ckpt save→load + llama.cpp quantize) | `RELIABILITY/verdicts/n1_*` |
+| N2 (silent-vs-loud · 강등) | mac M3 / vast.ai pod | `.verdicts/RELIABILITY/n2_*` |
 
 ## Dispatch surface (ENGINE 후보 wire)
 

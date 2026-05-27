@@ -2,6 +2,17 @@
 
 Append-only history sister of `RELIABILITY.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-10 reorg: N⭐ NOVEL MAIN = checkpoint-integrity (train/infer/serve stack · 🔵+🟡 · 7/7)
+
+- [x] reorg: 기존 N⭐ (silent-vs-loud failure ratio) → **N2 강등**. 새 N1 = checkpoint(ckpt) 무결성이 NOVEL MAIN ⭐ lane 점유. A1 (단일 process 결정론) 의 자연스러운 깊이 — checkpoint 저장↔로드↔포맷변환 전체 무결성.
+- [x] N1 closed-form bench: `RELIABILITY/bench/reliability_n1_checkpoint_integrity.hexa` — 5 ckpt roundtrip 시나리오 × {mismatch_ppm, format_loss_pct_x100}. identity `integrity_pass = (mismatch_ppm == 0) AND (format_loss_pct_x100 < 500)`. dual falsifier: (a) mismatch_ppm > 0 → resume 깨짐 · (b) loss_x100 > 500 (5%) → 변환 손실 과다. sentinel `__HEXA_CODEX_RELIABILITY_N1_CHECKPOINT_INTEGRITY__ DONE`.
+- [x] 시나리오: safetensors_roundtrip (0ppm/0% silent) · pytorch_pickle (0ppm/0% silent) · gguf_q8 (0ppm/0.5% silent) · gguf_q4 (0ppm/3.2% borderline silent) · corrupted_shard (50000ppm fires). bidirectional fire: corrupted_shard (mismatch) + synthetic gguf_q2 (loss 8%).
+- [x] N1 7-check verifier: `RELIABILITY/verify/numerics_reliability_n1_checkpoint_integrity.hexa` — (1) integrity identity (2) ranges valid (3) zero-loss bit-exact synthetic → pass (4) corrupted-shard mismatch fires (5) clean roundtrips silent (6) determinism (7) sanity mismatch≥0 ∧ loss≥0. env-driven `_root()`. sentinel `__HEXA_CODEX_NUMERICS_RELIABILITY_N1__ DONE`.
+- [x] `hexa run` → **7/7 checks passed** · 🔵 STRUCTURAL + 🟡 BY-CITATION · verdict `RELIABILITY/verdicts/n1_checkpoint_integrity_verdict.txt`.
+- [x] external anchors: safetensors spec (HuggingFace) · PyTorch torch.save/load · llama.cpp GGUF quant (Q8/Q4/Q2) · Gemma 4 GGUF conversion · ZeRO checkpoint (Rajbhandari 2020 · arXiv:1910.02054).
+- [x] RELIABILITY.md::축 N — header → checkpoint-integrity NOVEL MAIN · N1 [x] wire note · 기존 silent-vs-loud → N2 [ ] 강등. SANDBOX substrate 표 N1/N2 row 갱신. @goal perpetual 유지 (종료 조건 없음 · 진행바 100% 미도달 = 설계).
+- [ ] honest residual: 실측 (T4 substrate fire) DEFERRED → cycle-10+ — real ckpt save→load roundtrip (torch.save/load · safetensors) + llama.cpp quantize fidelity diff (mac M3 · vast.ai pod). closed-form identity close ≠ measured close. N⭐ perpetual MAIN — 새 ckpt format · quant scheme · sharding 마다 frontier 재오픈 ([[feedback_closure_is_physical_limit]]).
+
 ## 2026-05-28 — cycle-10 round-1: A1' MEASURED determinism elevation 🟡→🟢 (🟢 SUPPORTED-NUMERICAL · 7/7)
 
 - [x] substrate choice: mac M3 host CPU SHA-256 (idle · single-process). llama-server present at `/opt/homebrew/bin/llama-server` but no large gguf locally (`~/.cache/llama-models/` empty); ubu-1 unreachable (ssh timeout to 10.142.0.1); ubu-2 has no llama-server; mini has no llama-server. CPU SHA-256 = available real determinism probe — `cx_lab_sandbox` 만족 (local pool · single-host).

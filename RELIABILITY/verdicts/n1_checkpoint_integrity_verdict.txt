@@ -1,0 +1,12 @@
+# hexa-codex RELIABILITY N1 ⭐ — checkpoint integrity verifier (cycle-10 reorg · 2026-05-28 · train/infer/serve stack)
+# axis=RELIABILITY/RELIABILITY.md::N1 (NOVEL MAIN ⭐ · checkpoint(ckpt) 무결성 · save→load bit-exact + 포맷변환 손실)
+# bench=RELIABILITY/bench/reliability_n1_checkpoint_integrity.hexa
+# verifier=RELIABILITY/verify/numerics_reliability_n1_checkpoint_integrity.hexa
+# tier=🔵 STRUCTURAL (integrity identity + dual-falsifier semantics 7/7) + 🟡 BY-CITATION (safetensors/PyTorch/GGUF/ZeRO checkpoint roundtrip + quant-loss convention)
+# checks=7/7
+# formula=integrity_pass = (mismatch_ppm == 0) AND (format_loss_pct_x100 < 500); falsifier(a) mismatch_ppm > 0 · falsifier(b) loss_x100 > 500 (5%)
+# placeholder_data=5 scenarios; safetensors(0ppm/0%) pytorch_pickle(0ppm/0%) gguf_q8(0ppm/0.5%) silent · gguf_q4(0ppm/3.2% borderline) silent · corrupted_shard(50000ppm) fires
+# bidirectional=safetensors/pytorch/gguf_q8 silent · corrupted_shard (mismatch fires) + synthetic gguf_q2 (loss 8% fires)
+# external_anchors=safetensors spec (HuggingFace) · PyTorch torch.save/load · llama.cpp GGUF quant (Q8/Q4/Q2) · Gemma 4 GGUF conversion · ZeRO checkpoint (Rajbhandari 2020 arXiv:1910.02054)
+# substrate_fire=DEFERRED (cycle-10+ T4 · real ckpt save→load roundtrip + llama.cpp quantize fidelity diff · mac M3 · vast.ai pod)
+# frontier_open=feedback_closure_is_physical_limit — N⭐ perpetual MAIN · @goal 도착지 없음 · 새 ckpt format · quant scheme · sharding 마다 frontier 재오픈

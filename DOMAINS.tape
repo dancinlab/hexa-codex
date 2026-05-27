@@ -30,6 +30,11 @@
 @domain DIVERSITY := "./DIVERSITY/DIVERSITY.md"
 @domain USER-MODEL := "./USER-MODEL/USER-MODEL.md"
 @domain MULTIMODAL := "./MULTIMODAL/MULTIMODAL.md"
+# ─── orchestra-research 20-skill 누락 흡수 (2026-05-28 cycle-10) ───
+@domain DATA-QUALITY := "./DATA-QUALITY/DATA-QUALITY.md"
+@domain ARCHITECTURE := "./ARCHITECTURE/ARCHITECTURE.md"
+@domain POST-TRAINING := "./POST-TRAINING/POST-TRAINING.md"
+@domain OBSERVABILITY := "./OBSERVABILITY/OBSERVABILITY.md"
 
 # ─── driving lane (실제 wire 구현) — ENGINE 은 line 6 core sibling 으로 등록됨 (active) ───
 # CODEX archived 2026-05-28 (cycle-10 reorg) — 22 candidate first-probe orchestrator 역할 종료.

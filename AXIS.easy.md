@@ -388,6 +388,39 @@ brainstorm 총 idea:           49
    (R1: 8 후보 · R2: 5 · R3: 8 · R4: 8 · R5: 4 · R6: 정리 · R7: 7 · R8: 4 약함)
 ```
 
+## orchestra-research 20-skill 흡수 매핑 (2026-05-28 cycle-10)
+
+> 외부 reference [orchestra-research.com/perspectives/ai-research-skills](https://www.orchestra-research.com/perspectives/ai-research-skills) 의 20 AI research skill 을 hexa-codex 측정 도메인과 전수 매핑 → 16 커버 + 4 누락 흡수 = **20/20 전부 커버**.
+
+| orchestra skill | hexa-codex 도메인 | 상태 |
+|---|---|---|
+| Tokenization | MULTILINGUAL/N1 | ✅ |
+| Mechanistic Interpretability | NEUROEXP | ✅ |
+| Distributed Training | HW-VARIANCE/N1 | ✅ |
+| Inference & Serving | BATCH-COMPOSITION · LONG-CONTEXT/N2 · ENERGY | ✅ |
+| Safety & Alignment | SAFETY · ROBUSTNESS/N1 | ✅ |
+| Evaluation | (전체 측정 도메인) | ✅ |
+| Infrastructure | HW-VARIANCE · OPS | ✅ |
+| Agents | AGENT/N1 | ✅ |
+| RAG | RAG | ✅ |
+| Multimodal | MULTIMODAL | ✅ |
+| Prompt Engineering | PROMPT-SENSITIVITY | ✅ |
+| Emerging Techniques | 각 N⭐ (구 FRONTIER 흡수) | ✅ |
+| ML Paper Writing | /paper skill | ✅ |
+| Fine-Tuning | DATA-EFFICIENCY | △ 부분 |
+| Optimization | ENERGY · ECONOMICS | △ 부분 |
+| MLOps | OPS | △ 부분 |
+| **Model Architecture** | **ARCHITECTURE** (신규 흡수) | 🆕 ✅ |
+| **Data Processing** | **DATA-QUALITY** (신규 흡수) | 🆕 ✅ |
+| **Post-Training** | **POST-TRAINING** (신규 흡수) | 🆕 ✅ |
+| **Observability** | **OBSERVABILITY** (신규 흡수) | 🆕 ✅ |
+
+신규 4 도메인 (A1 closed-form 7/7 · perpetual @goal · N⭐ MAIN):
+- 🏗️ ARCHITECTURE — attention quality-per-FLOP (MLA 1.84× · naive 0.75× fires) · `0ca96cf`
+- 🧹 DATA-QUALITY — dedup-gain (common_crawl 65%dup +7.5pp · curated 3%dup fires) · `19a4f01`
+- 🎓 POST-TRAINING — alignment-tax (over_aligned 12pp drop fires) · `f5765c5`
+- 📡 OBSERVABILITY — drift-detection latency (blind_big 30%·4batch fires) · `aacab64`
+
 ## Cross-refs
 
 - ENGINE 도메인 SSOT: [`ENGINE/ENGINE.md`](ENGINE/ENGINE.md) (현재 6 sibling intake matrix)

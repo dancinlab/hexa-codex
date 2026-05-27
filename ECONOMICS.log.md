@@ -74,6 +74,50 @@ flip 하지 않음.
 
 ---
 
+## 2026-05-27 — cycle-44 C1 Sardana inference-amortized direction VERIFIED · 🔵 STRUCTURAL 10/10 (pool ubu-1 `hexa build` 네이티브 컴파일+실행)
+
+cycle-43 C1 Lagrangian 🔵 8/8 의 honest residual ("cycle-26 EMPIRICAL gap 은 Hoffmann train-only ASSUMPTION 부족 — Sardana 2024 inference-amortization 으로 회복") 을 닫기 위해 Sardana 의 KKT* 방향성을 닫힌형으로 복제.
+
+**run path**: Mac 로컬 `hexa build` 는 sidecar sign local 토큰 EXPIRED → pool-route 게이트 가 `hexa build` 를 heavy classify 하여 거부 → path A FAIL. path B 채택 (`scp ubu-1:/tmp/sardana.hexa` + `pool on ubu-1 'cd ~/core/hexa-lang && HEXA_LANG=$HOME/core/hexa-lang hexa cc && hexa build /tmp/sardana.hexa -o /tmp/sardana_bin && HEXA_CODEX_ROOT=/tmp/hxc /tmp/sardana_bin'`). `hexa cc` 재빌드로 1-shot window 열고 즉시 build+run.
+
+**verbatim 결과** (`/tmp/hxc/.verdicts/economics/c1_sardana_inference_amortized_verdict.txt` ← scp 회수):
+- (cycle-43 tie-in) α+β = 62/100 = 0.62 (Hoffmann) ✓
+- at T_inf=D, inference adds 33% extra N-cost (2D/6D) → N more expensive ⇒ Lagrangian shifts to LOWER N ✓
+- T_inf=0 limit: KKT* LHS = 3D → Hoffmann KKT recovered (cycle-43 IDENTITY) ✓
+- T_inf>0 adds +1000 to KKT* LHS (strictly positive) → RHS must rise via D↑ or N↓ ✓
+- DIRECTION SIGN — N: 100→50 (Δ=-50 < 0) · D: 2000→4000 (Δ=+2000 > 0) ✓
+- D/N RATIO grows: 20.0 → 80.0 (cycle-26 modern dense D/N ∈ [22, 1875] qualitatively consistent) ✓
+- MONOTONE in T_inf=0,500,1000: N 100→75→50 non-increasing · D 2000→3000→4000 non-decreasing ✓
+- (cycle-43 cross-link) DUALITY a+b = 9999/10000 ≈ 1.0 EXACT at T_inf=0 limit ✓
+- HONEST RESIDUAL — direction-only claim (g5 fabrication guard active) · absolute N_inf-opt(T_inf, L0) NOT computed ✓
+- deterministic ✓
+
+**verdict tier**: 🔵 STRUCTURAL — Sardana inference-amortized N_opt direction (∂N\*/∂T_inf<0, ∂D\*/∂T_inf>0) closed-form (10/10).
+
+**구조적 발견 (closed-form)**:
+- Sardana cost C_total = 6ND + 2N·T_inf 에서 +2N·T_inf 추가 항이 N 을 inference 측에서 더 비싸게 만든다.
+- KKT* = (3D+T_inf)·β·B·N^(α+1) = 3N·α·A·D^(β+1). T_inf=0 collapse → Hoffmann KKT (cycle-43 IDENTITY 회복).
+- T_inf>0 ⇒ LHS 가 strictly positive +T_inf 만큼 증가 ⇒ N↓ / D↑ shift 가 fixed-loss 제약에서 강제됨.
+- D/N RATIO 가 T_inf 에 대해 monotone 증가 — cycle-26 EMPIRICAL gap (modern dense D/N ∈ [22, 1875]) 의 정성적 signature.
+
+**honest residual**:
+- DIRECTION 은 🔵 STRUCTURAL (Lagrangian KKT* algebra deterministic).
+- ABSOLUTE N_inf-opt(T_inf, L0) 는 Hoffmann G_N/G_D 상수 필요 — Besiroglu 2024 (arXiv:2404.10102) replication 이 disputed values 지적 → g5 fabrication-guard 로 STRUCTURAL exponent 수준 유지 (🔵, not 🟢).
+- modern landings 의 EXACT T_inf 은 per-row 비공개 — cycle-26 cross-link 는 sign-level qualitative 만 (pointwise fit 아님; deployment-token telemetry 부재).
+- self-strawman 회피 ([[feedback_negative_paper_external_claim]]): closed-negative paper 아님, Sardana 외부 주장 (inference-amortization shifts optimum) 의 DIRECTION 을 closed-form REPLICATION (방향 일치 = SUPPORT). 새로운 외부 주장 반증은 발생 안함.
+
+**연결**:
+- 직접 종속: cycle-43 C1 Lagrangian (`numerics_economics_c1_lagrangian.hexa` 8/8 🔵) 의 T_inf=0 limit IDENTITY 가 본 cycle 의 check 8 cross-link.
+- 직접 종속: cycle-26 C1 envelope (`numerics_economics_c1_envelope.hexa` 10/10, `.tsv` 13-row) 의 modern dense D/N ∈ [22, 1875] empirical gap 이 본 cycle 의 sign-direction qualitative anchor.
+- 다음 후속 (cycle-45+): per-vendor T_inf telemetry (Llama3-8B/70B/405B deployment-token estimate 공개여부 조사) + Besiroglu G_N/G_D 재측정 → pointwise N_inf-opt(T_inf) recompute 가능 시 🟢 SUPPORTED-NUMERICAL escalation.
+
+**인프라 메모**:
+- Mac path A 차단: sign-local 토큰 EXPIRED + pool-route 가 `hexa build` 를 heavy classify (Linux-only workstation 분류).
+- pool path B 통과: 단 ubu-1 의 `hexa cc` 를 `HEXA_LANG=$HOME/core/hexa-lang` env 로 호출해야 self/native/hexa_v2 transpiler 가 발견됨 — bare `hexa cc` 는 cwd 추론 실패로 ./self/native/hexa_cc.c not found.
+- cycle-41 의 transpiler stale-build segfault 패턴 (`hexa cc` 재빌드로 1-shot window) 그대로 적용.
+
+---
+
 ## 2026-05-27 — cycle-43 C1 Lagrangian VERIFIED · 🔵 SUPPORTED-FORMAL 8/8 (Mac local `hexa build` 토큰 통과)
 
 cycle-42 의 BLOCKED 가 사용자 `! sidecar sign local` 토큰 발급으로 즉시 unblock.

@@ -2,6 +2,45 @@
 
 Append-only history sister of `CODEX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-10 round-1 · ENGINE wire lane 개통 + 첫 promotion (CALIBRATION → axis G) + 19 stub frontier
+
+`/cycle-bg` cycle-10 round-1 (post-22/22 closure 다음 cycle). CODEX 의 22 candidate first-probe milestone 이 모두 closed-form 도달한 다음 단계 — **ENGINE intake matrix 승격 lane 을 처음 활성화**. 22 candidate 중 cycle-9 round-1 에 🟢 SUPPORTED-NUMERICAL 도달한 유일 후보 **CALIBRATION/A1** 을 ENGINE 의 **axis letter G** 로 promote. 나머지 21 후보는 wire-stub frontier 로 plant.
+
+### 핵심 변화
+
+| 변화 | 결과 |
+|---|---|
+| ENGINE intake matrix sibling 수 | 5 → 6 (cycle-7 NEUROEXP/F1 add) → **7 (cycle-10 round-1 CALIBRATION/G1 add)** |
+| ENGINE 신규 axis letter | F (NEUROEXP, cycle-7) → **G (CALIBRATION, cycle-10 round-1)** |
+| CODEX → ENGINE promotion event | 첫 occurrence (`CODEX milestone 🟢 → ENGINE axis letter` lane opening) |
+| 21 후보 wire-stub | 19 plant (race-avoid HW-VARIANCE + RELIABILITY round-2 deferred) |
+
+### Step 별 deliverable
+
+- **Step 1**: `ENGINE/ENGINE.md` 구조 확인 (axis A~F 6 sibling + axis N self-NOVEL · sibling intake matrix · Dispatch surface table · Honesty invariants · Cross-refs).
+- **Step 2 (G promote)**: ENGINE.md 에 (a) `### 축 G — CALIBRATION finding → decoding temperature / confidence-thresholded refusal driving` 추가, (b) sibling intake matrix 에 `| CALIBRATION | cycle-9 round-1 A1 ECE closed-form ... 🟢 7/7 | G1 ECE-driven decoding temperature / confidence-thresholded refusal |` 행 추가, (c) Dispatch surface 표에 G1 행 추가, (d) 22 candidate 미승격 21 후보 wire-stub 위치 cross-ref note 추가, (e) Cross-refs section 에 6 sibling → CALIBRATION verdict 링크 + CODEX 메타도메인 링크 추가.
+- **Step 3 (19 stub plant)**: 19 후보 (`AGENT · BATCH-COMPOSITION · CARBON · CONTAMINATION · DATA-EFFICIENCY · DIVERSITY · ENERGY · FAIRNESS · HALLUCINATION · INSTRUCTION-FOLLOWING · LONG-CONTEXT · MULTILINGUAL · PRIVACY · PROMPT-SENSITIVITY · RAG · ROBUSTNESS · TEMPORAL · TRAINING-DYNAMICS · USER-MODEL`) snapshot 의 `## Cross-refs` 직전에 `## ENGINE intake (wire stub)` 섹션 삽입. 각 stub = 🟠 deferred status + A1 falsifier verbatim + anticipated ENGINE behavior wire 한줄 + CALIBRATION 참조 패턴 + ⏸ DEFERRED cycle-10+ T4 measured fire 대기.
+- **Step 4 (logs)**: ENGINE.log.md + CODEX.log.md 양쪽 newest-on-top entry (각각 cycle-10 round-1).
+- **Step 5 (verify)**: `grep -c '## ENGINE intake (wire stub)'` 19/19 `=1` 검증 통과 · `grep -c 'G · CALIBRATION\|G — CALIBRATION' ENGINE/ENGINE.md` `=1` 검증 통과.
+
+### race-avoid (sibling agent 동시 실행 보호)
+
+cycle-9 round-8 의 cap=4 fan-out 학습 (explicit `git add <paths>` only, NEVER `-A`) 을 cycle-10 round-1 에 그대로 적용. HW-VARIANCE + RELIABILITY 의 sibling agent (HW-VARIANCE 실측 measured tier upgrade 작업 · `HW-VARIANCE/HW-VARIANCE.log.md`+`verdicts/`+`verify/` 미커밋 파일 관찰) 와 race 회피 — 그 두 도메인의 stub 은 **round-2 backfill** 로 명시 deferred. ENGINE intake matrix 의 21 후보 → 19 stub 처리 + 2 deferred 가 honest count.
+
+### 🆕 학습 — ENGINE intake promotion lane = perpetual frontier
+
+- promotion = **한 wire 가 열린 것**, terminal 아님 ([[feedback_closure_is_physical_limit]]). CALIBRATION A1 의 closed-form 만 ENGINE 에 들어왔고, per-model measured ECE 는 여전히 OPEN.
+- 21 후보 stub = 다음 promotion candidate frontier 의 **명시적 선언**. 어떤 도메인이든 measured tier 도달 시 G1 패턴 따라 axis letter (H, I, J, ...) 가 부여됨.
+- "100% closure" 는 22/22 closed-form 의미이지 도메인 종료 아님. ENGINE 7 sibling → 8 → ... → 27 까지 frontier 무한 OPEN.
+
+### 잔여 (cycle-10 round-2+)
+
+- [ ] round-2: HW-VARIANCE + RELIABILITY wire-stub backfill (race-avoid lift 후).
+- [ ] G1 wire .hexa 작성 (`ENGINE/wires/wire_g1_calibration_temperature.hexa` + `ENGINE/verify/numerics_engine_g1_wire_calibration.hexa`).
+- [ ] CODEX axis B (second probe · measured ladder) lane 활성화: 22 후보의 closed-form 다음 단계 = measured tier upgrade.
+- [ ] CODEX axis N (self-NOVEL · ⭐ MAIN priority lane) 활성화: 22 후보 각자 자기 NOVEL probe.
+- [ ] 다음 ENGINE promote candidate: 21 stub 도메인 중 measured 도달자 (HW-VARIANCE 가 가장 빠를 가능성 — sibling agent 가 cycle-10 round-1 동시 실행 중).
+
 ## 2026-05-28 — cycle-9 round-8 FINAL · 22/22 closure: 4 ⭐⭐ closed-form A1 wires (DATA-EFFICIENCY + HW-VARIANCE + BATCH-COMPOSITION + USER-MODEL · /cycle-bg cap=4)
 
 `/cycle-bg` round-8 (sticky bg · cap=4 — 사용자 "22/22 all bg go" 명시 override). **22/22 axis-candidate first-probe milestone 전부 closed-form 도달.** 4 ⭐⭐ A1 wires 모두 7/7 PASS · 🔵 STRUCTURAL + 🟡 BY-CITATION. race-방지 가드 (round-7 학습 적용) 성공 — 4 agents 각자 explicit-path `git add` 만 사용, sibling 파일 unstaged 관찰만.

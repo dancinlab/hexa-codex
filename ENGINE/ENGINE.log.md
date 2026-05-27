@@ -3,6 +3,57 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-28 — cycle-10 round-1 ENGINE intake matrix 확장: axis G CALIBRATION promote + 19 wire stub · race-avoid 2 deferred
+
+`/cycle-bg` cycle-10 round-1 (post-22/22 closure). CODEX 22 candidate sibling 중 첫 🟢 SUPPORTED-NUMERICAL 도달 후보인 **CALIBRATION/A1 (ECE closed-form · Naeini 2015 · Guo 2017 · cycle-9 round-1 · 7/7 PASS)** 을 ENGINE intake matrix 의 **신규 axis letter G** 로 승격. 나머지 21 후보는 `## ENGINE intake (wire stub)` 섹션을 각 snapshot 에 plant (next axis letter H/I/J... 후보 frontier 선언).
+
+### Step 2 — axis G promote (SPEC only, wire .hexa 작성 deferred)
+
+| axis | sibling | wire | verifier | verdict | tier |
+|------|---------|------|----------|---------|------|
+| G1 (신규) | CALIBRATION | (cycle-10 후속 라운드 deferred) | `../CALIBRATION/verify/numerics_calibration_a1_ece_formula.hexa` | `../CALIBRATION/verdicts/` | 🟢 SUPPORTED-NUMERICAL (CODEX cycle-9 round-1 source) |
+
+- driving target: SANDBOX serving stack 의 inference-time decoding temperature 자동 선택 + confidence-thresholded abstention/refusal.
+- ENGINE.md 변경: (a) 영구 축 section 에 `### 축 G — CALIBRATION finding → decoding temperature / confidence-thresholded refusal driving` 추가, (b) sibling intake matrix 에 CALIBRATION 행 추가, (c) Dispatch surface 표 에 G1 행 추가, (d) Cross-refs 6 sibling 도메인 + CALIBRATION verdict 링크 + CODEX 메타도메인 링크.
+- N1 latency ledger 후보 데이터 포인트: ΔM=0 (CALIBRATION A1 spawn=cycle-9 round-1 → ENGINE G promote=cycle-10 round-1, sibling-cycle 카운터 기준 인접 cycle = fastest loop · same-session class).
+
+### Step 3 — 19 wire-stub deployment (race-avoid 2 deferred)
+
+각 후보 snapshot 의 `## ENGINE intake (wire stub)` 섹션 = (a) 🟠 deferred status · (b) A1 falsifier verbatim · (c) anticipated ENGINE behavior wire one-liner · (d) CALIBRATION reference 패턴 path. 19/19 stub `=1` 검증 통과.
+
+| domain | falsifier · wire hint (요약) |
+|---|---|
+| AGENT | 1-step tool < 70% → tool-routing aware plan-execute decoupling |
+| BATCH-COMPOSITION | random vs sorted > 30% → length-sorted bucketing |
+| CARBON | region 감소 < 20% → grid-aware region routing |
+| CONTAMINATION | n-gram > 30% → contamination-discounted scoring |
+| DATA-EFFICIENCY | curriculum < 5% → curriculum-order training schedule |
+| DIVERSITY | self-BLEU > 0.8 → repetition-penalty auto-tune |
+| ENERGY | tokens/J > SOTA×2 → tokens/J budget aware selection |
+| FAIRNESS | gap > 10pp → group-gap aware re-weighting |
+| HALLUCINATION | rate > 20% → confidence-thresholded abstention |
+| INSTRUCTION-FOLLOWING | 준수 < 90% → constraint-aware decoding |
+| LONG-CONTEXT | 64k < 4k×0.5 → effective-context-window budget |
+| MULTILINGUAL | low-resource < EN×0.5 → per-language tokenizer pick |
+| PRIVACY | MI > random+5pp → MI-aware DP-SGD |
+| PROMPT-SENSITIVITY | factual < 80% → paraphrase ensemble voting |
+| RAG | recall@5 < 50% → retriever-quality gated answer |
+| ROBUSTNESS | adv drop > 30pp → adversarial-detection routing |
+| TEMPORAL | post-cutoff wrong > 30% → cutoff-aware grounding |
+| TRAINING-DYNAMICS | spike > 1/1k → adaptive LR + guarded checkpoint |
+| USER-MODEL | drift > 20% → persona-drift gated refresh |
+
+### race-avoid (sibling agents 동시 실행)
+
+- [ ] HW-VARIANCE wire-stub deferred to round-2 (race-avoid — sibling agent 가 동시에 `HW-VARIANCE/` 편집 중, `HW-VARIANCE/HW-VARIANCE.log.md` + `verdicts/` + `verify/` 미커밋 관찰).
+- [ ] RELIABILITY wire-stub deferred to round-2 (race-avoid — 동일 sibling agent fan-out 패턴 보호 차원).
+
+### 잔여 (frontier OPEN · perpetual)
+
+- **G1 wire .hexa 작성**: cycle-10 후속 라운드 — `ENGINE/wires/wire_g1_calibration_temperature.hexa` + `ENGINE/verify/numerics_engine_g1_wire_calibration.hexa` (ECE-driven decoding temperature schedule + confidence-thresholded abstention spec).
+- **round-2 stub backfill**: HW-VARIANCE + RELIABILITY stub 2개 (sibling agent fan-out 끝난 후).
+- **next promote candidate**: 21 후보 중 measured tier (🟢) 도달하는 도메인이 axis letter H 수령. 현재 모두 🔵+🟡 (closed-form + citation) 상태.
+
 ## 2026-05-27 — cycle-8 N1 ledger 확장 + 카운터 방법론 교정 · 🟢 7/7 PASS
 
 `/cycle-bg` 라운드 (sticky bg 유지). ⭐ MAIN perpetual 축 N1 을 n=2→6 anchored 로 확장하며 **cycle-5 baseline 의 카운터 혼용 버그를 정직하게 교정**.

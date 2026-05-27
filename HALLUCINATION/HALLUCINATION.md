@@ -53,6 +53,16 @@ HALLUCINATION 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — l
 - **frontier perpetual.** 축의 `[x]` flip 은 한 finding 의 close 이지 frontier 종료 아님 ([[feedback_closure_is_physical_limit]]).
 - **자기-strawman 회피.** closed-negative paper 는 외부 published 주장만 반증 ([[feedback_negative_paper_external_claim]]).
 
+## ENGINE intake (wire stub)
+
+> 🟠 deferred — A1 현재 🔵 STRUCTURAL + 🟡 BY-CITATION (closed-form identity + 외부 citation). measured tier (🟢 SUPPORTED-NUMERICAL) 도달 시 ENGINE intake matrix 승격 검토. axis letter (H, I, J, ...) 는 그 시점에 부여 (지금 예약 금지).
+>
+> **Falsifier class for ENGINE wire**: factual probe 에서 hallucination rate > 20% with high confidence
+> **Anticipated ENGINE behavior wire**: confidence-thresholded abstention · retrieval-augmented fallback
+> **Status path**: [`../CALIBRATION/CALIBRATION.md`](../CALIBRATION/CALIBRATION.md) ← reference 패턴 (cycle-10 round-1 promoted to ENGINE axis G).
+
+> ⏸ DEFERRED waiting on cycle-10+ T4 measured fire.
+
 ## Cross-refs
 
 - 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)

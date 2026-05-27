@@ -1,6 +1,6 @@
 #!hexa strict
-// hexa-codex/BIO/verify/numerics_bio_d1_hebbian_attention.hexa
-// BIO axis D1 (cycle-4 first probe) — Hebbian Δw ↔ linear attention closed-form identity.
+// hexa-codex/NEUROEXP/verify/numerics_neuroexp_n1_hebbian_attention.hexa
+// NEUROEXP axis N1 (cycle-4 first probe · 구 BIO/D1 이관 by reorg cycle-1) — Hebbian Δw ↔ linear attention closed-form identity.
 //
 // CLAIM (BIO.md D1). Hebbian / synaptic plasticity 의 Δw=η·x·y 가 transformer
 // attention 의 in-context "weight update" 와 닫힌형 mapping 되는지. 반증자:
@@ -80,7 +80,7 @@ let V31 = 0      let V32 = 0      let V33 = 40000  let V34 = 0
 // query at t=3 — q_3 = (1, 0, 0, 0)
 let Q31 = 10000  let Q32 = 0      let Q33 = 0      let Q34 = 0
 
-print("hexa-codex BIO D1 — Hebbian Δw ↔ linear attention closed-form (cycle-4 first probe)")
+print("hexa-codex NEUROEXP N1 — Hebbian Δw ↔ linear attention closed-form (cycle-4 first probe)")
 print("=====================================================================================")
 print("  Hebbian rule:   Δw_ij = η · x_i · y_j  (Hebb 1949)")
 print("  Linear attn:    W_t = Σ_{s≤t} φ(k_s) · v_s^T  →  out_t = W_t · φ(q_t)  (Schlag 2021)")
@@ -278,11 +278,11 @@ fn _root() -> str {
     return HOME + "/core/hexa-codex"
 }
 let ROOT = _root()
-let OUT_PATH = ROOT + "/BIO/verdicts/d1_hebbian_attention_verdict.txt"
+let OUT_PATH = ROOT + "/NEUROEXP/verdicts/n1_hebbian_attention_verdict.txt"
 
-let mut content = "# hexa-codex BIO D1 — Hebbian Δw ↔ linear attention closed-form identity (cycle-4 first probe)\n"
-content = content + "# axis=BIO.md::D1 (NOVEL · cycle-1 init · D = Bio-inspired LLM architecture)\n"
-content = content + "# verifier=BIO/verify/numerics_bio_d1_hebbian_attention.hexa\n"
+let mut content = "# hexa-codex NEUROEXP N1 — Hebbian Δw ↔ linear attention closed-form identity (cycle-4 first probe)\n"
+content = content + "# axis=NEUROEXP.md::N1 (cycle-4 first probe · 구 BIO/D1 이관 by reorg cycle-1 · N = Neural-update rule probe)\n"
+content = content + "# verifier=NEUROEXP/verify/numerics_neuroexp_n1_hebbian_attention.hexa\n"
 content = content + "# tier=" + verdict_tier + "\n"
 content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
 content = content + "# identity=Schlag2021_linear_attn_eq_Hebbian_fast_weight (arXiv:2102.11174)\n"

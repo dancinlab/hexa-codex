@@ -1,6 +1,6 @@
-# hexa-codex BIO A2 — vocab size effect on LLM capacity (cycle-3 first probe)
-# axis=BIO.md::A2 (NOVEL · cycle-1 init · A = BIO-data LLM training)
-# verifier=BIO/verify/numerics_bio_a2_vocab_size_capacity.hexa
+# hexa-codex BIODATA A2 — vocab size effect on LLM capacity (cycle-3 first probe · 구 BIO/A2 이관 by reorg cycle-1)
+# axis=BIODATA.md::A2 (cycle-3 first probe · 구 BIO/A2 이관 by reorg · A = BIO-data LLM training)
+# verifier=BIODATA/verify/numerics_biodata_a2_vocab_size_capacity.hexa
 # tier=🔵 SUPPORTED-FORMAL — V × d_model embed term + n²·d attention trade-off (8/8)
 # checks=8/8
 # vocab=text50000_BPE · protein20_amino · DNA4_nt

@@ -1,6 +1,6 @@
-# hexa-codex BIO A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe)
-# axis=BIO.md::A1 (NOVEL · cycle-1 init · A = BIO-data LLM training)
-# verifier=BIO/verify/numerics_bio_a1_protein_llm_scaling.hexa
+# hexa-codex BIODATA A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe · 구 BIO/A1 이관 by reorg cycle-1)
+# axis=BIODATA.md::A1 (cycle-2 first probe · 구 BIO/A1 이관 by reorg · A = BIO-data LLM training)
+# verifier=BIODATA/verify/numerics_biodata_a1_protein_llm_scaling.hexa
 # tier=🔵 STRUCTURAL (Lagrangian shift 9/9) + 🟡 α_protein-by-citation + 🟠 β_protein assumed
 # checks=9/9
 # inputs=alpha_text=0.34 beta_text=0.28 (Hoffmann/C1 cycle-43)

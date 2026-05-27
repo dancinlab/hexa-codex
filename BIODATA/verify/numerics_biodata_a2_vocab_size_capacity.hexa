@@ -1,6 +1,6 @@
 #!hexa strict
-// hexa-codex/BIO/verify/numerics_bio_a2_vocab_size_capacity.hexa
-// BIO axis A2 (cycle-3 first probe) — vocab size effect on LLM capacity.
+// hexa-codex/BIODATA/verify/numerics_biodata_a2_vocab_size_capacity.hexa
+// BIODATA axis A2 (cycle-3 first probe · 구 BIO/A2 이관 by reorg cycle-1) — vocab size effect on LLM capacity.
 //
 // CLAIM (BIO.md A2). 어휘 크기 V (text BPE 50000 vs protein 20-amino vs DNA 4-nt)
 // 가 model capacity 요구에 미치는 닫힌형 영향. 반증자: V 와 model capacity 가
@@ -58,7 +58,7 @@ fn attn_compute_per_layer(n: int, d: int) -> int {
     return n * n * d
 }
 
-print("hexa-codex BIO A2 — vocab size effect on LLM capacity (cycle-3 first probe)")
+print("hexa-codex BIODATA A2 — vocab size effect on LLM capacity (cycle-3 first probe)")
 print("============================================================================")
 print("  text V=50000 (BPE) · protein V=20 (amino) · DNA V=4 (nt) · d_model=1024")
 print("  seq-length (same content): text 30 · protein 300 · DNA 900")
@@ -209,11 +209,11 @@ fn _root() -> str {
     return HOME + "/core/hexa-codex"
 }
 let ROOT = _root()
-let OUT_PATH = ROOT + "/BIO/verdicts/a2_vocab_size_capacity_verdict.txt"
+let OUT_PATH = ROOT + "/BIODATA/verdicts/a2_vocab_size_capacity_verdict.txt"
 
-let mut content = "# hexa-codex BIO A2 — vocab size effect on LLM capacity (cycle-3 first probe)\n"
-content = content + "# axis=BIO.md::A2 (NOVEL · cycle-1 init · A = BIO-data LLM training)\n"
-content = content + "# verifier=BIO/verify/numerics_bio_a2_vocab_size_capacity.hexa\n"
+let mut content = "# hexa-codex BIODATA A2 — vocab size effect on LLM capacity (cycle-3 first probe)\n"
+content = content + "# axis=BIODATA.md::A2 (cycle-3 first probe · 구 BIO/A2 이관 by reorg cycle-1)\n"
+content = content + "# verifier=BIODATA/verify/numerics_biodata_a2_vocab_size_capacity.hexa\n"
 content = content + "# tier=" + verdict_tier + "\n"
 content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
 content = content + "# vocab=text50000_BPE · protein20_amino · DNA4_nt\n"

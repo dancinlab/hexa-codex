@@ -4,4 +4,5 @@
 @domain SANDBOX := "./SANDBOX.md"
 @domain ECONOMICS := "./ECONOMICS.md"
 @domain ENGINE := "./ENGINE/ENGINE.md"
-@domain BIO := "./BIO/BIO.md"
+@domain NEUROEXP := "./NEUROEXP/NEUROEXP.md"
+@domain BIODATA := "./BIODATA/BIODATA.md"

@@ -1,6 +1,6 @@
 #!hexa strict
-// hexa-codex/BIO/verify/numerics_bio_a1_protein_llm_scaling.hexa
-// BIO axis A1 (cycle-2 first probe) — protein-LLM scaling law vs text Hoffmann.
+// hexa-codex/BIODATA/verify/numerics_biodata_a1_protein_llm_scaling.hexa
+// BIODATA axis A1 (cycle-2 first probe · 구 BIO/A1 이관 by reorg cycle-1) — protein-LLM scaling law vs text Hoffmann.
 //
 // CLAIM (BIO.md A1). Protein-sequence LLM (ESM family) scaling-law parameters
 // (α, β in L(N,D) = E + A/N^α + B/D^β) differ from text Hoffmann's by ε > 0.05
@@ -49,7 +49,7 @@ let BETA_PROTEIN_x100 = 28     // working assumption = β_text (🟠)
 
 let EPSILON_THRESHOLD_x100 = 5  // BIO A1 falsifier threshold ε=0.05
 
-print("hexa-codex BIO A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe)")
+print("hexa-codex BIODATA A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe)")
 print("====================================================================================")
 print("  text Hoffmann (C1 cycle-43): α=0.34 · β=0.28")
 print("  ESM2 (Lin 2023, 5-rung): α≈0.10 (perplexity-vs-params ballpark)")
@@ -206,11 +206,11 @@ fn _root() -> str {
     return HOME + "/core/hexa-codex"
 }
 let ROOT = _root()
-let OUT_PATH = ROOT + "/BIO/verdicts/a1_protein_llm_scaling_verdict.txt"
+let OUT_PATH = ROOT + "/BIODATA/verdicts/a1_protein_llm_scaling_verdict.txt"
 
-let mut content = "# hexa-codex BIO A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe)\n"
-content = content + "# axis=BIO.md::A1 (NOVEL · cycle-1 init · A = BIO-data LLM training)\n"
-content = content + "# verifier=BIO/verify/numerics_bio_a1_protein_llm_scaling.hexa\n"
+let mut content = "# hexa-codex BIODATA A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe)\n"
+content = content + "# axis=BIODATA.md::A1 (cycle-2 first probe · 구 BIO/A1 이관 by reorg cycle-1)\n"
+content = content + "# verifier=BIODATA/verify/numerics_biodata_a1_protein_llm_scaling.hexa\n"
 content = content + "# tier=" + verdict_tier + "\n"
 content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
 content = content + "# inputs=alpha_text=0.34 beta_text=0.28 (Hoffmann/C1 cycle-43)\n"

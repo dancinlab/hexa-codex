@@ -1,0 +1,12 @@
+# hexa-codex MULTILINGUAL N1 ⭐ NOVEL MAIN — tokenizer efficiency verifier (cycle-10 reorg)
+# axis=MULTILINGUAL/MULTILINGUAL.md::N1 (per-language tokenizer efficiency · bytes/token compression)
+# bench=MULTILINGUAL/bench/multilingual_n1_tokenizer_efficiency.hexa
+# verifier=MULTILINGUAL/verify/numerics_multilingual_n1_tokenizer_efficiency.hexa
+# tier=🔵 STRUCTURAL (bytes/token ratio identity 7/7) + 🟡 BY-CITATION (low-resource tokenizer inequality = Ahia 2023 / Petrov 2023)
+# checks=7/7
+# formula=efficiency_ratio = bytes_per_token_lang / bytes_per_token_english (× 100); low_resource = efficiency_ratio < 50
+# placeholder_data=english/spanish/chinese/korean/hindi/burmese with bytes/token × 100 integer ledger (Gemma 4 / Qwen 기준)
+# bidirectional=hindi+burmese fire (< 50) · english/spanish/chinese silent (≥ 50)
+# external_anchors=Sennrich 2016 BPE (arXiv:1508.07909) · Kudo 2018 SentencePiece (arXiv:1808.06226) · tiktoken · Gemma 4 (256k vocab) · Ahia 2023 (arXiv:2305.13707) · Petrov 2023 (arXiv:2305.15425)
+# substrate_fire=DEFERRED (cycle-10+ T4 · Gemma 4 / Qwen tokenizer · FLORES-200 · per-tokenizer bytes/token)
+# frontier_open=feedback_closure_is_physical_limit — formula close ≠ measured close · 새 언어·script·tokenizer 등장 시 axis 재오픈

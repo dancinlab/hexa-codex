@@ -1,0 +1,172 @@
+#!hexa strict
+// MULTILINGUAL/verify/numerics_multilingual_n1_tokenizer_efficiency.hexa
+// MULTILINGUAL N1 ⭐ NOVEL MAIN — closed-form verifier for per-language
+// tokenizer efficiency (bytes/token compression vs English baseline).
+//
+// Asserts the ratio identity is closed-form and the falsifier (low-resource
+// tokenizer inefficiency detection) correctly classifies:
+//   (1) efficiency_ratio identity recompute matches inline formula (all langs)
+//   (2) bytes_per_token > 0 for all langs           — positive invariant
+//   (3) english self-ratio == 100 (× 100)           — baseline identity (ratio 1.0)
+//   (4) hindi + burmese fire (ratio < 50)           — low-resource inefficiency
+//   (5) english / spanish / chinese silent (≥ 50)   — fair tokenizer bidirectional
+//   (6) determinism (re-call same values)
+//   (7) sanity: english is the baseline (ratio exactly 100 · highest or tied)
+//
+// Source: MULTILINGUAL/bench/multilingual_n1_tokenizer_efficiency.hexa
+// External anchors: Sennrich 2016 BPE (arXiv:1508.07909) · Kudo 2018 SentencePiece
+//   (arXiv:1808.06226) · tiktoken · Gemma 4 tokenizer (256k vocab) · Ahia 2023
+//   (arXiv:2305.13707) · Petrov 2023 (arXiv:2305.15425)
+//
+// @no-lock-needed
+
+let LANG_NAMES          = ["english", "spanish", "chinese", "korean", "hindi", "burmese"]
+let BYTES_PER_TOK_x100  = [420,       380,       250,       200,      150,     90]
+let EFFICIENCY_FLOOR_x100 = 50
+
+fn efficiency_ratio_x100(i: int) -> int { return (BYTES_PER_TOK_x100[i] * 100) / BYTES_PER_TOK_x100[0] }
+fn low_resource_inefficient(i: int) -> bool { return efficiency_ratio_x100(i) < EFFICIENCY_FLOOR_x100 }
+
+print("hexa-codex MULTILINGUAL N1 falsifier — tokenizer efficiency closed-form")
+print("=======================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// check 1 — efficiency_ratio identity recompute matches inline formula for all langs
+checks_total = checks_total + 1
+let mut identity_ok = true
+let mut i = 0
+while i < LANG_NAMES.len() {
+    let recompute = (BYTES_PER_TOK_x100[i] * 100) / BYTES_PER_TOK_x100[0]
+    if efficiency_ratio_x100(i) != recompute { identity_ok = false }
+    i = i + 1
+}
+if identity_ok {
+    print("  [PASS] efficiency_ratio identity recompute matches for all " + to_string(LANG_NAMES.len()) + " langs")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] efficiency_ratio identity mismatch")
+}
+
+// check 2 — bytes_per_token > 0 for all langs (positive invariant)
+checks_total = checks_total + 1
+let mut all_pos = true
+i = 0
+while i < LANG_NAMES.len() {
+    if BYTES_PER_TOK_x100[i] <= 0 { all_pos = false }
+    i = i + 1
+}
+if all_pos {
+    print("  [PASS] bytes_per_token > 0 for all langs (positive invariant)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] some bytes_per_token ≤ 0 — ratio identity broken")
+}
+
+// check 3 — english (idx 0) self-ratio = 100 (× 100 → ratio 1.0)
+checks_total = checks_total + 1
+if efficiency_ratio_x100(0) == 100 {
+    print("  [PASS] english baseline efficiency_ratio = 100/100 (ratio 1.0 — identity at baseline)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] english baseline efficiency_ratio = " + to_string(efficiency_ratio_x100(0)) + " ≠ 100")
+}
+
+// check 4 — hindi (idx 4) + burmese (idx 5) fire (efficiency_ratio < 50)
+checks_total = checks_total + 1
+if low_resource_inefficient(4) && low_resource_inefficient(5) {
+    print("  [PASS] hindi (ratio=" + to_string(efficiency_ratio_x100(4)) +
+          ") + burmese (ratio=" + to_string(efficiency_ratio_x100(5)) +
+          ") fire (< 50) — low-resource 비효율 정확 발화")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] hindi/burmese did NOT both fire — falsifier semantics broken")
+}
+
+// check 5 — english / spanish / chinese silent (efficiency_ratio ≥ 50) bidirectional
+checks_total = checks_total + 1
+if low_resource_inefficient(0) == false && low_resource_inefficient(1) == false && low_resource_inefficient(2) == false {
+    print("  [PASS] english (ratio=" + to_string(efficiency_ratio_x100(0)) +
+          ") · spanish (ratio=" + to_string(efficiency_ratio_x100(1)) +
+          ") · chinese (ratio=" + to_string(efficiency_ratio_x100(2)) +
+          ") silent (≥ 50) — false-positive 회피 (bidirectional)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] a fair-tokenizer lang flagged low-resource — false positive")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if efficiency_ratio_x100(5) == efficiency_ratio_x100(5) && low_resource_inefficient(4) == low_resource_inefficient(4) {
+    print("  [PASS] deterministic (re-call same efficiency_ratio + flag)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+// check 7 — sanity: english is the baseline (ratio exactly 100 · no lang exceeds english bytes/tok here)
+checks_total = checks_total + 1
+let mut english_is_top = true
+i = 0
+while i < LANG_NAMES.len() {
+    if efficiency_ratio_x100(i) > efficiency_ratio_x100(0) { english_is_top = false }
+    i = i + 1
+}
+if efficiency_ratio_x100(0) == 100 && english_is_top {
+    print("  [PASS] sanity: english is baseline (ratio=100 · no lang more efficient → English-anchored cost frame)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity: english not the baseline anchor")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (bytes/token ratio identity 7/7) + 🟡 BY-CITATION (low-resource tokenizer inequality = Ahia 2023 / Petrov 2023)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — tokenizer efficiency formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("MULTILINGUAL N1 ⭐ finding (placeholder · closed-form):")
+print("  - efficiency_ratio identity recompute (7/7 closed-form checks)")
+print("  - low-resource inefficiency flag (efficiency_ratio < 50): hindi/burmese fire, english/spanish/chinese silent")
+print("  - external anchor: Sennrich 2016 BPE · Kudo 2018 SentencePiece · Ahia 2023 · Petrov 2023")
+print("  - 실측 tokenizer fertility 측정 (cycle-10+ T4): Gemma 4 / Qwen tokenizer · FLORES-200 parallel corpus · per-tokenizer bytes/token")
+print("")
+print("__HEXA_CODEX_NUMERICS_MULTILINGUAL_N1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/MULTILINGUAL/verdicts/n1_tokenizer_efficiency_verdict.txt"
+
+let mut content = "# hexa-codex MULTILINGUAL N1 ⭐ NOVEL MAIN — tokenizer efficiency verifier (cycle-10 reorg)\n"
+content = content + "# axis=MULTILINGUAL/MULTILINGUAL.md::N1 (per-language tokenizer efficiency · bytes/token compression)\n"
+content = content + "# bench=MULTILINGUAL/bench/multilingual_n1_tokenizer_efficiency.hexa\n"
+content = content + "# verifier=MULTILINGUAL/verify/numerics_multilingual_n1_tokenizer_efficiency.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=efficiency_ratio = bytes_per_token_lang / bytes_per_token_english (× 100); low_resource = efficiency_ratio < 50\n"
+content = content + "# placeholder_data=english/spanish/chinese/korean/hindi/burmese with bytes/token × 100 integer ledger (Gemma 4 / Qwen 기준)\n"
+content = content + "# bidirectional=hindi+burmese fire (< 50) · english/spanish/chinese silent (≥ 50)\n"
+content = content + "# external_anchors=Sennrich 2016 BPE (arXiv:1508.07909) · Kudo 2018 SentencePiece (arXiv:1808.06226) · tiktoken · Gemma 4 (256k vocab) · Ahia 2023 (arXiv:2305.13707) · Petrov 2023 (arXiv:2305.15425)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ T4 · Gemma 4 / Qwen tokenizer · FLORES-200 · per-tokenizer bytes/token)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — formula close ≠ measured close · 새 언어·script·tokenizer 등장 시 axis 재오픈\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

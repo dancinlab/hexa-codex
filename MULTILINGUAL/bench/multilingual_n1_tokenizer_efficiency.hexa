@@ -1,0 +1,73 @@
+#!hexa strict
+// MULTILINGUAL/bench/multilingual_n1_tokenizer_efficiency.hexa
+// MULTILINGUAL N1 ⭐ NOVEL MAIN (cycle-10 reorg · train/infer/serve stack) —
+// per-language tokenizer efficiency = bytes/token compression vs English baseline.
+//
+// Motivation: low-resource 언어가 영어보다 token 을 더 많이 먹으면 (bytes/token 낮음)
+// 비용·context window 가 불리하다. tokenizer fertility (token-per-word) 의 역수 개념 —
+// bytes/token 이 높을수록 한 token 이 더 많은 바이트를 담아 효율적. A1 (per-language
+// perplexity gap) 의 입력단 — tokenizer 가 언어별로 공평한가를 측정.
+//
+// Identity (closed-form ratio · libm-free):
+//   efficiency_ratio_x100(lang) = bytes_per_token_x100[lang] × 100 / bytes_per_token_x100[english]
+//
+// Falsifier (CODEX N1): low-resource language tokenizer 효율 < 영어 × 0.5
+//   (즉 efficiency_ratio < 50 → 한 token 이 영어 대비 절반 미만의 바이트만 담아
+//    동일 텍스트에 token 2배 이상 소모 → 비용·context 불평등) → fires.
+//
+// Bidirectional discrimination:
+//   english / spanish / chinese  → efficiency_ratio ≥ 50  → silent (공평)
+//   hindi / burmese              → efficiency_ratio < 50   → fires (low-resource 비효율)
+//
+// External anchors (citation tier · 🟡):
+//   Sennrich 2016 — BPE subword units (arXiv:1508.07909)
+//   Kudo 2018 — SentencePiece / unigram LM tokenizer (arXiv:1808.06226)
+//   tiktoken — OpenAI BPE tokenizer
+//   Gemma 4 tokenizer — 256k vocab SentencePiece
+//   Ahia 2023 — tokenizer 비용 불평등 across languages (arXiv:2305.13707)
+//   Petrov 2023 — language model tokenizers introduce unfairness (arXiv:2305.15425)
+//
+// Integer ledger (× 100 for bytes/token) — libm-free closed-form.
+// Placeholder constants (Gemma 4 / Qwen tokenizer 기준 · 실측 cycle-10+ T4 deferred).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form ratio identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Language registry — english baseline · descending bytes/token efficiency.
+// bytes_per_token × 100 (e.g. 420 = 4.2 bytes/token).
+// (placeholder · real per-tokenizer measurement deferred to cycle-10+ T4)
+// ────────────────────────────────────────────────────────────────────────
+
+let LANG_NAMES          = ["english", "spanish", "chinese", "korean", "hindi", "burmese"]
+let BYTES_PER_TOK_x100  = [420,       380,       250,       200,      150,     90]
+
+let EFFICIENCY_FLOOR_x100 = 50    // efficiency_ratio < 50 (영어 × 0.5) → falsifier fires
+
+fn efficiency_ratio_x100(i: int) -> int {
+    // bytes_per_token_lang / bytes_per_token_english × 100 (english baseline)
+    return (BYTES_PER_TOK_x100[i] * 100) / BYTES_PER_TOK_x100[0]
+}
+
+fn low_resource_inefficient(i: int) -> bool {
+    // fires when this language's tokenizer is < half as efficient as English
+    return efficiency_ratio_x100(i) < EFFICIENCY_FLOOR_x100
+}
+
+print("hexa-codex MULTILINGUAL N1 ⭐ — tokenizer efficiency closed-form (cycle-10 reorg)")
+print("================================================================================")
+print("")
+print("per-language tokenizer profile (placeholder · Gemma 4 / Qwen tokenizer 기준):")
+let n = LANG_NAMES.len()
+let mut i = 0
+while i < n {
+    let er = efficiency_ratio_x100(i)
+    let lr = low_resource_inefficient(i)
+    let mut flag = "ok (≥ 영어 × 0.5)"
+    if lr { flag = "LOW-RESOURCE INEFFICIENT (falsifier fires)" }
+    print("  " + LANG_NAMES[i] + ": bytes/tok=" + to_string(BYTES_PER_TOK_x100[i]) + "/100" +
+          " · efficiency_ratio=" + to_string(er) + "/100 (vs english=100) · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_MULTILINGUAL_N1_TOKENIZER_EFFICIENCY__ DONE")

@@ -1,0 +1,90 @@
+#!hexa strict
+// TRAINING-DYNAMICS/bench/training_dynamics_a1_spike_rate.hexa
+// TRAINING-DYNAMICS A1 first probe (cycle-9 round-7 · CODEX bg) — loss-spike
+// frequency · gradient/weight norm 추이 on training run telemetry.
+//
+// Identity (closed-form · libm-free · × 1000 ledger of the per-1k-step rate):
+//   spike_rate_per_1k(run)         = N_spikes / N_steps × 1000     (raw rate)
+//   spike_rate_per_1k_x1000(run)   = N_spikes × 1000 × 1000 / N_steps  (ledger)
+//   silent_margin_x1000            = spike_rate_per_1k_x1000 − THRESHOLD_x1000
+//   falsifier_fires                = spike_rate_per_1k > 1.0    (= raw > 1 / 1k)
+//                                  = spike_rate_per_1k_x1000 > 1000
+//
+// Falsifier (CODEX TRAINING-DYNAMICS A1): loss spike > 1 / 1k steps OR weight
+// norm divergence — training run 이 unstable phase 로 진입했음 (lr scheduler ·
+// warmup · gradient clipping · checkpoint frequency 동적 조정 trigger).
+//
+// External anchors (citation tier · 🟡):
+//   Nanda 2023 — Progress measures for grokking via mechanistic interpretability (ICLR)
+//   Wei 2022 — Emergent abilities of large language models (TMLR · phase transitions)
+//   Zhang 2024 — Why are adaptive methods good for attention models? (spike analysis · NeurIPS)
+//
+// Integer ledger (rate × 1000) — libm-free. Placeholder per-run spike counts
+// — 실측 (cycle-10+ T4 · llama-server lm_foundry GRPO · HF Trainer ·
+// vast.ai pod loss curve dump) deferred. SANDBOX 측정 substrate
+// (`cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure rate identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Run registry (4 training runs · N_steps = 1000 optimizer steps per run)
+//   stable         : ideal — 0.5 spikes/1k · silent
+//   warming        : borderline — 1.0 spikes/1k · exactly on threshold (silent)
+//   spiky          : known unstable — 2.5 spikes/1k · fires
+//   catastrophic   : divergent — 8.0 spikes/1k (weight norm exploded) · fires hard
+//
+// To stay libm-free we keep an integer "× 10" ledger of the per-1k rate
+// (stable=5, warming=10, spiky=25, catastrophic=80) and lift to × 1000 ledger:
+//   spike_rate_per_1k_x1000 = N_SPIKES_x10[i] * 100
+// (i.e. 5 → 500 = 0.5 × 1000 · 10 → 1000 = 1.0 × 1000 · etc.)
+// This matches RELIABILITY A1's × 1000 ledger pattern.
+// ────────────────────────────────────────────────────────────────────────
+
+let RUN_NAMES     = ["stable", "warming", "spiky", "catastrophic"]
+let N_SPIKES_x10  = [5, 10, 25, 80]   // × 10 ledger of N_spikes (so 0.5 · 1.0 · 2.5 · 8.0)
+
+let N_STEPS = 1000                    // optimizer steps per run
+let THRESHOLD_x1000 = 1000            // > 1000 (× 1000 ledger of 1.0/1k) → falsifier fires
+let RATE_MAX_x1000 = 1000 * 1000      // raw rate bound [0, 1000] in × 1000 ledger
+
+fn spike_rate_x1000(i: int) -> int {
+    // raw rate (per 1k steps) = N_spikes × 1000 / N_steps
+    // ledger × 1000 = N_spikes × 1000 × 1000 / N_steps
+    //              = (N_SPIKES_x10[i] / 10) × 1000 × 1000 / N_STEPS
+    //              = N_SPIKES_x10[i] × 100000 / N_STEPS
+    // For N_STEPS = 1000:  rate_x1000 = N_SPIKES_x10[i] × 100
+    return (N_SPIKES_x10[i] * 100000) / N_STEPS
+}
+
+fn silent_margin_x1000(i: int) -> int {
+    return spike_rate_x1000(i) - THRESHOLD_x1000
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return spike_rate_x1000(i) > THRESHOLD_x1000
+}
+
+print("hexa-codex TRAINING-DYNAMICS A1 — loss-spike rate per 1k steps (cycle-9 round-7)")
+print("=================================================================================")
+print("")
+print("per-run loss-spike rate (placeholder · × 1000 ledger · libm-free):")
+let n = RUN_NAMES.len()
+let mut i = 0
+while i < n {
+    let r = spike_rate_x1000(i)
+    let m = silent_margin_x1000(i)
+    let mut flag = "silent (≤ 1.0/1k · stable phase)"
+    if falsifier_fires(i) {
+        flag = "FIRES (> 1.0/1k · unstable phase · lr scheduler trigger)"
+    }
+    print("  " + RUN_NAMES[i] +
+          ": N_spikes=" + to_string(N_SPIKES_x10[i] / 10) + "." + to_string(N_SPIKES_x10[i] % 10) +
+          " / " + to_string(N_STEPS) + " steps" +
+          " · rate=" + to_string(r) + "/1000 (per-1k × 1000)" +
+          " · margin=" + to_string(m) + "/1000" +
+          " · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_TRAINING_DYNAMICS_A1_SPIKE_RATE__ DONE")

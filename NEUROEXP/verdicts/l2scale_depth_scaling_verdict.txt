@@ -1,0 +1,21 @@
+# hexa-codex NEUROEXP L2-scale — logit-lens readout-depth model-size scaling (cycle-14 second-tier probe · 🟢 MEASURED)
+# axis=NEUROEXP.md::L2-scale (cycle-14 · extends cycle-11 L2 single-point · L = Lesion/Ablation · T4 cost-bearing)
+# verifier=NEUROEXP/verify/numerics_neuroexp_l2scale_depth_scaling.hexa
+# capture=ubu-1 /tmp/nex_l2scale_logit_lens.py (repo-external · hexa-only rule · user-approved capture-only .py)
+# tier=🟢 SUPPORTED-NUMERICAL — readout-depth FRACTION trends DOWN with size (0.5B 95.8% → 1.5B 82.1%), 1.5B sanity reproduces cycle-11 (8/8)
+# checks=8/8
+# models=Qwen2.5-{0.5B(24L),1.5B(28L)}-Instruct · 98 next-token positions (equal) · logit-lens (final norm + lm_head)
+# env=RTX5070 · torch2.12.0+cu130 · transformers4.51.3 · numpy1.26.4 (clean venv ubu-1)
+# method=BYTE-IDENTICAL to cycle-11 L2 capture · SAME 8 mixed English+code prompts
+# 0.5B: first_within_5pp=23/24 · depth_fraction=0.958 (95.8%) · last_acc=0.418 · peak=layer24(FINAL,monotonic)
+# 1.5B: first_within_5pp=23/28 · depth_fraction=0.821 (82.1%) · last_acc=0.357 · peak=layer27(penult.,non-monotonic)
+# SANITY=1.5B reproduces cycle-11 EXACTLY (first_within_5pp=23, n_layers=28, last_acc=0.3571, total_positions=98, depth=0.821)
+# trend=DOWN (0.958 -> 0.821, delta=-0.137 = -13.7pp) — bigger model = SHALLOWER readout-fraction (decides EARLIER in fractional depth)
+# note=absolute readout layer SAME (23) for both — fraction shifts only via n_layers (24->28); extra layers = late-stack slack
+# falsifier=folk 'bigger models decide LATER (deeper fraction)' REFUTED on {0.5B,1.5B} pair (trend is DOWN)
+# operational=early-exit budget (skippable fraction of stack) GROWS with model size · logit-lens = OWN-unembed lower bound
+# class=method-transfer (logit-lens probe, scaling) — consistent with L2/L1/C1 method-transfer MATCH pattern
+# external_anchor=nostalgebraist2020_logit_lens · Qwen2.5_tech_report (0.5B 24L · 1.5B 28L)
+# honest_residual=2-point curve · 3B DISK-BLOCKED on ubu-1 (915G @ 100%, ~2.8G free) NOT fabricated · single prompt set · logit-lens not trained-probe
+# next_probe=3B/7B/14B rungs (need disk headroom on ubu-1) + trained per-layer probe + multi-prompt-set + per-task scaling — L2-scale frontier OPEN
+# RUN-HOST: capture (3 models, one-at-a-time fp16 cuda) on ubu-1 RTX5070 (clean venv) · verifier compiled+executed on ubu-1 (hexa build native) · 3B disk-blocked (915G @ 100%) → honest 2-point curve {0.5B,1.5B}

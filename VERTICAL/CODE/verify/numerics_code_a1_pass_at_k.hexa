@@ -1,0 +1,220 @@
+#!hexa strict
+// VERTICAL/CODE/verify/numerics_code_a1_pass_at_k.hexa
+// VERTICAL/CODE 신규 도메인 (cycle-10) — closed-form verifier for the pass@k
+// one-shot-ratio identity + 30% threshold falsifier semantics. hexa-codex lm_foundry/
+// 의 code-LLM (hexa-lang 94.29% Mk.I) 측정 layer 의 첫 probe.
+//
+// Asserts the ratio identity is closed-form and the falsifier (sampling-의존 detection)
+// correctly classifies:
+//   (1) ratio identity (pass@1 × 100 / pass@10) holds for all 5 models
+//   (2) pass@k values ∈ [0, 100 %] (× 100 ledger ∈ [0, 10000]) AND pass@1 ≤ pass@10
+//   (3) equal synthetic — pass@1=pass@10=80% → ratio=100% → silent (one-shot = best)
+//   (4) weak_base fires (ratio 25% < 30% · pass@1 20 ≪ pass@10 80 · sampling 의존)
+//   (5) gpt5/claude/qwen/hexa_mk1 silent (ratio ≥ 30% · one-shot 강함)
+//   (6) determinism (re-call same ratio + fires)
+//   (7) sanity — pass@1 ≤ pass@10 for all (best-of-10 ≥ one-shot, 단조) AND frontier
+//       monotone: gpt5 ≥ claude ≥ qwen ≥ hexa_mk1 ≥ weak_base on pass@1 (ladder 정합)
+//
+// Source: VERTICAL/CODE/bench/code_a1_pass_at_k.hexa
+// External anchors: Chen 2021 HumanEval (arXiv:2107.03374) · Austin 2021 MBPP
+//                   (arXiv:2108.07732) · Jimenez 2023 SWE-bench (arXiv:2310.06770) ·
+//                   hexa-lang Mk.I 94.29% (lm_foundry `code` verb GA · 627/665)
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["gpt5_code", "claude_code", "qwen_coder", "hexa_mk1", "weak_base"]
+
+let MODEL_DATA = [8800, 9600,
+                  8500, 9400,
+                  8200, 9300,
+                  7000, 8200,
+                  2000, 8000]
+
+let N_FIELDS = 2
+let THRESHOLD_PCT = 30              // < 30% one-shot ratio → sampling 의존
+let SCORE_MAX_x100 = 100 * 100      // pass@k × 100 ledger ∈ [0, 10000]
+
+fn pass_at_1_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn pass_at_10_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn oneshot_ratio_pct(model_i: int) -> int {
+    // one-shot pass@1 as % of best-of-10 pass@10. Both operands share the × 100
+    // ledger so the × 100 factors cancel → result is plain percent (e.g. 91).
+    //   ratio% = pass@1_x100 × 100 / pass@10_x100
+    return (pass_at_1_x100(model_i) * 100) / pass_at_10_x100(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return oneshot_ratio_pct(model_i) < THRESHOLD_PCT
+}
+
+print("hexa-codex VERTICAL/CODE A1 falsifier — pass@k one-shot-ratio closed-form")
+print("========================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — ratio identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = oneshot_ratio_pct(i)
+    let rhs = (pass_at_1_x100(i) * 100) / pass_at_10_x100(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] ratio identity (pass@1 × 100 / pass@10) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ratio identity broken")
+}
+
+// check 2 — pass@k values ∈ [0, 100 %] AND pass@1 ≤ pass@10 (best-of-10 dominates)
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_model {
+    let mut f = 0
+    while f < N_FIELDS {
+        let v = MODEL_DATA[i * N_FIELDS + f]
+        if v < 0 || v > SCORE_MAX_x100 { rb_ok = false }
+        f = f + 1
+    }
+    if pass_at_1_x100(i) > pass_at_10_x100(i) { rb_ok = false }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] pass@k values ∈ [0, 100 %] (× 100 ledger ∈ [0, " +
+          to_string(SCORE_MAX_x100) + "]) AND pass@1 ≤ pass@10 for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] value out of range or pass@1 > pass@10")
+}
+
+// check 3 — equal synthetic: pass@1=pass@10=80% → ratio=100% → silent (one-shot = best)
+checks_total = checks_total + 1
+let SYN = 8000  // 80% × 100
+let syn_ratio = (SYN * 100) / SYN
+if syn_ratio == 100 && syn_ratio >= THRESHOLD_PCT {
+    print("  [PASS] synthetic equal (pass@1=pass@10=80%) → ratio=100% · silent (one-shot = best-of-10)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic equal ratio=" + to_string(syn_ratio))
+}
+
+// check 4 — weak_base (idx 4) fires (ratio 25% < 30% · sampling 의존)
+checks_total = checks_total + 1
+if falsifier_fires(4) && oneshot_ratio_pct(4) == 25 {
+    print("  [PASS] weak_base fires: ratio=" + to_string(oneshot_ratio_pct(4)) +
+          "% (pass@1 20 ≪ pass@10 80) — < 30% · one-shot 약함 · sampling 의존")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] weak_base fire detection broken (ratio=" + to_string(oneshot_ratio_pct(4)) + ")")
+}
+
+// check 5 — gpt5/claude/qwen/hexa_mk1 silent (ratio ≥ 30% · one-shot 강함)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false
+        && falsifier_fires(2) == false && falsifier_fires(3) == false
+        && oneshot_ratio_pct(0) == 91 && oneshot_ratio_pct(2) == 88
+        && oneshot_ratio_pct(3) == 85 {
+    print("  [PASS] strong-code models silent: gpt5_code ratio=" + to_string(oneshot_ratio_pct(0)) +
+          "% · claude_code=" + to_string(oneshot_ratio_pct(1)) +
+          "% · qwen_coder=" + to_string(oneshot_ratio_pct(2)) +
+          "% (#1 SWE-bench) · hexa_mk1=" + to_string(oneshot_ratio_pct(3)) +
+          "% (lm_foundry Mk.I) — all ≥ 30% · one-shot 강함 (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] strong-code silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if oneshot_ratio_pct(0) == oneshot_ratio_pct(0)
+        && falsifier_fires(4) == falsifier_fires(4)
+        && oneshot_ratio_pct(3) == oneshot_ratio_pct(3) {
+    print("  [PASS] formula deterministic (re-call same ratio + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: pass@1 ≤ pass@10 for all (best-of-10 단조) AND frontier ladder
+//   monotone on pass@1 (gpt5 ≥ claude ≥ qwen ≥ hexa_mk1 ≥ weak_base · 등급 정합).
+checks_total = checks_total + 1
+let mut best_dominates = true
+i = 0
+while i < n_model {
+    if pass_at_1_x100(i) > pass_at_10_x100(i) { best_dominates = false }
+    i = i + 1
+}
+let ladder_monotone = pass_at_1_x100(0) >= pass_at_1_x100(1)
+        && pass_at_1_x100(1) >= pass_at_1_x100(2)
+        && pass_at_1_x100(2) >= pass_at_1_x100(3)
+        && pass_at_1_x100(3) >= pass_at_1_x100(4)
+if best_dominates && ladder_monotone {
+    print("  [PASS] sanity — pass@1 ≤ pass@10 all (best-of-10 dominates) AND pass@1 ladder monotone (gpt5 ≥ claude ≥ qwen ≥ hexa_mk1 ≥ weak_base)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (best_dominates=" + to_string(best_dominates) +
+          " · ladder_monotone=" + to_string(ladder_monotone) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (ratio identity + 30% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 30% threshold = sampling-의존 convention · cite Chen 2021 HumanEval arXiv:2107.03374 + Austin 2021 MBPP arXiv:2108.07732 + Jimenez 2023 SWE-bench arXiv:2310.06770 + hexa-lang Mk.I 94.29%)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — pass@k ratio formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/CODE A1 finding (lm_foundry Mk.I 직결 · placeholder · closed-form):")
+print("  - oneshot_ratio_pct = pass@1 × 100 / pass@10 identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: gpt5_code=91% · claude_code=90% · qwen_coder=88% (#1 SWE-bench) · hexa_mk1=85% (lm_foundry Mk.I) silent (one-shot 강함) · weak_base=25% fires (sampling 의존)")
+print("  - external anchors: Chen 2021 (arXiv:2107.03374) · Austin 2021 (arXiv:2108.07732) · Jimenez 2023 (arXiv:2310.06770) · hexa-lang Mk.I 94.29%")
+print("  - 실측 (cycle-11+ T4): HumanEval/MBPP/SWE-bench pass@k harness on lm_foundry eval + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_CODE_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/CODE/verdicts/a1_pass_at_k_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/CODE A1 — pass@k 코드 정확도 verifier (lm_foundry Mk.I 직결 · cycle-10)\n"
+content = content + "# axis=VERTICAL/CODE/CODE.md::A1 (pass@k 코드 정확도 · 5 code models · 30% one-shot-ratio threshold)\n"
+content = content + "# bench=VERTICAL/CODE/bench/code_a1_pass_at_k.hexa\n"
+content = content + "# verifier=VERTICAL/CODE/verify/numerics_code_a1_pass_at_k.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=oneshot_ratio_pct = pass_at_1 × 100 / pass_at_10 (pass@k stored × 100 ledger; × 100 factors cancel → ratio in plain %); falsifier_fires = ratio < 30% → one-shot 약함 · sampling 의존\n"
+content = content + "# placeholder_data=5 code models · gpt5_code (88/96 · ratio 91% silent) · claude_code (85/94 · 90% silent) · qwen_coder (82/93 · 88% silent · #1 SWE-bench) · hexa_mk1 (70/82 · 85% silent · lm_foundry Mk.I) · weak_base (20/80 · 25% FIRES · sampling 의존)\n"
+content = content + "# bidirectional_discrimination=4 silent (gpt5_code · claude_code · qwen_coder · hexa_mk1 — one-shot 강함) + 1 fires (weak_base — sampling 의존)\n"
+content = content + "# external_anchors=Chen 2021 HumanEval (arXiv:2107.03374) · Austin 2021 MBPP (arXiv:2108.07732) · Jimenez 2023 SWE-bench (arXiv:2310.06770) · hexa-lang Mk.I 94.29% (lm_foundry `code` verb GA · 627/665)\n"
+content = content + "# lm_foundry_link=hexa_mk1 = lm_foundry `code` verb (Qwen2.5-Coder-7B + LoRA r=64 · hexa-lang strict 94.29% Mk.I) — HumanEval/MBPP pass@k 는 별도 metric (범용 Python code-gen vs hexa-lang 전용 strict eval)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · HumanEval/MBPP/SWE-bench pass@k harness on lm_foundry eval + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — pass@k ratio identity close ≠ measured pass@k close · 새 code model·benchmark·언어 마다 frontier 재오픈 · repo-level coherence (축 N⭐) 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

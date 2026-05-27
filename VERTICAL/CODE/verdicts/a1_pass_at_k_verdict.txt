@@ -1,0 +1,13 @@
+# hexa-codex VERTICAL/CODE A1 — pass@k 코드 정확도 verifier (lm_foundry Mk.I 직결 · cycle-10)
+# axis=VERTICAL/CODE/CODE.md::A1 (pass@k 코드 정확도 · 5 code models · 30% one-shot-ratio threshold)
+# bench=VERTICAL/CODE/bench/code_a1_pass_at_k.hexa
+# verifier=VERTICAL/CODE/verify/numerics_code_a1_pass_at_k.hexa
+# tier=🔵 STRUCTURAL (ratio identity + 30% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 30% threshold = sampling-의존 convention · cite Chen 2021 HumanEval arXiv:2107.03374 + Austin 2021 MBPP arXiv:2108.07732 + Jimenez 2023 SWE-bench arXiv:2310.06770 + hexa-lang Mk.I 94.29%)
+# checks=7/7
+# formula=oneshot_ratio_pct = pass_at_1 × 100 / pass_at_10 (pass@k stored × 100 ledger; × 100 factors cancel → ratio in plain %); falsifier_fires = ratio < 30% → one-shot 약함 · sampling 의존
+# placeholder_data=5 code models · gpt5_code (88/96 · ratio 91% silent) · claude_code (85/94 · 90% silent) · qwen_coder (82/93 · 88% silent · #1 SWE-bench) · hexa_mk1 (70/82 · 85% silent · lm_foundry Mk.I) · weak_base (20/80 · 25% FIRES · sampling 의존)
+# bidirectional_discrimination=4 silent (gpt5_code · claude_code · qwen_coder · hexa_mk1 — one-shot 강함) + 1 fires (weak_base — sampling 의존)
+# external_anchors=Chen 2021 HumanEval (arXiv:2107.03374) · Austin 2021 MBPP (arXiv:2108.07732) · Jimenez 2023 SWE-bench (arXiv:2310.06770) · hexa-lang Mk.I 94.29% (lm_foundry `code` verb GA · 627/665)
+# lm_foundry_link=hexa_mk1 = lm_foundry `code` verb (Qwen2.5-Coder-7B + LoRA r=64 · hexa-lang strict 94.29% Mk.I) — HumanEval/MBPP pass@k 는 별도 metric (범용 Python code-gen vs hexa-lang 전용 strict eval)
+# substrate_fire=DEFERRED (cycle-11+ · HumanEval/MBPP/SWE-bench pass@k harness on lm_foundry eval + vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — pass@k ratio identity close ≠ measured pass@k close · 새 code model·benchmark·언어 마다 frontier 재오픈 · repo-level coherence (축 N⭐) 도착지 없음

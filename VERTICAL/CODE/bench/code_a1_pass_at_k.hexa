@@ -1,0 +1,110 @@
+#!hexa strict
+// VERTICAL/CODE/bench/code_a1_pass_at_k.hexa
+// VERTICAL/CODE 신규 도메인 (cycle-10) — 코드 생성 전문 모델의 pass@k 정확도
+// closed-form first probe. hexa-codex 의 lm_foundry/ 가 실제 code-LLM (hexa-lang
+// 94.29% Mk.I · Qwen2.5-Coder-7B + LoRA) — CODE 도메인은 그 측정 layer.
+//
+// North-star: 한 번에 맞히는 모델(one-shot pass@1)과 10번 뽑아 best 고르는
+// 모델(pass@10) 의 격차 — one-shot 코드 정확도가 best-of-10 에 얼마나 가까운가.
+// 격차가 크면 모델은 sampling(여러 번 시도) 에 의존하지 한 방에 못 맞힌다.
+//
+// Identity (closed-form · libm-free · pass@k stored × 100 ledger, ratio in plain %):
+//   oneshot_ratio_pct(model) = pass_at_1_x100 × 100 / pass_at_10_x100   (× 100 cancels → %)
+//   strong_oneshot(model)    = oneshot_ratio_pct ≥ THRESHOLD_PCT (30%)
+//   falsifier_fires(model)   = oneshot_ratio_pct <  THRESHOLD_PCT
+//                              → pass@1 < pass@10 × 0.3 → one-shot 약함 (sampling 의존)
+//
+// Falsifier (VERTICAL/CODE A1): one-shot pass@1 이 best-of-10 pass@10 의 30% 미만이면
+// 그 모델은 한 방에 못 맞히고 여러 번 sampling 해야만 정답을 뽑는다 (sampling 의존).
+// strong-code 모델은 silent (ratio 큼 · one-shot 강함) · weak base 는 fires.
+//
+// External anchors (citation tier · 🟡):
+//   Chen 2021  — Evaluating Large Language Models Trained on Code / HumanEval (arXiv:2107.03374)
+//   Austin 2021 — Program Synthesis with Large Language Models / MBPP (arXiv:2108.07732)
+//   Jimenez 2023 — SWE-bench: Can Language Models Resolve Real-World GitHub Issues? (arXiv:2310.06770)
+//   hexa-lang Mk.I — lm_foundry `code` verb GA 94.29% strict (627/665) · 별도 metric
+//
+// Integer ledger (% × 100) — libm-free closed-form. Placeholder per-model
+// {pass@1, pass@10} from HumanEval/MBPP-class scores — 실측 HumanEval/MBPP/SWE-bench
+// pass@k harness deferred (cycle-11+ T4 · lm_foundry eval + vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure pass@k ratio identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 code models · {pass_at_1, pass_at_10} · % × 100 ledger)
+//   gpt5_code   : pass@1 88.0 · pass@10 96.0 → ratio 91.6% (frontier · one-shot 강함 · silent)
+//   claude_code : pass@1 85.0 · pass@10 94.0 → ratio 90.4% (frontier · silent)
+//   qwen_coder  : pass@1 82.0 · pass@10 93.0 → ratio 88.1% (#1 SWE-bench · silent)
+//   hexa_mk1    : pass@1 70.0 · pass@10 82.0 → ratio 85.3% (lm_foundry Mk.I · hexa-lang 94.29% 별도 · silent)
+//   weak_base   : pass@1 20.0 · pass@10 80.0 → ratio 25.0% (sampling 의존 · FIRES)
+//
+// pass@1  = 한 번 sampling 한 답이 통과할 확률 (%). pass@10 = 10번 뽑아 best.
+// stored × 100 (88.0% → 8800 ledger) — libm-free, matches DATA-QUALITY/MULTIMODAL × 100.
+// note: hexa_mk1 의 HumanEval/MBPP pass@k 는 hexa-lang strict 94.29% Mk.I 와 별도 metric
+//       (전자 = 범용 Python code-gen · 후자 = hexa-lang 전용 strict eval).
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["gpt5_code", "claude_code", "qwen_coder", "hexa_mk1", "weak_base"]
+
+// row-major {pass_at_1_x100, pass_at_10_x100} (5 models × 2 fields)
+//   gpt5_code   : [8800, 9600]  → 88.0 / 96.0 · ratio 91.6% silent
+//   claude_code : [8500, 9400]  → 85.0 / 94.0 · ratio 90.4% silent
+//   qwen_coder  : [8200, 9300]  → 82.0 / 93.0 · ratio 88.1% silent (#1 SWE-bench)
+//   hexa_mk1    : [7000, 8200]  → 70.0 / 82.0 · ratio 85.3% silent (lm_foundry Mk.I)
+//   weak_base   : [2000, 8000]  → 20.0 / 80.0 · ratio 25.0% FIRES (sampling 의존)
+let MODEL_DATA = [8800, 9600,
+                  8500, 9400,
+                  8200, 9300,
+                  7000, 8200,
+                  2000, 8000]
+
+let N_FIELDS = 2
+let THRESHOLD_PCT = 30               // oneshot_ratio < 30% → one-shot 약함 (sampling 의존)
+let SCORE_MAX_x100 = 100 * 100       // pass@k ∈ [0, 100] % · × 100 ledger ∈ [0, 10000]
+
+fn pass_at_1_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn pass_at_10_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn oneshot_ratio_pct(model_i: int) -> int {
+    // one-shot pass@1 as % of best-of-10 pass@10. Both operands share the × 100
+    // ledger so the × 100 factors cancel → result is plain percent (높을수록 강함).
+    //   ratio% = pass@1_x100 × 100 / pass@10_x100
+    return (pass_at_1_x100(model_i) * 100) / pass_at_10_x100(model_i)
+}
+
+fn strong_oneshot(model_i: int) -> bool {
+    return oneshot_ratio_pct(model_i) >= THRESHOLD_PCT
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // pass@1 < pass@10 × 0.3 → one-shot 약함 → sampling 의존
+    return oneshot_ratio_pct(model_i) < THRESHOLD_PCT
+}
+
+print("hexa-codex VERTICAL/CODE A1 — pass@k 코드 정확도 closed-form (cycle-10 · lm_foundry Mk.I 직결)")
+print("================================================================================================")
+print("")
+print("per-model pass@k profile (placeholder · × 100 ledger · libm-free):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let p1 = pass_at_1_x100(i)
+    let p10 = pass_at_10_x100(i)
+    let r = oneshot_ratio_pct(i)
+    let mut flag = "silent (one-shot 강함 · ratio ≥ 30%)"
+    if falsifier_fires(i) {
+        flag = "FIRES (ratio < 30% · one-shot 약함 · sampling 의존)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    pass@1=" + to_string(p1 / 100) + "." + to_string((p1 % 100) / 10) +
+          "% · pass@10=" + to_string(p10 / 100) + "." + to_string((p10 % 100) / 10) + "%")
+    print("    → oneshot_ratio=" + to_string(r) + "% · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_CODE_A1_PASS_AT_K__ DONE")

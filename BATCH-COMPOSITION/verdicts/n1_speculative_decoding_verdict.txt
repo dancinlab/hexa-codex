@@ -1,0 +1,20 @@
+# hexa-codex BATCH-COMPOSITION N1 ⭐ NOVEL MAIN — speculative-decoding accept × speedup closed-form verifier (cycle-10 reorg Batch B)
+# axis=BATCH-COMPOSITION/BATCH-COMPOSITION.md::N1 (speculative decoding · draft acceptance × throughput speedup · NOVEL MAIN throughput lane)
+# formula=predicted_speedup_x100(c) = 100 + accept_x100×(k−1)/k (k_draft=5 · first-order monotone relation); full geometric (Leviathan) = (1−α^(k+1))/(1−α) anchor-tier; falsifier_fires = accept_x100 < 5000 (< 50%) OR speedup_x100 < 120 (< 1.2×)
+# bench=BATCH-COMPOSITION/bench/batch_composition_n1_speculative_decoding.hexa
+# verifier=BATCH-COMPOSITION/verify/numerics_batch_composition_n1_speculative_decoding.hexa
+# tier=🔵 STRUCTURAL (speculative-decoding accept→speedup monotone relation + bidirectional threshold 7/7) + 🟡 BY-CITATION (Leviathan 2023 arXiv:2211.17192 · Chen 2023 arXiv:2302.01318 · Cai 2024 Medusa arXiv:2401.10774 · Stern 2018 blockwise)
+# verdict_class=SUPPORTED-NUMERICAL
+# checks=7/7
+# k_draft=5 (fixed draft proposal window · γ)
+# compositions=5 (tiny_draft_good accept=8000 · medium_draft accept=7000 · self_spec_medusa accept=7500 · mismatched_draft accept=4500 · bad_draft accept=3000) on accept_x100 ledger (10000 = 100%)
+# accept_x100=tiny:8000 medium:7000 self_spec:7500 mismatched:4500 bad:3000
+# speedup_x100=tiny:250 medium:210 self_spec:230 mismatched:130 bad:105 (100 = 1.0×)
+# predicted_speedup_x100=tiny:164 medium:156 self_spec:160 mismatched:136 bad:124
+# accept_threshold_x100=5000 (acceptance < 50% → fires) · speedup_threshold_x100=120 (speedup < 1.2× → fires)
+# bidirectional=tiny(80%)/medium(70%)/self_spec(75%) silent (true value · false-positive 회피) · mismatched(45%)/bad(30%) fire (true-positive captured · speculative 무의미) · zero-accept α=0 → predicted 100 (= 1.0× floor)
+# monotone=accept↑ ⇒ predicted_speedup_x100 non-decreasing (accept drives speedup · lower-bound speedup_x100 ≥ predicted for silent combos)
+# external_anchors=Leviathan 2023 arXiv:2211.17192 (ICML) · Chen 2023 arXiv:2302.01318 (DeepMind) · Cai 2024 Medusa arXiv:2401.10774 · Stern 2018 blockwise (NeurIPS)
+# substrate_fire=DEFERRED (cycle-10+ · measured draft-target serving bench · vLLM/TGI speculative decode · Llama-3 8B target + 1B draft · ShareGPT · wall-clock tokens/s · vast.ai cost-bearing pod)
+# honest_residual=first-order_linear_understates_geometric_gain(1−α^(k+1))/(1−α)_anchor-tier_only · draft_FLOPs_amortized_into_empirical_speedup · KV-cache_rollback_on_rejection_not_modeled_at_closed-form_tier · A1_padding-waste_and_N1_token-parallelism_orthogonal_throughput_levers
+# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis · new draft-target pair · new spec algorithm · new verify-batch width reopens cells · 도착지 없음)

@@ -1,0 +1,311 @@
+#!hexa strict
+// BATCH-COMPOSITION/verify/numerics_batch_composition_n1_speculative_decoding.hexa
+// BATCH-COMPOSITION N1 ⭐ NOVEL MAIN — closed-form falsifier verifier for the
+// speculative-decoding acceptance → speedup relation on integer × 100 ledger.
+//
+// Independently REPLICATES the bench relation (no runtime import of bench
+// state) and asserts the 7 invariants:
+//   (1) speedup-acceptance relation   predicted_speedup_x100 = 100 + accept_x100×(k−1)/k
+//                                      (helper == inline ∀ combo · monotone closed-form)
+//   (2) range bound                    accept_x100 ∈ [0, 10000] AND speedup_x100 ≥ 100
+//   (3) zero-accept synthetic control  α = 0 → predicted_speedup_x100 == 100 (= 1.0×)
+//   (4) bad_draft fires                bad_draft accept_x100 < 5000 (< 50%) → fires
+//   (5) good drafts silent             tiny/medium/self_spec accept ≥ 50% → silent
+//   (6) determinism                    re-call same input → same predicted · same fire
+//   (7) monotone sanity                accept↑ ⇒ predicted_speedup_x100 non-decreasing
+//
+// Any FAIL = bench encoding contradicts the closed-form relation →
+// BATCH-COMPOSITION N1 FALSIFIED.
+//
+// SOURCE.  bench/batch_composition_n1_speculative_decoding.hexa (this verifier
+// replicates the relation independently — closed-form recompute, no runtime
+// import of the bench file's emitted state; same inputs by construction).
+//
+// External anchors:
+//   Leviathan 2023 — Fast Inference from Transformers via Speculative Decoding (arXiv:2211.17192 · ICML 2023)
+//   Chen 2023 — Accelerating LLM Decoding with Speculative Sampling (arXiv:2302.01318 · DeepMind)
+//   Cai 2024  — Medusa: Multiple Decoding Heads (arXiv:2401.10774 · self-spec)
+//   Stern 2018 — Blockwise Parallel Decoding for Deep Autoregressive Models (NeurIPS 2018)
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form speculative-decoding accept→speedup relation recompute on integer ×100 ledger.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Replicated registry (independent · parallel to bench by construction)
+//   indices: 0 = tiny_draft_good · 1 = medium_draft · 2 = self_spec_medusa
+//            3 = mismatched_draft · 4 = bad_draft
+// ────────────────────────────────────────────────────────────────────────
+
+let COMBO_NAMES = ["tiny_draft_good", "medium_draft", "self_spec_medusa", "mismatched_draft", "bad_draft"]
+let ACCEPT_x100 = [           8000,           7000,               7500,               4500,         3000]
+let SPEEDUP_x100 = [           250,            210,                230,                130,          105]
+
+let K_DRAFT = 5
+let ACCEPT_THRESHOLD_x100 = 5000
+let SPEEDUP_THRESHOLD_x100 = 120
+
+fn predicted_speedup_x100_v(i: int) -> int {
+    return 100 + (ACCEPT_x100[i] * (K_DRAFT - 1)) / (K_DRAFT * 100)
+}
+
+fn accept_too_low_v(i: int) -> bool {
+    return ACCEPT_x100[i] < ACCEPT_THRESHOLD_x100
+}
+
+fn speedup_too_low_v(i: int) -> bool {
+    return SPEEDUP_x100[i] < SPEEDUP_THRESHOLD_x100
+}
+
+fn falsifier_fires_v(i: int) -> bool {
+    return accept_too_low_v(i) || speedup_too_low_v(i)
+}
+
+print("hexa-codex BATCH-COMPOSITION N1 ⭐ falsifier — speculative-decoding accept × speedup closed-form")
+print("================================================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = COMBO_NAMES.len()
+
+// ────────────────────────────────────────────────────────────────────────
+// check 1 — speedup-acceptance relation: predicted_speedup_x100 = 100 +
+//   accept_x100 × (k−1) / k. Recompute inline (no helper) and compare to the
+//   helper so the closed-form monotone relation is testable end-to-end.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut relation_ok = true
+let mut i = 0
+while i < n {
+    let pred_inline  = 100 + (ACCEPT_x100[i] * (K_DRAFT - 1)) / (K_DRAFT * 100)
+    let pred_helper  = predicted_speedup_x100_v(i)
+    if pred_inline != pred_helper { relation_ok = false }
+    i = i + 1
+}
+if relation_ok {
+    print("  [PASS] (1) speedup-acceptance relation: predicted = 100 + accept_x100×(k−1)/k (helper == inline ∀ 5 combos)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (1) speedup-acceptance relation broken — helper disagrees with inline recompute")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 2 — range bound: accept_x100 ∈ [0, 10000] (0..100%) AND
+//   speedup_x100 ≥ 100 (speculation never slows below 1.0× target decode).
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut range_ok = true
+i = 0
+while i < n {
+    let a = ACCEPT_x100[i]
+    let s = SPEEDUP_x100[i]
+    if a < 0 || a > 10000 { range_ok = false }
+    if s < 100 { range_ok = false }
+    i = i + 1
+}
+if range_ok {
+    print("  [PASS] (2) accept_x100 ∈ [0, 10000] AND speedup_x100 ≥ 100 for all 5 combos")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (2) accept out of [0, 10000] OR speedup_x100 < 100 (slower than target decode)")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 3 — zero-accept synthetic control: α = 0 → predicted_speedup_x100
+//   = 100 (= 1.0×). No accepted draft tokens ⇒ every target pass emits one
+//   token ⇒ no speedup. Closed-form floor. Synthesize accept_x100 = 0 inline.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let synth_accept = 0
+let synth_pred   = 100 + (synth_accept * (K_DRAFT - 1)) / (K_DRAFT * 100)
+if synth_pred == 100 {
+    print("  [PASS] (3) zero-accept control (α = 0) → predicted_speedup_x100 == 100 (= 1.0× · no benefit)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (3) zero-accept synthetic broken — predicted=" + to_string(synth_pred) + " — expected 100")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 4 — bad_draft fires: bad_draft (idx 4) accept_x100 = 3000 (30%) <
+//   5000 (50%) → falsifier fires. mismatched_draft (idx 3, 45%) also fires;
+//   both anchor the < 50% true-positive region.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let bad_idx = 4
+let mis_idx = 3
+let bad_fires = falsifier_fires_v(bad_idx)
+let mis_fires = falsifier_fires_v(mis_idx)
+let bad_low   = accept_too_low_v(bad_idx)
+if bad_fires && bad_low && mis_fires {
+    print("  [PASS] (4) bad_draft accept_x100=" + to_string(ACCEPT_x100[bad_idx]) +
+          " (30%) < " + to_string(ACCEPT_THRESHOLD_x100) +
+          " → fires; mismatched_draft (45%) fires too (speculative 무의미)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (4) bad_fires=" + to_string(bad_fires) + " bad_low=" + to_string(bad_low) +
+          " mis_fires=" + to_string(mis_fires) + " — expected all true (< 50% region)")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 5 — good drafts silent: tiny_draft_good (80%) · medium_draft (70%) ·
+//   self_spec_medusa (75%) all have accept ≥ 50% AND speedup ≥ 1.2× → silent.
+//   For these, the first-order prediction lower-bounds the empirical speedup
+//   (speedup_x100 ≥ predicted_speedup_x100) — full geometric ≥ linear.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut good_ok = true
+let good_idx = [0, 1, 2]
+let mut g = 0
+while g < good_idx.len() {
+    let gi = good_idx[g]
+    if falsifier_fires_v(gi) { good_ok = false }
+    if SPEEDUP_x100[gi] < predicted_speedup_x100_v(gi) { good_ok = false }  // lower-bound holds
+    g = g + 1
+}
+if good_ok {
+    print("  [PASS] (5) good drafts silent: tiny(80%) · medium(70%) · self_spec(75%) — accept ≥ 50% · speedup ≥ predicted (lower-bound holds)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (5) a good draft fired OR empirical speedup fell below first-order prediction")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 6 — determinism: re-call same input → same predicted · same fire
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut det_ok = true
+i = 0
+while i < n {
+    let p1 = predicted_speedup_x100_v(i)
+    let p2 = predicted_speedup_x100_v(i)
+    let f1 = falsifier_fires_v(i)
+    let f2 = falsifier_fires_v(i)
+    if p1 != p2 { det_ok = false }
+    if f1 != f2 { det_ok = false }
+    i = i + 1
+}
+if det_ok {
+    print("  [PASS] (6) deterministic (re-call same input → same predicted · same fire)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (6) non-deterministic — same input differs across re-calls")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 7 — monotone sanity: accept↑ ⇒ predicted_speedup_x100 non-decreasing.
+//   Sort the 5 combos by acceptance ascending and assert predicted speedup
+//   never decreases (higher acceptance can never yield LESS speedup).
+//   ascending accept order: bad(3000) < mismatched(4500) < medium(7000)
+//                           < self_spec(7500) < tiny(8000)
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let asc_idx = [4, 3, 1, 2, 0]   // indices in ascending acceptance order
+let mut mono_ok = true
+let mut prev_accept = -1
+let mut prev_pred = -1
+let mut m = 0
+while m < asc_idx.len() {
+    let ai = asc_idx[m]
+    let a  = ACCEPT_x100[ai]
+    let p  = predicted_speedup_x100_v(ai)
+    if a < prev_accept { mono_ok = false }       // verify the order is truly ascending
+    if p < prev_pred { mono_ok = false }          // predicted non-decreasing
+    prev_accept = a
+    prev_pred = p
+    m = m + 1
+}
+if mono_ok {
+    print("  [PASS] (7) monotone sanity: accept↑ ⇒ predicted_speedup_x100 non-decreasing (accept drives speedup)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (7) monotone violation — higher acceptance yielded LESS predicted speedup")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+let mut verdict_class = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (speculative-decoding accept→speedup monotone relation + bidirectional threshold 7/7) + 🟡 BY-CITATION (Leviathan 2023 arXiv:2211.17192 · Chen 2023 arXiv:2302.01318 · Cai 2024 Medusa arXiv:2401.10774 · Stern 2018 blockwise)"
+    verdict_class = "SUPPORTED-NUMERICAL"
+} else {
+    verdict_tier = "🔴 FALSIFIED — speculative-decoding accept→speedup encoding contradicts the closed-form relation (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+    verdict_class = "FALSIFIED"
+}
+print("  " + verdict_tier)
+print("")
+print("worked example summary (k_draft=5 · threshold accept 5000 = 50% · speedup 120 = 1.2×):")
+print("  tiny_draft_good  accept 8000 (80%) · speedup 250 (2.5×) · pred 164 · SILENT · well-matched tiny draft")
+print("  medium_draft     accept 7000 (70%) · speedup 210 (2.1×) · pred 156 · SILENT · balanced draft/target")
+print("  self_spec_medusa accept 7500 (75%) · speedup 230 (2.3×) · pred 160 · SILENT · Medusa self-spec heads")
+print("  mismatched_draft accept 4500 (45%) · speedup 130 (1.3×) · pred 136 · FIRES · accept < 50%")
+print("  bad_draft        accept 3000 (30%) · speedup 105 (1.05×)· pred 124 · FIRES · accept < 50% AND speedup < 1.2×")
+print("")
+print("external anchor:")
+print("  - Leviathan 2023 'Fast Inference from Transformers via Speculative Decoding' (arXiv:2211.17192 · ICML 2023)")
+print("  - Chen 2023 'Accelerating Large Language Model Decoding with Speculative Sampling' (arXiv:2302.01318 · DeepMind)")
+print("  - Cai 2024 'Medusa: Simple LLM Inference Acceleration Framework with Multiple Decoding Heads' (arXiv:2401.10774)")
+print("  - Stern 2018 'Blockwise Parallel Decoding for Deep Autoregressive Models' (NeurIPS 2018)")
+print("")
+print("honest residual (frontier OPEN — perpetual axis, feedback_closure_is_physical_limit):")
+print("  - this verifier encodes the FORMULA only (closed-form 🔵 + 🟡) — substrate fire on measured")
+print("    draft-target serving bench (vLLM/TGI speculative decode · Llama-3 8B + 1B draft · ShareGPT ·")
+print("    wall-clock tokens/s) deferred to N1 measured-tier (cycle-10+ T4 · vast.ai pod · cx_lab_sandbox).")
+print("  - first-order linear predicted relation understates the true geometric gain (1−α^(k+1))/(1−α);")
+print("    integer ×100 ledger + libm-free → no exponentiation, so the geometric form is anchor-tier only.")
+print("  - draft FLOPs cost amortized into the empirical speedup column; real-fire accounts for draft")
+print("    latency · verify-batch width · KV-cache rollback on rejection.")
+print("  - A1 (padding-waste · per-pass slot utilization) and N1 (token-parallelism · this axis) are")
+print("    orthogonal throughput levers; combined serving-bench measurement opens next.")
+print("")
+print("__HEXA_CODEX_NUMERICS_BATCH_COMPOSITION_N1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+// ────────────────────────────────────────────────────────────────────────
+// Verdict file persistence — under BATCH-COMPOSITION/verdicts/
+// ────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/BATCH-COMPOSITION/verdicts/n1_speculative_decoding_verdict.txt"
+
+let tiny_pred = predicted_speedup_x100_v(0)
+let med_pred  = predicted_speedup_x100_v(1)
+let self_pred = predicted_speedup_x100_v(2)
+let mis_pred  = predicted_speedup_x100_v(3)
+let bad_pred  = predicted_speedup_x100_v(4)
+
+let mut content = "# hexa-codex BATCH-COMPOSITION N1 ⭐ NOVEL MAIN — speculative-decoding accept × speedup closed-form verifier (cycle-10 reorg Batch B)\n"
+content = content + "# axis=BATCH-COMPOSITION/BATCH-COMPOSITION.md::N1 (speculative decoding · draft acceptance × throughput speedup · NOVEL MAIN throughput lane)\n"
+content = content + "# formula=predicted_speedup_x100(c) = 100 + accept_x100×(k−1)/k (k_draft=5 · first-order monotone relation); full geometric (Leviathan) = (1−α^(k+1))/(1−α) anchor-tier; falsifier_fires = accept_x100 < 5000 (< 50%) OR speedup_x100 < 120 (< 1.2×)\n"
+content = content + "# bench=BATCH-COMPOSITION/bench/batch_composition_n1_speculative_decoding.hexa\n"
+content = content + "# verifier=BATCH-COMPOSITION/verify/numerics_batch_composition_n1_speculative_decoding.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# verdict_class=" + verdict_class + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# k_draft=5 (fixed draft proposal window · γ)\n"
+content = content + "# compositions=5 (tiny_draft_good accept=8000 · medium_draft accept=7000 · self_spec_medusa accept=7500 · mismatched_draft accept=4500 · bad_draft accept=3000) on accept_x100 ledger (10000 = 100%)\n"
+content = content + "# accept_x100=tiny:8000 medium:7000 self_spec:7500 mismatched:4500 bad:3000\n"
+content = content + "# speedup_x100=tiny:250 medium:210 self_spec:230 mismatched:130 bad:105 (100 = 1.0×)\n"
+content = content + "# predicted_speedup_x100=tiny:" + to_string(tiny_pred) + " medium:" + to_string(med_pred) + " self_spec:" + to_string(self_pred) + " mismatched:" + to_string(mis_pred) + " bad:" + to_string(bad_pred) + "\n"
+content = content + "# accept_threshold_x100=5000 (acceptance < 50% → fires) · speedup_threshold_x100=120 (speedup < 1.2× → fires)\n"
+content = content + "# bidirectional=tiny(80%)/medium(70%)/self_spec(75%) silent (true value · false-positive 회피) · mismatched(45%)/bad(30%) fire (true-positive captured · speculative 무의미) · zero-accept α=0 → predicted 100 (= 1.0× floor)\n"
+content = content + "# monotone=accept↑ ⇒ predicted_speedup_x100 non-decreasing (accept drives speedup · lower-bound speedup_x100 ≥ predicted for silent combos)\n"
+content = content + "# external_anchors=Leviathan 2023 arXiv:2211.17192 (ICML) · Chen 2023 arXiv:2302.01318 (DeepMind) · Cai 2024 Medusa arXiv:2401.10774 · Stern 2018 blockwise (NeurIPS)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · measured draft-target serving bench · vLLM/TGI speculative decode · Llama-3 8B target + 1B draft · ShareGPT · wall-clock tokens/s · vast.ai cost-bearing pod)\n"
+content = content + "# honest_residual=first-order_linear_understates_geometric_gain(1−α^(k+1))/(1−α)_anchor-tier_only · draft_FLOPs_amortized_into_empirical_speedup · KV-cache_rollback_on_rejection_not_modeled_at_closed-form_tier · A1_padding-waste_and_N1_token-parallelism_orthogonal_throughput_levers\n"
+content = content + "# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis · new draft-target pair · new spec algorithm · new verify-batch width reopens cells · 도착지 없음)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

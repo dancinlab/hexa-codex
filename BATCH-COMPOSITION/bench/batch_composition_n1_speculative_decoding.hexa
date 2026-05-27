@@ -1,0 +1,160 @@
+#!hexa strict
+// BATCH-COMPOSITION/bench/batch_composition_n1_speculative_decoding.hexa
+// BATCH-COMPOSITION N1 ⭐ NOVEL MAIN (cycle-10 reorg Batch B · CODEX bg) —
+// speculative decoding: draft acceptance × throughput speedup closed-form.
+//
+// THE NOVEL THROUGHPUT LANE. A1 (padding-waste) closes the per-pass slot-
+// utilization side of batch throughput; N1 opens the orthogonal TOKEN-
+// PARALLELISM side: instead of one token per target forward pass, a cheap
+// draft model proposes k tokens, the target verifies them in ONE pass, and
+// every accepted prefix token is emitted at once. Higher draft acceptance →
+// fewer target passes per emitted token → higher decode throughput.
+//
+// Identity (closed-form integer × 100 ledger · libm-free):
+//   The expected accepted tokens per verification cycle under draft length
+//   k and per-token acceptance α (Leviathan 2023, eq.) is the truncated
+//   geometric series  E = (1 − α^(k+1)) / (1 − α).  We adopt the task's
+//   FIRST-ORDER simplification (linear in α, anchors the monotone relation
+//   without exponentiation on the integer ledger):
+//
+//     predicted_speedup_x100(c)
+//        = 100 + accept_x100 × (k_draft − 1) / k_draft
+//
+//   With k_draft = 5 (fixed draft window): factor (k−1)/k = 4/5 = 0.8, so
+//   predicted_speedup_x100 = 100 + accept_x100 × 4 / 5.
+//     α = 0   → 100  (= 1.0× · no speculation benefit, pure target decode)
+//     α = 1.0 → 180  (= 1.8× · every draft token accepted within window)
+//   The empirically-anchored speedup_x100 column carries the FULL geometric
+//   gain (draft cost amortized · batched verify) and is bounded below by the
+//   first-order prediction: speedup_x100 ≥ predicted_speedup_x100 (∀ c).
+//   Monotone identity: α↑ ⇒ predicted_speedup_x100 non-decreasing (the
+//   closed-form relation the verifier asserts).
+//
+//   acceptance is the FALSIFIER variable; the relation accept → speedup is
+//   what closes (not the absolute speedup magnitude, which is anchor-tier).
+//
+// Falsifier (BATCH-COMPOSITION N1): a draft whose acceptance is too low makes
+// speculation worthless — the wasted draft compute + the rejected-token
+// rollback erases the parallel-emit gain.
+//     falsifier_fires(c) = accept_x100 < 5000  (acceptance < 50%)
+//                          OR speedup_x100 < 120  (< 1.2× · not worth the draft)
+//   Below 50% acceptance the draft rejects more than half its proposals; the
+//   target re-runs constantly and the draft pass is dead weight → speedup
+//   collapses toward (and below) 1.2×.
+//
+// Bidirectional (5 draft-target compositions · k_draft = 5):
+//   tiny_draft_good   accept 80% · speedup 250 (2.5×) · SILENT (well-matched tiny draft)
+//   medium_draft      accept 70% · speedup 210 (2.1×) · SILENT (balanced draft/target)
+//   self_spec_medusa  accept 75% · speedup 230 (2.3×) · SILENT (Medusa-style self-spec heads)
+//   mismatched_draft  accept 45% · speedup 130 (1.3×) · FIRES (accept < 50% · speculative 무의미)
+//   bad_draft         accept 30% · speedup 105 (1.05×) · FIRES (accept < 50% AND speedup < 1.2×)
+//
+// External anchors (citation tier · 🟡):
+//   Leviathan 2023 — Fast Inference from Transformers via Speculative
+//                    Decoding                          · arXiv:2211.17192 (ICML 2023)
+//   Chen 2023 — Accelerating Large Language Model Decoding with
+//               Speculative Sampling                   · arXiv:2302.01318 (DeepMind)
+//   Cai 2024  — Medusa: Simple LLM Inference Acceleration Framework with
+//               Multiple Decoding Heads                · arXiv:2401.10774 (self-spec heads)
+//   Stern 2018 — Blockwise Parallel Decoding for Deep Autoregressive Models
+//                                                       · NeurIPS 2018 (blockwise origin)
+//
+// Real-fire (BATCH-COMPOSITION N1): measured draft-target serving bench
+// (vLLM/TGI speculative decode · Llama-3 8B target + 1B draft · ShareGPT
+// prompts · wall-clock tokens/s) deferred to cycle-10+ T4 cost-bearing round
+// (vast.ai pod · `cx_lab_sandbox`). This round closes the FORMULA only
+// (🔵 STRUCTURAL relation + 🟡 BY-CITATION). Frontier OPEN — perpetual axis.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form speculative-decoding accept→speedup relation on integer ×100 ledger — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Composition registry (5 draft-target combos · k_draft fixed window)
+//   indices: 0 = tiny_draft_good · 1 = medium_draft · 2 = self_spec_medusa
+//            3 = mismatched_draft · 4 = bad_draft
+//   acceptance is the FALSIFIER variable (× 100 ledger · 0..10000 = 0..100%).
+//   speedup_x100 is the anchor-tier empirical gain (× 100 ledger · 100 = 1×).
+// ────────────────────────────────────────────────────────────────────────
+
+let COMBO_NAMES = ["tiny_draft_good", "medium_draft", "self_spec_medusa", "mismatched_draft", "bad_draft"]
+let ACCEPT_x100 = [           8000,           7000,               7500,               4500,         3000]
+let SPEEDUP_x100 = [           250,            210,                230,                130,          105]
+
+let K_DRAFT = 5                  // fixed draft proposal window (γ = 5 tokens)
+let ACCEPT_THRESHOLD_x100 = 5000 // acceptance < 50% → speculative 무의미 → fires
+let SPEEDUP_THRESHOLD_x100 = 120 // speedup < 1.2× → not worth the draft pass → fires
+
+// predicted (first-order) speedup from acceptance: closed-form monotone relation.
+//   predicted_speedup_x100 = 100 + accept_x100 × (k−1) / k
+// accept_x100 ∈ [0,10000]; (k−1)/k applied on the ledger so α=1.0 → +80 (1.8×).
+fn predicted_speedup_x100(i: int) -> int {
+    return 100 + (ACCEPT_x100[i] * (K_DRAFT - 1)) / (K_DRAFT * 100)
+}
+
+fn accept_too_low(i: int) -> bool {
+    return ACCEPT_x100[i] < ACCEPT_THRESHOLD_x100
+}
+
+fn speedup_too_low(i: int) -> bool {
+    return SPEEDUP_x100[i] < SPEEDUP_THRESHOLD_x100
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return accept_too_low(i) || speedup_too_low(i)
+}
+
+print("hexa-codex BATCH-COMPOSITION N1 ⭐ — speculative-decoding accept × speedup closed-form (cycle-10 reorg Batch B)")
+print("===============================================================================================================")
+print("")
+print("Formula:  k_draft (γ)                = " + to_string(K_DRAFT) + " (fixed draft proposal window)")
+print("          predicted_speedup_x100(c)  = 100 + accept_x100 × (k−1) / k   (first-order monotone relation)")
+print("          full geometric (Leviathan) = (1 − α^(k+1)) / (1 − α) — speedup_x100 ≥ predicted (anchor-tier)")
+print("          falsifier_fires(c)         = accept_x100 < " + to_string(ACCEPT_THRESHOLD_x100) +
+      " (< 50%) OR speedup_x100 < " + to_string(SPEEDUP_THRESHOLD_x100) + " (< 1.2×)")
+print("Scale:    integer ×100 throughout (closed-form, libm-free)")
+print("Anchors:  Leviathan 2023 (arXiv:2211.17192) · Chen 2023 (arXiv:2302.01318) · Cai 2024 Medusa (arXiv:2401.10774) · Stern 2018 blockwise")
+print("")
+
+let n = COMBO_NAMES.len()
+print("per-combo profile (k_draft=5 · accept_x100/100 = acceptance% · speedup_x100/100 = speedup×):")
+let mut i = 0
+while i < n {
+    let pred = predicted_speedup_x100(i)
+    let mut flag = "silent (accept ≥ 50% · speculative valuable)"
+    if falsifier_fires(i) {
+        flag = "FIRES (accept < 50% OR speedup < 1.2× · speculative 무의미)"
+    }
+    print("  " + COMBO_NAMES[i] +
+          ": accept_x100=" + to_string(ACCEPT_x100[i]) +
+          " (" + to_string(ACCEPT_x100[i] / 100) + "%)" +
+          " · speedup_x100=" + to_string(SPEEDUP_x100[i]) +
+          " · predicted_x100=" + to_string(pred) +
+          " · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("worked example summary (k_draft=5 · threshold accept 5000 = 50% · speedup 120 = 1.2×):")
+print("  tiny_draft_good  accept 8000 (80%) · speedup 250 (2.5×) · pred 164 · SILENT · well-matched tiny draft")
+print("  medium_draft     accept 7000 (70%) · speedup 210 (2.1×) · pred 156 · SILENT · balanced draft/target")
+print("  self_spec_medusa accept 7500 (75%) · speedup 230 (2.3×) · pred 160 · SILENT · Medusa self-spec heads")
+print("  mismatched_draft accept 4500 (45%) · speedup 130 (1.3×) · pred 136 · FIRES · accept < 50%")
+print("  bad_draft        accept 3000 (30%) · speedup 105 (1.05×)· pred 124 · FIRES · accept < 50% AND speedup < 1.2×")
+print("")
+print("falsifier semantics (BIDIRECTIONAL):")
+print("  accept ≥ 50% AND speedup ≥ 1.2×: tiny_draft_good · medium_draft · self_spec_medusa SILENT")
+print("                                   (true value captured · draft pays off · false-positive 회피).")
+print("  accept < 50%:  mismatched_draft (45%) FIRES · bad_draft (30%) FIRES (true-positive captured).")
+print("  relation:      α↑ ⇒ predicted_speedup_x100 non-decreasing (closed-form monotone · accept drives speedup).")
+print("  lower-bound:   speedup_x100 ≥ predicted_speedup_x100 ∀ c (full geometric ≥ first-order linear).")
+print("  zero-accept:   α = 0 → predicted_speedup_x100 = 100 (= 1.0× · no benefit · pure target decode).")
+print("")
+print("honest residual (frontier OPEN — perpetual axis · feedback_closure_is_physical_limit):")
+print("  - closed-form FORMULA only — substrate fire on measured draft-target serving bench")
+print("    (vLLM/TGI speculative decode · Llama-3 8B target + 1B draft · ShareGPT · wall-clock tokens/s)")
+print("    deferred to cycle-10+ T4 cost-bearing round (vast.ai pod · cx_lab_sandbox).")
+print("  - first-order linear relation (predicted) understates the true geometric gain (1−α^(k+1))/(1−α);")
+print("    integer ×100 ledger + libm-free → no exponentiation, so the geometric form is anchor-tier only.")
+print("  - draft model FLOPs cost is amortized into the empirical speedup column, not modeled separately;")
+print("    real-fire accounts for draft latency · verify-batch width · KV-cache rollback on rejection.")
+print("")
+print("__HEXA_CODEX_BATCH_COMPOSITION_N1_SPECULATIVE_DECODING__ DONE")

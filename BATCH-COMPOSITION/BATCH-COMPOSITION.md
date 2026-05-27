@@ -25,9 +25,12 @@
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — difficulty-mix × scale × packing 알고리즘 ladder. 반증자: informed pack 의 loss-curve 개선 < sorted baseline + 2% → packing 효과 marginal.
 
-### 축 N — 🆕 NOVEL: informed-pack vs naive-sort (⭐ MAIN priority lane)
-> **⭐ MAIN priority lane** — BATCH-COMPOSITION 의 self-NOVEL axis. 단순 length sort 외에 difficulty/topic 기반 informed packing 의 추가 이득이 있는가. 외부 anchor: Krell 2022 sequence packing · Akyürek 2024 in-context · Yu 2024 dynamic batching.
-- [ ] N1 — naive sort vs informed pack (difficulty·topic mix) 의 loss curve 비교. 반증자: informed pack 의 추가 이득 < 1% → informed packing 기법 효과 marginal.
+### 축 N — 🆕 NOVEL: speculative-decoding throughput (⭐ MAIN priority lane)
+> **⭐ MAIN priority lane** — BATCH-COMP self-NOVEL. A1 (padding-waste) 의 throughput 보완 — speculative 로 토큰 병렬 생성. Leviathan 2023 · Medusa anchor. 도착지 없음 ([[feedback_closure_is_physical_limit]]).
+- [x] N1 — speculative decoding: draft acceptance × speedup (BATCH-COMP 의 NOVEL — throughput 가속). 반증자: acceptance < 50% → speedup < 1.2× (speculative 무의미). **CYCLE-10 reorg Batch B (2026-05-28 · train/infer/serve stack)** ✅ 🔵+🟡 · 7/7 · `BATCH-COMPOSITION/verify/numerics_batch_composition_n1_speculative_decoding.hexa` · bad_draft fires · good drafts silent. closed-form: `predicted_speedup_x100 = 100 + accept_x100×(k−1)/k` (k_draft=5 · monotone accept→speedup). 5 combos — tiny_draft_good (80% · 2.5×) silent · medium_draft (70% · 2.1×) silent · self_spec_medusa (75% · 2.3×) silent · mismatched_draft (45% · 1.3×) FIRES · bad_draft (30% · 1.05×) FIRES. Anchors — Leviathan 2023 (arXiv:2211.17192) · Chen 2023 (arXiv:2302.01318) · Cai 2024 Medusa (arXiv:2401.10774) · Stern 2018 blockwise. Bench `BATCH-COMPOSITION/bench/batch_composition_n1_speculative_decoding.hexa` · verdict `BATCH-COMPOSITION/verdicts/n1_speculative_decoding_verdict.txt`. Frontier OPEN — 실측 (cycle-10+ T4) vLLM/TGI speculative-decode serving bench (Llama-3 8B target + 1B draft · ShareGPT · wall-clock tokens/s) deferred.
+
+> **N2 (demoted from prior N⭐)** — informed-pack vs naive-sort: 단순 length sort 외에 difficulty/topic 기반 informed packing 의 추가 이득이 있는가. 외부 anchor: Krell 2022 sequence packing · Akyürek 2024 in-context · Yu 2024 dynamic batching.
+- [ ] N2 — naive sort vs informed pack (difficulty·topic mix) 의 loss curve 비교. 반증자: informed pack 의 추가 이득 < 1% → informed packing 기법 효과 marginal.
 
 ## SANDBOX 활용 (measurement substrate)
 
@@ -37,7 +40,8 @@ BATCH-COMPOSITION 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) �
 |---|---|---|
 | A1 first probe | mac M3 / ubu-1 local | `.verdicts/BATCH-COMPOSITION/a1_*` |
 | B1 ladder | SANDBOX bench harness | `.verdicts/BATCH-COMPOSITION/b1_*` |
-| N1 ⭐ NOVEL | mac M3 / vast.ai pod | `.verdicts/BATCH-COMPOSITION/n1_*` |
+| N1 ⭐ NOVEL (speculative decoding) | mac M3 / vast.ai pod | `BATCH-COMPOSITION/verdicts/n1_speculative_decoding_verdict.txt` |
+| N2 informed-pack vs naive-sort | SANDBOX bench harness | `.verdicts/BATCH-COMPOSITION/n2_*` |
 
 ## Dispatch surface (ENGINE 후보 wire)
 

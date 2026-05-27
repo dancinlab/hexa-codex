@@ -1,0 +1,15 @@
+# hexa-codex HALLUCINATION A1 — confident-wrong rate closed-form verifier (cycle-9 round-4)
+# axis=HALLUCINATION/HALLUCINATION.md::A1 (confident-wrong rate first probe, closed-form)
+# formula=rate_x100(m) = (N_confident_wrong[m] · 100) / N_total[m]; falsifier_fires = rate_x100 > 20
+# bench=HALLUCINATION/bench/hallucination_a1_confident_wrong_rate.hexa
+# verifier=HALLUCINATION/verify/numerics_hallucination_a1_confident_wrong_rate.hexa
+# tier=🔵 STRUCTURAL (confident-wrong rate identity + threshold 7/7) + 🟡 BY-CITATION (20% threshold = TruthfulQA / Kadavath self-eval convention)
+# verdict_class=SUPPORTED-NUMERICAL
+# checks=7/7
+# placeholder_models=5 (A=18 silent · B=25 fires · C=12 silent · D=42 fires · Z=0 zero-hall control)
+# rates_x100=A:18 B:25 C:12 D:42 Z:0
+# threshold_x100=20 (> 20% with high confidence → falsifier fires)
+# external_anchors=Lin 2022 TruthfulQA (arXiv:2109.07958) · Kadavath 2022 self-eval (arXiv:2207.05221) · Yin 2023 do-LLMs-know (arXiv:2305.18153)
+# substrate_fire=DEFERRED (cycle-10+ · TruthfulQA · SimpleQA × abstention extractor + self-eval gating on mac M3 / ubu-1 HF)
+# honest_residual=integer_x100_ledger_truncation_at_0.01 · 'confidence' as per-sample weight (logit-margin / Kadavath P(True) narrows at measured-tier) · axis_N_knowledge_boundary_IDK_next
+# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis · new cutoff / domain reopens cells)

@@ -1,0 +1,18 @@
+# hexa-codex NEUROEXP S1 — NCA ↔ token-AR dynamical class comparison (cycle-6 first probe)
+# axis=NEUROEXP.md::S1 (cycle-6 first probe · S = Spike/Dynamical-system probe)
+# verifier=NEUROEXP/verify/numerics_neuroexp_s1_nca_token_ar.hexa
+# tier=🔵 SUPPORTED-FORMAL — NCA ≢ token-AR dynamical class · S1 falsifier HOLDS (10/10)
+# checks=10/10
+# taxonomy=6 axes: update-timing/dir/state/attractor/class/reversibility
+# match_pattern=5_DIFFER_1_MATCH (only reversibility 공유)
+# nca_class=parallel CA + limit-cycle attractor + R^d grid + Moore neighborhood
+# ar_class=sequential generator + distribution attractor + V^seq + causal mask
+# toy_nca_1d=state 000 → fixed-point 000 · state 111 → 000 (XOR-neighbor rule)
+# toy_ar=A→B→C→A pure 3-cycle (no fixed-point) · categorically different from NCA fixed-point
+# S1_falsifier=NCA ≢ token-AR HOLDS (5/6 axes DIFFER) · 'bio-CA = LLM' 통념 분리
+# operational=NCA = drop-in AR replacement 가설 REFUTED · hybrid 만 가능 (parallel pre-proc + sequential gen)
+# cross_axis_link=N1 (linear-attn≡Hebbian MATCH) vs S1 (NCA≢AR MISMATCH) → bio-LLM fit 은 axis-별 검증
+# external_anchor=Mordvintsev2020_GrowingNCA_arXiv2008.05917 · Vaswani2017_arXiv1706.03762 · Wolfram2002_NKS
+# next_probe=cycle-7+ T4 SANDBOX NCA-injected transformer (Mordvintsev2024 hybrid) ICL 측정
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

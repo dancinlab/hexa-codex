@@ -2,6 +2,42 @@
 
 Append-only history sister of `CODEX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-9 round-7: 3 ⭐⭐ closed-form A1 wires (TRAINING-DYNAMICS + CARBON + TEMPORAL · /cycle-bg · race-가드 성공)
+
+`/cycle-bg` round-7 (sticky bg · cap=3). **race-방지 가드 작동** — round-6 의 shared-worktree race 학습 반영하여 agent prompt 에 `git add <explicit-files> ONLY (no git add -A)` 명시. 3 commits separately clean (cross-contamination 0건 · sibling 관찰만).
+
+| axis | tier | checks | commit |
+|---|---|---|---|
+| CARBON/A1 | 🔵+🟡 | 7/7 | 64912e1 |
+| TEMPORAL/A1 | 🔵+🟡 | 7/7 | 044e220 |
+| TRAINING-DYNAMICS/A1 | 🔵+🟡 | 7/7 | 58281a9 |
+
+### Build phase 출력
+
+- **TRAINING-DYNAMICS** — `spike_rate_per_1k = N_spikes / N_steps × 1000` (× 1000 ledger). 4 runs: stable=0.5 silent · warming=1.0 borderline · spiky=2.5 fires · catastrophic=8.0 fires. Anchors: Nanda 2023 grokking · Wei 2022 emergent · Zhang 2024 spike.
+- **CARBON** — `saving = (baseline − region) × 100 / baseline`. 4 regions: nuclear-fr 97% silent · solar-ca 90% · mixed-de 62% · coal-pl 0% baseline fires (saving < 20%). Anchors: Patterson 2022 · Luccioni 2022 · Schwartz 2020.
+- **TEMPORAL** — `rate = N_wrong / N_post_cutoff × 100` + 5-model + Z=0 zero-control. CA=15·PA=25 silent · OC=40·CL=60 fire · CA≤OC≤CL sanity. Anchors: Dhingra 2022 TimeQA · Chen 2023 · Zhao 2024.
+
+### 🆕 학습 — Race-방지 가드 성공
+
+| 라운드 | mode | agents | race-condition | guard |
+|---|---|---|---|---|
+| 6 (bg) | 3 | ROBUSTNESS+DIVERSITY share commit 3511423 | (no guard) |
+| 7 (bg) | 3 | **0** (3 separate clean commits) | **explicit `git add <files>` 강제 ✓** |
+
+→ agent prompt 에 `Use git add <explicit-files> ONLY (no git add -A)` 명시만으로 shared-worktree race 회피 가능. TEMPORAL agent report: "sibling CARBON staged + TRAINING-DYNAMICS workdir 봤지만 untouched per whitelist discipline".
+
+### Throttle 관찰
+
+이번 round-7 도 storm 0 (round-6 와 동일). bg 3-agent 가 안정화되어가는 패턴.
+
+- [x] dispatched + merged CARBON/A1 → 🔵+🟡 7/7
+- [x] dispatched + merged TEMPORAL/A1 → 🔵+🟡 7/7
+- [x] dispatched + merged TRAINING-DYNAMICS/A1 → 🔵+🟡 7/7
+- [ ] round-8 (남은 4 ⭐⭐ · DATA-EFFICIENCY · HW-VARIANCE · BATCH-COMPOSITION · USER-MODEL)
+
+**18/22 milestone done · 4 ⭐⭐ queued · ♾️ perpetual frontier OPEN.**
+
 ## 2026-05-28 — cycle-9 round-6: 3 ⭐⭐ closed-form A1 wires (ROBUSTNESS + RELIABILITY + DIVERSITY · /cycle-bg)
 
 `/cycle-bg` round-6 (sticky bg · cap=3 batch · bg agent fan-out). 3 ⭐⭐ closed-form A1 wires 모두 7/7 PASS. 단 **worktree-isolation 가정 실패** — 3 agent 모두 `main` worktree 에서 작업 (isolation=worktree 지정에도 불구하고 shared `.git/index` race). 결과물 무결성 OK.

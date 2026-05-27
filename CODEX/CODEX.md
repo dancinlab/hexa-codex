@@ -48,13 +48,13 @@
 
 ### ⭐⭐ 10 (보조 후보)
 - [x] ROBUSTNESS/A1 — adversarial attack 성공률 · clean accuracy · 반증자: adv drop > 30pp · **CYCLE-9 round-6 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `ROBUSTNESS/verify/numerics_robustness_a1_adversarial_drop.hexa`
-- [ ] TRAINING-DYNAMICS/A1 — loss spike 빈도 · gradient/weight norm · 반증자: spike > 1/1k steps
+- [x] TRAINING-DYNAMICS/A1 — loss spike 빈도 · gradient/weight norm · 반증자: spike > 1/1k steps · **CYCLE-9 round-7 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `TRAINING-DYNAMICS/verify/numerics_training_dynamics_a1_spike_rate.hexa`
 - [ ] DATA-EFFICIENCY/A1 — curriculum 순서 효과 · sample-eff 곡선 · 반증자: < 5% vs random
 - [ ] HW-VARIANCE/A1 — per-chip throughput 분산 (동일 spec) · 반증자: 분산 > 15%
 - [ ] BATCH-COMPOSITION/A1 — length-mix throughput · padding waste · 반증자: random vs sorted > 30%
 - [x] RELIABILITY/A1 — 결정론 재현률 · silent corruption · 반증자: 재현률 < 99.9% · **CYCLE-9 round-6 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `RELIABILITY/verify/numerics_reliability_a1_determinism.hexa`
-- [ ] CARBON/A1 — gCO2/token (region별 grid × tokens/J) · 반증자: 친환경 region 감소 < 20%
-- [ ] TEMPORAL/A1 — date/duration/ordering accuracy · 반증자: cutoff 이후 confident-wrong > 30%
+- [x] CARBON/A1 — gCO2/token (region별 grid × tokens/J) · 반증자: 친환경 region 감소 < 20% · **CYCLE-9 round-7 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `CARBON/verify/numerics_carbon_a1_region_saving.hexa`
+- [x] TEMPORAL/A1 — date/duration/ordering accuracy · 반증자: cutoff 이후 confident-wrong > 30% · **CYCLE-9 round-7 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `TEMPORAL/verify/numerics_temporal_a1_post_cutoff_wrong.hexa`
 - [x] DIVERSITY/A1 — self-BLEU · repetition rate · entropy · 반증자: self-BLEU > 0.8 OR repetition > 20% · **CYCLE-9 round-6 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `DIVERSITY/verify/numerics_diversity_a1_self_bleu_repetition.hexa`
 - [ ] USER-MODEL/A1 — 10-turn persona 일관성 · context recall · 반증자: 10-turn drift > 20%
 

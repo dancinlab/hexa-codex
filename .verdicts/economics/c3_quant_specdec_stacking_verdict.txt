@@ -1,0 +1,15 @@
+# hexa-codex ECONOMICS C3 — quant × spec-dec stacking (cycle-41 composition)
+# axis=ECONOMICS.md::C3 (Pareto cost-quality frontier · inference-side stacking)
+# composes=C2(quant speedup,c40) × F3(Leviathan-Kalman spec-dec,c37)
+# verifier=verify/numerics_economics_c3_quant_specdec_stacking.hexa
+# tier=🔵 SUPPORTED-FORMAL (multiplicative stacking bound 6/6) + 🟠 realized value (quant-α-sensitivity UNMEASURED)
+# checks=6/6
+# quant_speedup_x1000=1888 (1.89x, Q8->Q4)
+# specdec_prod_alpha050_x1000=1442 (1.44x)
+# multiplicative_ceiling_x1000=2722 (2.72x, clean stack)
+# interference_floor_x1000=2454 (2.45x, alpha 0.5->0.4)
+# realized_band=[2454,2722] gap=268 (quant-alpha-sensitivity UNMEASURED)
+# conclusion=Q4+specdec stack to [2.45x,2.72x] vs Q8-greedy; worthwhile even at floor
+# next_probe=cycle-42+ T4 SANDBOX spec-dec Q4-draft vs fp16-draft -> measure alpha_eff
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native binary, NOT interpreter)
+#   transpiler rebuilt via `hexa cc` (HEXA_LANG=~/core/hexa-lang/build) to clear a stale-build segfault

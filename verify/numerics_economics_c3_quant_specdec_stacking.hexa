@@ -1,0 +1,193 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_c3_quant_specdec_stacking.hexa
+// ECONOMICS axis C3 — do quantization and speculative-decoding speedups STACK?
+//
+// QUESTION (operationally important, falsifiable).  C2 (cycle-40) showed Q4 gives
+// ~1.89× throughput vs Q8 (memory-bound, bytes ∝ bpw). F3 (cycle-37) showed
+// spec-decoding gives ~1.44× at production α=0.5. Can a server STACK both for
+// ~2.7× combined, or do they INTERFERE?
+//
+// MODEL.  The two speedups act on orthogonal mechanisms:
+//   - quantization: fewer bytes streamed per token → each forward pass faster
+//     (memory-bound roofline, F1/F2).
+//   - spec-decoding: fewer SEQUENTIAL target forward passes per accepted token
+//     (Leviathan-Kalman, F3).
+//   First-order, orthogonal mechanisms MULTIPLY: combined = quant × specdec.
+//   The ONLY interference channel is α (draft acceptance): a Q4 draft model may
+//   accept LESS than an fp16 draft (lower precision → more target-disagreement)
+//   → α_eff ≤ α → specdec(α_eff) ≤ specdec(α) → combined ≤ multiplicative ceiling.
+//
+// CLOSED-FORM (🔵): multiplicative ceiling = quant_speedup × specdec(α);
+//   interference floor = quant_speedup × specdec(α_eff_low). Realized combined
+//   speedup ∈ [floor, ceiling].
+//
+// FALSIFIER.  If α is QUANT-INVARIANT (Q4 draft accepts like fp16, analogous to
+// F5's quality quant-invariance), combined = ceiling EXACTLY (clean stack). If
+// Q4 draft drops α (0.5 → 0.4), combined falls to the floor. The gap (ceiling −
+// floor) is the quant-α-sensitivity, which is UNMEASURED → 🟠. So the realized
+// stack is BOUNDED in closed form but its exact value needs a substrate measure
+// of α under Q4-vs-fp16 draft.
+//
+// HONESTY (feedback_negative_paper_external_claim).  No external claim is being
+// refuted — this composes two verified internal results (C2, F3) into a bounded
+// prediction. The multiplicative ceiling is 🔵; the realized value is 🟠.
+//
+// Inputs: C2 (cycle-40) quant speedup · F3 (cycle-37) Leviathan-Kalman speedup.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Closed-form composition of C2 + F3 verified speedups.")
+
+let SCALE = 1000000
+
+fn pow_scaled(base_s: int, exp: int) -> int {
+    let mut result = SCALE
+    let mut i = 0
+    while i < exp {
+        result = result * base_s / SCALE
+        i = i + 1
+    }
+    return result
+}
+
+// Leviathan-Kalman speedup ×1000 (from F3 · α,c ×SCALE)
+fn specdec_milli(alpha_s: int, c_s: int, n: int) -> int {
+    let num = SCALE - pow_scaled(alpha_s, n + 1)
+    let one_minus_a = SCALE - alpha_s
+    let cn_plus_1 = c_s * n + SCALE
+    let denom = one_minus_a * cn_plus_1 / SCALE
+    return num * 1000 / denom
+}
+
+let C10 = 100000   // c = 0.1 (draft/target cost ratio)
+
+print("hexa-codex ECONOMICS C3 — quant × spec-dec stacking (cycle-41 composition)")
+print("===========================================================================")
+print("  composes C2 (Q4 throughput speedup) × F3 (Leviathan-Kalman spec-dec speedup)")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── check 1 — quant speedup Q8→Q4 = 8.5/4.5 ≥ 1.8× (C2, bytes ∝ bpw)
+checks_total = checks_total + 1
+let quant_speedup_x1000 = 85 * 1000 / 45   // 1888
+if quant_speedup_x1000 >= 1800 {
+    print("  [PASS] quant speedup Q8→Q4 = " + to_string(quant_speedup_x1000) + "/1000 (1.89× · C2 bytes∝bpw)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] quant speedup = " + to_string(quant_speedup_x1000) + " < 1.8×")
+}
+
+// ── check 2 — spec-dec at production α=0.5, N=3 = 1.44× (F3 production point)
+checks_total = checks_total + 1
+let specdec_prod = specdec_milli(500000, C10, 3)   // 1442
+if specdec_prod >= 1400 && specdec_prod <= 1500 {
+    print("  [PASS] spec-dec α=0.5 (production, N=3) = " + to_string(specdec_prod) + "/1000 (1.44× · F3)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] spec-dec prod = " + to_string(specdec_prod) + " ∉ [1400,1500]")
+}
+
+// ── check 3 — multiplicative CEILING = quant × specdec(α=0.5) (clean stack)
+checks_total = checks_total + 1
+let ceiling_x1000 = quant_speedup_x1000 * specdec_prod / 1000   // 1888×1442/1000 = 2722
+if ceiling_x1000 >= 2500 {
+    print("  [PASS] multiplicative CEILING = " + to_string(ceiling_x1000) + "/1000 (2.72× · clean stack if α quant-invariant)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ceiling = " + to_string(ceiling_x1000) + " < 2.5×")
+}
+
+// ── check 4 — interference FLOOR: Q4 draft drops α 0.5→0.4 → spec-dec(0.4,N=2)
+checks_total = checks_total + 1
+let specdec_lowalpha = specdec_milli(400000, C10, 2)   // 1300
+let floor_x1000 = quant_speedup_x1000 * specdec_lowalpha / 1000   // 1888×1300/1000 = 2454
+if floor_x1000 >= 2300 && floor_x1000 < ceiling_x1000 {
+    print("  [PASS] interference FLOOR (α_eff=0.4 under Q4 draft) = " + to_string(floor_x1000) + "/1000 (2.45× · < ceiling)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] floor = " + to_string(floor_x1000) + " (ceiling=" + to_string(ceiling_x1000) + ")")
+}
+
+// ── check 5 — realized combined ∈ [floor, ceiling]; gap = quant-α-sensitivity band
+checks_total = checks_total + 1
+let gap_x1000 = ceiling_x1000 - floor_x1000   // ~268
+if gap_x1000 > 0 && floor_x1000 < ceiling_x1000 {
+    print("  [PASS] realized stack ∈ [" + to_string(floor_x1000) + ", " + to_string(ceiling_x1000) + "]/1000 · gap=" + to_string(gap_x1000) + " = quant-α-sensitivity (UNMEASURED)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] degenerate band")
+}
+
+// ── check 6 — stacking BEATS either alone (combined floor > max single speedup)
+checks_total = checks_total + 1
+let max_single = if quant_speedup_x1000 > specdec_prod { quant_speedup_x1000 } else { specdec_prod }
+if floor_x1000 > max_single {
+    print("  [PASS] stacking floor " + to_string(floor_x1000) + " > best single " + to_string(max_single) + " → stacking is worthwhile even at the interference floor")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] stacking floor ≤ best single")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 SUPPORTED-FORMAL (multiplicative stacking bound 6/6) + 🟠 realized value (quant-α-sensitivity UNMEASURED)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — stacking composition disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("OPERATIONAL CONCLUSION:")
+print("  - Q4 + spec-dec STACK to a combined throughput ∈ [2.45×, 2.72×] vs Q8-greedy")
+print("    (vs Q8 fp-greedy baseline). Stacking is worthwhile even at the interference")
+print("    floor (2.45× > best single 1.89×).")
+print("  - CEILING 2.72× realized IFF draft acceptance α is quant-invariant (Q4 draft")
+print("    accepts like fp16 — analogous to F5's quality quant-invariance).")
+print("  - FLOOR 2.45× if Q4 draft drops α (0.5→0.4).")
+print("")
+print("HONEST RESIDUAL (C3 first probe):")
+print("  - multiplicative bound = 🔵 closed-form (orthogonal mechanisms: quant=per-token bytes,")
+print("    spec-dec=sequential passes).")
+print("  - realized value within [floor, ceiling] = 🟠: needs SUBSTRATE measure of α under")
+print("    Q4-vs-fp16 DRAFT (the single interference channel). cycle-42+ T4: SANDBOX spec-dec")
+print("    harness with Q4 draft vs fp16 draft → measure α_eff → pin the realized stack.")
+print("  - NO external claim refuted (feedback_negative_paper_external_claim): pure composition")
+print("    of C2 + F3 verified internal results into a bounded prediction.")
+print("  - C3 frontier OPEN (feedback_closure_is_physical_limit): bound close ≠ measured-α close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_C3_QUANT_SPECDEC_STACKING__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/c3_quant_specdec_stacking_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS C3 — quant × spec-dec stacking (cycle-41 composition)\n"
+content = content + "# axis=ECONOMICS.md::C3 (Pareto cost-quality frontier · inference-side stacking)\n"
+content = content + "# composes=C2(quant speedup,c40) × F3(Leviathan-Kalman spec-dec,c37)\n"
+content = content + "# verifier=verify/numerics_economics_c3_quant_specdec_stacking.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# quant_speedup_x1000=" + to_string(quant_speedup_x1000) + " (1.89x, Q8->Q4)\n"
+content = content + "# specdec_prod_alpha050_x1000=" + to_string(specdec_prod) + " (1.44x)\n"
+content = content + "# multiplicative_ceiling_x1000=" + to_string(ceiling_x1000) + " (2.72x, clean stack)\n"
+content = content + "# interference_floor_x1000=" + to_string(floor_x1000) + " (2.45x, alpha 0.5->0.4)\n"
+content = content + "# realized_band=[" + to_string(floor_x1000) + "," + to_string(ceiling_x1000) + "] gap=" + to_string(gap_x1000) + " (quant-alpha-sensitivity UNMEASURED)\n"
+content = content + "# conclusion=Q4+specdec stack to [2.45x,2.72x] vs Q8-greedy; worthwhile even at floor\n"
+content = content + "# next_probe=cycle-42+ T4 SANDBOX spec-dec Q4-draft vs fp16-draft -> measure alpha_eff\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

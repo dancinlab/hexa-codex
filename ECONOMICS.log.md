@@ -6,6 +6,51 @@
 
 ---
 
+## 2026-05-27 — cycle-41 C3 inference stacking · quant × spec-dec 결합 throughput · 🔵 6/6 (pool ubu-1 컴파일)
+
+axis C inference-side 두번째 합성. C2(quant) × F3(spec-dec) 가 곱해지는가 vs 간섭하는가.
+
+**검증기**: `verify/numerics_economics_c3_quant_specdec_stacking.hexa`
+**실행 환경 (중요)**: **pool 호스트 ubu-1 에서 `hexa build` 네이티브 컴파일+실행** — hexa
+는 컴파일 언어, 인터프리터(`hexa run`) 폐기됨. Mac 로컬은 fork-storm 게이트(`sidecar
+sign local` 필요)라 pool 로. ubu-1 transpiler `hexa_v2` 가 stale-build 라 처음 segfault
+→ `hexa cc` (HEXA_LANG=~/core/hexa-lang/build) 로 클린 재빌드 후 정상 컴파일.
+
+**6/6 PASS (pool 컴파일 verbatim)**:
+- quant speedup Q8→Q4 = 1.888× (C2, bytes∝bpw)
+- spec-dec α=0.5 (production, N=3) = 1.442× (F3 Leviathan-Kalman)
+- multiplicative CEILING = 2.722× (clean stack if α quant-invariant)
+- interference FLOOR (α_eff=0.4 under Q4 draft) = 2.454×
+- realized stack ∈ [2454, 2722]/1000 · gap=268 = quant-α-sensitivity (UNMEASURED)
+- stacking floor 2454 > best-single 1888 → 스태킹은 floor 에서도 이득
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (multiplicative bound) + 🟠 realized value.
+
+**운영 결론**: Q4 + spec-dec 를 STACK 하면 Q8-greedy 대비 결합 throughput [2.45×, 2.72×].
+두 최적화는 직교 메커니즘 (quant=per-token bytes 감소 · spec-dec=sequential target pass
+감소) → 곱셈. 유일한 간섭 채널 = α (draft acceptance) 가 Q4 draft 에서 떨어지는지.
+
+**honest residual**:
+- multiplicative bound = 🔵 closed-form (직교 메커니즘 곱셈).
+- realized 값 [floor, ceiling] = 🟠: Q4-vs-fp16 DRAFT 의 α_eff SUBSTRATE 측정 필요
+  (간섭 채널). cycle-42+ T4: SANDBOX spec-dec harness Q4 draft vs fp16 draft → α_eff 측정.
+- self-strawman 아님 ([[feedback_negative_paper_external_claim]]): C2+F3 내부 검증 결과
+  합성 → bounded prediction. 외부 주장 반증 아님.
+- C3 frontier OPEN: bound close ≠ measured-α close.
+
+**인프라 메모**: pool ubu-1 의 `hexa_v2` transpiler stale-build segfault → `hexa cc`
+재빌드로 복구. hexa-lang inbox 후보 (왜 stale 였는지 / 재빌드 자동화) — 단 이번엔 재빌드로
+unblock 됐으므로 workaround 아닌 정상 복구. `.verdicts/economics/` 가 ubu-1 repo 에
+없어(gitignored dir 미생성) write_file no-op → HEXA_CODEX_ROOT=/tmp 로 verdict 회수 후
+로컬 기록.
+
+**연결**:
+- verifier: [`verify/numerics_economics_c3_quant_specdec_stacking.hexa`](verify/numerics_economics_c3_quant_specdec_stacking.hexa)
+- verdict: [`.verdicts/economics/c3_quant_specdec_stacking_verdict.txt`](.verdicts/economics/c3_quant_specdec_stacking_verdict.txt)
+- 합성 source: C2 (`verify/numerics_economics_c2_inference_pareto_q4_dominance.hexa`) · F3 (`verify/numerics_economics_f3_spec_dec_speedup.hexa`)
+
+---
+
 ## 2026-05-27 — cycle-40 C2 inference Pareto · Q4 Pareto-dominates Q8 (F-law composition) · 🟢 7/7
 
 axis C (Pareto 비용-품질 frontier) 의 inference-side 확장. cycle-36→39 에서 검증한

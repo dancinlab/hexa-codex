@@ -1,0 +1,63 @@
+#!hexa strict
+// RAG/bench/rag_a1_recall_at_k.hexa
+// RAG A1 first probe (cycle-9 round-3 · CODEX fg) — retriever recall@k
+// set-cardinality identity + citation rate (compound OR falsifier).
+//
+// Identity (closed-form set cardinality · libm-free):
+//   recall@k(retriever) = |retrieved_top_k ∩ relevant| / |relevant|
+//   citation_rate(model) = |answers_citing_retrieved| / |total_answers|
+//   falsifier_fires      = (recall@5 < 50%) OR (citation_rate < 30%)
+//
+// Falsifier (CODEX A1): retriever recall@5 < 50% OR LLM 이 retrieved context
+// 무시 (citation rate < 30%) → RAG system 의 retriever OR use 측 문제.
+//
+// External anchors (citation tier · 🟡):
+//   Karpukhin 2020 — DPR (EMNLP 2020, arXiv:2004.04906)
+//   Shi 2023 — retrieval distractor (arXiv:2302.00093)
+//   Asai 2023 — Self-RAG (arXiv:2310.11511)
+//   Ram 2023 — in-context retrieval (arXiv:2302.00083)
+//
+// Integer ledger (recall × 100, citation × 100) — libm-free. Placeholder counts —
+// 실측 (MS MARCO · NQ · TriviaQA × retriever family) deferred to cost-bearing round.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure set-cardinality identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Retriever registry (4 retrievers · recall@5 × 100 + citation rate × 100)
+// ────────────────────────────────────────────────────────────────────────
+
+let RETRIEVER_NAMES = ["BM25",  "DPR",   "ColBERT", "naive"]
+let RECALL_AT_5_x100 = [62, 78, 85, 35]      // recall@5 × 100
+let CITATION_x100    = [55, 72, 80, 18]      // citation rate × 100
+
+let RECALL_THRESHOLD_x100   = 50    // < 50% → retriever 부족 → falsifier fires
+let CITATION_THRESHOLD_x100 = 30    // < 30% → LLM 무시 → falsifier fires
+
+fn recall_low(i: int) -> bool { return RECALL_AT_5_x100[i] < RECALL_THRESHOLD_x100 }
+fn citation_low(i: int) -> bool { return CITATION_x100[i] < CITATION_THRESHOLD_x100 }
+fn falsifier_fires(i: int) -> bool { return recall_low(i) || citation_low(i) }
+
+print("hexa-codex RAG A1 — retriever recall@k + citation closed-form (cycle-9 round-3)")
+print("================================================================================")
+print("")
+print("per-retriever profile (placeholder · MS MARCO / NQ style benchmark):")
+let n = RETRIEVER_NAMES.len()
+let mut i = 0
+while i < n {
+    let mut flag = "ok"
+    if falsifier_fires(i) {
+        if recall_low(i) && citation_low(i) {
+            flag = "DOUBLE FAIL (recall<50 AND citation<30)"
+        } else if recall_low(i) {
+            flag = "RECALL FAIL (<50%)"
+        } else {
+            flag = "CITATION FAIL (<30%)"
+        }
+    }
+    print("  " + RETRIEVER_NAMES[i] + ": recall@5=" + to_string(RECALL_AT_5_x100[i]) +
+          "/100 · citation=" + to_string(CITATION_x100[i]) + "/100 · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_RAG_A1_RECALL_AT_K__ DONE")

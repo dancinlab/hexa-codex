@@ -1,0 +1,11 @@
+# hexa-codex RAG A1 — recall@k + citation closed-form verifier (cycle-9 round-3)
+# axis=RAG/RAG.md::A1 (retriever recall@k + citation rate compound OR)
+# bench=RAG/bench/rag_a1_recall_at_k.hexa
+# verifier=RAG/verify/numerics_rag_a1_recall_at_k.hexa
+# tier=🔵 STRUCTURAL (recall@k set-cardinality + OR compound 7/7) + 🟡 BY-CITATION (50%/30% thresholds = DPR/RAG convention)
+# checks=7/7
+# formula=recall@k = |retrieved∩relevant|/|relevant|; falsifier = (recall@5<50%) OR (citation<30%)
+# placeholder_data=4 retrievers (BM25 62/55 DPR 78/72 ColBERT 85/80 naive 35/18 × 100); naive double-fails, BM25/DPR/ColBERT silent
+# external_anchors=Karpukhin 2020 DPR (arXiv:2004.04906) · Shi 2023 distractor · Asai 2023 Self-RAG (arXiv:2310.11511) · Ram 2023
+# substrate_fire=DEFERRED (cycle-10+ · MS MARCO/NQ/TriviaQA · retriever family × LLM citation eval on ubu-1 HF)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close

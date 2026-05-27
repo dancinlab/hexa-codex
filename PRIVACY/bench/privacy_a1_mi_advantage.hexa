@@ -1,0 +1,69 @@
+#!hexa strict
+// PRIVACY/bench/privacy_a1_mi_advantage.hexa
+// PRIVACY A1 first probe (cycle-9 round-3 · CODEX fg) — membership inference
+// accuracy vs random baseline (0.5) closed-form delta.
+//
+// Identity (closed-form · libm-free):
+//   mi_excess(model) = mi_acc(model) − 0.5   (signed delta from random baseline)
+//   mi_advantage     = max(0, mi_excess)     (clipped non-negative leakage)
+//   falsifier_fires  = mi_excess > 5pp        (CODEX A1 반증자: > random + 5pp)
+//
+// Falsifier (CODEX A1): membership inference accuracy > random baseline + 5pp
+// → 모델이 학습 corpus 의 특정 sample 을 통계적으로 식별 가능 → 학습 흔적 노출.
+//
+// External anchors (citation tier · 🟡):
+//   Shokri 2017 — membership inference attacks (S&P 2017)
+//   Carlini 2021 — extracting training data (USENIX Security 2021, arXiv:2012.07805)
+//   Abadi 2016 — DP-SGD (CCS 2016, arXiv:1607.00133)
+//   Yeom 2018 — privacy risk / overfitting bound
+//
+// Integer ledger (acc × 100) — libm-free. Placeholder MI accuracies —
+// 실측 MI attack (Shokri shadow models · Carlini canary extraction) deferred.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form delta-from-baseline identity — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (placeholder 4 models · MI accuracy × 100 on canary set)
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES   = ["A", "B", "C", "D"]
+let MI_ACC_x100   = [52, 58, 50, 45]    // MI accuracy × 100 (50 = random baseline)
+
+let RANDOM_BASELINE_x100 = 50
+let LEAK_THRESHOLD_x100  = 5             // > 5pp excess → falsifier fires
+
+fn mi_excess_x100(i: int) -> int {
+    return MI_ACC_x100[i] - RANDOM_BASELINE_x100
+}
+
+fn mi_advantage_x100(i: int) -> int {
+    let e = mi_excess_x100(i)
+    if e < 0 { return 0 }
+    return e
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return mi_excess_x100(i) > LEAK_THRESHOLD_x100
+}
+
+print("hexa-codex PRIVACY A1 — MI accuracy vs random baseline (cycle-9 round-3)")
+print("=========================================================================")
+print("")
+print("per-model MI accuracy (placeholder · canary set 위 shadow-model attack):")
+let n = MODEL_NAMES.len()
+let mut i = 0
+while i < n {
+    let e = mi_excess_x100(i)
+    let a = mi_advantage_x100(i)
+    let mut flag = "ok"
+    if falsifier_fires(i) {
+        flag = "LEAK (excess > 5pp · falsifier fires)"
+    }
+    print("  model " + MODEL_NAMES[i] + ": mi_acc=" + to_string(MI_ACC_x100[i]) +
+          "/100 · excess=" + to_string(e) + "/100 · advantage=" + to_string(a) +
+          "/100 · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_PRIVACY_A1_MI_ADVANTAGE__ DONE")

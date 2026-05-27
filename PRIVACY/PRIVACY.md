@@ -20,7 +20,7 @@
 > PRIVACY 은 완료되지 않는다. 새 DP 방법·corpus·extraction 기법 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — membership inference accuracy vs random baseline. 반증자: membership inference accuracy > random baseline + 5pp → 학습 흔적 식별 가능.
+- [x] A1 — membership inference accuracy vs random baseline. 반증자: membership inference accuracy > random baseline + 5pp → 학습 흔적 식별 가능. **CYCLE-9 round-3 first probe (2026-05-28):** `PRIVACY/bench/privacy_a1_mi_advantage.hexa` + `PRIVACY/verify/numerics_privacy_a1_mi_advantage.hexa` ✅ 7/7 PASS · 🔵 STRUCTURAL (MI delta-from-baseline identity) + 🟡 BY-CITATION (5pp threshold convention). Identity: `mi_excess = mi_acc − 0.5` · `mi_advantage = max(0, mi_excess)` · `falsifier_fires = mi_excess > 5pp`. Worked example 4 models (A=52·B=58·C=50·D=45 × 100): C baseline (excess=0, silent) · A borderline (excess=2 ≤ 5, silent · false-positive 회피) · **B leak (excess=8 > 5, fires)** · D below-random (excess=−5, advantage clipped 0, anomaly preserved). Bidirectional discrimination + non-negative clip + baseline=0 identity 전부 검증. External anchors: Shokri 2017 MI attack (S&P) · Carlini 2021 extraction (arXiv:2012.07805) · Abadi 2016 DP-SGD (CCS · arXiv:1607.00133) · Yeom 2018 privacy bound. **실측 MI attack DEFERRED** — cycle-10+ T4 (shadow models on ubu-1 HF · canary extraction · DP ε sweep). **frontier OPEN** ([[feedback_closure_is_physical_limit]]) — identity close ≠ measured close. 축 N (memorization-vs-utility Pareto) 다음 ⭐ MAIN priority lane.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — canary extraction rate × corpus type × prompt strategy ladder. 반증자: canary extraction rate > 1% on standard prompt prefix.

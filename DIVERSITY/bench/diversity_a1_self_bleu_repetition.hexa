@@ -1,0 +1,66 @@
+#!hexa strict
+// DIVERSITY/bench/diversity_a1_self_bleu_repetition.hexa
+// DIVERSITY A1 first probe (cycle-9 round-6 · CODEX bg) — output diversity
+// self-BLEU similarity + n-gram repetition rate (compound OR falsifier).
+//
+// Identity (closed-form · libm-free):
+//   self_BLEU(model)       = mean BLEU(s_i, s_{!=i}) over sampled pairs ∈ [0,1]
+//                            (× 100 → integer ledger)
+//   repetition_rate(model) = |repeated n-grams| / |total n-grams| ∈ [0,1]
+//                            (× 100 → integer ledger)
+//   falsifier_fires        = (self_BLEU > 80) OR (repetition > 20)
+//
+// Falsifier (CODEX A1): self-BLEU > 0.8 (semi-identical samples) OR
+// repetition rate > 20% (degenerate n-gram loop) → decoder/sampling 가 출력
+// 분포를 spread 시키지 못함 (mode collapse / repeat-loop).
+//
+// External anchors (citation tier · 🟡):
+//   Holtzman 2020 — Curious Case of Neural Text Degeneration · nucleus sampling (arXiv:1904.09751)
+//   Massarelli 2020 — How Decoding Strategies Affect the Verifiability of Generated Text (arXiv:1911.03587)
+//   Zhu 2018 — Texygen: A Benchmarking Platform for Text Generation Models · self-BLEU (arXiv:1802.01886)
+//
+// Integer ledger (self_BLEU × 100, repetition × 100) — libm-free. Placeholder
+// counts — 실측 (creative · factual · QA × decoder family on SANDBOX) deferred
+// to cost-bearing round.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure score-band identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (4 model/decoder profiles · self_BLEU × 100 + repetition × 100)
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES   = ["creative",  "balanced",  "repetitive",  "stuck"]
+let SELF_BLEU_x100 = [45, 60, 85, 92]      // self-BLEU × 100 (0=spread, 100=identical)
+let REPETITION_x100 = [8, 15, 25, 45]      // n-gram repetition × 100
+
+let SELF_BLEU_THRESHOLD_x100   = 80    // > 80 → mode collapse → falsifier fires
+let REPETITION_THRESHOLD_x100  = 20    // > 20% → degenerate loop → falsifier fires
+
+fn self_bleu_high(i: int) -> bool { return SELF_BLEU_x100[i] > SELF_BLEU_THRESHOLD_x100 }
+fn repetition_high(i: int) -> bool { return REPETITION_x100[i] > REPETITION_THRESHOLD_x100 }
+fn falsifier_fires(i: int) -> bool { return self_bleu_high(i) || repetition_high(i) }
+
+print("hexa-codex DIVERSITY A1 — self-BLEU + repetition closed-form (cycle-9 round-6)")
+print("================================================================================")
+print("")
+print("per-model profile (placeholder · creative · factual · QA style sampling):")
+let n = MODEL_NAMES.len()
+let mut i = 0
+while i < n {
+    let mut flag = "ok"
+    if falsifier_fires(i) {
+        if self_bleu_high(i) && repetition_high(i) {
+            flag = "DOUBLE FAIL (self_BLEU>80 AND repetition>20)"
+        } else if self_bleu_high(i) {
+            flag = "SELF_BLEU FAIL (>80)"
+        } else {
+            flag = "REPETITION FAIL (>20%)"
+        }
+    }
+    print("  " + MODEL_NAMES[i] + ": self_BLEU=" + to_string(SELF_BLEU_x100[i]) +
+          "/100 · repetition=" + to_string(REPETITION_x100[i]) + "/100 · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_DIVERSITY_A1_SELF_BLEU_REPETITION__ DONE")

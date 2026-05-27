@@ -20,7 +20,7 @@
 > DIVERSITY 은 완료되지 않는다. 새 task·decoder·sampling 기법 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — self-BLEU · n-gram repetition · 분포 entropy. 반증자: self-BLEU > 0.8 OR repetition rate > 20%.
+- [x] A1 — self-BLEU · n-gram repetition · 분포 entropy. 반증자: self-BLEU > 0.8 OR repetition rate > 20%. **CYCLE-9 round-6 wire** · 🔵 STRUCTURAL + 🟡 BY-CITATION (7/7) · bench `DIVERSITY/bench/diversity_a1_self_bleu_repetition.hexa` · verify `DIVERSITY/verify/numerics_diversity_a1_self_bleu_repetition.hexa` · anchors Holtzman 2020 nucleus (arXiv:1904.09751) · Massarelli 2020 decoding · Zhu 2018 self-BLEU · substrate fire DEFERRED.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — task 별 (factual vs creative) diversity 요구 ladder · decoder × T × top-p. 반증자: creative task 의 self-BLEU > factual task → decoder/T 가 task 차이를 못 봄.

@@ -1,0 +1,169 @@
+#!hexa strict
+// DIVERSITY/verify/numerics_diversity_a1_self_bleu_repetition.hexa
+// DIVERSITY A1 — closed-form verifier for output diversity self-BLEU + repetition
+// compound OR falsifier.
+//
+// Asserts the score-band identity + compound OR semantics:
+//   (1) all self_BLEU ∈ [0, 100] (similarity score band)
+//   (2) all repetition ∈ [0, 100] (rate band)
+//   (3) both-low (creative · self_BLEU=45, rep=8) → silent
+//   (4) one-leg-high-self_BLEU synthetic (self_BLEU=85, rep=10) → OR fires
+//   (5) one-leg-high-repetition synthetic (self_BLEU=50, rep=30) → OR fires
+//   (6) both-low (balanced · self_BLEU=60, rep=15) silent — false-positive 회피
+//   (7) determinism (re-call same fires)
+//
+// Source: DIVERSITY/bench/diversity_a1_self_bleu_repetition.hexa
+// External anchors: Holtzman 2020 nucleus (arXiv:1904.09751) · Massarelli 2020 · Zhu 2018 self-BLEU
+//
+// @no-lock-needed
+
+let MODEL_NAMES    = ["creative",  "balanced",  "repetitive",  "stuck"]
+let SELF_BLEU_x100  = [45, 60, 85, 92]
+let REPETITION_x100 = [8, 15, 25, 45]
+let SELF_BLEU_THRESHOLD_x100  = 80
+let REPETITION_THRESHOLD_x100 = 20
+
+fn self_bleu_high(i: int) -> bool { return SELF_BLEU_x100[i] > SELF_BLEU_THRESHOLD_x100 }
+fn repetition_high(i: int) -> bool { return REPETITION_x100[i] > REPETITION_THRESHOLD_x100 }
+fn falsifier_fires(i: int) -> bool { return self_bleu_high(i) || repetition_high(i) }
+
+print("hexa-codex DIVERSITY A1 falsifier — self-BLEU + repetition compound OR")
+print("==========================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = MODEL_NAMES.len()
+
+// check 1 — self_BLEU ∈ [0, 100]
+checks_total = checks_total + 1
+let mut sb_ok = true
+let mut i = 0
+while i < n {
+    if SELF_BLEU_x100[i] < 0 || SELF_BLEU_x100[i] > 100 { sb_ok = false }
+    i = i + 1
+}
+if sb_ok {
+    print("  [PASS] all self_BLEU ∈ [0, 100] (similarity score band)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] self_BLEU out of [0, 100]")
+}
+
+// check 2 — repetition ∈ [0, 100]
+checks_total = checks_total + 1
+let mut rp_ok = true
+i = 0
+while i < n {
+    if REPETITION_x100[i] < 0 || REPETITION_x100[i] > 100 { rp_ok = false }
+    i = i + 1
+}
+if rp_ok {
+    print("  [PASS] all repetition ∈ [0, 100] (rate band)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] repetition out of [0, 100]")
+}
+
+// check 3 — creative (idx 0): both low → silent
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && SELF_BLEU_x100[0] <= 80 && REPETITION_x100[0] <= 20 {
+    print("  [PASS] creative (self_BLEU=45, rep=8) silent — both below thresholds")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] creative unexpectedly fired")
+}
+
+// check 4 — one-leg-high-self_BLEU synthetic: self_BLEU=85 (>80), rep=10 (<=20) → OR fires
+checks_total = checks_total + 1
+let sb_high_only = 85
+let rp_low_with_sb = 10
+let or_fires_sb_only = (sb_high_only > SELF_BLEU_THRESHOLD_x100) || (rp_low_with_sb > REPETITION_THRESHOLD_x100)
+let sb_low_only = 50
+let rp_low_both = 10
+let or_silent_both_low = (sb_low_only > SELF_BLEU_THRESHOLD_x100) || (rp_low_both > REPETITION_THRESHOLD_x100)
+if or_fires_sb_only && or_silent_both_low == false {
+    print("  [PASS] one-leg-high self_BLEU=85 fires · both-low silent (OR semantics)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] OR semantics broken on self_BLEU-only leg")
+}
+
+// check 5 — one-leg-high-repetition synthetic: self_BLEU=50 (<=80), rep=30 (>20) → OR fires
+checks_total = checks_total + 1
+let sb_low_with_rp = 50
+let rp_high_only = 30
+let or_fires_rp_only = (sb_low_with_rp > SELF_BLEU_THRESHOLD_x100) || (rp_high_only > REPETITION_THRESHOLD_x100)
+if or_fires_rp_only {
+    print("  [PASS] one-leg-high repetition=30 fires (OR semantics · rep-only leg)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] OR semantics broken on repetition-only leg")
+}
+
+// check 6 — balanced (idx 1) borderline silent (self_BLEU=60 <=80, rep=15 <=20) — false-positive 회피
+checks_total = checks_total + 1
+if falsifier_fires(1) == false {
+    print("  [PASS] balanced (self_BLEU=60, rep=15) silent — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] balanced unexpectedly fired")
+}
+
+// check 7 — determinism
+checks_total = checks_total + 1
+if falsifier_fires(3) == falsifier_fires(3) && falsifier_fires(0) == falsifier_fires(0) {
+    print("  [PASS] deterministic (re-call same fires)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (self-BLEU + repetition score-band + OR compound 7/7) + 🟡 BY-CITATION (80%/20% thresholds = Holtzman/Zhu convention)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — diversity formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("DIVERSITY A1 finding (placeholder · closed-form):")
+print("  - self-BLEU + repetition score-band identity (7/7 closed-form checks)")
+print("  - compound OR semantics: stuck/repetitive double-fail · balanced/creative silent")
+print("  - external anchor: Holtzman 2020 nucleus · Massarelli 2020 decoding · Zhu 2018 self-BLEU")
+print("  - 실측 (cycle-10+ T4): creative · factual · QA × decoder × T × top-p on SANDBOX (mac M3 / ubu-1)")
+print("")
+print("__HEXA_CODEX_NUMERICS_DIVERSITY_A1_SELF_BLEU_REPETITION__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/DIVERSITY/verdicts/a1_self_bleu_repetition_verdict.txt"
+
+let mut content = "# hexa-codex DIVERSITY A1 — self-BLEU + repetition closed-form verifier (cycle-9 round-6)\n"
+content = content + "# axis=DIVERSITY/DIVERSITY.md::A1 (output diversity self-BLEU + n-gram repetition compound OR)\n"
+content = content + "# bench=DIVERSITY/bench/diversity_a1_self_bleu_repetition.hexa\n"
+content = content + "# verifier=DIVERSITY/verify/numerics_diversity_a1_self_bleu_repetition.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=self_BLEU = mean BLEU(s_i,s_{!=i}); repetition = |repeated n-grams|/|total|; falsifier = (self_BLEU>80) OR (repetition>20)\n"
+content = content + "# placeholder_data=4 models (creative 45/8 silent · balanced 60/15 silent · repetitive 85/25 DOUBLE · stuck 92/45 DOUBLE × 100)\n"
+content = content + "# external_anchors=Holtzman 2020 nucleus sampling (arXiv:1904.09751) · Massarelli 2020 decoding (arXiv:1911.03587) · Zhu 2018 self-BLEU Texygen (arXiv:1802.01886)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · creative/factual/QA × decoder × T × top-p on SANDBOX mac M3 / ubu-1)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

@@ -45,6 +45,7 @@
 - [x] MULTILINGUAL/A1 — per-language perplexity · bytes/token · 반증자: low-resource 성능 < 영어 × 0.5 · **CYCLE-9 round-2 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `MULTILINGUAL/verify/numerics_multilingual_a1_perplexity_gap.hexa`
 - [x] FAIRNESS/A1 — group-wise accuracy gap · counterfactual fairness · 반증자: demographic gap > 10pp · **CYCLE-9 round-2 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `FAIRNESS/verify/numerics_fairness_a1_group_gap.hexa`
 - [x] PRIVACY/A1 — membership inference accuracy vs baseline · 반증자: > random + 5pp · **CYCLE-9 round-3 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `PRIVACY/verify/numerics_privacy_a1_mi_advantage.hexa`
+- [x] MULTIMODAL/A1 — text·image·audio·video 모달리티 균형 · 반증자: 모달리티 간 acc gap > 30pp · **CYCLE-10 reorg (2026-05-28 · FRONTIER F2 graduate · 신규 단독 도메인)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `MULTIMODAL/verify/numerics_multimodal_a1_modality_balance.hexa` · gemma4_31B 7pp · qwen3.6_72B 19pp silent · legacy_vlm_4B 75pp fires
 
 ### ⭐⭐ 10 (보조 후보)
 - [x] ROBUSTNESS/A1 — adversarial attack 성공률 · clean accuracy · 반증자: adv drop > 30pp · **CYCLE-9 round-6 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `ROBUSTNESS/verify/numerics_robustness_a1_adversarial_drop.hexa`
@@ -57,6 +58,22 @@
 - [x] TEMPORAL/A1 — date/duration/ordering accuracy · 반증자: cutoff 이후 confident-wrong > 30% · **CYCLE-9 round-7 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `TEMPORAL/verify/numerics_temporal_a1_post_cutoff_wrong.hexa`
 - [x] DIVERSITY/A1 — self-BLEU · repetition rate · entropy · 반증자: self-BLEU > 0.8 OR repetition > 20% · **CYCLE-9 round-6 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `DIVERSITY/verify/numerics_diversity_a1_self_bleu_repetition.hexa`
 - [x] USER-MODEL/A1 — 10-turn persona 일관성 · context recall · 반증자: 10-turn drift > 20% · **CYCLE-9 round-8 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `USER-MODEL/verify/numerics_user_model_a1_persona_drift.hexa`
+
+### 🆕 frontier-동향 흡수 (cycle-10 reorg · 각 도메인 N⭐ NOVEL MAIN)
+
+> 2026 frontier 동향 (Gemma 4 MoE · multimodal · agentic · reasoning · cost · alignment-faking + train/infer/serve stack) 을 별도 meta-domain (구 FRONTIER, 2026-05-28 retire) 대신 **기존 도메인의 N⭐ NOVEL MAIN axis 로 분산 흡수** (사용자 directive: "프론티어 별도 X · NOVEL 과 더불어 frontier 축으로 전부 분산 흡수 · 골 도착지 없이 · NOVEL 이 메인"). 각 흡수 시 기존 N⭐ → N2 강등.
+
+- [x] ENERGY/N1 — SPARSE-MOE active-premium (구 FRONTIER F1) · active_premium 982/1000 → 🔴 "MoE free lunch" myth FALSIFIED in Gemma 4 family
+- [x] AGENT/N1 — AGENTIC-TRAJECTORY step-decay (구 F3) · weak_4b_legacy 214 fires · 4 frontier silent
+- [x] HALLUCINATION/N1 — REASONING-DEPTH scratch-pad utility (구 F4) · pattern_match Δ3pp fires · 4 frontier Δ40-47 silent
+- [x] ECONOMICS/N1 — COST-PERFORMANCE 50× spread (구 F5) · GPT-5 $15 vs DeepSeek V4 $0.30 = 5000/100 fires
+- [ ] ROBUSTNESS/N⭐ — ALIGNMENT-FAKING eval-vs-deploy 행동차 (구 F6) · Phase 3
+- [ ] RELIABILITY/N⭐ — CHECKPOINT-INTEGRITY (resume·포맷변환 무결성) · Phase 3
+- [ ] ENERGY/N2 — QUANTIZATION 품질-크기 trade · Phase 3
+- [ ] MULTILINGUAL/N⭐ — TOKENIZER vocab coverage·bytes/token · Phase 3
+- [ ] BATCH-COMPOSITION/N⭐ — SPECULATIVE-DECODING draft acceptance · Phase 3
+- [ ] HW-VARIANCE/N⭐ — DISTRIBUTED-SCALING multi-GPU 효율 · Phase 3
+- [ ] LONG-CONTEXT/N2 — KV-CACHE paged attention 효율 · Phase 3
 
 ## SANDBOX 연계 (measurement substrate)
 

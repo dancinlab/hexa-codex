@@ -29,7 +29,10 @@
 @domain TEMPORAL := "./TEMPORAL/TEMPORAL.md"
 @domain DIVERSITY := "./DIVERSITY/DIVERSITY.md"
 @domain USER-MODEL := "./USER-MODEL/USER-MODEL.md"
+@domain MULTIMODAL := "./MULTIMODAL/MULTIMODAL.md"
 
 # ─── meta-domain (cross-domain orchestrator) ───
 @domain CODEX := "./CODEX/CODEX.md"
-@domain FRONTIER := "./FRONTIER/FRONTIER.md"
+# FRONTIER retired 2026-05-28 (cycle-10 reorg) — 6 frontier sub-axis 를 기존 도메인 N⭐ NOVEL MAIN 으로 분산 흡수:
+#   F1 SPARSE-MOE→ENERGY/N1 · F2 MULTIMODAL→MULTIMODAL/ 신규 · F3 AGENTIC-TRAJ→AGENT/N1
+#   F4 REASONING-DEPTH→HALLUCINATION/N1 · F5 COST-PERF→ECONOMICS/N1 · F6 ALIGNMENT-FAKING→ROBUSTNESS/N⭐ (Phase 3)

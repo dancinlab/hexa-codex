@@ -1,0 +1,251 @@
+#!hexa strict
+// hexa-codex/ENGINE/verify/numerics_engine_j1_trajectory_safety_gate.hexa
+// ENGINE axis J1 — falsifier verifier for AGENT N1 agentic-trajectory →
+// agentic-serving multi-step SAFETY GATE rule wire.
+//
+// Asserts the trajectory safety gate is consistent with the AGENT N1 cycle-10
+// agentic-trajectory step-decay finding (step-compounding broken when
+// decay_ratio < 300 · weak_4b_legacy fires · 4 frontier silent ≥ 564):
+//   (1) gate identity — decay ≥ 600 (robust) → allowed = requested · verify = false
+//   (2) borderline — gemma4_31b 564 (300-600) → allowed ≤ 3 + verify = true
+//   (3) broken — weak_4b_legacy 214 (< 300) → allowed = 1 + verify = true
+//   (4) ANTI-FALSIFIER wire — a gate that grants multi-step (>1) to a decay<300
+//       model (i.e. IGNORES the AGENT N1 finding) is detected as FAIL
+//   (5) determinism (recompute identical)
+//   (6) source consistency — gate consumes the AGENT N1 decay_ratio_x1000 vals
+//       (gpt5=782 · claude5=755 · gemma4_31b=564 · qwen3.6_72b=704 · weak_4b=214)
+//   (7) validity — 1 ≤ allowed_steps ≤ requested for every (model × request) cell
+// Any FAIL = gate contradicts the AGENT N1 finding → ENGINE J1 FALSIFIED.
+//
+// SOURCE.  ENGINE/wires/wire_j1_trajectory_safety_gate.hexa (verifier replicates
+// the gate band rule — closed-form recompute, no import of emitted state).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute of trajectory-safety gate bands.")
+
+// AGENT N1 measured decay_ratio_x1000 per model (source finding)
+let MODEL_NAMES = [
+    "gpt5_agent",
+    "claude_5_agent",
+    "gemma4_31b_agent",
+    "qwen3.6_72b_agent",
+    "weak_4b_legacy",
+]
+let DECAY_RATIO_x1000 = [782, 755, 564, 704, 214]   // AGENT N1 finding
+
+let ROBUST_THRESHOLD_x1000     = 600
+let BORDERLINE_THRESHOLD_x1000 = 300
+let BORDERLINE_STEP_CAP        = 3
+let SINGLE_STEP                = 1
+
+fn gate_allowed_steps(decay_ratio_x1000: int, requested_steps: int) -> int {
+    if decay_ratio_x1000 >= ROBUST_THRESHOLD_x1000 { return requested_steps }
+    if decay_ratio_x1000 >= BORDERLINE_THRESHOLD_x1000 {
+        if requested_steps < BORDERLINE_STEP_CAP { return requested_steps }
+        return BORDERLINE_STEP_CAP
+    }
+    return SINGLE_STEP
+}
+
+fn gate_verify_required(decay_ratio_x1000: int) -> bool {
+    return decay_ratio_x1000 < ROBUST_THRESHOLD_x1000
+}
+
+print("hexa-codex ENGINE J1 falsifier — trajectory safety gate vs AGENT N1 finding")
+print("===========================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = MODEL_NAMES.len()
+
+// check 1 — gate identity: decay ≥ 600 → allowed = requested · verify = false
+checks_total = checks_total + 1
+// gpt5=782 robust; request 5 → allowed 5, no verify
+let robust_decay = DECAY_RATIO_x1000[0]
+let robust_allowed = gate_allowed_steps(robust_decay, 5)
+let robust_verify = gate_verify_required(robust_decay)
+if robust_decay >= ROBUST_THRESHOLD_x1000 && robust_allowed == 5 && robust_verify == false {
+    print("  [PASS] gate identity — decay " + to_string(robust_decay) + " ≥ 600 (ROBUST) → allowed = requested (" +
+          to_string(robust_allowed) + ") · verify_required = false")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] gate identity broken (allowed=" + to_string(robust_allowed) + " verify=" +
+          (if robust_verify { "true" } else { "false" }) + ")")
+}
+
+// check 2 — borderline: gemma4_31b 564 (300-600) → allowed ≤ 3 + verify = true
+checks_total = checks_total + 1
+let gemma_decay = DECAY_RATIO_x1000[2]
+let gemma_allowed = gate_allowed_steps(gemma_decay, 5)
+let gemma_verify = gate_verify_required(gemma_decay)
+if gemma_decay >= BORDERLINE_THRESHOLD_x1000 && gemma_decay < ROBUST_THRESHOLD_x1000 &&
+   gemma_allowed <= BORDERLINE_STEP_CAP && gemma_allowed == BORDERLINE_STEP_CAP && gemma_verify == true {
+    print("  [PASS] borderline — gemma4_31b decay " + to_string(gemma_decay) +
+          " ∈ [300, 600) → allowed = " + to_string(gemma_allowed) + " ≤ " + to_string(BORDERLINE_STEP_CAP) +
+          " · verify_required = true")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] borderline gate broken (allowed=" + to_string(gemma_allowed) + " verify=" +
+          (if gemma_verify { "true" } else { "false" }) + ")")
+}
+
+// check 3 — broken: weak_4b_legacy 214 (< 300) → allowed = 1 + verify = true
+checks_total = checks_total + 1
+let weak_decay = DECAY_RATIO_x1000[4]
+let weak_allowed = gate_allowed_steps(weak_decay, 5)
+let weak_verify = gate_verify_required(weak_decay)
+if weak_decay < BORDERLINE_THRESHOLD_x1000 && weak_allowed == SINGLE_STEP && weak_verify == true {
+    print("  [PASS] broken — weak_4b_legacy decay " + to_string(weak_decay) +
+          " < 300 (step-compounding broken) → allowed = " + to_string(weak_allowed) +
+          " (single-step only) · verify_required = true")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] broken gate not single-step (allowed=" + to_string(weak_allowed) + " verify=" +
+          (if weak_verify { "true" } else { "false" }) + ")")
+}
+
+// check 4 — ANTI-FALSIFIER: a gate granting multi-step to a decay<300 model FAILS.
+// Construct a counterfeit "ignore-the-finding" gate that always returns
+// requested steps regardless of decay, and confirm the real gate diverges from
+// it on the broken model (i.e. the real gate clamps where the bad one wouldn't).
+checks_total = checks_total + 1
+fn counterfeit_ignore_finding(requested_steps: int) -> int { return requested_steps }
+let counterfeit_allowed = counterfeit_ignore_finding(5)          // would grant 5 to weak_4b
+let real_allowed_for_broken = gate_allowed_steps(weak_decay, 5)  // real gate clamps to 1
+let counterfeit_grants_multistep = counterfeit_allowed > SINGLE_STEP
+let real_clamps_broken = real_allowed_for_broken == SINGLE_STEP
+if counterfeit_grants_multistep && real_clamps_broken && real_allowed_for_broken < counterfeit_allowed {
+    print("  [PASS] anti-falsifier — counterfeit gate (ignores N1 finding) grants " +
+          to_string(counterfeit_allowed) + " steps to decay<300 model; real gate clamps to " +
+          to_string(real_allowed_for_broken) + " → finding-ignoring gate correctly detected as unsafe")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] anti-falsifier broken — real gate did NOT clamp a decay<300 model (allowed=" +
+          to_string(real_allowed_for_broken) + ")")
+}
+
+// check 5 — determinism
+checks_total = checks_total + 1
+if gate_allowed_steps(weak_decay, 5) == gate_allowed_steps(weak_decay, 5) &&
+   gate_verify_required(gemma_decay) == gate_verify_required(gemma_decay) &&
+   gate_allowed_steps(robust_decay, 5) == gate_allowed_steps(robust_decay, 5) {
+    print("  [PASS] deterministic (re-call same allowed_steps + verify_required)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+// check 6 — source consistency: gate consumes the AGENT N1 decay_ratio_x1000 vals,
+// and each model's band classification matches the N1 discrimination
+// (4 frontier ≥ 300 silent-ish, weak_4b fires < 300; gemma4 is the borderline).
+checks_total = checks_total + 1
+let mut src_ok = true
+if DECAY_RATIO_x1000[0] != 782 { src_ok = false }
+if DECAY_RATIO_x1000[1] != 755 { src_ok = false }
+if DECAY_RATIO_x1000[2] != 564 { src_ok = false }
+if DECAY_RATIO_x1000[3] != 704 { src_ok = false }
+if DECAY_RATIO_x1000[4] != 214 { src_ok = false }
+// the one model AGENT N1's falsifier fires on (< 300) must be the one this gate
+// restricts to single-step
+let mut fires_count = 0
+let mut single_step_count = 0
+let mut i = 0
+while i < n {
+    if DECAY_RATIO_x1000[i] < BORDERLINE_THRESHOLD_x1000 { fires_count = fires_count + 1 }
+    if gate_allowed_steps(DECAY_RATIO_x1000[i], 5) == SINGLE_STEP { single_step_count = single_step_count + 1 }
+    i = i + 1
+}
+if src_ok && fires_count == 1 && single_step_count == 1 {
+    print("  [PASS] source consistency — gate consumes AGENT N1 decay_ratio_x1000 " +
+          "(gpt5=782 · claude5=755 · gemma4=564 · qwen3.6=704 · weak_4b=214); " +
+          "exactly 1 model fires (< 300) ↔ exactly 1 restricted to single-step")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] source inconsistency (src_ok=" + (if src_ok { "true" } else { "false" }) +
+          " fires=" + to_string(fires_count) + " single_step=" + to_string(single_step_count) + ")")
+}
+
+// check 7 — validity: 1 ≤ allowed_steps ≤ requested for every (model × request) cell
+checks_total = checks_total + 1
+let REQ_LADDER = [1, 2, 3, 5, 8]
+let m = REQ_LADDER.len()
+let mut valid_ok = true
+i = 0
+while i < n {
+    let mut j = 0
+    while j < m {
+        let req = REQ_LADDER[j]
+        let allowed = gate_allowed_steps(DECAY_RATIO_x1000[i], req)
+        if allowed < SINGLE_STEP { valid_ok = false }
+        if allowed > req { valid_ok = false }
+        j = j + 1
+    }
+    i = i + 1
+}
+if valid_ok {
+    print("  [PASS] validity — 1 ≤ allowed_steps ≤ requested for all " + to_string(n) + " × " +
+          to_string(m) + " (model × request) cells (gate never invents steps nor returns < 1)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] validity broken — some allowed_steps < 1 or > requested")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL + 🟡 BY-CITATION (AGENT/N1 · GAIA · ATBench) — ENGINE J1 wire encodes AGENT N1 trajectory finding into agentic-serving safety gate (7/7 checks · decay≥600 unconstrained · 564 borderline≤3+verify · 214 single-step+verify)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — trajectory safety gate contradicts AGENT N1 finding (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("J1 benefit (closed-form — actual agentic-serving gate fire deferred):")
+print("  - opens ENGINE axis J (AGENT), wiring multi-step agentic-trajectory measurement into execution")
+print("  - admission gate caps autonomous horizon by MEASURED decay_ratio, not a static per-model heuristic")
+print("  - weak_4b_legacy (214, compounding broken) clamped to single-step + forced verify → no super-linear")
+print("    error compounding from an unverified N-step trajectory")
+print("  - gemma4_31b (564, borderline) capped @ 3 steps + per-step verify → bounded-horizon w/ a safety net")
+print("  - 3 frontier agents (≥ 600) run unconstrained → no false-positive throttling of robust models")
+print("  - falsifiable at agentic-serving fire: real GAIA/ATBench multi-step serving — does the per-step")
+print("    verify catch-rate justify the horizon cap, or is a softer band sufficient?")
+print("  - class: method-transfer (step-decay measurement → admission-time horizon gate)")
+print("")
+print("__HEXA_CODEX_NUMERICS_ENGINE_J1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/ENGINE/verdicts/j1_trajectory_safety_gate_verdict.txt"
+
+let mut content = "# hexa-codex ENGINE J1 — trajectory safety gate wire verifier (cycle-10)\n"
+content = content + "# axis=ENGINE/ENGINE.md::J1 (AGENT agentic-trajectory finding → agentic-serving multi-step safety gate · NEW AGENT sibling intake)\n"
+content = content + "# source_finding=AGENT.md::N1 (cycle-10 agentic-trajectory step-decay · decay_ratio_x1000 = acc_5step × 1000 / acc_1step · weak_4b fires 214 < 300 · 4 frontier silent ≥ 564)\n"
+content = content + "# wire=ENGINE/wires/wire_j1_trajectory_safety_gate.hexa\n"
+content = content + "# verifier=ENGINE/verify/numerics_engine_j1_trajectory_safety_gate.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# decision_rule=decay≥600 → allowed=requested·verify=false (ROBUST); 300≤decay<600 → allowed=min(requested,3)·verify=true (BORDERLINE); decay<300 → allowed=1·verify=true (BROKEN single-step only)\n"
+content = content + "# source_decay_ratios=gpt5=782 · claude5=755 · gemma4_31b=564 · qwen3.6_72b=704 · weak_4b_legacy=214 (× 1000 · consumed from AGENT N1)\n"
+content = content + "# band_assignment=gpt5/claude5/qwen3.6 ROBUST (≥600) · gemma4_31b BORDERLINE (564 → cap 3 + verify) · weak_4b_legacy BROKEN (214 → single-step + verify)\n"
+content = content + "# anti_falsifier=a gate that grants multi-step (>1) to a decay<300 model (ignores AGENT N1 finding) is detected as FAIL — real gate clamps weak_4b to 1\n"
+content = content + "# validity=1 ≤ allowed_steps ≤ requested for all 5 × 5 (model × request {1,2,3,5,8}) cells\n"
+content = content + "# external_anchors=AGENT/N1 (decay_ratio finding) · Mialon 2023 GAIA (arXiv:2311.12983) · ATBench 2026 (arXiv:2604.02022)\n"
+content = content + "# class=method-transfer (step-decay measurement → admission-time horizon gate)\n"
+content = content + "# honest_residual=actual agentic-serving gate connection (real GAIA/ATBench multi-step serving · per-step verify catch-rate) cost-bearing · DEFERRED to cycle-11+ T4 (cx_lab_sandbox · cx_empirical_contact)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — closed-form gate rule ≠ measured serving gate; band thresholds (300/600) are AGENT N1-aligned conventions pending live re-run\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

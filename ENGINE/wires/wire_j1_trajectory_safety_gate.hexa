@@ -1,0 +1,120 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_j1_trajectory_safety_gate.hexa
+// ENGINE axis J1 — AGENT N1 agentic-trajectory finding → agentic-serving
+// multi-step trajectory SAFETY GATE rule.
+//
+// AGENT N1 measured (closed-form placeholder · GAIA/ATBench convention):
+//   decay_ratio_x1000 = acc_5step × 1000 / acc_1step.  A model whose 5-step
+//   success rate collapses below single-step × 0.3 has BROKEN step-compounding
+//   (weak_4b_legacy fires at 214; 4 frontier agents silent ≥ 564 — bidirectional).
+//   Per-model: gpt5=782 · claude5=755 · gemma4_31b=564 · qwen3.6_72b=704 ·
+//   weak_4b_legacy=214 (× 1000).
+//
+// EXECUTION SIDE (this wire).  At agentic-serving admission, before a model is
+// handed an N-step plan-execute request, the gate clamps how many autonomous
+// steps it may take + whether each step must be externally verified, AS A
+// FUNCTION OF that model's measured decay_ratio:
+//
+//   decay ≥ 600 (step-compounding robust)   → allowed = requested · verify = false
+//   300 ≤ decay < 600 (borderline)           → allowed = min(requested, 3) · verify = true
+//   decay < 300 (compounding broken · weak)  → allowed = 1 (single-step only) · verify = true
+//
+// The thresholds align with AGENT N1: gemma4_31b=564 lands in BORDERLINE (its
+// trajectory holds enough for a short 3-step plan but warrants per-step
+// verification), weak_4b_legacy=214 lands in BROKEN (single-step only — never
+// trust an unverified multi-step trajectory from a model whose compounding has
+// collapsed), and the three ≥600 frontier agents run unconstrained.
+//
+// RATIONALE.  A model with collapsed step-compounding does NOT just fail more
+// often at long horizons — its errors COMPOUND (each wrong step poisons the
+// next), so an N-step autonomous trajectory is super-linearly riskier than
+// N independent single-step calls.  The safe execution policy is therefore to
+// (a) cap the autonomous horizon by measured decay, and (b) force external
+// verification on every borderline/broken step so a bad step is caught before
+// it compounds.
+//
+// ENGINE N1 (latency).  AGENT N1 finding cycle-10 → ENGINE J1 wire cycle-10
+// (same-session). Logged to N1 baseline next round (axis J's first ΔM point).
+//
+// FALSIFIER (paired verifier numerics_engine_j1_*):
+//   (1) gate identity — decay ≥ 600 → allowed = requested · verify = false
+//   (2) borderline — gemma4_31b 564 (300-600) → allowed ≤ 3 + verify = true
+//   (3) broken — weak_4b_legacy 214 (< 300) → allowed = 1 + verify = true
+//   (4) ANTI-FALSIFIER — gate must NOT grant multi-step to a decay<300 model
+//       (i.e. ignoring the AGENT N1 finding) → such a gate FAILS
+//   (5) determinism
+//   (6) source consistency — gate consumes the AGENT N1 decay_ratio_x1000 vals
+//   (7) validity — 1 ≤ allowed_steps ≤ requested for every cell
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure trajectory-safety gate rule — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// AGENT N1 measured decay_ratio_x1000 per model (source finding)
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = [
+    "gpt5_agent",
+    "claude_5_agent",
+    "gemma4_31b_agent",
+    "qwen3.6_72b_agent",
+    "weak_4b_legacy",
+]
+let DECAY_RATIO_x1000 = [782, 755, 564, 704, 214]   // AGENT N1 finding
+
+// gate band thresholds (× 1000) — aligned to AGENT N1 discrimination
+let ROBUST_THRESHOLD_x1000     = 600   // ≥ here → unconstrained
+let BORDERLINE_THRESHOLD_x1000 = 300   // [300, 600) → capped @ 3 + verify; < here → single-step
+let BORDERLINE_STEP_CAP        = 3
+let SINGLE_STEP                = 1
+
+// allowed_steps as a function of (measured decay, requested steps)
+fn gate_allowed_steps(decay_ratio_x1000: int, requested_steps: int) -> int {
+    if decay_ratio_x1000 >= ROBUST_THRESHOLD_x1000 {
+        return requested_steps                                  // robust → no clamp
+    }
+    if decay_ratio_x1000 >= BORDERLINE_THRESHOLD_x1000 {
+        if requested_steps < BORDERLINE_STEP_CAP { return requested_steps }
+        return BORDERLINE_STEP_CAP                              // borderline → min(requested, 3)
+    }
+    return SINGLE_STEP                                          // broken → single-step only
+}
+
+// verify_required as a function of measured decay (robust = false, else true)
+fn gate_verify_required(decay_ratio_x1000: int) -> bool {
+    return decay_ratio_x1000 < ROBUST_THRESHOLD_x1000
+}
+
+fn band_label(decay_ratio_x1000: int) -> str {
+    if decay_ratio_x1000 >= ROBUST_THRESHOLD_x1000 { return "ROBUST" }
+    if decay_ratio_x1000 >= BORDERLINE_THRESHOLD_x1000 { return "BORDERLINE" }
+    return "BROKEN"
+}
+
+print("hexa-codex ENGINE J1 — AGENT N1 trajectory → agentic-serving safety gate wire (cycle-10)")
+print("=========================================================================================")
+print("")
+print("gate bands (decay_ratio_x1000):")
+print("  decay ≥ " + to_string(ROBUST_THRESHOLD_x1000) + "             → allowed = requested · verify = false (ROBUST)")
+print("  " + to_string(BORDERLINE_THRESHOLD_x1000) + " ≤ decay < " + to_string(ROBUST_THRESHOLD_x1000) +
+      "       → allowed = min(requested, " + to_string(BORDERLINE_STEP_CAP) + ") · verify = true (BORDERLINE)")
+print("  decay < " + to_string(BORDERLINE_THRESHOLD_x1000) + "             → allowed = " + to_string(SINGLE_STEP) +
+      " · verify = true (BROKEN · single-step only)")
+print("")
+
+// emit gate decision for each AGENT N1 model at a representative 5-step request
+let REQUESTED_DEMO = 5
+let n = MODEL_NAMES.len()
+let mut i = 0
+print("emitted gate decisions @ requested_steps = " + to_string(REQUESTED_DEMO) + ":")
+while i < n {
+    let d = DECAY_RATIO_x1000[i]
+    let allowed = gate_allowed_steps(d, REQUESTED_DEMO)
+    let vreq = gate_verify_required(d)
+    print("  " + MODEL_NAMES[i] + " (decay=" + to_string(d) + " · " + band_label(d) + "): allowed=" +
+          to_string(allowed) + "/" + to_string(REQUESTED_DEMO) + " steps · verify_required=" +
+          (if vreq { "true" } else { "false" }))
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_J1_TRAJECTORY_SAFETY_GATE__ DONE")

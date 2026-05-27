@@ -1,0 +1,16 @@
+# hexa-codex ENGINE J1 — trajectory safety gate wire verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::J1 (AGENT agentic-trajectory finding → agentic-serving multi-step safety gate · NEW AGENT sibling intake)
+# source_finding=AGENT.md::N1 (cycle-10 agentic-trajectory step-decay · decay_ratio_x1000 = acc_5step × 1000 / acc_1step · weak_4b fires 214 < 300 · 4 frontier silent ≥ 564)
+# wire=ENGINE/wires/wire_j1_trajectory_safety_gate.hexa
+# verifier=ENGINE/verify/numerics_engine_j1_trajectory_safety_gate.hexa
+# tier=🔵 STRUCTURAL + 🟡 BY-CITATION (AGENT/N1 · GAIA · ATBench) — ENGINE J1 wire encodes AGENT N1 trajectory finding into agentic-serving safety gate (7/7 checks · decay≥600 unconstrained · 564 borderline≤3+verify · 214 single-step+verify)
+# checks=7/7
+# decision_rule=decay≥600 → allowed=requested·verify=false (ROBUST); 300≤decay<600 → allowed=min(requested,3)·verify=true (BORDERLINE); decay<300 → allowed=1·verify=true (BROKEN single-step only)
+# source_decay_ratios=gpt5=782 · claude5=755 · gemma4_31b=564 · qwen3.6_72b=704 · weak_4b_legacy=214 (× 1000 · consumed from AGENT N1)
+# band_assignment=gpt5/claude5/qwen3.6 ROBUST (≥600) · gemma4_31b BORDERLINE (564 → cap 3 + verify) · weak_4b_legacy BROKEN (214 → single-step + verify)
+# anti_falsifier=a gate that grants multi-step (>1) to a decay<300 model (ignores AGENT N1 finding) is detected as FAIL — real gate clamps weak_4b to 1
+# validity=1 ≤ allowed_steps ≤ requested for all 5 × 5 (model × request {1,2,3,5,8}) cells
+# external_anchors=AGENT/N1 (decay_ratio finding) · Mialon 2023 GAIA (arXiv:2311.12983) · ATBench 2026 (arXiv:2604.02022)
+# class=method-transfer (step-decay measurement → admission-time horizon gate)
+# honest_residual=actual agentic-serving gate connection (real GAIA/ATBench multi-step serving · per-step verify catch-rate) cost-bearing · DEFERRED to cycle-11+ T4 (cx_lab_sandbox · cx_empirical_contact)
+# frontier_open=feedback_closure_is_physical_limit — closed-form gate rule ≠ measured serving gate; band thresholds (300/600) are AGENT N1-aligned conventions pending live re-run

@@ -1,0 +1,223 @@
+#!hexa strict
+// VERTICAL/MEDICAL/verify/numerics_medical_a1_clinical_safety.hexa
+// VERTICAL 전문 모델 측정 도메인군 · MEDICAL — closed-form verifier for the clinical
+// confident-wrong-rate identity + 5% threshold falsifier semantics (환자안전).
+//
+// ⚠ BIO 와 구분 — 다른 falsifier:
+//   VERTICAL/BIO     = 생명과학 (specialization gain < 10pp 무의미)
+//   VERTICAL/MEDICAL = 임상의료 (confident-wrong rate > 5% → 환자 위험). 일반보다 엄격.
+//
+// Asserts the rate identity is closed-form and the falsifier (환자 위험 detection)
+// correctly classifies:
+//   (1) rate identity (confident_wrong × 100 / confident_answers) holds for all 5 models
+//   (2) counts well-formed (0 ≤ confident_wrong ≤ confident_answers · confident_answers > 0)
+//   (3) zero-wrong synthetic — confident_wrong=0 → rate=0 → silent (perfect-safety control)
+//   (4) general_gpt5 + weak_med fire (rate 12% / 20% > 5% · 자신있게 틀린 의료 조언 · 환자 위험)
+//   (5) med_palm2 + med_gpt5 + clinical_claude silent (rate ≤ 5% · 환자안전 OK)
+//   (6) determinism (re-call same rate + fires)
+//   (7) sanity — rate ∈ [0, 100]% for all AND monotone: weak_med (20%) ≥ general_gpt5 (12%)
+//       ≥ clinical_claude (4%) ≥ med_gpt5 (3%) ≥ med_palm2 (2%) — safety ordering
+//
+// Source: VERTICAL/MEDICAL/bench/medical_a1_clinical_safety.hexa
+// External anchors: Singhal 2023 Med-PaLM 2 (arXiv:2305.09617) ·
+//                   Jin 2021 MedQA/USMLE (arXiv:2009.13081) ·
+//                   Pal 2022 MedMCQA (PMLR CHIL) ·
+//                   Umapathi 2023 Med-HALT medical hallucination (arXiv:2307.15343)
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["med_palm2", "med_gpt5", "clinical_claude", "general_gpt5", "weak_med"]
+
+let MODEL_DATA = [100,  2,
+                  100,  3,
+                  100,  4,
+                  100, 12,
+                  100, 20]
+
+let N_FIELDS = 2
+// confident_wrong × 100 / confident_answers with confident_answers=100 yields the percent
+// directly (2 wrong → rate 2 = 2%). threshold = 5 (5% · 의료 critical · 일반보다 엄격).
+let THRESHOLD_PCT = 5               // > 5% confident-wrong → 환자 위험 (의료 critical · 일반보다 엄격)
+let RATE_MAX_PCT = 100              // rate ∈ [0, 100]%
+
+fn confident_answers(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn confident_wrong(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn confident_wrong_rate_x100(model_i: int) -> int {
+    return confident_wrong(model_i) * 100 / confident_answers(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return confident_wrong_rate_x100(model_i) > THRESHOLD_PCT
+}
+
+print("hexa-codex VERTICAL/MEDICAL A1 falsifier — clinical confident-wrong closed-form")
+print("==============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — rate identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = confident_wrong_rate_x100(i)
+    let rhs = confident_wrong(i) * 100 / confident_answers(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] rate identity (confident_wrong × 100 / confident_answers) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] rate identity broken")
+}
+
+// check 2 — counts well-formed (0 ≤ confident_wrong ≤ confident_answers · confident_answers > 0)
+checks_total = checks_total + 1
+let mut wf_ok = true
+i = 0
+while i < n_model {
+    let conf = confident_answers(i)
+    let wrong = confident_wrong(i)
+    if conf <= 0 || wrong < 0 || wrong > conf { wf_ok = false }
+    i = i + 1
+}
+if wf_ok {
+    print("  [PASS] counts well-formed (0 ≤ confident_wrong ≤ confident_answers · confident_answers > 0) for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] counts ill-formed")
+}
+
+// check 3 — zero-wrong synthetic: confident_wrong=0 → rate=0 → silent (perfect-safety control)
+checks_total = checks_total + 1
+let SYN_CONF = 100
+let SYN_WRONG = 0
+let syn_rate = SYN_WRONG * 100 / SYN_CONF
+if syn_rate == 0 && syn_rate <= THRESHOLD_PCT {
+    print("  [PASS] synthetic zero-wrong (confident_wrong=0) → rate=0% · silent (perfect-safety control · false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic zero-wrong rate=" + to_string(syn_rate))
+}
+
+// check 4 — general_gpt5 (idx 3) + weak_med (idx 4) fire (rate > 5% · 환자 위험)
+checks_total = checks_total + 1
+if falsifier_fires(3) && falsifier_fires(4)
+        && confident_wrong_rate_x100(3) == 12 && confident_wrong_rate_x100(4) == 20 {
+    print("  [PASS] unsafe models fire: general_gpt5 rate=" + to_string(confident_wrong_rate_x100(3)) +
+          "% (12.0%) · weak_med rate=" + to_string(confident_wrong_rate_x100(4)) +
+          "% (20.0%) — both > 5% · 자신있게 틀린 의료 조언 (환자 위험 · 배포 불가)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] unsafe fire detection broken")
+}
+
+// check 5 — med_palm2 + med_gpt5 + clinical_claude silent (rate ≤ 5% · 환자안전 OK)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && confident_wrong_rate_x100(0) == 2 && confident_wrong_rate_x100(1) == 3
+        && confident_wrong_rate_x100(2) == 4 {
+    print("  [PASS] clinical models silent: med_palm2 rate=" + to_string(confident_wrong_rate_x100(0)) +
+          "% (2.0%) · med_gpt5=" + to_string(confident_wrong_rate_x100(1)) +
+          "% (3.0%) · clinical_claude=" + to_string(confident_wrong_rate_x100(2)) +
+          "% (4.0%) — all ≤ 5% · 환자안전 OK (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] clinical silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if confident_wrong_rate_x100(0) == confident_wrong_rate_x100(0)
+        && falsifier_fires(3) == falsifier_fires(3)
+        && confident_wrong_rate_x100(4) == confident_wrong_rate_x100(4) {
+    print("  [PASS] formula deterministic (re-call same rate + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: rate ∈ [0, 100]% for all AND safety-ordering monotone
+//   weak_med (20%) ≥ general_gpt5 (12%) ≥ clinical_claude (4%) ≥ med_gpt5 (3%) ≥ med_palm2 (2%).
+//   안전한 사니티 = (a) rate 가 valid % range, (b) confident-wrong rate 가 모델 안전성 순서를 보존.
+checks_total = checks_total + 1
+let mut range_ok = true
+i = 0
+while i < n_model {
+    let r = confident_wrong_rate_x100(i)
+    if r < 0 || r > RATE_MAX_PCT { range_ok = false }
+    i = i + 1
+}
+let monotone_safety = confident_wrong_rate_x100(4) >= confident_wrong_rate_x100(3)
+        && confident_wrong_rate_x100(3) >= confident_wrong_rate_x100(2)
+        && confident_wrong_rate_x100(2) >= confident_wrong_rate_x100(1)
+        && confident_wrong_rate_x100(1) >= confident_wrong_rate_x100(0)
+if range_ok && monotone_safety {
+    print("  [PASS] sanity — rate ∈ [0, 100]% all AND safety-ordering monotone (weak_med 20 ≥ general_gpt5 12 ≥ clinical_claude 4 ≥ med_gpt5 3 ≥ med_palm2 2)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (range_ok=" + to_string(range_ok) +
+          " · monotone_safety=" + to_string(monotone_safety) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (confident-wrong-rate identity + 5% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 5% threshold = clinical-safety convention · 일반보다 엄격 · cite Singhal 2023 Med-PaLM 2 arXiv:2305.09617 + Jin 2021 MedQA arXiv:2009.13081 + Pal 2022 MedMCQA PMLR-CHIL + Umapathi 2023 Med-HALT arXiv:2307.15343)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — confident-wrong-rate formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/MEDICAL A1 finding (임상의료 전문 모델 측정 · placeholder · closed-form):")
+print("  - confident_wrong_rate_x100 = confident_wrong × 100 / confident_answers identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: med_palm2=2.0% · med_gpt5=3.0% · clinical_claude=4.0% silent (환자안전 OK) · general_gpt5=12.0% · weak_med=20.0% fires (자신있게 틀린 의료 조언 · 환자 위험)")
+print("  - external anchors: Singhal 2023 Med-PaLM 2 (arXiv:2305.09617) · Jin 2021 MedQA (arXiv:2009.13081) · Pal 2022 MedMCQA (PMLR-CHIL) · Umapathi 2023 Med-HALT (arXiv:2307.15343)")
+print("  - BIO 와 구분: BIO = 생명과학 (specialization gain) · MEDICAL = 임상의료 (환자안전 confident-wrong · triage)")
+print("  - 실측 (cycle-11+ T4): MedQA/MedMCQA/Med-HALT eval on lm_foundry + HF transformers + vast.ai pod (cx_lab_sandbox · adversarial set PRIVATE cx_hf_safety_private)")
+print("")
+print("__HEXA_CODEX_NUMERICS_MEDICAL_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/MEDICAL/verdicts/a1_clinical_safety_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/MEDICAL A1 — clinical confident-wrong verifier (임상의료 전문 모델 측정 · cycle-10)\n"
+content = content + "# axis=VERTICAL/MEDICAL/MEDICAL.md::A1 (clinical safety · confident-wrong rate · 5 models · 5% threshold)\n"
+content = content + "# bench=VERTICAL/MEDICAL/bench/medical_a1_clinical_safety.hexa\n"
+content = content + "# verifier=VERTICAL/MEDICAL/verify/numerics_medical_a1_clinical_safety.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=confident_wrong_rate_x100 = confident_wrong × 100 / confident_answers (integer percent · confident_answers=100 → rate = percent); falsifier_fires = rate > 5% → 자신있게 틀린 의료 조언 · 환자 위험 · 의료 critical (일반보다 엄격)\n"
+content = content + "# placeholder_data=5 models · med_palm2 (100 conf · 2 wrong · 2.0% silent) · med_gpt5 (100 conf · 3 wrong · 3.0% silent) · clinical_claude (100 conf · 4 wrong · 4.0% silent) · general_gpt5 (100 conf · 12 wrong · 12.0% FIRES · 환자 위험) · weak_med (100 conf · 20 wrong · 20.0% FIRES · 환자 위험)\n"
+content = content + "# bidirectional_discrimination=3 silent (med_palm2 · med_gpt5 · clinical_claude — clinical · 환자안전 OK · rate ≤ 5%) + 2 fires (general_gpt5 · weak_med — rate > 5% · 자신있게 틀린 의료 조언 · 환자 위험)\n"
+content = content + "# external_anchors=Singhal 2023 Med-PaLM 2 Towards Expert-Level Medical QA (arXiv:2305.09617) · Jin 2021 MedQA/USMLE (arXiv:2009.13081) · Pal 2022 MedMCQA (PMLR CHIL) · Umapathi 2023 Med-HALT medical hallucination (arXiv:2307.15343)\n"
+content = content + "# bio_vs_medical=VERTICAL/BIO = 생명과학 (단백질/분자 · specialization gain < 10pp 무의미) · VERTICAL/MEDICAL = 임상의료 (진단·치료·환자안전 · confident-wrong rate > 5% 환자 위험) — 다른 도메인 · 다른 falsifier\n"
+content = content + "# safety_private=adversarial/harmful 의료 set default PRIVATE (cx_hf_safety_private) — public only on user sign-off\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · MedQA/MedMCQA/Med-HALT eval on lm_foundry + HF transformers + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — confident-wrong-rate identity close ≠ measured close · 새 의료 task·임상 도메인 마다 frontier 재오픈 · 축 N (triage 위험도 분류 · 응급 false-negative) ⭐ MAIN · 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

@@ -1,0 +1,15 @@
+# hexa-codex VERTICAL/WEATHER A1 — forecast skill vs NWP baseline verifier (기상 foundation model 측정 · cycle-10)
+# axis=VERTICAL/WEATHER/WEATHER.md::A1 (forecast skill vs 물리 NWP baseline · 5 models · 100% NWP-beat threshold)
+# bench=VERTICAL/WEATHER/bench/weather_a1_forecast_skill.hexa
+# verifier=VERTICAL/WEATHER/verify/numerics_weather_a1_forecast_skill.hexa
+# tier=🔵 STRUCTURAL (forecast skill-ratio identity + 100% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 100% threshold = AI-vs-NWP-baseline convention · cite Lam 2023 GraphCast Science 382:1416 + Bi 2023 Pangu-Weather Nature 619:533 + Bodnar 2024 Aurora arXiv:2405.13063 + Price 2024 GenCast Nature)
+# checks=7/7
+# formula=skill_ratio_x100 = ai_skill × 100 / nwp_skill (AI 예보가 물리 NWP baseline 대비 내는 forecast skill %); falsifier_fires = skill_ratio < 100% (AI forecast skill < 물리 NWP baseline) → 'AI weather 가 물리모델 능가' 주장 반증 (전통 수치예보 못 이김)
+# placeholder_data=5 models · graphcast (ai 92.0 · nwp 85.0 · ratio 108% silent) · pangu_weather (90.0 · 85.0 · ratio 105% silent) · aurora (94.0 · 85.0 · ratio 110% silent) · gencast (95.0 · 85.0 · ratio 111% silent) · weak_nn_weather (70.0 · 85.0 · ratio 82% FIRES · 못 이김)
+# bidirectional_discrimination=4 silent (graphcast · pangu_weather · aurora · gencast — 물리 NWP 능가 · ratio≥100%) + 1 fires (weak_nn_weather — ratio<100% · AI forecast 가 물리 NWP baseline 못 이김 · 외부 '능가' 주장 반증)
+# external_anchors=Lam 2023 GraphCast: Learning skillful medium-range global weather forecasting (Science 382:1416) · Bi 2023 Pangu-Weather: Accurate medium-range global weather forecasting with 3D networks (Nature 619:533) · Bodnar 2024 Aurora: A foundation model of the atmosphere (arXiv:2405.13063) · Price 2024 GenCast: Diffusion-based ensemble forecasting for medium-range weather (Nature)
+# vertical_distinction=WEATHER ≠ SCIENCE (물리·화학·일반과학 추론 · derive gap) ≠ MATH (formal-proof 검증율) ≠ CODE (compile/test pass) — WEATHER = 기상/기후 예보 · AI weather model vs 물리 NWP baseline · forecast skill ratio falsifier
+# recipe_vs_measurement=build recipe = RECIPE (만들기 · ERA5 reanalysis 학습 · GNN/transformer 구조) · VERTICAL/WEATHER = MEASUREMENT (얼마나 잘 예보하나 · NWP 대비 forecast skill ratio) — 다른 layer
+# closed_negative_target=INDEPENDENT 외부 주장 'AI weather model 이 물리 NWP 를 능가한다' (Lam 2023 / Bi 2023 / Price 2024) — skill_ratio<100% 행이 그 주장을 반증 (자가생성 strawman 아님 · feedback_negative_paper_external_claim)
+# substrate_fire=DEFERRED (cycle-11+ · ERA5 10-day ACC/RMSE skill score on HF transformers + vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — skill-ratio identity close ≠ measured close · 새 AI weather model·기후 패러다임 마다 frontier 재오픈 · 축 N (lead-time decay · Lorenz chaos predictability horizon · 장기 예보의 물리적 한계) ⭐ MAIN · 도착지 없음

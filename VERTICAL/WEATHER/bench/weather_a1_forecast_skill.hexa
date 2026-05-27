@@ -1,0 +1,130 @@
+#!hexa strict
+// VERTICAL/WEATHER/bench/weather_a1_forecast_skill.hexa
+// VERTICAL 전문 모델 측정 도메인군 · WEATHER (기상/기후 foundation model — AI weather) — closed-form first probe.
+// "AI 기상 예보 모델이 전통 물리 수치예보(NWP · numerical weather prediction) baseline 을 실제로
+//  능가하는가, 아니면 못 이기는가 (forecast skill ratio)" 의 측정.
+//
+// ⚠ WEATHER ≠ SCIENCE ≠ MATH ≠ CODE — 다른 vertical · 다른 falsifier:
+//   VERTICAL/MATH    = 수학 (formal-proof 검증율 · Lean/Coq kernel-check · answer-proof coherence)
+//   VERTICAL/CODE    = 코드 (compile/test pass · 실행 정확도)
+//   VERTICAL/SCIENCE = 물리·화학·일반과학 추론 (GPQA · multi-step 유도 · derive gap)
+//   VERTICAL/WEATHER = 기상/기후 예보 (AI weather model vs 물리 NWP baseline · forecast skill · ACC/RMSE)
+// WEATHER 의 핵심 특이점: AI 예보 모델(GraphCast·Pangu·Aurora·GenCast)이 수십 년 검증된 물리 수치예보
+// (ECMWF IFS 등 NWP)를 forecast skill 에서 이기는가 — 데이터-드리븐 모델이 물리 모델을 능가하는지의 측정.
+//
+// ⚠ recipe ≠ measurement — 다른 layer:
+//   (build recipe) = 어떻게 AI weather 모델을 만드나 (ERA5 reanalysis 학습 · GNN/transformer 구조)
+//   VERTICAL/WEATHER 도메인 = MEASUREMENT (얼마나 잘 예보하나 · NWP 대비 forecast skill ratio)
+// 10-day forecast 의 ACC (anomaly correlation coefficient) / RMSE skill score 가 본 측정의 task surface.
+//
+// Identity (closed-form · libm-free · percentage ledger):
+//   skill_ratio_x100(model) = ai_forecast_skill_x100 × 100 / nwp_baseline_skill_x100
+//                           = (AI 예보 skill) / (물리 NWP baseline skill) × 100
+//                           → "AI 예보가 전통 수치예보 대비 몇 % 의 forecast skill 을 내는가"
+//   beats_nwp_ok(model)     = skill_ratio_x100 ≥ THRESHOLD_pct (100%)
+//   falsifier_fires(model)  = skill_ratio_x100 <  THRESHOLD_pct
+//                             → AI forecast skill < 물리 NWP baseline skill
+//                             → "AI weather 가 물리모델 능가" 주장 반증 (전통 수치예보 못 이김)
+//
+// Falsifier (WEATHER A1): AI forecast skill 이 물리 NWP baseline skill 미만이면 (skill_ratio < 100%)
+// 그 모델은 "전통 수치예보를 못 이기는" 행 — INDEPENDENT 외부 주장 ("AI weather model 이 물리 NWP 를
+// 능가한다", Lam 2023 / Bi 2023 / Price 2024)을 반증 (closed-negative · [[feedback_negative_paper_external_claim]]).
+// 진짜 능가하는 AI weather (graphcast·pangu·aurora·gencast) 는 silent (ratio ≥ 100% · 물리모델 능가) ·
+// weak NN weather 는 fires (ratio < 100% · 물리 NWP 못 이김).
+//
+// Bidirectional 예시 (단위테스트 검증): graphcast (ai 92 · nwp 85 → 108% silent · 능가) vs
+//   weak_nn_weather (ai 70 · nwp 85 → 82% fires · 못 이김).
+//
+// External anchors (citation tier · 🟡):
+//   Lam 2023    — GraphCast: Learning skillful medium-range global weather forecasting (Science 382:1416)
+//   Bi 2023     — Pangu-Weather: Accurate medium-range global weather forecasting w/ 3D networks (Nature 619:533)
+//   Bodnar 2024 — Aurora: A foundation model of the atmosphere (arXiv:2405.13063)
+//   Price 2024  — GenCast: Diffusion-based ensemble forecasting for medium-range weather (Nature)
+//
+// Integer ledger (pct × 100) — libm-free closed-form. Placeholder per-model
+// {ai_forecast_skill_x100, nwp_baseline_skill_x100} — 실측 ERA5 10-day ACC/RMSE skill score eval deferred
+// (cycle-11+ T4 · HF transformers infer · vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure forecast-skill-ratio identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 models · {ai_forecast_skill_x100, nwp_baseline_skill_x100} · pct × 100)
+//   graphcast       : ai 92.0 · nwp 85.0 (ratio 108% · 물리 NWP 능가 · silent)
+//   pangu_weather   : ai 90.0 · nwp 85.0 (ratio 105% · 능가 · silent)
+//   aurora          : ai 94.0 · nwp 85.0 (ratio 110% · 능가 · silent)
+//   gencast         : ai 95.0 · nwp 85.0 (ratio 111% · 능가 · silent)
+//   weak_nn_weather : ai 70.0 · nwp 85.0 (ratio 82% · 물리 NWP 못 이김 · FIRES · 반증)
+//
+// ai_forecast_skill  = AI weather model 의 10-day forecast skill (ACC/RMSE skill score) of THIS model.
+// nwp_baseline_skill = 동일 task 의 물리 NWP baseline (ECMWF IFS 등 수치예보) forecast skill.
+//   skill_ratio = ai/nwp × 100 → "AI 예보가 물리 수치예보 대비 내는 forecast skill 비율".
+//   weak_nn_weather 는 반증 행 (ai < nwp → ratio < 100% → fires by design · 물리모델 못 이김).
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["graphcast", "pangu_weather", "aurora", "gencast", "weak_nn_weather"]
+
+// row-major {ai_forecast_skill_x100, nwp_baseline_skill_x100} (5 models × 2 fields)
+//   graphcast       : [9200, 8500]  → ai 92.0 · nwp 85.0 · ratio 108% silent (능가)
+//   pangu_weather   : [9000, 8500]  → ai 90.0 · nwp 85.0 · ratio 105% silent (능가)
+//   aurora          : [9400, 8500]  → ai 94.0 · nwp 85.0 · ratio 110% silent (능가)
+//   gencast         : [9500, 8500]  → ai 95.0 · nwp 85.0 · ratio 111% silent (능가)
+//   weak_nn_weather : [7000, 8500]  → ai 70.0 · nwp 85.0 · ratio 82% FIRES (못 이김 · 반증)
+let MODEL_DATA = [9200, 8500,
+                  9000, 8500,
+                  9400, 8500,
+                  9500, 8500,
+                  7000, 8500]
+
+let N_FIELDS = 2
+let THRESHOLD_pct = 100             // skill_ratio < 100% → AI skill < NWP baseline → 물리모델 못 이김
+let SKILL_MAX_x100 = 100 * 100      // skill ∈ [0, 100] pct · × 100 ledger ∈ [0, 10000]
+
+fn ai_skill_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn nwp_skill_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn skill_ratio_x100(model_i: int) -> int {
+    // forecast skill ratio (%) = ai_forecast_skill / nwp_baseline_skill × 100.
+    //   x100 ledger cancels (both × 100) so multiply ai_skill by 100 then divide by nwp_skill.
+    //   "AI 예보가 전통 물리 수치예보 대비 내는 forecast skill 비율" — AI vs NWP 능가 여부.
+    return ai_skill_x100(model_i) * 100 / nwp_skill_x100(model_i)
+}
+
+fn beats_nwp_ok(model_i: int) -> bool {
+    return skill_ratio_x100(model_i) >= THRESHOLD_pct
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // AI forecast skill < 물리 NWP baseline skill → "AI weather 가 물리모델 능가" 주장 반증 (못 이김)
+    return skill_ratio_x100(model_i) < THRESHOLD_pct
+}
+
+print("hexa-codex VERTICAL/WEATHER A1 — forecast skill vs NWP baseline closed-form (기상 foundation model 측정 · cycle-10)")
+print("=========================================================================================================================")
+print("")
+print("⚠ WEATHER ≠ SCIENCE (과학 추론) ≠ MATH (formal-proof) ≠ CODE — 기상/기후 예보 · AI weather vs 물리 NWP baseline")
+print("⚠ recipe ≠ measurement — build recipe = 만들기 · WEATHER 도메인 = 측정 (NWP 대비 forecast skill ratio)")
+print("")
+print("per-model forecast skill profile (placeholder · pct × 100 ledger · libm-free):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let ai = ai_skill_x100(i)
+    let nwp = nwp_skill_x100(i)
+    let r = skill_ratio_x100(i)
+    let mut flag = "silent (skill_ratio ≥ 100% · AI 예보가 물리 NWP baseline 능가)"
+    if falsifier_fires(i) {
+        flag = "FIRES (skill_ratio < 100% · AI forecast 가 물리 NWP baseline 못 이김 · '능가' 주장 반증)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    ai_forecast_skill=" + to_string(ai / 100) + "pct · nwp_baseline_skill=" +
+          to_string(nwp / 100) + "pct")
+    print("    → skill_ratio=" + to_string(r) + "% · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_WEATHER_A1_FORECAST_SKILL__ DONE")

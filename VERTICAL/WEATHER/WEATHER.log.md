@@ -1,0 +1,20 @@
+# WEATHER — log
+
+Append-only history sister of `WEATHER.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
+
+## 2026-05-28 — VERTICAL/WEATHER 신규 도메인 scaffold + A1 forecast skill vs NWP baseline (cycle-10)
+
+- [x] VERTICAL 전문 모델 측정 도메인군 (VERTICAL/\*) 의 WEATHER 노드 신규 scaffold — 기상/기후 foundation model (AI weather — GraphCast·Pangu·Aurora·GenCast 계열) 측정. sibling = VERTICAL/SCIENCE (물리·화학·일반과학) · VERTICAL/MATH (수학) · VERTICAL/CODE (코드) · VERTICAL/BIO (바이오/의료) · VERTICAL/MEDICAL (임상).
+- [x] **WEATHER ≠ SCIENCE ≠ MATH ≠ CODE 구분 명시**: WEATHER = 기상/기후 예보 (10-day forecast ACC/RMSE skill score) · AI weather model vs 물리 NWP baseline (forecast skill ratio) falsifier. SCIENCE = 물리·화학·일반과학 추론 (derive gap · 사실 ≠ 유도) · MATH = formal-proof 검증율 (verify gap · 답 ≠ 증명) · CODE = compile/test pass. 다른 vertical · 다른 falsifier.
+- [x] **AI forecast ≠ 물리 NWP 능가 보장 분리 명시**: WEATHER 측정의 핵심 — AI weather model 이 forecast skill 에서 전통 수치예보(NWP)를 능가하는지는 task/lead-time 마다 다름. "AI 가 물리모델을 이긴다"를 무조건 참으로 가정하지 않음 (skill_ratio < 100% 행이 그 주장을 반증).
+- [x] **recipe ≠ measurement 구분 명시**: build recipe = RECIPE (만들기 · ERA5 reanalysis 학습 · GNN/transformer · diffusion ensemble) · VERTICAL/WEATHER = MEASUREMENT (얼마나 잘 예보하나 · NWP 대비 forecast skill ratio · 극단 recall · lead-time decay) — 다른 layer. WeatherBench / ERA5 10-day ACC/RMSE skill score 가 본 측정의 truth surface.
+- [x] 3-axis 구조 scaffold (A closed-form forecast skill vs NWP baseline · B measured 극端 기상 예측 · N⭐ MAIN NOVEL lead-time decay) — 신규 도메인 패턴 (A1 closed-form first probe + B measured ladder + N⭐ NOVEL MAIN) 따름 (SCIENCE · MATH · CODE sibling 참고).
+- [x] A1 — forecast skill vs 물리 NWP baseline closed-form 7/7 🔵 STRUCTURAL + 🟡 BY-CITATION · `VERTICAL/WEATHER/bench/weather_a1_forecast_skill.hexa` + `VERTICAL/WEATHER/verify/numerics_weather_a1_forecast_skill.hexa` · `VERTICAL/WEATHER/verdicts/a1_forecast_skill_verdict.txt`.
+- [x] identity: `skill_ratio_x100 = ai_skill × 100 / nwp_skill` (skill × 100 ledger · 두 factor 의 × 100 이 ratio 에서 cancel → plain % · libm-free integer) · falsifier `skill_ratio < 100%` (AI forecast skill < 물리 NWP baseline) → "AI weather 가 물리모델 능가" 주장 반증 (전통 수치예보 못 이김).
+- [x] worked example 5 model × {ai_forecast_skill, nwp_baseline_skill}: graphcast (92/85 · ratio 108% silent · 능가) · pangu_weather (90/85 · 105% silent · 능가) · aurora (94/85 · 110% silent · 능가) · gencast (95/85 · 111% silent · 능가) · weak_nn_weather (70/85 · 82% FIRES · 물리 NWP 못 이김 · 반증). bidirectional discrimination 4 silent (NWP-beater · 능가) + 1 fires (weak NN · 못 이김 · 외부 '능가' 주장 반증) + sanity (NWP-beaters ai > nwp strict · ratio monotone gencast 111 ≥ aurora 110 ≥ graphcast 108 ≥ pangu 105).
+- [x] 단위테스트 bidirectional: graphcast (ai 92·nwp 85 → ratio 108% silent · int-div floor of 108.2) vs weak_nn_weather (ai 70·nwp 85 → 82% fires). check 3 으로 검증.
+- [x] external anchors: Lam 2023 GraphCast: Learning skillful medium-range global weather forecasting (Science 382:1416) · Bi 2023 Pangu-Weather: Accurate medium-range global weather forecasting with 3D networks (Nature 619:533) · Bodnar 2024 Aurora: A foundation model of the atmosphere (arXiv:2405.13063) · Price 2024 GenCast: Diffusion-based ensemble forecasting for medium-range weather (Nature).
+- [x] sentinel: `__HEXA_CODEX_WEATHER_A1_FORECAST_SKILL__ DONE` (bench) + `__HEXA_CODEX_NUMERICS_WEATHER_A1__ DONE` (verify). `hexa run` 7/7 checks passed.
+- **honest residual**: 실측 ERA5 / WeatherBench 10-day ACC/RMSE skill score 미수행 — cycle-11+ T4 deferred (HF transformers infer + lm_foundry retrain + vast.ai pod · cx_lab_sandbox). placeholder data 의 closed-form identity (🔵+🟡) — 실측 (🟢) 아님.
+- [ ] 축 B (B1 극端 기상 예측 · 허리케인/폭염 tail-event 정확도 · extreme event recall < 70% 반증자 — 평균만 맞고 극단 놓침 · tail-event 예측 붕괴 · WeatherBench extreme / TC track·intensity 채점 surface) — 다음 라운드 · measured tier 필요.
+- [ ] 축 N⭐ NOVEL (N1 lead-time decay · 1-day vs 14-day forecast skill 감쇠율 · 14-day skill < 1-day × 0.3 반증자 — 장기 예보 무의미 · Lorenz chaos predictability horizon · 예측 가능 지평 초과 · A 의 "능가 여부" 보다 근본 (예보 능력의 물리적 상한 자체) · Lorenz 1963 J.Atmos.Sci 20:130 anchor) — ⭐ MAIN priority lane · measured-tier 필요.

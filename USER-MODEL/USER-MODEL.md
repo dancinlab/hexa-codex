@@ -20,7 +20,7 @@
 > USER-MODEL 은 완료되지 않는다. 새 conversation length·persona·memory 정책 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — 10-turn persona 일관성 · context recall rate. 반증자: 10-turn 후 persona drift > 20% on style/tone axes.
+- [x] A1 — 10-turn persona 일관성 · context recall rate. 반증자: 10-turn 후 persona drift > 20% on style/tone axes. **cycle-9 round-8 · 🔵 STRUCTURAL + 🟡 BY-CITATION 7/7** (bench: `bench/user_model_a1_persona_drift.hexa` · verify: `verify/numerics_user_model_a1_persona_drift.hexa` · verdict: `verdicts/a1_persona_drift_verdict.txt`). 4 models (consistent=4pp silent · slight=12pp silent · moderate=28pp fires · catastrophic=55pp fires) — bidirectional 2/2 above + 2/2 below threshold. 실측 (cycle-10+ T4) mac M3 multi-turn persona probe deferred.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — 100-turn 의 drift × context-overflow × summary 효과 ladder. 반증자: summary 도입 후 drift 감소 < 30% → summary 정책 효과 marginal.

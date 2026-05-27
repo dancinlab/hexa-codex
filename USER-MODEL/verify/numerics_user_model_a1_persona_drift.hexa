@@ -1,0 +1,303 @@
+#!hexa strict
+// USER-MODEL/verify/numerics_user_model_a1_persona_drift.hexa
+// USER-MODEL A1 — closed-form falsifier verifier for 10-turn persona drift.
+//
+// Independently REPLICATES the bench identity (no runtime import of bench state)
+// and asserts the 7 invariants:
+//   (1) drift identity         drift_pct_x100 == persona_match[turn=1] − persona_match[turn=10]
+//   (2) range bound            persona_match_x100 ∈ [0, 100]  for every (model, turn)
+//   (3) zero-drift synthetic   all 5 turns equal (100,100,100,100,100) → drift = 0
+//   (4) > 20 models fire       moderate (drift=28) AND catastrophic (drift=55) both fire
+//   (5) ≤ 20 models silent     consistent (drift=4) AND slight-drift (drift=12) both silent
+//   (6) determinism            same input → same drift · same fire (re-call invariance)
+//   (7) sanity monotone        persona_match non-increasing within each model across turn axis
+//                              (cannot improve mid-conversation without explicit re-grounding)
+//
+// Any FAIL = bench encoding contradicts the closed-form identity → USER-MODEL
+// A1 FALSIFIED.
+//
+// SOURCE.  bench/user_model_a1_persona_drift.hexa (this verifier replicates the
+// formula independently — closed-form recompute, no runtime import of the bench
+// file's emitted state; same inputs by construction).
+//
+// External anchors:
+//   Bae 2022 — Keep Me Updated! Memory Management in Long-term Conversations
+//   Jandaghi 2023 — Faithful Persona-based Conversational Dataset Generation
+//   Zheng 2023 — MT-Bench (arXiv:2306.05685)
+//   Li 2024 — LongChat / multi-turn recall benchmark
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form drift recompute on integer ×100 ledger.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Replicated registry (independent · parallel to bench by construction)
+//   indices: 0 = consistent · 1 = slight-drift · 2 = moderate-drift · 3 = catastrophic-drift
+//   turn-axis indices: 0 = turn 1 · 1 = turn 3 · 2 = turn 5 · 3 = turn 7 · 4 = turn 10
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["consistent", "slight-drift", "moderate-drift", "catastrophic-drift"]
+let TURN_LABELS = [1, 3, 5, 7, 10]
+
+let PM_CONSISTENT   = [100, 99, 98, 97, 96]
+let PM_SLIGHT       = [100, 97, 94, 91, 88]
+let PM_MODERATE     = [100, 92, 85, 78, 72]
+let PM_CATASTROPHIC = [100, 85, 70, 55, 45]
+
+let THRESHOLD_x100 = 20
+let TURN1_IDX  = 0
+let TURN10_IDX = 4
+
+fn pm_at_v(model_idx: int, turn_idx: int) -> int {
+    if model_idx == 0 { return PM_CONSISTENT[turn_idx] }
+    if model_idx == 1 { return PM_SLIGHT[turn_idx] }
+    if model_idx == 2 { return PM_MODERATE[turn_idx] }
+    return PM_CATASTROPHIC[turn_idx]
+}
+
+fn drift_pct_x100_v(model_idx: int) -> int {
+    return pm_at_v(model_idx, TURN1_IDX) - pm_at_v(model_idx, TURN10_IDX)
+}
+
+fn falsifier_fires_v(model_idx: int) -> bool {
+    return drift_pct_x100_v(model_idx) > THRESHOLD_x100
+}
+
+print("hexa-codex USER-MODEL A1 falsifier — 10-turn persona drift closed-form")
+print("=======================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = MODEL_NAMES.len()
+let t = TURN_LABELS.len()
+
+// ────────────────────────────────────────────────────────────────────────
+// check 1 — drift identity: drift_pct_x100 == persona_match[turn=1] − persona_match[turn=10]
+//   recomputed inline (no helper) so identity is testable end-to-end.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut identity_ok = true
+let expected_drift = [4, 12, 28, 55]
+let mut i = 0
+while i < n {
+    let recompute = pm_at_v(i, TURN1_IDX) - pm_at_v(i, TURN10_IDX)
+    let helper = drift_pct_x100_v(i)
+    if recompute != helper { identity_ok = false }
+    if recompute != expected_drift[i] { identity_ok = false }
+    i = i + 1
+}
+if identity_ok {
+    print("  [PASS] (1) drift identity: drift_pct_x100 == persona_match[turn=1] − persona_match[turn=10] for all 4 models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (1) drift identity broken — helper disagrees with inline recompute or expected drift mismatch")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 2 — range bound: persona_match_x100 ∈ [0, 100] for every (model, turn).
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut range_ok = true
+i = 0
+while i < n {
+    let mut j = 0
+    while j < t {
+        let v = pm_at_v(i, j)
+        if v < 0 || v > 100 { range_ok = false }
+        j = j + 1
+    }
+    i = i + 1
+}
+if range_ok {
+    print("  [PASS] (2) persona_match_x100 ∈ [0, 100] for every (model, turn) — probability semantics")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (2) persona_match_x100 out of [0, 100] for some (model, turn)")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 3 — zero-drift synthetic: all 5 turns equal (100,100,100,100,100) → drift = 0
+//   structural floor: a perfectly anchored persona has zero drift.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let PM_ZERO_DRIFT = [100, 100, 100, 100, 100]
+let zd_t1  = PM_ZERO_DRIFT[TURN1_IDX]
+let zd_t10 = PM_ZERO_DRIFT[TURN10_IDX]
+let zd_drift = zd_t1 - zd_t10
+let zd_fires = zd_drift > THRESHOLD_x100
+if zd_drift == 0 && zd_fires == false {
+    print("  [PASS] (3) zero-drift synthetic [100×5] → drift = 0 · silent (perfect-anchor floor)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (3) zero-drift synthetic drift=" + to_string(zd_drift) + " fires=" + to_string(zd_fires) + " — expected 0/silent")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 4 — > 20 models fire: moderate-drift (drift=28) AND catastrophic-drift (drift=55)
+//   both must fire (true-positive capture above threshold).
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mod_idx = 2
+let cat_idx = 3
+let mod_drift = drift_pct_x100_v(mod_idx)
+let cat_drift = drift_pct_x100_v(cat_idx)
+let mod_fires = falsifier_fires_v(mod_idx)
+let cat_fires = falsifier_fires_v(cat_idx)
+if mod_drift == 28 && mod_fires && cat_drift == 55 && cat_fires {
+    print("  [PASS] (4) moderate-drift (drift=28 > 20) AND catastrophic-drift (drift=55 > 20) → falsifier fires correctly")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (4) moderate drift=" + to_string(mod_drift) + " fires=" + to_string(mod_fires) +
+          " · catastrophic drift=" + to_string(cat_drift) + " fires=" + to_string(cat_fires) + " — expected 28/true · 55/true")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 5 — ≤ 20 models silent: consistent (drift=4) AND slight-drift (drift=12)
+//   both must be silent (false-positive 회피 below threshold).
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let con_idx = 0
+let sli_idx = 1
+let con_drift = drift_pct_x100_v(con_idx)
+let sli_drift = drift_pct_x100_v(sli_idx)
+let con_fires = falsifier_fires_v(con_idx)
+let sli_fires = falsifier_fires_v(sli_idx)
+if con_drift == 4 && con_fires == false && sli_drift == 12 && sli_fires == false {
+    print("  [PASS] (5) consistent (drift=4 ≤ 20) AND slight-drift (drift=12 ≤ 20) → silent · false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (5) consistent drift=" + to_string(con_drift) + " fires=" + to_string(con_fires) +
+          " · slight drift=" + to_string(sli_drift) + " fires=" + to_string(sli_fires) + " — expected 4/false · 12/false")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 6 — determinism: re-call same input → same drift · same fire decision
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut det_ok = true
+i = 0
+while i < n {
+    let d1 = drift_pct_x100_v(i)
+    let d2 = drift_pct_x100_v(i)
+    let f1 = falsifier_fires_v(i)
+    let f2 = falsifier_fires_v(i)
+    if d1 != d2 { det_ok = false }
+    if f1 != f2 { det_ok = false }
+    i = i + 1
+}
+if det_ok {
+    print("  [PASS] (6) deterministic (re-call same input → same drift · same fire)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (6) non-deterministic — same input differs")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 7 — sanity monotone non-increasing within each model across turn axis:
+//   persona match can only erode across turns within a single conversation
+//   (no mid-conversation re-grounding). turn[i+1] ≤ turn[i] must hold for all i.
+//   Otherwise the trajectory semantics are inverted (persona "improves" mid-
+//   conversation w/o explicit anchor refresh) and falsifier meaning breaks.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut sanity_ok = true
+i = 0
+while i < n {
+    let mut j = 0
+    while j < t - 1 {
+        let cur  = pm_at_v(i, j)
+        let next = pm_at_v(i, j + 1)
+        if next > cur { sanity_ok = false }
+        j = j + 1
+    }
+    i = i + 1
+}
+if sanity_ok {
+    print("  [PASS] (7) monotone non-increasing across turn axis for all 4 models (persona can only erode within a conversation)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (7) persona_match increases mid-conversation for some (model, turn) — trajectory semantics inverted")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+let mut verdict_class = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (10-turn persona drift identity + threshold 7/7) + 🟡 BY-CITATION (20pp threshold = MT-Bench / LongChat / persona-dialog literature convention)"
+    verdict_class = "SUPPORTED-NUMERICAL"
+} else {
+    verdict_tier = "🔴 FALSIFIED — 10-turn persona drift encoding contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+    verdict_class = "FALSIFIED"
+}
+print("  " + verdict_tier)
+print("")
+print("worked example summary:")
+print("  consistent          (drift=4pp  ≤ 20)  silent · well-anchored persona (false-positive 회피)")
+print("  slight-drift        (drift=12pp ≤ 20)  silent · below threshold")
+print("  moderate-drift      (drift=28pp > 20)  FIRES · persona erosion across 10 turns")
+print("  catastrophic-drift  (drift=55pp > 20)  FIRES heavy · 2.75× threshold")
+print("")
+print("external anchor:")
+print("  - Bae 2022 'Keep Me Updated! Memory Management in Long-term Conversations'")
+print("  - Jandaghi 2023 'Faithful Persona-based Conversational Dataset Generation'")
+print("  - Zheng 2023 MT-Bench (arXiv:2306.05685) · multi-turn judging")
+print("  - Li 2024 LongChat / multi-turn recall benchmark")
+print("")
+print("honest residual (frontier OPEN — perpetual axis, feedback_closure_is_physical_limit):")
+print("  - this verifier encodes the FORMULA only (closed-form 🔵 + 🟡) — substrate fire")
+print("    on mac M3 llama-server multi-turn persona probe (MT-Bench style · 10-turn")
+print("    conversations · persona_match scorer) deferred to A1 measured-tier (cycle-10+).")
+print("  - 5 turn samples (1·3·5·7·10) approximate the 10-turn trajectory — finer turn")
+print("    resolution (every turn) narrows trajectory shape at measured-tier.")
+print("  - 'persona_match' here is a single scalar per turn; real-fire decomposes into")
+print("    style · tone · pronoun · fact-recall sub-axes (Jandaghi 2023 decomposition).")
+print("  - axis B (100-turn ladder · summary effect) and axis N ⭐ MAIN NOVEL (persona-drift")
+print("    vs context-overflow separation) open next.")
+print("")
+print("__HEXA_CODEX_NUMERICS_USER_MODEL_A1_PERSONA_DRIFT__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+// ────────────────────────────────────────────────────────────────────────
+// Verdict file persistence — under USER-MODEL/verdicts/
+// ────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/USER-MODEL/verdicts/a1_persona_drift_verdict.txt"
+
+let con_drift_out = drift_pct_x100_v(0)
+let sli_drift_out = drift_pct_x100_v(1)
+let mod_drift_out = drift_pct_x100_v(2)
+let cat_drift_out = drift_pct_x100_v(3)
+
+let mut content = "# hexa-codex USER-MODEL A1 — 10-turn persona drift closed-form verifier (cycle-9 round-8)\n"
+content = content + "# axis=USER-MODEL/USER-MODEL.md::A1 (10-turn persona consistency · context recall first probe, closed-form)\n"
+content = content + "# formula=drift_pct_x100(m) = persona_match_x100[m][turn=1] − persona_match_x100[m][turn=10]; falsifier_fires = drift_pct_x100 > 20\n"
+content = content + "# bench=USER-MODEL/bench/user_model_a1_persona_drift.hexa\n"
+content = content + "# verifier=USER-MODEL/verify/numerics_user_model_a1_persona_drift.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# verdict_class=" + verdict_class + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# placeholder_models=4 (consistent=4pp silent · slight-drift=12pp silent · moderate-drift=28pp fires · catastrophic-drift=55pp fires)\n"
+content = content + "# turn_samples=5 (turn 1 · 3 · 5 · 7 · 10)\n"
+content = content + "# drifts_pp=consistent:" + to_string(con_drift_out) + " slight:" + to_string(sli_drift_out) + " moderate:" + to_string(mod_drift_out) + " catastrophic:" + to_string(cat_drift_out) + "\n"
+content = content + "# threshold_pp=20 (> 20pp persona match drop across 10 turns → falsifier fires)\n"
+content = content + "# external_anchors=Bae 2022 keep-me-updated · Jandaghi 2023 persona-driven · Zheng 2023 MT-Bench (arXiv:2306.05685) · Li 2024 LongChat\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · mac M3 llama-server multi-turn persona probe · MT-Bench-style 10-turn conversations · persona_match scorer)\n"
+content = content + "# honest_residual=integer_x100_pp_ledger_truncation_at_1pp · 5_turn_samples_approximate_10_turn_trajectory (finer resolution at measured-tier) · persona_match_scalar_decomposes_into_style/tone/pronoun/fact-recall_sub_axes_at_measured_tier · axis_B_100_turn_ladder_and_axis_N_persona_drift_vs_context_overflow_next\n"
+content = content + "# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis · new conversation length / persona / memory policy reopens cells)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

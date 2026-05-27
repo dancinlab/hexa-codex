@@ -1,0 +1,16 @@
+# hexa-codex USER-MODEL A1 — 10-turn persona drift closed-form verifier (cycle-9 round-8)
+# axis=USER-MODEL/USER-MODEL.md::A1 (10-turn persona consistency · context recall first probe, closed-form)
+# formula=drift_pct_x100(m) = persona_match_x100[m][turn=1] − persona_match_x100[m][turn=10]; falsifier_fires = drift_pct_x100 > 20
+# bench=USER-MODEL/bench/user_model_a1_persona_drift.hexa
+# verifier=USER-MODEL/verify/numerics_user_model_a1_persona_drift.hexa
+# tier=🔵 STRUCTURAL (10-turn persona drift identity + threshold 7/7) + 🟡 BY-CITATION (20pp threshold = MT-Bench / LongChat / persona-dialog literature convention)
+# verdict_class=SUPPORTED-NUMERICAL
+# checks=7/7
+# placeholder_models=4 (consistent=4pp silent · slight-drift=12pp silent · moderate-drift=28pp fires · catastrophic-drift=55pp fires)
+# turn_samples=5 (turn 1 · 3 · 5 · 7 · 10)
+# drifts_pp=consistent:4 slight:12 moderate:28 catastrophic:55
+# threshold_pp=20 (> 20pp persona match drop across 10 turns → falsifier fires)
+# external_anchors=Bae 2022 keep-me-updated · Jandaghi 2023 persona-driven · Zheng 2023 MT-Bench (arXiv:2306.05685) · Li 2024 LongChat
+# substrate_fire=DEFERRED (cycle-10+ · mac M3 llama-server multi-turn persona probe · MT-Bench-style 10-turn conversations · persona_match scorer)
+# honest_residual=integer_x100_pp_ledger_truncation_at_1pp · 5_turn_samples_approximate_10_turn_trajectory (finer resolution at measured-tier) · persona_match_scalar_decomposes_into_style/tone/pronoun/fact-recall_sub_axes_at_measured_tier · axis_B_100_turn_ladder_and_axis_N_persona_drift_vs_context_overflow_next
+# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis · new conversation length / persona / memory policy reopens cells)

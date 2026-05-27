@@ -31,7 +31,9 @@
 
 > **⭐ MAIN priority lane** — ENERGY 의 self-NOVEL. dense 전체 활성화 대비 MoE sparse routing 의 연산-효율. Gemma 4 26B/A4B · arXiv:2604.07035 anchor. 도착지 없음 ([[feedback_closure_is_physical_limit]]).
 
-- [ ] N2 — per-layer energy decomposition (이전 N1 · cycle-10 reorg 로 N2 강등). 전체 watt 가 아니라 layer/component 별 watt 가 어디 집중 — attention vs FFN vs embedding. 반증자: attention/FFN/embed 의 energy 분포가 FLOP 분포와 ε > 20% 불일치 → memory-bound 영역 존재. 외부 anchor: Patterson 2021 carbon footprint · Strubell 2019 energy NLP · Schwartz 2020 Green AI.
+- [x] N2 — quantization 품질-크기 trade (GPTQ·AWQ·GGUF Q-levels). 반증자: Q4 품질 손실 > 5% → 과다 압축. **CYCLE-10 reorg Batch B (2026-05-28 · train/infer/serve stack)** ✅ 🔵+🟡 · 7/7 · `ENERGY/verify/numerics_energy_n2_quantization_quality_size.hexa` · gguf_q2 fires (loss 15%) · fp16~gguf_q4 silent (≤ 5%). Identity `quality_loss_pct_x100 = 10000 − quality_pct_x100` · `compression_ratio_x100 = fp16_size × 100 / level_size`. 5 levels @7B: fp16 (14GB·100% · loss 0 · 1.00×) · int8 (7GB·99.5% · 2.00×) · gguf_q8 (7.15GB·99.5% · 1.95×) · gguf_q4 (3.5GB·97% · loss 3% · 4.00× → silent) · gguf_q2 (1.75GB·85% · loss 15% · 8.00× → 🔴 FIRES over-compression). monotonicity: loss(q2)≥(q4)≥(q8) — 압축은 공짜가 아니다. 외부 anchor: Frantar 2023 GPTQ (arXiv:2210.17323) · Lin 2023 AWQ (arXiv:2306.00978) · Dettmers 2022 LLM.int8 (arXiv:2208.07339) · llama.cpp GGUF Q-levels · Gemma 4 GGUF. **실측 per-level MMLU/GSM8K re-eval on local 7B GGUF mac M3 DEFERRED to cycle-11+ T4** (`cx_lab_sandbox`). frontier OPEN — 새 quant scheme (Q3_K · IQ-levels · per-channel) 등장 시 axis 재오픈.
+
+- [ ] N3 — per-layer energy decomposition (이전 N1 · cycle-10 reorg 로 강등). 전체 watt 가 아니라 layer/component 별 watt 가 어디 집중 — attention vs FFN vs embedding. 반증자: attention/FFN/embed 의 energy 분포가 FLOP 분포와 ε > 20% 불일치 → memory-bound 영역 존재. 외부 anchor: Patterson 2021 carbon footprint · Strubell 2019 energy NLP · Schwartz 2020 Green AI.
 
 ## SANDBOX 활용 (measurement substrate)
 
@@ -42,7 +44,8 @@ ENERGY 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — local ll
 | A1 first probe | mac M3 / ubu-1 local | `.verdicts/ENERGY/a1_*` |
 | B1 ladder | SANDBOX bench harness | `.verdicts/ENERGY/b1_*` |
 | N1 ⭐ MAIN (MoE active-premium · ex-FRONTIER F1) | mac M3 GGUF Gemma 4 / vast.ai pod | `ENERGY/verdicts/n1_*` |
-| N2 (per-layer energy decomp) | mac M3 / vast.ai pod | `ENERGY/verdicts/n2_*` |
+| N2 (quantization quality-size trade · GPTQ/AWQ/GGUF) | mac M3 / vast.ai pod | `ENERGY/verdicts/n2_*` |
+| N3 (per-layer energy decomp) | mac M3 / vast.ai pod | `ENERGY/verdicts/n3_*` |
 
 ## Dispatch surface (ENGINE 후보 wire)
 

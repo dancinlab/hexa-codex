@@ -1,0 +1,153 @@
+#!hexa strict
+// ENERGY/bench/energy_n2_quantization_quality_size.hexa
+// ENERGY N2 NOVEL — quantization 품질-크기 trade-off (CYCLE-10 reorg Batch B · 2026-05-28).
+// 양자화 레벨마다 model on-disk size 와 품질이 어떻게 교환되는가
+// (ENERGY 의 weight-precision 축소로 메모리/대역폭/에너지 절감).
+//
+// Identity (closed-form · libm-free · integer × 100 ledger · 7B 모델 기준):
+//   quality_loss_pct_x100   = 10000 − quality_pct_x100
+//   compression_ratio_x100  = fp16_size_gb_x100 × 100 / level_size_gb_x100
+//
+//   fp16 baseline = 14.0 GB (size_gb_x100 = 1400) · quality 100% (quality_pct_x100 = 10000).
+//
+//   For each level:
+//     quality_loss = 100% − quality%        (정확도 손실 · per-cent × 100)
+//     compression  = fp16_size / level_size  (압축비 · ×100 per-cent)
+//
+//   Worked example (gguf_q4):
+//     size = 3.5 GB (350) · quality 97% (9700)
+//     quality_loss = 10000 − 9700 = 300 (= 3.0% · ≤ 5% → silent)
+//     compression  = 1400 × 100 / 350 = 400 (= 4.00× vs fp16)
+//
+// Falsifier (anti-overcompression · ENERGY N2):
+//   "이 양자화 레벨이 5% 초과 품질 손실 없이 압축한다" 라는 주장이
+//   특정 레벨에서 깨졌다. falsifier_fires(level) = quality_loss_pct_x100 > 500.
+//   gguf_q2: 2-bit → quality 85% → loss = 1500 (= 15.0%) > 500 → 🔴 FIRES (과다 압축).
+//
+// Bidirectional discrimination (NOT one-sided):
+//   - fp16     : loss 0     → silent (lossless baseline)
+//   - int8     : loss 50    (= 0.5%)  → silent (≤ 5%)
+//   - gguf_q8  : loss 50    (= 0.5%)  → silent (≤ 5%)
+//   - gguf_q4  : loss 300   (= 3.0%)  → silent (≤ 5%)
+//   - gguf_q2  : loss 1500  (= 15.0%) → FIRES  (> 5% · 과다 압축)
+//   → verifier distinguishes the safe-compression regime from the over-compressed one.
+//
+// External anchors (citation tier · 🟡):
+//   Frantar 2023 — GPTQ (arXiv:2210.17323 · one-shot weight quantization)
+//   Lin 2023    — AWQ  (arXiv:2306.00978 · activation-aware weight quantization)
+//   Dettmers 2022 — LLM.int8() (arXiv:2208.07339 · 8-bit matmul w/o degradation)
+//   llama.cpp GGUF Q-levels (Q8_0 · Q4_K_M · Q2_K on-disk size tiers · ggml-org/llama.cpp)
+//   Gemma 4 GGUF release (per-level size/quality reference family)
+//
+// Integer ledger (×100 per-cent) — libm-free. size_gb_x100 = GB × 100,
+// quality_pct_x100 = accuracy-retention % × 100. Placeholder size/quality
+// values (7B model · representative of GPTQ/AWQ/GGUF published tiers).
+// Real per-level MMLU/GSM8K re-eval on local 7B GGUF mac M3 DEFERRED to
+// cycle-11+ T4 (`cx_lab_sandbox` · `cx_empirical_contact`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form quality-size trade identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Quantization level registry — 5 levels (7B model · GB × 100 · quality % × 100)
+//   fp16     : 14.0 GB (1400) · 100.0% (10000) · lossless baseline
+//   int8     :  7.0 GB ( 700) ·  99.5% ( 9950) · LLM.int8() (Dettmers 2022)
+//   gguf_q8  :  7.15 GB ( 715) ·  99.5% ( 9950) · GGUF Q8_0 (llama.cpp)
+//   gguf_q4  :  3.5 GB ( 350) ·  97.0% ( 9700) · GGUF Q4_K_M (GPTQ/AWQ-class)
+//   gguf_q2  :  1.75 GB ( 175) ·  85.0% ( 8500) · GGUF Q2_K (over-compressed · FIRES)
+// ────────────────────────────────────────────────────────────────────────
+
+let LEVEL_NAMES = [
+    "fp16",
+    "int8",
+    "gguf_q8",
+    "gguf_q4",
+    "gguf_q2",
+]
+let SIZE_GB_x100      = [1400, 700, 715, 350, 175]
+let QUALITY_PCT_x100  = [10000, 9950, 9950, 9700, 8500]
+
+let FP16_SIZE_GB_x100 = 1400              // baseline for compression ratio
+let LOSS_FIRE_THRESHOLD_x100 = 500        // > 500 (= 5.0%) → over-compression fires
+
+// per-cent range guard [0, 10000]
+let PCT_MIN_x100 = 0
+let PCT_MAX_x100 = 10000
+
+fn quality_loss_pct_x100(idx: int) -> int {
+    // quality_loss = 100% − quality%
+    return 10000 - QUALITY_PCT_x100[idx]
+}
+
+fn compression_ratio_x100(idx: int) -> int {
+    // compression = fp16_size × 100 / level_size  (×100 per-cent · 100 = 1.00×)
+    let s = SIZE_GB_x100[idx]
+    if s <= 0 { return 0 }
+    return (FP16_SIZE_GB_x100 * 100) / s
+}
+
+fn falsifier_fires(idx: int) -> bool {
+    // over-compression: quality loss exceeds 5% (= 500 per-cent × 100)
+    return quality_loss_pct_x100(idx) > LOSS_FIRE_THRESHOLD_x100
+}
+
+print("hexa-codex ENERGY N2 — Quantization quality-size trade closed-form (cycle-10 reorg Batch B · train/infer/serve stack)")
+print("=========================================================================================================")
+print("")
+print("per-level profile (7B model · size GB × 100 · quality % × 100 · GPTQ/AWQ/GGUF tiers):")
+let n = LEVEL_NAMES.len()
+let mut i = 0
+while i < n {
+    let sz = SIZE_GB_x100[i]
+    let q = QUALITY_PCT_x100[i]
+    let loss = quality_loss_pct_x100(i)
+    let comp = compression_ratio_x100(i)
+    let mut tag = "silent (loss ≤ 5%)"
+    if falsifier_fires(i) { tag = "FIRES 🔴 (loss > 5% · 과다 압축)" }
+    print("  " + LEVEL_NAMES[i] +
+          ": size=" + to_string(sz / 100) + "." + to_string(sz % 100) + "GB" +
+          " · quality=" + to_string(q / 100) + "." + to_string(q % 100) + "%" +
+          " · loss=" + to_string(loss / 100) + "." + to_string(loss % 100) + "%" +
+          " · compression=" + to_string(comp / 100) + "." + to_string(comp % 100) + "×" +
+          " · [" + tag + "]")
+    i = i + 1
+}
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Worked example — gguf_q4 (idx 3 · the headline safe-compression tier)
+// ────────────────────────────────────────────────────────────────────────
+print("worked example (gguf_q4 · the safe-compression headline tier):")
+let q4_loss = quality_loss_pct_x100(3)
+let q4_comp = compression_ratio_x100(3)
+print("  size=3.5GB · quality=97.0% · quality_loss = 10000 − 9700 = " + to_string(q4_loss) +
+      " (= 3.0% ≤ 5% → silent) · compression = 1400 × 100 / 350 = " + to_string(q4_comp) +
+      " (= 4.00× vs fp16)")
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Over-compression fire — gguf_q2 (idx 4 · the falsifier)
+// ────────────────────────────────────────────────────────────────────────
+print("over-compression fire (gguf_q2 · 2-bit · the falsifier):")
+let q2_loss = quality_loss_pct_x100(4)
+let q2_comp = compression_ratio_x100(4)
+let q2_fires = falsifier_fires(4)
+let mut q2_tag = "silent"
+if q2_fires { q2_tag = "FIRES 🔴 (loss > 5% · over-compression · 8× compression buys only 85% quality)" }
+print("  size=1.75GB · quality=85.0% · quality_loss = 10000 − 8500 = " + to_string(q2_loss) +
+      " (= 15.0%) · compression = 1400 × 100 / 175 = " + to_string(q2_comp) +
+      " (= 8.00× vs fp16) · [" + q2_tag + "]")
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Monotonicity ledger — compression ↑ ⇒ quality_loss non-decreasing
+// (q2_loss ≥ q4_loss ≥ q8_loss · the trade-off is ordered, not free)
+// ────────────────────────────────────────────────────────────────────────
+print("monotonicity (compression 클수록 손실 monotone 비감소):")
+print("  loss(gguf_q2)=" + to_string(quality_loss_pct_x100(4)) +
+      " ≥ loss(gguf_q4)=" + to_string(quality_loss_pct_x100(3)) +
+      " ≥ loss(gguf_q8)=" + to_string(quality_loss_pct_x100(2)) +
+      " (ordered trade-off · 압축은 공짜가 아니다)")
+print("")
+
+print("__HEXA_CODEX_ENERGY_N2_QUANTIZATION__ DONE")

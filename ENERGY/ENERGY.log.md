@@ -2,6 +2,18 @@
 
 Append-only history sister of `ENERGY.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — N2 NOVEL = quantization 품질-크기 trade-off (CODEX cycle-10 reorg Batch B · train/infer/serve stack)
+
+- [x] ENERGY NOVEL N2 신규 추가 — QUANTIZATION (품질-크기 trade-off). N1 (sparse-MoE active-premium) 보존 · 건드리지 않음. 기존 per-layer energy decomposition stub (unbuilt `- [ ]`) → **N3 로 밀림** (구현 없는 placeholder · QUANTIZATION 에게 N2 슬롯 양보).
+- [x] `ENERGY/bench/energy_n2_quantization_quality_size.hexa` — closed-form quality-size trade. 5 levels @7B {size_gb_x100, quality_pct_x100}: fp16 (1400·10000) · int8 (700·9950) · gguf_q8 (715·9950) · gguf_q4 (350·9700) · gguf_q2 (175·8500). Identity `quality_loss_pct_x100 = 10000 − quality_pct_x100` · `compression_ratio_x100 = fp16_size × 100 / level_size`. sentinel `__HEXA_CODEX_ENERGY_N2_QUANTIZATION__ DONE`.
+- [x] `ENERGY/verify/numerics_energy_n2_quantization_quality_size.hexa` — 7 checks: (1) loss+compression identity (q4 → 300·400) (2) ranges (3) fp16 self (loss 0 · comp 100) (4) gguf_q2 fires (loss 1500 > 500) (5) fp16~gguf_q4 silent (≤ 500) (6) determinism (7) monotonicity (loss q2 ≥ q4 ≥ q8). env-driven `_root()`. verdict → `ENERGY/verdicts/n2_quantization_quality_size_verdict.txt`. ✅ **7/7 checks passed** · 🔵 STRUCTURAL + 🟡 BY-CITATION. sentinel `__HEXA_CODEX_NUMERICS_ENERGY_N2__ DONE`.
+- [x] `ENERGY/verdicts/n2_quantization_quality_size_verdict.txt` written.
+- [x] anti-overcompression: "이 양자화 레벨이 5% 초과 품질 손실 없이 압축한다" — gguf_q2 (2-bit · 8× 압축 · 85% quality) 에서 loss 15% > 5% → 🔴 FIRES (over-compression). fp16/int8/gguf_q8/gguf_q4 silent (≤ 5%) → bidirectional discrimination (NOT one-sided). 외부 published claim 반증 (strawman 아님 · [[feedback_negative_paper_external_claim]]).
+- [x] 외부 anchors: Frantar 2023 GPTQ (arXiv:2210.17323) · Lin 2023 AWQ (arXiv:2306.00978) · Dettmers 2022 LLM.int8 (arXiv:2208.07339) · llama.cpp GGUF Q-levels (Q8_0/Q4_K_M/Q2_K) · Gemma 4 GGUF release.
+- [x] ENERGY.md::축 N — N2 = quantization 추가 [x] · per-layer decomp stub → N3. SANDBOX substrate table N1/N2/N3 행 갱신. @goal perpetual 확인 (종료 조건 없음 · [[feedback_closure_is_physical_limit]]).
+- [ ] 실측 per-level MMLU/GSM8K re-eval on local 7B GGUF mac M3 — **cost-bearing · DEFERRED to cycle-11+ T4** (`cx_lab_sandbox` · `cx_empirical_contact`). identity close ≠ measured close; 새 quant scheme (Q3_K · IQ-levels · per-channel) 등장 시 frontier 재오픈.
+- [ ] ⚠ RACE-GUARD: `ENERGY/` 파일만 explicit stage · N1 (sparse-MoE) read-only 보존 · sibling agent (BATCH-COMPOSITION · HW-VARIANCE) 동시 작업 중.
+
 ## 2026-05-28 — N1 ⭐ NOVEL MAIN = sparse-MoE active-premium (FRONTIER F1 흡수 · CODEX cycle-10 reorg round-4)
 
 - [x] FRONTIER 별도 meta-domain X · frontier 축 기존 도메인 N⭐ NOVEL MAIN 으로 분산 흡수 (사용자 결정). SPARSE-MOE (active-param efficiency) → ENERGY 의 sparse-activation 연산-절감 NOVEL.

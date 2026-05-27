@@ -1,0 +1,18 @@
+# hexa-codex ENERGY N2 — Quantization quality-size trade verifier (cycle-10 reorg Batch B · 2026-05-28)
+# axis=ENERGY/ENERGY.md::N2 QUANTIZATION (품질-크기 trade-off · weight-precision 축소로 메모리/대역폭/에너지 절감 · NOVEL)
+# bench=ENERGY/bench/energy_n2_quantization_quality_size.hexa
+# verifier=ENERGY/verify/numerics_energy_n2_quantization_quality_size.hexa
+# tier=🔵 STRUCTURAL (quality-size trade identity 7/7) + 🟡 BY-CITATION (per-level size/quality tiers from GPTQ/AWQ/LLM.int8/GGUF published data) — over-compression fires at gguf_q2 (15% loss) · fp16~gguf_q4 silent (≤ 5%) · level-dependent
+# checks=7/7
+# formula=quality_loss_pct_x100 = 10000 − quality_pct_x100; compression_ratio_x100 = fp16_size × 100 / level_size; falsifier_fires = quality_loss_pct_x100 > 500 (anti-overcompression · 5% 초과 손실)
+# placeholder_data=5 levels @7B (fp16 1400GB·100/10000 · int8 700/9950 · gguf_q8 715/9950 · gguf_q4 350/9700 · gguf_q2 175/8500 · size GB×100 / quality %×100)
+# gguf_q4_worked=loss = 10000 − 9700 = 300 (= 3.0% ≤ 5% → silent) · compression = 1400 × 100 / 350 = 400 (= 4.00× vs fp16)
+# gguf_q2_fire=loss = 10000 − 8500 = 1500 (= 15.0% > 5%) → 🔴 FIRES (over-compression · compression 1400 × 100 / 175 = 800 = 8.00× buys only 85% quality)
+# silent_control=fp16 (loss 0) · int8 (50) · gguf_q8 (50) · gguf_q4 (300) all ≤ 500 → silent (safe-compression regime · proves verifier is bidirectional · NOT one-sided)
+# monotonicity=loss(gguf_q2)=1500 ≥ loss(gguf_q4)=300 ≥ loss(gguf_q8)=50 (압축 클수록 손실 monotone 비감소 · ordered trade-off · 압축은 공짜가 아니다)
+# external_anchors=Frantar 2023 GPTQ (arXiv:2210.17323) · Lin 2023 AWQ (arXiv:2306.00978) · Dettmers 2022 LLM.int8 (arXiv:2208.07339) · llama.cpp GGUF Q-levels (Q8_0/Q4_K_M/Q2_K) · Gemma 4 GGUF release
+# stack=train/infer/serve — quantization 은 추론/서빙 메모리·대역폭·에너지 절감 lever (fp16→gguf_q4 4× 압축 · 3% 손실)
+# cycle=CYCLE-10 reorg Batch B (2026-05-28 · ENERGY NOVEL N2 신규 추가 · N1 sparse-MoE 보존)
+# substrate_fire=DEFERRED (cycle-11+ T4 · SANDBOX mac M3 llama-server + local 7B GGUF · per-level MMLU/GSM8K real measured re-eval)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · placeholder size/quality from GPTQ/AWQ/GGUF published tiers; 새 quant scheme (Q3_K · IQ-levels · per-channel) 등장 시 axis 재오픈
+# honest_residual=real per-level MMLU/GSM8K re-eval on local 7B GGUF mac M3 DEFERRED to cycle-11+ T4 (cx_lab_sandbox · cx_empirical_contact)

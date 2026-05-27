@@ -1,7 +1,7 @@
 #!hexa strict
-// hexa-codex/BIO/verify/numerics_bio_e1_iit4_attention_phi.hexa
-// BIO axis E1 (cycle-5 first probe ⭐MAIN) — UNIVERSE H_278 IIT4 faithful big-Φ
-// applied to attention-pattern TPMs (small-n exact).
+// hexa-codex/NEUROEXP/verify/numerics_neuroexp_phi1_iit4_attention_phi.hexa
+// NEUROEXP axis Φ1 (cycle-5 first probe ⭐MAIN · 구 BIO/E1 이관 by reorg cycle-1)
+// — UNIVERSE H_278 IIT4 faithful big-Φ applied to attention-pattern TPMs (small-n exact).
 //
 // CLAIM (BIO.md E1). UNIVERSE 의 HEXAD/IIT4/lib (faithful Φ) 를 hexa-codex
 // SANDBOX 위에 적용. 반증자: transformer attention 의 faithful Φ < disconnected
@@ -96,7 +96,7 @@ fn _root() -> str {
 }
 
 fn main() {
-    println("hexa-codex BIO E1 — UNIVERSE H_278 IIT4 faithful Φ on attention TPM (cycle-5 ⭐MAIN)")
+    println("hexa-codex NEUROEXP Φ1 — UNIVERSE H_278 IIT4 faithful Φ on attention TPM (cycle-5 ⭐MAIN)")
     println("=====================================================================================")
     println("  cross-link: anima/UNIVERSE H_278 → stdlib/consciousness/iit4_bigphi (one-way sibling)")
     println("  TPMs: ATTN-FULL n=3 (XOR integration) vs DISCONN n=3 (SELF-COPY)")
@@ -220,11 +220,11 @@ fn main() {
     println("__HEXA_CODEX_NUMERICS_BIO_E1_IIT4_ATTENTION_PHI__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
 
     let ROOT = _root()
-    let OUT_PATH = ROOT + "/BIO/verdicts/e1_iit4_attention_phi_verdict.txt"
+    let OUT_PATH = ROOT + "/NEUROEXP/verdicts/phi1_iit4_attention_phi_verdict.txt"
 
-    let mut content = "# hexa-codex BIO E1 — UNIVERSE H_278 IIT4 faithful Φ on attention TPM (cycle-5 first probe ⭐MAIN)\n"
-    content = content + "# axis=BIO.md::E1 (NOVEL · cycle-1 init · E ⭐MAIN = BIO × IIT4 anima cross-link)\n"
-    content = content + "# verifier=BIO/verify/numerics_bio_e1_iit4_attention_phi.hexa\n"
+    let mut content = "# hexa-codex NEUROEXP Φ1 — UNIVERSE H_278 IIT4 faithful Φ on attention TPM (cycle-5 first probe ⭐MAIN)\n"
+    content = content + "# axis=NEUROEXP.md::Φ1 (cycle-5 first probe ⭐MAIN · 구 BIO/E1 이관 by reorg cycle-1 · Φ = IIT4 anima cross-link)\n"
+    content = content + "# verifier=NEUROEXP/verify/numerics_neuroexp_phi1_iit4_attention_phi.hexa\n"
     content = content + "# tier=" + verdict_tier + "\n"
     content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
     content = content + "# cross_link=anima/UNIVERSE H_278 → stdlib/consciousness/iit4_bigphi (one-way sibling · PR #1051)\n"

@@ -1,6 +1,6 @@
-# hexa-codex BIO E1 — UNIVERSE H_278 IIT4 faithful Φ on attention TPM (cycle-5 first probe ⭐MAIN)
-# axis=BIO.md::E1 (NOVEL · cycle-1 init · E ⭐MAIN = BIO × IIT4 anima cross-link)
-# verifier=BIO/verify/numerics_bio_e1_iit4_attention_phi.hexa
+# hexa-codex NEUROEXP Φ1 — UNIVERSE H_278 IIT4 faithful Φ on attention TPM (cycle-5 first probe ⭐MAIN · 구 BIO/E1 이관 by reorg cycle-1)
+# axis=NEUROEXP.md::Φ1 (cycle-5 first probe ⭐MAIN · 구 BIO/E1 이관 by reorg · Φ = IIT4 anima cross-link)
+# verifier=NEUROEXP/verify/numerics_neuroexp_phi1_iit4_attention_phi.hexa
 # tier=🔵 SUPPORTED-FORMAL — UNIVERSE H_278 IIT4 lib applicable · ATTN-FULL Φ > DISCONN Φ closed-form (8/8)
 # checks=8/8
 # cross_link=anima/UNIVERSE H_278 → stdlib/consciousness/iit4_bigphi (one-way sibling · PR #1051)

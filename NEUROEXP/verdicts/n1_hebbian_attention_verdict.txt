@@ -1,6 +1,6 @@
-# hexa-codex BIO D1 — Hebbian Δw ↔ linear attention closed-form identity (cycle-4 first probe)
-# axis=BIO.md::D1 (NOVEL · cycle-1 init · D = Bio-inspired LLM architecture)
-# verifier=BIO/verify/numerics_bio_d1_hebbian_attention.hexa
+# hexa-codex NEUROEXP N1 — Hebbian Δw ↔ linear attention closed-form identity (cycle-4 first probe · 구 BIO/D1 이관 by reorg cycle-1)
+# axis=NEUROEXP.md::N1 (cycle-4 first probe · 구 BIO/D1 이관 by reorg · N = Neural-update rule probe)
+# verifier=NEUROEXP/verify/numerics_neuroexp_n1_hebbian_attention.hexa
 # tier=🔵 SUPPORTED-FORMAL — linear-attn≡Hebbian (Schlag 2021) · softmax≢Hebbian · mixed falsifier (8/8)
 # checks=8/8
 # identity=Schlag2021_linear_attn_eq_Hebbian_fast_weight (arXiv:2102.11174)

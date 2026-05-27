@@ -1,0 +1,11 @@
+# hexa-codex PROMPT-SENSITIVITY A1 — 5-prompt agreement verifier (cycle-9 round-4)
+# axis=PROMPT-SENSITIVITY/PROMPT-SENSITIVITY.md::A1 (5-prompt agreement · pairwise binomial)
+# bench=PROMPT-SENSITIVITY/bench/prompt_sensitivity_a1_5prompt_agreement.hexa
+# verifier=PROMPT-SENSITIVITY/verify/numerics_prompt_sensitivity_a1_5prompt_agreement.hexa
+# tier=🔵 STRUCTURAL (combinatorial pairwise-agreement identity 7/7) + 🟡 BY-CITATION (80% threshold convention = Sclar 2023 · Razavi 2022)
+# checks=7/7
+# formula=agreement(A) = matching_pairs(A) * 100 / C(n,2); falsifier_fires = agreement < 80
+# placeholder_data=4 models × 5-answer arrays (consistent=100 · mostly=60 · mixed=40 · surface-prone=0)
+# external_anchors=Sclar 2023 (arXiv:2310.11324) · Razavi 2022 paraphrase · Wei 2022 CoT (arXiv:2201.11903)
+# substrate_fire=DEFERRED (cycle-10+ · SANDBOX mac M3 / ubu-1 · 5 paraphrase variants per question)
+# frontier_open=feedback_closure_is_physical_limit — metric close ≠ measured close

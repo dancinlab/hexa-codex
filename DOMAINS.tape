@@ -32,3 +32,4 @@
 
 # ─── meta-domain (cross-domain orchestrator) ───
 @domain CODEX := "./CODEX/CODEX.md"
+@domain FRONTIER := "./FRONTIER/FRONTIER.md"

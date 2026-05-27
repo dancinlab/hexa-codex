@@ -1,0 +1,14 @@
+# hexa-codex ENERGY A1 — tokens/J closed-form first probe (cycle-9 round-1)
+# axis=ENERGY/ENERGY.md::A1 (RAPL CPU + NVIDIA-smi GPU instrumentation identity)
+# bench=ENERGY/bench/energy_a1_tokens_per_joule.hexa
+# verifier=ENERGY/verify/numerics_energy_a1_tokens_per_joule.hexa
+# tier=🔵 STRUCTURAL (closed-form identity 6/7) + 🟡 BY-CITATION SOTA floor 1/7 — A1 first probe HOLDS
+# checks=7/7
+# inputs=T_sec=60 · mean_W_x100=20000 · N_tokens=480
+# derived=E_total_mJ=12000000 · tokens_per_J_x1000=40
+# riemann_mJ=12000000  identity_delta_mJ=0
+# sota_floor_x1000=25 (= SOTA 50/1000 × 0.5; Patterson 2021 ballpark · 🟡 by-citation)
+# external_anchor=Patterson2021_arXiv2104.10350 · Strubell2019_arXiv1906.02243 · Schwartz2020_arXiv1907.10597
+# honest_residual=real RAPL+NVIDIA-smi measurement DEFERRED (cost-bearing · ubu-1 RTX 5070 next cycle); macOS Mx see bench/bitnet_m6_energy_per_token.hexa
+# next_probe=cycle-10+ A1 measured run on ubu-1 (per-task fixture · RAPL+nvidia-smi sampler) → 🟢 SUPPORTED-NUMERICAL
+# frontier_open=true (feedback_closure_is_physical_limit — new HW reopens axis)

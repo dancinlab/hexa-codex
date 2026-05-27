@@ -2,6 +2,83 @@
 
 Append-only history sister of `CODEX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-9 round-8 FINAL · 22/22 closure: 4 ⭐⭐ closed-form A1 wires (DATA-EFFICIENCY + HW-VARIANCE + BATCH-COMPOSITION + USER-MODEL · /cycle-bg cap=4)
+
+`/cycle-bg` round-8 (sticky bg · cap=4 — 사용자 "22/22 all bg go" 명시 override). **22/22 axis-candidate first-probe milestone 전부 closed-form 도달.** 4 ⭐⭐ A1 wires 모두 7/7 PASS · 🔵 STRUCTURAL + 🟡 BY-CITATION. race-방지 가드 (round-7 학습 적용) 성공 — 4 agents 각자 explicit-path `git add` 만 사용, sibling 파일 unstaged 관찰만.
+
+| axis | tier | checks | commit |
+|---|---|---|---|
+| DATA-EFFICIENCY/A1 | 🔵+🟡 | 7/7 | 32455bb |
+| HW-VARIANCE/A1 | 🔵+🟡 | 7/7 | 9ef1ac7 |
+| USER-MODEL/A1 | 🔵+🟡 | 7/7 | e83b3f8 |
+| BATCH-COMPOSITION/A1 | 🔵+🟡 | 7/7 | 0ed76d2 |
+
+### Build phase 출력
+
+- **DATA-EFFICIENCY** — `curriculum_delta_pp = max(curriculum_acc) − random_acc`. 4 configs: `random` baseline · `easy-to-hard` Δ=+7pp silent (curriculum 효과 검출) · `hard-to-easy` Δ=−2pp fires · `interleaved` Δ=+2pp fires. Anchors: Bengio 2009 ICML · Hacohen 2019 · Wu 2021 ICLR · Soviany 2022 IJCV.
+- **HW-VARIANCE** — `spread_x1000 = (max − min) × 1000 / mean` (Newton-sqrt sample-std 회피 · cheaper · libm-free). 4 populations × 5 chips: tight=2% silent · nominal=10% silent · loose=18% fires · lottery=30% fires. Anchors: Sinha 2022 · H&P CAaQA · vLLM 2024 · OCP telemetry.
+- **BATCH-COMPOSITION** — `padding_waste + tput = 100` duality (× 100 ledger). gap × 10 lift (`gap_x100 = (tput_LS − tput_c) × 10`) — 30pp 해상도 + integer-floor 정확. 5 compositions LS=99 silent · B4=40 silent · NS=20 silent · RM=240 borderline · WC=600 fires. Anchors: Yu 2022 Orca · Kwon 2023 vLLM · NVIDIA Triton · Sheng 2023 FlexGen.
+- **USER-MODEL** — `drift_pp = pm[turn=1] − pm[turn=10]` + monotone non-increasing 사니티. 4 models: consistent=4pp silent · slight=12pp silent · moderate=28pp fires · catastrophic=55pp fires (≈2.75× threshold). Anchors: Bae 2022 · Jandaghi 2023 · Zheng 2023 MT-Bench · Li 2024 LongChat.
+
+### 🆕 학습 — cap=4 + race-가드 안정성 + agent push race
+
+| 라운드 | mode | cap | race-condition | guard | push |
+|---|---|---|---|---|---|
+| 6 | bg | 3 | ROBUSTNESS+DIVERSITY share commit | (no guard) | 1 PR |
+| 7 | bg | 3 | **0** (3 clean commits) | explicit `git add <files>` ✓ | 1 PR |
+| 8 | bg | **4** | **0** (4 clean commits) | explicit `git add <files>` ✓ | **agents push 직접 origin/main** |
+
+→ round-8 차이: agent commits 가 **직접 origin/main 으로 push**. 2 agent (DATA-EFFICIENCY · HW-VARIANCE) 는 origin 도달, 2 agent (USER-MODEL · BATCH-COMPOSITION) 는 local-only — parent 가 단일 `git push` 로 동기화. agent worktree 가 fetch+rebase 패턴 사용 시 push race 가능 — 추후 round 에서 patch.
+
+### Throttle 관찰 (cap=4 increase)
+
+| storm hit | cooldown |
+|---|---|
+| #1 | +15s |
+| #2 | +30s |
+
+→ cap=3 → cap=4 변경에 따른 throttle storm 2회 (round-1/round-4 와 동일 패턴). agent 자체 throttle-resilience clause + checkpoint commit 으로 모두 흡수 (4 agents 전부 PASS).
+
+### 🎉 22/22 closure 달성
+
+```
+22 axis-candidate first-probe progress  (cycle-9 FINAL)
+═══════════════════════════════════════════════════════
+⭐⭐⭐ 12 ████████████  12/12 ✅
+⭐⭐ 10  ██████████   10/10 ✅
+─────────────────────────────────────────────────────
+total   ████████████ 22/22  · ♾️ perpetual frontier OPEN
+```
+
+**중요한 honesty invariant** ([[feedback_closure_is_physical_limit]]):
+
+> 22/22 = **closed-form identity 22개 도달**. **NOT** "도메인 종료" 또는 "100% 완료".
+>
+> 모든 22 verdict 는 🔵 STRUCTURAL (identity recompute) + 🟡 BY-CITATION (외부 anchor 인용). 실측 (cycle-10+ T4 SANDBOX substrate fire) **모두 deferred** — vast.ai pod · mac M3 llama-server · `/pool on` per-host · serving stack bench 미수행.
+>
+> CODEX = meta-domain. 22 candidate 의 axis A1 만 closed-form 닫혔고, axis B (second probe) · N⭐ NOVEL (각 candidate self-NOVEL) · ENGINE intake matrix 승격 (5 → 6 → ...) 의 frontier 가 OPEN. 끝 없음.
+
+### Round 패턴 정리 (cycle-9 retrospective)
+
+| round | mode | items | wire pattern | learning |
+|---|---|---|---|---|
+| 1 | bg | CALIBRATION · CONTAMINATION · ENERGY (⭐⭐⭐) | 7-check closed-form template established | throttle storm survival |
+| 2 | fg | MULTILINGUAL · FAIRNESS (⭐⭐⭐) | 0 storm · inline visibility | fg = 안전 fallback |
+| 3 | fg | PRIVACY · RAG (⭐⭐⭐) | compound falsifier (OR · AND · 3-class) | falsifier diversity |
+| 4 | bg | INSTRUCTION-FOLLOWING + HALLUCINATION + PROMPT-SENSITIVITY (⭐⭐⭐) | rate-limit death · 부모 salvage | throttle resilience |
+| 5 | fg | AGENT + LONG-CONTEXT (⭐⭐⭐) → 12/12 | NIAH monotone sanity | ⭐⭐⭐ 12 close |
+| 6 | bg | ROBUSTNESS + RELIABILITY + DIVERSITY (⭐⭐) | shared-worktree race | race-condition 발견 |
+| 7 | bg | TRAINING-DYNAMICS + CARBON + TEMPORAL (⭐⭐) | race-가드 성공 (3 clean) | `git add <files>` 강제 |
+| 8 | bg | DATA-EFFICIENCY + HW-VARIANCE + BATCH-COMP + USER-MODEL (⭐⭐) | 22/22 closure | cap=4 storm 흡수 · agent push race |
+
+- [x] dispatched + merged DATA-EFFICIENCY/A1 → 🔵+🟡 7/7
+- [x] dispatched + merged HW-VARIANCE/A1 → 🔵+🟡 7/7
+- [x] dispatched + merged BATCH-COMPOSITION/A1 → 🔵+🟡 7/7
+- [x] dispatched + merged USER-MODEL/A1 → 🔵+🟡 7/7
+- [ ] cycle-10+ — cost-bearing fires (실측 NIAH · curriculum SFT · per-host throughput · MT-Bench multi-turn · vLLM serving) · axis B (second probe) · axis N⭐ NOVEL (각 candidate self-NOVEL) · ENGINE intake matrix 승격 검토 · CODEX `## deferred` 차오를 때 다음 라운드
+
+**22/22 candidate-A1 closed-form done · ♾️ perpetual frontier OPEN — closed-form close ≠ measured close** ([[feedback_closure_is_physical_limit]]).
+
 ## 2026-05-28 — cycle-9 round-7: 3 ⭐⭐ closed-form A1 wires (TRAINING-DYNAMICS + CARBON + TEMPORAL · /cycle-bg · race-가드 성공)
 
 `/cycle-bg` round-7 (sticky bg · cap=3). **race-방지 가드 작동** — round-6 의 shared-worktree race 학습 반영하여 agent prompt 에 `git add <explicit-files> ONLY (no git add -A)` 명시. 3 commits separately clean (cross-contamination 0건 · sibling 관찰만).

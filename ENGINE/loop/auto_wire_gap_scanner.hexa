@@ -1,0 +1,269 @@
+#!hexa strict
+// hexa-codex/ENGINE/loop/auto_wire_gap_scanner.hexa
+// ENGINE axis-N1 cross-session wire-gap scanner — the DETECTION half of the
+// measurement→wire auto-trigger automation.
+//
+// WHAT THIS IS (and what it is NOT — read first · honesty invariant).
+//   N1 의 honest residual (ENGINE.md axis-N · cycle-10):
+//     "실제 cross-session 자동화 (measurement 가 AUTONOMOUSLY wire 트리거) 는 아직
+//      미구현 (STILL UNBUILT)" — 이것이 N1 의 진짜 residual 이었다.
+//   이 스캐너는 그 residual 의 **DETECTION half** 를 짓는다:
+//     - 모든 measurement-domain finding (verdict .txt) 을 mechanically 열거하고
+//     - 모든 기존 wire 의 `SOURCE FINDING` 헤더를 읽어 어떤 finding 이 이미 wire 됐는지 학습하고
+//     - ORPHAN SET = (모든 finding) − (wire 가 cover 하는 finding) 을 계산한다.
+//   = "사람이 손으로 unwired finding 을 알아채야 하는" gap 을 닫는다 (cross-session 기계 surfacing).
+//
+//   ⚠ RESIDUAL (still OPEN · feedback_closure_is_physical_limit):
+//     gap-detection + scaffold = BUILT (이 파일).
+//     autonomous wire-AUTHORING = NEXT FRONTIER, OPEN — 이 스캐너는 decision rule 을
+//     자율 저작하지 않는다. 각 orphan 에 대해 `// TODO` SCAFFOLD stub 만 emit 하고,
+//     reviewer 가 여전히 손으로 closed-form rule 을 채운다.
+//     따라서 N1 은 "닫힘" 이 아니라 정직하게 ONE STEP ADVANCED.
+//
+// MECHANISM.
+//   finding-id  = "<DOMAIN>/<AXIS>"  (DOMAIN = path comp before /verdicts/,
+//                  AXIS = filename leading token up to first '_', upper-cased).
+//   coverage    = a wire COVERS finding "<DOMAIN>/<AXIS>" iff that wire's
+//                 `SOURCE FINDING` header line contains the DOMAIN name
+//                 (case-insensitive) AND the AXIS token (case-insensitive).
+//   orphan set  = findings with NO covering wire.
+//
+// SCOPE.  measurement-domain verdicts only.  Excludes:
+//   - .claude/worktrees/*  (sibling agents' parallel worktrees — not canonical)
+//   - build/*              (compiled artifacts)
+//   - ENGINE/verdicts/*    (these are WIRE verdicts, not measurement findings)
+//   - */.verdicts/*        bench-cache dirs are scanned too (per task spec) but
+//                          carry no DOMAIN/verdicts axis-shape, so they surface
+//                          as their own orphan rows honestly (cache ≠ wired).
+//
+// @no-lock-needed
+
+// ---------- repo-root finder (ENERGY/verify pattern) ----------
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+
+// ---------- helpers ----------
+fn to_lower_s(s: str) -> str { return s.to_lower() }
+
+fn member(xs: [str], v: str) -> bool {
+    let mut j = 0
+    while j < xs.len() {
+        if xs[j] == v { return true }
+        j = j + 1
+    }
+    return false
+}
+
+// last path component
+fn basename_of(path: str) -> str {
+    let mut last = path
+    let parts = path.split("/")
+    if parts.len() > 0 { last = parts[parts.len() - 1] }
+    return last
+}
+
+// extract DOMAIN from a "<DOMAIN>/verdicts/..." or "<DOMAIN>/.verdicts/..." path
+// (relative to ROOT). DOMAIN may contain a slash (e.g. VERTICAL/CODE).
+fn domain_of(rel: str) -> str {
+    let mut marker = "/verdicts/"
+    let mut idx = rel.find(marker)
+    if idx < 0 {
+        marker = "/.verdicts/"
+        idx = rel.find(marker)
+    }
+    if idx < 0 { return rel }
+    return rel.substr(0, idx)
+}
+
+// extract AXIS token = filename leading token up to first '_', upper-cased.
+// e.g. "n1_sparse_moe_..._verdict.txt" -> "N1"; "a1_ece_..." -> "A1".
+fn axis_of(path: str) -> str {
+    let base = basename_of(path)
+    let us = base.find("_")
+    let mut tok = base
+    if us >= 0 { tok = base.substr(0, us) }
+    return tok.to_upper()
+}
+
+// ---------- 1. enumerate ALL measurement-domain findings ----------
+// verdicts/*.txt  +  .verdicts/*.txt, restricted to GIT-TRACKED files (canonical
+// SoT per project_bench_sot — bench-cold/ + root .verdicts/ caches are gitignored
+// and NOT canonical findings). git ls-files also auto-excludes .claude/worktrees/*
+// (sibling agents' worktrees are separate working trees, untracked here).
+println("hexa-codex ENGINE/loop — cross-session WIRE-GAP SCANNER (N1 detection half)")
+println("================================================================================")
+println("ROOT = " + ROOT)
+println("")
+
+let find_cmd =
+    "cd " + ROOT + " && " +
+    "git ls-files | " +
+    "grep -E '(/verdicts/|/\\.verdicts/).*\\.txt$' | " +
+    "sort"
+let raw_findings = exec(find_cmd).trim()
+
+let mut finding_ids = []      // "DOMAIN/AXIS"
+let mut finding_paths = []    // rel path (for scaffold provenance)
+let mut finding_domains = []
+let mut finding_axes = []
+
+let flines = raw_findings.split("\n")
+let mut fi = 0
+while fi < flines.len() {
+    let line = flines[fi].trim()
+    fi = fi + 1
+    if line.len() == 0 { continue }
+    // exclude ENGINE's own verdicts — those are WIRE verdicts, not findings.
+    if line.find("ENGINE/verdicts/") >= 0 { continue }
+    if line.find("ENGINE/loop/verdicts/") >= 0 { continue }
+    let dom = domain_of(line)
+    let ax = axis_of(line)
+    let id = dom + "/" + ax
+    // de-dup identical DOMAIN/AXIS ids (a domain may have a1 + a1_other → keep first)
+    if member(finding_ids, id) { continue }
+    finding_ids.push(id)
+    finding_paths.push(line)
+    finding_domains.push(dom)
+    finding_axes.push(ax)
+}
+
+// ---------- 2. enumerate ALL wires + read SOURCE FINDING header ----------
+let ls_cmd = "cd " + ROOT + " && ls ENGINE/wires/wire_*.hexa 2>/dev/null | sort"
+let raw_wires = exec(ls_cmd).trim()
+
+let mut wire_files = []
+let mut wire_source = []   // lower-cased SOURCE FINDING header text per wire
+
+let wlines = raw_wires.split("\n")
+let mut wi = 0
+while wi < wlines.len() {
+    let wf = wlines[wi].trim()
+    wi = wi + 1
+    if wf.len() == 0 { continue }
+    // pull the SOURCE FINDING header line(s) of this wire, lower-cased + flattened.
+    let grep_cmd =
+        "grep -i 'SOURCE FINDING' " + ROOT + "/" + wf +
+        " 2>/dev/null | tr '\\n' ' ' | tr 'A-Z' 'a-z'"
+    let src = exec(grep_cmd).trim()
+    wire_files.push(wf)
+    wire_source.push(src)
+}
+
+// ---------- 3. compute ORPHAN SET = findings − covered ----------
+// finding "<DOMAIN>/<AXIS>" is COVERED iff some wire's SOURCE FINDING text
+// contains BOTH the domain name and the axis token (case-insensitive).
+fn covered_by_any(dom: str, ax: str, sources: [str]) -> bool {
+    let dl = dom.to_lower()
+    let al = ax.to_lower()
+    // domain may be VERTICAL/CODE — match on the leaf too (wires name e.g. "code").
+    let dleaf = basename_of(dl)
+    let mut k = 0
+    while k < sources.len() {
+        let s = sources[k]
+        let has_dom = (s.find(dl) >= 0) || (s.find(dleaf) >= 0)
+        let has_ax = s.find(al) >= 0
+        if has_dom && has_ax { return true }
+        k = k + 1
+    }
+    return false
+}
+
+let mut orphan_ids = []
+let mut orphan_paths = []
+let mut orphan_domains = []
+let mut orphan_axes = []
+let mut covered_count = 0
+
+let mut ci = 0
+while ci < finding_ids.len() {
+    if covered_by_any(finding_domains[ci], finding_axes[ci], wire_source) {
+        covered_count = covered_count + 1
+    } else {
+        orphan_ids.push(finding_ids[ci])
+        orphan_paths.push(finding_paths[ci])
+        orphan_domains.push(finding_domains[ci])
+        orphan_axes.push(finding_axes[ci])
+    }
+    ci = ci + 1
+}
+
+let total_findings = finding_ids.len()
+let total_wires = wire_files.len()
+let orphan_count = orphan_ids.len()
+
+// ---------- 4. print manifest ----------
+println("MANIFEST")
+println("  total findings (measurement-domain verdicts) = " + to_string(total_findings))
+println("  total wires (ENGINE/wires/wire_*.hexa)        = " + to_string(total_wires))
+println("  wired (findings covered by ≥1 wire)           = " + to_string(covered_count))
+println("  ORPHAN (findings with NO covering wire)       = " + to_string(orphan_count))
+println("")
+println("ORPHAN LIST (unwired findings — measurements not yet driven into LLM behavior):")
+if orphan_count == 0 {
+    println("  (none — every measurement finding has a covering wire)")
+} else {
+    let mut oi = 0
+    while oi < orphan_count {
+        println("  - " + orphan_ids[oi] + "   [" + orphan_paths[oi] + "]")
+        oi = oi + 1
+    }
+}
+println("")
+
+// ---------- 5. emit a wire SCAFFOLD stub per orphan (TODO skeleton, NOT a rule) ----------
+println("WIRE SCAFFOLDS (// TODO skeletons — reviewer fills the decision rule · NOT auto-authored):")
+println("--------------------------------------------------------------------------------")
+if orphan_count == 0 {
+    println("(no orphans → no scaffolds emitted)")
+} else {
+    let mut si = 0
+    while si < orphan_count {
+        let dom = orphan_domains[si]
+        let ax = orphan_axes[si]
+        let domleaf = basename_of(dom).to_lower()
+        let axl = ax.to_lower()
+        let stub_name = "wire_" + axl + "_" + domleaf + "_TODO.hexa"
+        println("")
+        println("### scaffold for orphan " + orphan_ids[si])
+        println("#!hexa strict")
+        println("// hexa-codex/ENGINE/wires/" + stub_name)
+        println("// ENGINE wire SCAFFOLD (AUTO-EMITTED stub · reviewer must complete).")
+        println("//")
+        println("// SOURCE FINDING (" + dom + "/" + ax + "):")
+        println("//   TODO reviewer: summarise the verdict at " + orphan_paths[si])
+        println("//   (domain=" + dom + " axis=" + ax + ") — what was MEASURED, with the")
+        println("//   numeric value + tier glyph + falsifier from that verdict.")
+        println("//")
+        println("// RULE.  TODO reviewer: author the closed-form decision rule that drives")
+        println("//   this finding into a concrete LLM behavior change (route / threshold /")
+        println("//   gate / selector). This scanner does NOT fabricate the rule.")
+        println("//")
+        println("// ENGINE N1 (latency).  Discovery cycle = TODO. Wire cycle = TODO. ΔM = TODO.")
+        println("//")
+        println("// FALSIFIER.  TODO reviewer: state the condition under which this wire")
+        println("//   would be wrong (finding-ignorant behavior that must be caught).")
+        println("// @no-lock-needed")
+        println("// fn select_or_gate(...) -> ... { /* TODO closed-form rule */ }")
+        si = si + 1
+    }
+}
+println("")
+println("RESIDUAL (honest · feedback_closure_is_physical_limit):")
+println("  gap-detection + scaffold = BUILT (this scanner mechanically surfaces unwired")
+println("  findings across sessions — closes the 'a human must notice' gap).")
+println("  autonomous wire-AUTHORING = NEXT FRONTIER, OPEN — a reviewer still fills each")
+println("  scaffold's decision rule. N1 is ADVANCED one honest step, NOT closed.")
+println("")
+println("__HEXA_CODEX_ENGINE_LOOP_GAP_SCANNER__ DONE")

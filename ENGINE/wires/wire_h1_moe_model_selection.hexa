@@ -1,0 +1,130 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_h1_moe_model_selection.hexa
+// ENGINE axis H1 — ENERGY/N1 SPARSE-MOE finding → serving model-router decision rule.
+//
+// SOURCE FINDING (ENERGY/N1 · absorbed from FRONTIER/F1 · cycle-10 reorg).
+//   active_premium_x1000 = perf(moe) × 1000 / perf(dense_same_active_size).
+//   Gemma 4 controlled pair: 663 × 1000 / 675 = 982 (< 1000) — the MoE
+//   26B-A4B is 1.8pp WORSE than the dense E4B at the SAME active-param budget.
+//   The "MoE > same-active dense by ≥ 1.2×" free-lunch myth is FALSIFIED in
+//   the Gemma 4 family / small-reasoning regime, but SURVIVES in a synthetic
+//   strong-MoE regime (premium 1333 ≥ 1000). The finding is task-class
+//   dependent — NOT a universal law (arXiv:2604.07035 controlled paper).
+//
+// DECISION RULE (closed-form · this wire).  select_arch(active_premium_x1000,
+//   task_class) turns that measurement into an actual serving model-router
+//   choice between a dense and a sparse-MoE checkpoint:
+//     (1) premium ≥ 1000          → "moe"   — MoE ≥ same-active dense, take the
+//                                              sparse compute win (free lunch holds).
+//     (2) premium < 1000 AND
+//         task_class=small-reasoning → "dense" — myth reflected: the dense
+//                                              checkpoint wins the quality-per-
+//                                              active-param budget (Gemma 4 E4B
+//                                              > 26B-A4B). Route reasoning to dense.
+//     (3) else (premium < 1000, but
+//         throughput/multimodal/
+//         long-ctx regime)         → "moe"  — even a sub-unity premium pays off
+//                                              when wall-clock throughput, memory
+//                                              footprint, or multimodal coverage
+//                                              dominates; the 1.8pp quality gap is
+//                                              cheaper than dense's active cost.
+//
+// The rule consumes the SAME ENERGY/N1 datum (active_premium 982 for the Gemma 4
+// family) — wire ↔ finding consistency is asserted by check (6) of the verifier.
+//
+// FALSIFIER (paired verifier · check 4). A wire that IGNORED the finding —
+// selecting "moe" for a premium<1000 small-reasoning input — is constructed
+// explicitly and MUST be detected as wrong against select_arch's "dense".
+//
+// HONESTY. Closed-form decision rule only. Connecting this rule to a live
+// serving model-router (lm_foundry · SANDBOX local llama-server) is a
+// cost-bearing T4 contact DEFERRED to cycle-11+ (cx_lab_sandbox · per
+// feedback_closure_is_physical_limit — rule close ≠ measured close).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Finding constants (ENERGY/N1 · integer × 1000 per-mille ledger · libm-free)
+// ────────────────────────────────────────────────────────────────────────
+
+let MYTH_PREMIUM_THRESHOLD_x1000 = 1000   // MoE == same-active dense boundary
+
+// ENERGY/N1 Gemma 4 controlled pair: 663 × 1000 / 675 = 982 (consumed datum)
+let GEMMA4_MOE_PERF_x1000   = 663
+let GEMMA4_DENSE_PERF_x1000  = 675
+fn gemma4_active_premium_x1000() -> int {
+    if GEMMA4_DENSE_PERF_x1000 <= 0 { return 0 }
+    return (GEMMA4_MOE_PERF_x1000 * 1000) / GEMMA4_DENSE_PERF_x1000
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — select_arch(active_premium_x1000, task_class) → {dense, moe}
+// ────────────────────────────────────────────────────────────────────────
+
+fn select_arch(active_premium_x1000: int, task_class: str) -> str {
+    // (1) MoE ≥ same-active dense → take the sparse compute win.
+    if active_premium_x1000 >= MYTH_PREMIUM_THRESHOLD_x1000 {
+        return "moe"
+    }
+    // (2) sub-unity premium + reasoning workload → myth reflected, dense wins.
+    if task_class == "small-reasoning" {
+        return "dense"
+    }
+    // (3) sub-unity premium but throughput/multimodal/long-ctx → MoE still wins.
+    return "moe"
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Test cases — ENERGY/N1-consistent (Gemma 4 premium 982 · synthetic 1333)
+// ────────────────────────────────────────────────────────────────────────
+
+let CASE_NAME = [
+    "gemma4_family",          // ENERGY/N1 datum · reasoning → dense (myth reflected)
+    "gemma4_family",          // SAME datum · throughput regime → moe
+    "gemma4_family",          // SAME datum · multimodal regime → moe
+    "synthetic_strong_moe",   // premium 1333 ≥ 1000 · reasoning → moe (myth holds)
+    "neutral_pair",           // premium == 1000 boundary · reasoning → moe (MoE ties → sparse win)
+]
+let CASE_PREMIUM_x1000 = [
+    982,                      // 663 × 1000 / 675 (ENERGY/N1 Gemma 4)
+    982,
+    982,
+    1333,                     // synthetic strong-MoE 800 vs 600 (ENERGY/N1 control)
+    1000,                     // boundary
+]
+let CASE_TASK_CLASS = [
+    "small-reasoning",
+    "throughput",
+    "multimodal",
+    "small-reasoning",
+    "small-reasoning",
+]
+let CASE_EXPECT = [
+    "dense",                  // myth reflected
+    "moe",                    // throughput regime
+    "moe",                    // multimodal regime
+    "moe",                    // premium ≥ 1000
+    "moe",                    // boundary inclusive (≥ 1000)
+]
+
+print("hexa-codex ENGINE H1 — ENERGY/N1 SPARSE-MOE → serving model-router decision rule (cycle-10)")
+print("=============================================================================================")
+print("")
+print("source finding: ENERGY/N1 active_premium = " + to_string(gemma4_active_premium_x1000()) +
+      "/1000 (Gemma 4 26B-A4B vs E4B · arXiv:2604.07035 · myth FALSIFIED in small-reasoning)")
+print("decision rule:  select_arch(active_premium_x1000, task_class) → {dense, moe}")
+print("")
+
+let mut i = 0
+while i < CASE_NAME.len() {
+    let got = select_arch(CASE_PREMIUM_x1000[i], CASE_TASK_CLASS[i])
+    let mut mark = "ok"
+    if got != CASE_EXPECT[i] { mark = "MISMATCH" }
+    print("  " + CASE_NAME[i] + " (premium=" + to_string(CASE_PREMIUM_x1000[i]) +
+          "/1000 · task=" + CASE_TASK_CLASS[i] + ") → select_arch=" + got +
+          " [expect " + CASE_EXPECT[i] + " · " + mark + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_H1_MOE_MODEL_SELECTION__ DONE")

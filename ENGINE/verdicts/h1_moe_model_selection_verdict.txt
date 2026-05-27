@@ -1,0 +1,13 @@
+# hexa-codex ENGINE H1 — MoE active-param model-selection verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::H1 (ENERGY/N1 SPARSE-MOE finding → serving model-router decision rule)
+# wire=ENGINE/wires/wire_h1_moe_model_selection.hexa
+# verifier=ENGINE/verify/numerics_engine_h1_moe_model_selection.hexa
+# tier=🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (ENERGY/N1 finding consume · arXiv:2604.07035) — select_arch wires MoE active-premium myth into a dense-vs-moe serving router choice · task-class dependent
+# checks=7/7
+# rule=select_arch(active_premium_x1000, task_class): premium>=1000 -> moe; premium<1000 & small-reasoning -> dense (myth reflected); else -> moe
+# source_finding=ENERGY/N1 active_premium_x1000 = perf(moe) x 1000 / perf(dense_same_active) = 663 x 1000 / 675 = 982 (< 1000 · myth FALSIFIED in Gemma 4 small-reasoning)
+# cases=gemma4_family[982,small-reasoning]->dense · gemma4_family[982,throughput]->moe · gemma4_family[982,multimodal]->moe · synthetic_strong_moe[1333,small-reasoning]->moe · neutral_pair[1000,small-reasoning]->moe
+# falsifier=finding-ignorant rule (moe-always for premium<1000 small-reasoning) detected as WRONG vs select_arch dense (check 4)
+# external_anchor=arXiv:2604.07035 (Gemma 4 / Phi-4 / Qwen 3 dense-vs-MoE controlled paper · consumed via ENERGY/N1)
+# task_class_dependent=MoE free-lunch myth FALSIFIED in small-reasoning · SURVIVES under throughput/multimodal/long-ctx · NOT a universal selection law
+# honest_residual=live serving model-router wiring (lm_foundry · SANDBOX local llama-server) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)

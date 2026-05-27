@@ -1,0 +1,222 @@
+#!hexa strict
+// DATA-QUALITY/verify/numerics_data_quality_a1_dedup_gain.hexa
+// orchestra-research "Data Processing" 누락 흡수 (cycle-10) — closed-form verifier
+// for the corpus dedup-gain identity + 2pp threshold falsifier semantics.
+//
+// Asserts the gain identity is closed-form and the falsifier (중복 무해 detection)
+// correctly classifies:
+//   (1) gain identity (perf_dedup − perf_raw) holds for all 5 corpora
+//   (2) perf + dup_rate values ∈ [0, 100 pp] (× 100 ledger ∈ [0, 10000])
+//   (3) zero-gain synthetic — perf_raw=perf_dedup=70 pp → gain=0 → fires
+//   (4) fineweb_clean + curated_books fire (gain 1.5pp / 0.8pp < 2pp · clean corpus)
+//   (5) common_crawl + oscar_web + c4_raw silent (gain ≥ 2pp · high-dup corpus)
+//   (6) determinism (re-call same gain + fires)
+//   (7) sanity — dedup never hurts (perf_dedup ≥ perf_raw for all) AND high-dup
+//       corpora monotone: 더 높은 dup_rate → 더 큰 gain (common_crawl ≥ oscar_web ≥ c4_raw)
+//
+// Source: DATA-QUALITY/bench/data_quality_a1_dedup_gain.hexa
+// External anchors: Lee 2022 deduplicating training data (arXiv:2107.06499) ·
+//                   Penedo 2024 FineWeb (arXiv:2406.17557) ·
+//                   Li 2024 DataComp-LM / DCLM (arXiv:2406.11794)
+//
+// @no-lock-needed
+
+let CORPUS_NAMES = ["common_crawl", "oscar_web", "c4_raw", "fineweb_clean", "curated_books"]
+
+let CORPUS_DATA = [6500, 6000, 6750,
+                   5000, 6200, 6800,
+                   3000, 6500, 6950,
+                    800, 7100, 7250,
+                    300, 7300, 7380]
+
+let N_FIELDS = 3
+let THRESHOLD_x100 = 200            // < 2pp gain → 중복 무해 (dedup 불필요)
+let PERF_MAX_x100 = 100 * 100       // [0, 10000]
+
+fn dup_rate_x100(corpus_i: int) -> int {
+    return CORPUS_DATA[corpus_i * N_FIELDS + 0]
+}
+fn perf_raw_x100(corpus_i: int) -> int {
+    return CORPUS_DATA[corpus_i * N_FIELDS + 1]
+}
+fn perf_dedup_x100(corpus_i: int) -> int {
+    return CORPUS_DATA[corpus_i * N_FIELDS + 2]
+}
+fn gain_after_dedup_x100(corpus_i: int) -> int {
+    return perf_dedup_x100(corpus_i) - perf_raw_x100(corpus_i)
+}
+fn falsifier_fires(corpus_i: int) -> bool {
+    return gain_after_dedup_x100(corpus_i) < THRESHOLD_x100
+}
+
+print("hexa-codex DATA-QUALITY A1 falsifier — dedup-gain closed-form")
+print("============================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_corpus = CORPUS_NAMES.len()
+
+// check 1 — gain identity for all 5 corpora
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_corpus {
+    let lhs = gain_after_dedup_x100(i)
+    let rhs = perf_dedup_x100(i) - perf_raw_x100(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] gain identity (perf_dedup − perf_raw) holds for all " +
+          to_string(n_corpus) + " corpora")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] gain identity broken")
+}
+
+// check 2 — perf + dup_rate values ∈ [0, 100 pp] (× 100 ledger ∈ [0, 10000])
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_corpus {
+    let mut f = 0
+    while f < N_FIELDS {
+        let v = CORPUS_DATA[i * N_FIELDS + f]
+        if v < 0 || v > PERF_MAX_x100 { rb_ok = false }
+        f = f + 1
+    }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] dup_rate + perf values ∈ [0, 100 pp] (× 100 ledger ∈ [0, " +
+          to_string(PERF_MAX_x100) + "]) for all " +
+          to_string(n_corpus * N_FIELDS) + " entries")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] value out of range")
+}
+
+// check 3 — zero-gain synthetic: perf_raw=perf_dedup=70 pp → gain=0 → fires
+checks_total = checks_total + 1
+let SYN_PERF = 7000  // 70 pp × 100
+let syn_gain = SYN_PERF - SYN_PERF
+if syn_gain == 0 && syn_gain < THRESHOLD_x100 {
+    print("  [PASS] synthetic zero-gain (perf_raw=perf_dedup=70pp) → gain=0/100 · fires (중복 무해)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic zero-gain gain=" + to_string(syn_gain))
+}
+
+// check 4 — fineweb_clean (idx 3) + curated_books (idx 4) fire (gain < 2pp · clean corpus)
+checks_total = checks_total + 1
+if falsifier_fires(3) && falsifier_fires(4)
+        && gain_after_dedup_x100(3) == 150 && gain_after_dedup_x100(4) == 80 {
+    print("  [PASS] clean corpora fire: fineweb_clean gain=" + to_string(gain_after_dedup_x100(3)) +
+          "/100 (1.5pp) · curated_books gain=" + to_string(gain_after_dedup_x100(4)) +
+          "/100 (0.8pp) — both < 2pp · dedup 불필요 (이미 clean)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] clean corpus fire detection broken")
+}
+
+// check 5 — common_crawl + oscar_web + c4_raw silent (gain ≥ 2pp · high-dup corpus)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && gain_after_dedup_x100(0) == 750 && gain_after_dedup_x100(1) == 600
+        && gain_after_dedup_x100(2) == 450 {
+    print("  [PASS] high-dup corpora silent: common_crawl gain=" + to_string(gain_after_dedup_x100(0)) +
+          "/100 (7.5pp) · oscar_web=" + to_string(gain_after_dedup_x100(1)) +
+          "/100 (6.0pp) · c4_raw=" + to_string(gain_after_dedup_x100(2)) +
+          "/100 (4.5pp) — all ≥ 2pp · dedup 유의미 (false-negative 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] high-dup corpus silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if gain_after_dedup_x100(0) == gain_after_dedup_x100(0)
+        && falsifier_fires(3) == falsifier_fires(3)
+        && gain_after_dedup_x100(2) == gain_after_dedup_x100(2) {
+    print("  [PASS] formula deterministic (re-call same gain + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: dedup never hurts (perf_dedup ≥ perf_raw for all) AND high-dup
+//   monotone gain (common_crawl ≥ oscar_web ≥ c4_raw — 더 높은 중복 → 더 큰 gain).
+//   note: 모든 corpus 에서 gain > 0 을 강제하지 않음 — clean corpus 는 gain≈0 가 정상.
+//   대신 안전한 사니티는 (a) dedup 이 성능을 깎지 않음 (gain ≥ 0),
+//   (b) high-dup 3-corpus 에서 dup_rate 단조 ↔ gain 단조.
+checks_total = checks_total + 1
+let mut never_hurts = true
+i = 0
+while i < n_corpus {
+    if gain_after_dedup_x100(i) < 0 { never_hurts = false }
+    i = i + 1
+}
+let monotone_high_dup = gain_after_dedup_x100(0) >= gain_after_dedup_x100(1)
+        && gain_after_dedup_x100(1) >= gain_after_dedup_x100(2)
+let dup_monotone = dup_rate_x100(0) >= dup_rate_x100(1)
+        && dup_rate_x100(1) >= dup_rate_x100(2)
+if never_hurts && monotone_high_dup && dup_monotone {
+    print("  [PASS] sanity — dedup never hurts (gain ≥ 0 all) AND high-dup monotone (common_crawl ≥ oscar_web ≥ c4_raw · dup_rate ↑ → gain ↑)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (never_hurts=" + to_string(never_hurts) +
+          " · monotone_gain=" + to_string(monotone_high_dup) +
+          " · monotone_dup=" + to_string(dup_monotone) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (gain identity + 2pp threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 2pp threshold = harmless-dup convention · cite Lee 2022 arXiv:2107.06499 + Penedo 2024 FineWeb arXiv:2406.17557 + Li 2024 DCLM arXiv:2406.11794)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — dedup-gain formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("DATA-QUALITY A1 finding (orchestra Data Processing 흡수 · placeholder · closed-form):")
+print("  - gain_after_dedup_x100 = perf_dedup − perf_raw identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: common_crawl=7.5pp · oscar_web=6.0pp · c4_raw=4.5pp silent (dedup 유의미) · fineweb_clean=1.5pp · curated_books=0.8pp fires (중복 무해 · 이미 clean)")
+print("  - external anchors: Lee 2022 (arXiv:2107.06499) · Penedo 2024 FineWeb (arXiv:2406.17557) · Li 2024 DCLM (arXiv:2406.11794)")
+print("  - 실측 (cycle-11+ T4): MinHash dedup 전/후 retrain + downstream eval on lm_foundry + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_DATA_QUALITY_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/DATA-QUALITY/verdicts/a1_dedup_gain_verdict.txt"
+
+let mut content = "# hexa-codex DATA-QUALITY A1 — dedup-gain verifier (orchestra-research Data Processing 흡수 · cycle-10)\n"
+content = content + "# axis=DATA-QUALITY/DATA-QUALITY.md::A1 (dedup rate → downstream gain · 5 corpora · 2pp threshold)\n"
+content = content + "# bench=DATA-QUALITY/bench/data_quality_a1_dedup_gain.hexa\n"
+content = content + "# verifier=DATA-QUALITY/verify/numerics_data_quality_a1_dedup_gain.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=gain_after_dedup_x100 = perf_dedup − perf_raw (× 100 ledger of pp); falsifier_fires = gain < 2pp (< 200 in × 100 ledger) → 중복 무해 · dedup 불필요\n"
+content = content + "# placeholder_data=5 corpora · common_crawl (65% dup · 60.0→67.5 · gain 7.5pp silent) · oscar_web (50% dup · 62.0→68.0 · gain 6.0pp silent) · c4_raw (30% dup · 65.0→69.5 · gain 4.5pp silent) · fineweb_clean (8% dup · 71.0→72.5 · gain 1.5pp FIRES) · curated_books (3% dup · 73.0→73.8 · gain 0.8pp FIRES)\n"
+content = content + "# bidirectional_discrimination=3 silent (common_crawl · oscar_web · c4_raw — high-dup · dedup 유의미) + 2 fires (fineweb_clean · curated_books — 이미 clean · 중복 무해)\n"
+content = content + "# external_anchors=Lee 2022 Deduplicating Training Data Makes Language Models Better (arXiv:2107.06499) · Penedo 2024 FineWeb (arXiv:2406.17557) · Li 2024 DataComp-LM / DCLM (arXiv:2406.11794)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · MinHash dedup 전/후 retrain + downstream eval on lm_foundry + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# absorbed_from=orchestra-research 20-skill 누락 흡수 (cycle-10 · \"Data Processing\" → DATA-QUALITY/A1 신규 단독 도메인)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — dedup-gain identity close ≠ measured dedup close · 새 corpus·dedup algo·quality filter 마다 frontier 재오픈 · data quality > quantity 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

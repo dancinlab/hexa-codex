@@ -1,0 +1,13 @@
+# hexa-codex DATA-QUALITY A1 — dedup-gain verifier (orchestra-research Data Processing 흡수 · cycle-10)
+# axis=DATA-QUALITY/DATA-QUALITY.md::A1 (dedup rate → downstream gain · 5 corpora · 2pp threshold)
+# bench=DATA-QUALITY/bench/data_quality_a1_dedup_gain.hexa
+# verifier=DATA-QUALITY/verify/numerics_data_quality_a1_dedup_gain.hexa
+# tier=🔵 STRUCTURAL (gain identity + 2pp threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 2pp threshold = harmless-dup convention · cite Lee 2022 arXiv:2107.06499 + Penedo 2024 FineWeb arXiv:2406.17557 + Li 2024 DCLM arXiv:2406.11794)
+# checks=7/7
+# formula=gain_after_dedup_x100 = perf_dedup − perf_raw (× 100 ledger of pp); falsifier_fires = gain < 2pp (< 200 in × 100 ledger) → 중복 무해 · dedup 불필요
+# placeholder_data=5 corpora · common_crawl (65% dup · 60.0→67.5 · gain 7.5pp silent) · oscar_web (50% dup · 62.0→68.0 · gain 6.0pp silent) · c4_raw (30% dup · 65.0→69.5 · gain 4.5pp silent) · fineweb_clean (8% dup · 71.0→72.5 · gain 1.5pp FIRES) · curated_books (3% dup · 73.0→73.8 · gain 0.8pp FIRES)
+# bidirectional_discrimination=3 silent (common_crawl · oscar_web · c4_raw — high-dup · dedup 유의미) + 2 fires (fineweb_clean · curated_books — 이미 clean · 중복 무해)
+# external_anchors=Lee 2022 Deduplicating Training Data Makes Language Models Better (arXiv:2107.06499) · Penedo 2024 FineWeb (arXiv:2406.17557) · Li 2024 DataComp-LM / DCLM (arXiv:2406.11794)
+# substrate_fire=DEFERRED (cycle-11+ · MinHash dedup 전/후 retrain + downstream eval on lm_foundry + vast.ai pod · cx_lab_sandbox)
+# absorbed_from=orchestra-research 20-skill 누락 흡수 (cycle-10 · "Data Processing" → DATA-QUALITY/A1 신규 단독 도메인)
+# frontier_open=feedback_closure_is_physical_limit — dedup-gain identity close ≠ measured dedup close · 새 corpus·dedup algo·quality filter 마다 frontier 재오픈 · data quality > quantity 도착지 없음

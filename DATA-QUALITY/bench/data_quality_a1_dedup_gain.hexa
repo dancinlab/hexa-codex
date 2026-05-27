@@ -1,0 +1,109 @@
+#!hexa strict
+// DATA-QUALITY/bench/data_quality_a1_dedup_gain.hexa
+// orchestra-research "Data Processing" 누락 흡수 (cycle-10) — pretraining corpus
+// deduplication 의 downstream 효과 측정의 closed-form first probe. "data quality
+// > quantity" (FineWeb · DCLM) frontier 의 첫 probe — 중복 제거가 실제 성능을
+// 올리는가, 아니면 corpus 가 이미 clean 해서 dedup 이 무의미한가.
+//
+// Identity (closed-form · libm-free · × 100 ledger of pp):
+//   gain_after_dedup_x100(corpus) = perf_dedup_x100 − perf_raw_x100
+//   dedup_meaningful(corpus)      = gain_after_dedup_x100 ≥ THRESHOLD_x100 (2pp)
+//   falsifier_fires(corpus)       = gain_after_dedup_x100 <  THRESHOLD_x100
+//                                   → dedup 후 성능 향상 < 2pp → 중복 무해 (dedup 불필요)
+//
+// Falsifier (DATA-QUALITY A1): dedup 후 downstream 성능 향상 < 2pp 이면 그 corpus 의
+// 중복은 무해하며 dedup pipeline 은 불필요. high-dup corpus 는 silent (gain 큼 ·
+// dedup 유의미) · 이미 clean 한 corpus 는 fires (gain<2pp · dedup 무의미).
+//
+// External anchors (citation tier · 🟡):
+//   Lee 2022 — Deduplicating Training Data Makes Language Models Better (arXiv:2107.06499)
+//   Penedo 2024 — FineWeb: decanting the web for the finest text data (arXiv:2406.17557)
+//   Li 2024 — DataComp-LM (DCLM): search for the next generation of training sets (arXiv:2406.11794)
+//
+// Integer ledger (pp × 100) — libm-free closed-form. Placeholder per-corpus
+// dup_rate + downstream perf — 실측 dedup 전/후 retrain + downstream eval deferred
+// (cycle-11+ T4 · MinHash/SuetDedup pipeline + lm_foundry retrain · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure dedup-gain identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Corpus registry (5 corpora · {dup_rate, perf_raw, perf_dedup} · pp × 100 ledger)
+//   common_crawl  : 65% dup · perf 60.0 → 67.5 (gain 7.5pp · web 최악 중복 · silent)
+//   oscar_web     : 50% dup · perf 62.0 → 68.0 (gain 6.0pp · web crawl · silent)
+//   c4_raw        : 30% dup · perf 65.0 → 69.5 (gain 4.5pp · 부분 filter web · silent)
+//   fineweb_clean : 8%  dup · perf 71.0 → 72.5 (gain 1.5pp · 이미 dedup-heavy · FIRES)
+//   curated_books :  3% dup · perf 73.0 → 73.8 (gain 0.8pp · 큐레이션 clean · FIRES)
+//
+// dup_rate = % of tokens that are near-duplicate (MinHash cluster) before dedup.
+// perf = downstream aggregate accuracy (pp · placeholder). Stored × 100 (60.0pp →
+// 6000 ledger) — libm-free, matches MULTIMODAL/MULTILINGUAL A1's × 100 convention.
+// ────────────────────────────────────────────────────────────────────────
+
+let CORPUS_NAMES = ["common_crawl", "oscar_web", "c4_raw", "fineweb_clean", "curated_books"]
+
+// row-major {dup_rate_x100, perf_raw_x100, perf_dedup_x100} (5 corpora × 3 fields)
+//   common_crawl  : [6500, 6000, 6750]  → 65% dup · 60.0 → 67.5 pp · gain 7.5pp
+//   oscar_web     : [5000, 6200, 6800]  → 50% dup · 62.0 → 68.0 pp · gain 6.0pp
+//   c4_raw        : [3000, 6500, 6950]  → 30% dup · 65.0 → 69.5 pp · gain 4.5pp
+//   fineweb_clean : [ 800, 7100, 7250]  →  8% dup · 71.0 → 72.5 pp · gain 1.5pp FIRES
+//   curated_books : [ 300, 7300, 7380]  →  3% dup · 73.0 → 73.8 pp · gain 0.8pp FIRES
+let CORPUS_DATA = [6500, 6000, 6750,
+                   5000, 6200, 6800,
+                   3000, 6500, 6950,
+                    800, 7100, 7250,
+                    300, 7300, 7380]
+
+let N_FIELDS = 3
+let THRESHOLD_x100 = 200            // < 2pp gain → 중복 무해 (dedup 불필요)
+let PERF_MAX_x100 = 100 * 100       // perf ∈ [0, 100] pp · × 100 ledger ∈ [0, 10000]
+
+fn dup_rate_x100(corpus_i: int) -> int {
+    return CORPUS_DATA[corpus_i * N_FIELDS + 0]
+}
+fn perf_raw_x100(corpus_i: int) -> int {
+    return CORPUS_DATA[corpus_i * N_FIELDS + 1]
+}
+fn perf_dedup_x100(corpus_i: int) -> int {
+    return CORPUS_DATA[corpus_i * N_FIELDS + 2]
+}
+
+fn gain_after_dedup_x100(corpus_i: int) -> int {
+    // signed pp gain from dedup (× 100 ledger).
+    //   gain = perf_dedup − perf_raw (positive when dedup helps)
+    return perf_dedup_x100(corpus_i) - perf_raw_x100(corpus_i)
+}
+
+fn dedup_meaningful(corpus_i: int) -> bool {
+    return gain_after_dedup_x100(corpus_i) >= THRESHOLD_x100
+}
+
+fn falsifier_fires(corpus_i: int) -> bool {
+    // dedup 후 성능 향상 < 2pp → 중복 무해 → dedup 불필요
+    return gain_after_dedup_x100(corpus_i) < THRESHOLD_x100
+}
+
+print("hexa-codex DATA-QUALITY A1 — dedup-gain closed-form (orchestra Data Processing 흡수 · cycle-10)")
+print("================================================================================================")
+print("")
+print("per-corpus dedup profile (placeholder · × 100 ledger · libm-free):")
+let n_corpus = CORPUS_NAMES.len()
+let mut i = 0
+while i < n_corpus {
+    let dr = dup_rate_x100(i)
+    let pr = perf_raw_x100(i)
+    let pd = perf_dedup_x100(i)
+    let g = gain_after_dedup_x100(i)
+    let mut flag = "silent (dedup 유의미 · gain ≥ 2pp)"
+    if falsifier_fires(i) {
+        flag = "FIRES (gain < 2pp · 중복 무해 · dedup 불필요)"
+    }
+    print("  " + CORPUS_NAMES[i] + ":")
+    print("    dup_rate=" + to_string(dr) + "/100 (" + to_string(dr / 100) + "% near-dup)" +
+          " · perf_raw=" + to_string(pr / 100) + "pp → perf_dedup=" + to_string(pd / 100) + "pp")
+    print("    → gain_after_dedup=" + to_string(g) + "/100 (" + to_string(g / 100) + "." +
+          to_string((g % 100) / 10) + "pp) · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_DATA_QUALITY_A1_DEDUP_GAIN__ DONE")

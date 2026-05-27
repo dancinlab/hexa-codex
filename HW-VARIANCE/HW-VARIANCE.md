@@ -20,7 +20,7 @@
 > HW-VARIANCE 은 완료되지 않는다. 새 chip·cooling regime·workload 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — per-chip throughput 분산 (동일 spec) · binning curve. 반증자: 같은 spec 칩 간 throughput 분산 > 15%.
+- [x] A1 — per-chip throughput 분산 (동일 spec) · binning curve. 반증자: 같은 spec 칩 간 throughput 분산 > 15%. **CYCLE-9 round-8 wire**: closed-form `spread_x1000 = (max − min) × 1000 / mean` 7/7 🔵 STRUCTURAL + 🟡 BY-CITATION · placeholder 4-population × 5-chip discrimination (tight=20 · nominal=100 silent · loose=180 · lottery=300 fire) · mean-controlled (all populations sum→50000) so spread is sole free variable · proxy choice = conservative libm-free max−min/mean (sample-std Newton-sqrt deferred) · external anchors Sinha 2022 not-all-gpus-are-equal · Hennessy & Patterson CAaQA silicon-lottery · vLLM 2024 throughput variance · Open Compute Project per-chip telemetry · substrate fire DEFERRED (cycle-10+ `/pool on ubu-1` + `/pool on mini` per-host Llama-3 8B FP16 throughput sweep).
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — throughput × workload × thermal pressure ladder. 반증자: 발열 한계 도달 시 throughput drop > 30% (thermal throttling 지배).

@@ -1,0 +1,138 @@
+#!hexa strict
+// HW-VARIANCE/bench/hw_variance_a1_per_chip_cov.hexa
+// HW-VARIANCE A1 first probe (cycle-9 round-8 · CODEX bg) — per-chip throughput
+// 분산 across same-spec same-workload chip populations.
+//
+// Identity (closed-form · libm-free · × 1000 ledger spread proxy):
+//   mean_x100(pop)        = Σ tok_per_sec_x100[i] / N
+//   spread_raw_x100(pop)  = max_x100(pop) − min_x100(pop)
+//   spread_x1000(pop)     = spread_raw_x100 × 1000 / mean_x100
+//   falsifier_fires(pop)  = spread_x1000 > 150     (= raw spread > 15%)
+//
+// Spread proxy is the CONSERVATIVE bidirectional estimator chosen over a
+// libm-free integer sample-std (Newton-sqrt approximation) — spread is cheaper,
+// libm-free by construction, and still bidirectional (catches both 'one good
+// chip' and 'one bad chip' silicon-lottery tails). Sample-std is a future axis.
+//
+// Falsifier (CODEX HW-VARIANCE A1): same-spec chip throughput spread > 15%
+//   → silicon-lottery dominates batch-level perf · spec sheet is misleading ·
+//     per-chip kernel + cooling-aware schedule must compensate.
+//
+// External anchors (citation tier · 🟡):
+//   Sinha 2022 — Not all GPUs are equal (per-device variance · arXiv:2208.11174 class)
+//   Hennessy & Patterson — Computer Architecture A Quantitative Approach (silicon lottery section)
+//   vLLM 2024 — throughput variance report (per-chip serving telemetry)
+//   Open Compute Project — per-chip telemetry spec (OCP Telemetry WG)
+//
+// Integer ledger (tok/s × 100) — libm-free closed-form. Placeholder 5-chip
+// populations of a Llama-3 8B FP16 same-workload sweep. 실측 (cycle-10+ T4)
+// deferred — `/pool on ubu-1` + `/pool on mini` per-host throughput sweep
+// needed. SANDBOX 측정 substrate (`cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form spread identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Population registry (4 chip-populations · 5 chips each · same model + workload)
+//   tight    : well-binned cohort           (~2%  spread · silent)
+//   nominal  : typical OEM mix              (~10% spread · silent · exactly on the floor)
+//   loose    : poorly binned cohort         (~18% spread · fires)
+//   lottery  : catastrophic silicon-lottery (~30% spread · fires hard)
+//
+// tok/s × 100 ledger. All 5 chips per population sum to 50000 → mean = 10000
+// (i.e. 100 tok/s · representative of Llama-3 8B FP16 on H100-class chips).
+// ────────────────────────────────────────────────────────────────────────
+
+let POP_NAMES = ["tight", "nominal", "loose", "lottery"]
+
+// 5 chips per population · tok/s × 100 ledger.
+// Each row sums to 50000 so mean = 10000 across all populations — isolates
+// spread as the sole free variable (mean-controlled comparison).
+let TIGHT_x100   = [10000, 10100, 10000,  9900, 10000]   // max−min =  200 ·  ~2%
+let NOMINAL_x100 = [10000, 10500,  9500, 10300,  9700]   // max−min = 1000 · ~10%
+let LOOSE_x100   = [10000, 10900,  9100, 10500,  9500]   // max−min = 1800 · ~18%
+let LOTTERY_x100 = [10000, 11500,  8500, 11000,  9000]   // max−min = 3000 · ~30%
+
+let SPREAD_FALSIFIER_x1000 = 150     // > 150/1000 (= > 15%) → falsifier fires
+let N_CHIPS = 5
+
+fn pop_array(i: int) -> [int] {
+    if i == 0 { return TIGHT_x100 }
+    if i == 1 { return NOMINAL_x100 }
+    if i == 2 { return LOOSE_x100 }
+    return LOTTERY_x100
+}
+
+fn pop_sum_x100(i: int) -> int {
+    let a = pop_array(i)
+    let mut s = 0
+    let mut k = 0
+    while k < a.len() {
+        s = s + a[k]
+        k = k + 1
+    }
+    return s
+}
+
+fn pop_mean_x100(i: int) -> int {
+    return pop_sum_x100(i) / N_CHIPS
+}
+
+fn pop_max_x100(i: int) -> int {
+    let a = pop_array(i)
+    let mut m = a[0]
+    let mut k = 1
+    while k < a.len() {
+        if a[k] > m { m = a[k] }
+        k = k + 1
+    }
+    return m
+}
+
+fn pop_min_x100(i: int) -> int {
+    let a = pop_array(i)
+    let mut m = a[0]
+    let mut k = 1
+    while k < a.len() {
+        if a[k] < m { m = a[k] }
+        k = k + 1
+    }
+    return m
+}
+
+fn spread_x1000(i: int) -> int {
+    // spread_x1000 = (max − min) × 1000 / mean      (all x100 ledger cancels)
+    let mean = pop_mean_x100(i)
+    if mean <= 0 { return 0 }
+    return (pop_max_x100(i) - pop_min_x100(i)) * 1000 / mean
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return spread_x1000(i) > SPREAD_FALSIFIER_x1000
+}
+
+print("hexa-codex HW-VARIANCE A1 — per-chip throughput spread closed-form (cycle-9 round-8)")
+print("=====================================================================================")
+print("")
+print("per-population profile (5 chips each · Llama-3 8B FP16 · same workload · placeholder):")
+let n = POP_NAMES.len()
+let mut i = 0
+while i < n {
+    let s = spread_x1000(i)
+    let mean = pop_mean_x100(i)
+    let lo = pop_min_x100(i)
+    let hi = pop_max_x100(i)
+    let mut tag = "silent (≤ 15% spread · spec sheet honest)"
+    if falsifier_fires(i) {
+        tag = "FALSIFIER FIRES (> 15% spread · silicon-lottery dominates · per-chip schedule must compensate)"
+    }
+    print("  " + POP_NAMES[i] +
+          ": mean=" + to_string(mean) + "/100 tok/s" +
+          " · min=" + to_string(lo) + "/100" +
+          " · max=" + to_string(hi) + "/100" +
+          " · spread=" + to_string(s) + "/1000" +
+          " · [" + tag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_HW_VARIANCE_A1_PER_CHIP_COV__ DONE")

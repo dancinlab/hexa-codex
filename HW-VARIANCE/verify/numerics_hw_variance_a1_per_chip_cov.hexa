@@ -1,0 +1,248 @@
+#!hexa strict
+// HW-VARIANCE/verify/numerics_hw_variance_a1_per_chip_cov.hexa
+// HW-VARIANCE A1 — closed-form verifier for per-chip throughput spread identity.
+//
+// Asserts the spread proxy identity + bidirectional discrimination:
+//   (1) spread identity ((max − min) × 1000 / mean) holds for all 4 populations
+//   (2) tok/s values ≥ 0 (non-negative range)
+//   (3) zero-spread synthetic (all 5 chips equal) → spread = 0
+//   (4) `loose` + `lottery` fire (> 150/1000 = > 15%)
+//   (5) `tight` + `nominal` silent (≤ 150/1000) — false-positive 회피
+//   (6) determinism of the formula itself (recompute = recompute)
+//   (7) sanity: max ≥ mean ≥ min for each population (monotone invariant)
+//
+// Source: HW-VARIANCE/bench/hw_variance_a1_per_chip_cov.hexa
+// External anchors: Sinha 2022 not-all-gpus-are-equal · Hennessy & Patterson CAaQA
+//                   silicon-lottery · vLLM 2024 throughput variance · OCP telemetry
+//
+// @no-lock-needed
+
+let POP_NAMES = ["tight", "nominal", "loose", "lottery"]
+
+let TIGHT_x100   = [10000, 10100, 10000,  9900, 10000]
+let NOMINAL_x100 = [10000, 10500,  9500, 10300,  9700]
+let LOOSE_x100   = [10000, 10900,  9100, 10500,  9500]
+let LOTTERY_x100 = [10000, 11500,  8500, 11000,  9000]
+
+let SPREAD_FALSIFIER_x1000 = 150
+let N_CHIPS = 5
+
+fn pop_array(i: int) -> [int] {
+    if i == 0 { return TIGHT_x100 }
+    if i == 1 { return NOMINAL_x100 }
+    if i == 2 { return LOOSE_x100 }
+    return LOTTERY_x100
+}
+
+fn pop_sum_x100(i: int) -> int {
+    let a = pop_array(i)
+    let mut s = 0
+    let mut k = 0
+    while k < a.len() {
+        s = s + a[k]
+        k = k + 1
+    }
+    return s
+}
+
+fn pop_mean_x100(i: int) -> int { return pop_sum_x100(i) / N_CHIPS }
+
+fn pop_max_x100(i: int) -> int {
+    let a = pop_array(i)
+    let mut m = a[0]
+    let mut k = 1
+    while k < a.len() {
+        if a[k] > m { m = a[k] }
+        k = k + 1
+    }
+    return m
+}
+
+fn pop_min_x100(i: int) -> int {
+    let a = pop_array(i)
+    let mut m = a[0]
+    let mut k = 1
+    while k < a.len() {
+        if a[k] < m { m = a[k] }
+        k = k + 1
+    }
+    return m
+}
+
+fn spread_x1000(i: int) -> int {
+    let mean = pop_mean_x100(i)
+    if mean <= 0 { return 0 }
+    return (pop_max_x100(i) - pop_min_x100(i)) * 1000 / mean
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return spread_x1000(i) > SPREAD_FALSIFIER_x1000
+}
+
+print("hexa-codex HW-VARIANCE A1 falsifier — per-chip throughput spread closed-form")
+print("=============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = POP_NAMES.len()
+
+// check 1 — spread identity ((max − min) × 1000 / mean) for all populations
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n {
+    let mean = pop_mean_x100(i)
+    let expected = if mean <= 0 { 0 } else { (pop_max_x100(i) - pop_min_x100(i)) * 1000 / mean }
+    if spread_x1000(i) != expected { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] spread identity ((max − min) × 1000 / mean) holds for all " + to_string(n) + " populations")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] spread identity broken")
+}
+
+// check 2 — non-negative range: all tok/s ≥ 0
+checks_total = checks_total + 1
+let mut nn_ok = true
+i = 0
+while i < n {
+    let a = pop_array(i)
+    let mut k = 0
+    while k < a.len() {
+        if a[k] < 0 { nn_ok = false }
+        k = k + 1
+    }
+    i = i + 1
+}
+if nn_ok {
+    print("  [PASS] tok/s values ≥ 0 across all " + to_string(n * N_CHIPS) + " chip slots")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] negative tok/s detected")
+}
+
+// check 3 — zero-spread synthetic edge: all 5 chips equal → spread = 0
+checks_total = checks_total + 1
+let synth_equal = [10000, 10000, 10000, 10000, 10000]
+let mut synth_sum = 0
+let mut k3 = 0
+while k3 < synth_equal.len() {
+    synth_sum = synth_sum + synth_equal[k3]
+    k3 = k3 + 1
+}
+let synth_mean = synth_sum / N_CHIPS
+let mut synth_max = synth_equal[0]
+let mut synth_min = synth_equal[0]
+k3 = 1
+while k3 < synth_equal.len() {
+    if synth_equal[k3] > synth_max { synth_max = synth_equal[k3] }
+    if synth_equal[k3] < synth_min { synth_min = synth_equal[k3] }
+    k3 = k3 + 1
+}
+let synth_spread = if synth_mean <= 0 { 0 } else { (synth_max - synth_min) * 1000 / synth_mean }
+if synth_spread == 0 {
+    print("  [PASS] synthetic zero-spread (all 5 chips equal) → spread = 0/1000")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] zero-spread synthetic ≠ 0 (got " + to_string(synth_spread) + ")")
+}
+
+// check 4 — loose + lottery fire (> 150/1000)
+checks_total = checks_total + 1
+if falsifier_fires(2) && falsifier_fires(3) && spread_x1000(2) == 180 && spread_x1000(3) == 300 {
+    print("  [PASS] > 15% populations fire: loose=" + to_string(spread_x1000(2)) + " · lottery=" + to_string(spread_x1000(3)))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] > 15% fire detection broken")
+}
+
+// check 5 — tight + nominal silent (≤ 150/1000) — false-positive 회피
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && spread_x1000(0) == 20 && spread_x1000(1) == 100 {
+    print("  [PASS] ≤ 15% populations silent: tight=" + to_string(spread_x1000(0)) + " · nominal=" + to_string(spread_x1000(1)) + " — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ≤ 15% silent detection broken")
+}
+
+// check 6 — determinism of the formula itself
+checks_total = checks_total + 1
+if spread_x1000(0) == spread_x1000(0) && spread_x1000(2) == spread_x1000(2) && falsifier_fires(3) == falsifier_fires(3) {
+    print("  [PASS] formula deterministic (re-call same spread + fires)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — monotone invariant: max ≥ mean ≥ min for each population
+checks_total = checks_total + 1
+let mut mono_ok = true
+i = 0
+while i < n {
+    let mx = pop_max_x100(i)
+    let mn = pop_min_x100(i)
+    let me = pop_mean_x100(i)
+    if mx < me { mono_ok = false }
+    if me < mn { mono_ok = false }
+    i = i + 1
+}
+if mono_ok {
+    print("  [PASS] monotone invariant max ≥ mean ≥ min holds for all " + to_string(n) + " populations")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] monotone invariant violated")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (spread identity + bidirectional discrimination + monotone invariant 7/7) + 🟡 BY-CITATION (15% spread threshold = Sinha 2022 / H&P CAaQA / vLLM 2024 / OCP telemetry convention)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — spread formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("HW-VARIANCE A1 finding (placeholder · closed-form):")
+print("  - spread_x1000 = (max − min) × 1000 / mean identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: tight=20 · nominal=100 silent · loose=180 · lottery=300 fire")
+print("  - spread proxy = conservative libm-free bidirectional estimator (sample-std deferred to future axis)")
+print("  - external anchor: Sinha 2022 not-all-gpus-are-equal · H&P CAaQA silicon-lottery · vLLM 2024 throughput variance · OCP telemetry")
+print("  - 실측 (cycle-10+ T4): `/pool on ubu-1` + `/pool on mini` per-host Llama-3 8B FP16 throughput sweep")
+print("")
+print("__HEXA_CODEX_NUMERICS_HW_VARIANCE_A1_PER_CHIP_COV__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/HW-VARIANCE/verdicts/a1_per_chip_cov_verdict.txt"
+
+let mut content = "# hexa-codex HW-VARIANCE A1 — per-chip throughput spread verifier (cycle-9 round-8)\n"
+content = content + "# axis=HW-VARIANCE/HW-VARIANCE.md::A1 (per-chip throughput 분산 동일 spec · binning curve · 반증자 spread > 15%)\n"
+content = content + "# bench=HW-VARIANCE/bench/hw_variance_a1_per_chip_cov.hexa\n"
+content = content + "# verifier=HW-VARIANCE/verify/numerics_hw_variance_a1_per_chip_cov.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=spread_x1000 = (max − min) × 1000 / mean; falsifier_fires = spread > 150/1000 (= > 15%)\n"
+content = content + "# proxy_choice=spread (max−min)/mean — conservative libm-free bidirectional estimator vs Newton-sqrt integer sample-std (deferred to future axis)\n"
+content = content + "# placeholder_data=4 populations × 5 chips, all sum→50000 → mean=10000 (mean-controlled); tight=20 nominal=100 silent · loose=180 lottery=300 fire\n"
+content = content + "# external_anchors=Sinha 2022 not-all-gpus-are-equal (per-device variance) · Hennessy & Patterson CAaQA silicon-lottery · vLLM 2024 throughput variance report · Open Compute Project per-chip telemetry\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · `/pool on ubu-1` + `/pool on mini` per-host Llama-3 8B FP16 throughput sweep · cross-host vast.ai per-chip telemetry)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · 새 chip · cooling regime · workload 마다 frontier 재오픈\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

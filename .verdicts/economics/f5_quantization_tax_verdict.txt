@@ -1,0 +1,14 @@
+# hexa-codex ECONOMICS F5 — quantization quality-per-bit law (cycle-39 first probe)
+# axis=ECONOMICS.md::F5 (NOVEL · cycle-35 spawn · F = inference-substrate efficiency)
+# seed=.discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f5_quantization_tax_law
+# verifier=verify/numerics_economics_f5_quantization_tax.hexa
+# data=.verdicts/sandbox/p4_quant_band_pilot_summary.txt (REAL measured, Qwen2.5-1.5B k-quants n=200)
+# tier=🟢 SUPPORTED-NUMERICAL (binomial indistinguishability on measured P4 ladder 6/6) + 🟠 Dettmers comparison scope-limited
+# checks=6/6
+# measured=Q3_K_M(3.5bpw)=44.0% Q4_K_M(4.5)=43.0% Q8_0(8.5)=42.5%
+# binomial_SE_count=7 (pooled p̄=259/600 n=200) · 2SE=14
+# max_pairwise_delta=3 counts < 2SE=14 → 3 bands STATISTICALLY INDISTINGUISHABLE
+# finding=quant-invariant Q3→Q8 on arithmetic · NO Q3 cliff · b_cliff<3.5 HERE
+# dettmers_comparison=🟠 SCOPE-LIMITED (k-quants≠GPTQ · accuracy≠perplexity · 1 model/task)
+# gamma_fit=under-determined (3 within-noise points, no saturation-rise)
+# next_probe=cycle-40+ Q2/Q5/Q6 bands + harder task + larger model → fit γ on non-flat curve

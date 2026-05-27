@@ -1,0 +1,12 @@
+# hexa-codex LONG-CONTEXT A1 — NIAH drop ratio verifier (cycle-9 round-5)
+# axis=LONG-CONTEXT/LONG-CONTEXT.md::A1 (needle-in-haystack accuracy @ context-len curve)
+# bench=LONG-CONTEXT/bench/long_context_a1_niah_drop.hexa
+# verifier=LONG-CONTEXT/verify/numerics_long_context_a1_niah_drop.hexa
+# tier=🔵 STRUCTURAL (drop_ratio identity + monotone sanity 7/7) + 🟡 BY-CITATION (50% drop threshold = Liu 2023 / Kamradt NIAH convention)
+# checks=7/7
+# formula=drop_ratio = acc_64k / acc_4k (× 1000); falsifier_fires = drop_ratio < 0.5
+# placeholder_data=4 models × {4k, 16k, 64k} context ladder; solid · ok silent (≥0.5) · degrades · breaks fire (<0.5)
+# monotone_sanity=16k ≤ 4k AND 64k ≤ 16k (NIAH curve expected loss)
+# external_anchors=Liu 2023 lost-in-the-middle (arXiv:2307.03172) · Kamradt 2023 NIAH · Bai 2023 LongBench · An 2023 L-Eval
+# substrate_fire=DEFERRED (cycle-10+ · NIAH on mac M3 llama-server · Qwen2.5/Llama-3.x scale ladder)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close

@@ -20,7 +20,7 @@
 > AGENT 은 완료되지 않는다. 새 tool·plan depth·task domain 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — single-tool call 정확도 · tool selection accuracy. 반증자: 1-step tool call < 70% on basic tasks (calculator·search 등).
+- [x] A1 — single-tool call 정확도 · tool selection accuracy. 반증자: 1-step tool call < 70% on basic tasks (calculator·search 등). **CYCLE-9 round-5 first probe (2026-05-28):** `AGENT/bench/agent_a1_tool_call_rate.hexa` + `AGENT/verify/numerics_agent_a1_tool_call_rate.hexa` ✅ 7/7 PASS · 🔵 STRUCTURAL + 🟡 BY-CITATION (70% threshold = BFCL/ToolBench convention). Identity: `acc = N_correct / N_total × 100` · falsifier `acc < 70`. Worked example 4 models × N_total=100 (4 tools × 25 trials): excellent=92 silent · mid=78 silent · **weak=55 fires** · **broken=30 fires** — bidirectional. External anchors: Yao 2023 ReAct (arXiv:2210.03629) · Schick 2023 Toolformer (arXiv:2302.04761) · Shinn 2023 Reflexion · Patil 2023 Gorilla. **실측 tool call eval DEFERRED** (cycle-10+ · BFCL · ToolBench · API-Bank on ubu-1 HF). **frontier OPEN** ([[feedback_closure_is_physical_limit]]) — identity close ≠ measured close. 축 N (plan-vs-execute divergence) 다음 ⭐ MAIN priority lane.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — multi-step plan depth × error recovery ladder · SWE-bench-style 측정. 반증자: depth-3 plan 성공률 < depth-1 성공률 × 0.5 → multi-step compound error.

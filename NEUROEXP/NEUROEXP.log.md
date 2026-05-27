@@ -3,6 +3,73 @@
 Append-only history sister of `NEUROEXP.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-14 L2-scale second-tier probe · logit-lens readout-depth model-size scaling · 🟢 SUPPORTED-NUMERICAL 8/8 (depth-fraction trend DOWN: 0.5B 95.8% → 1.5B 82.1% · 1.5B sanity reproduces cycle-11 EXACTLY · 2-point curve, 3B disk-blocked)
+
+NEUROEXP cycle-14 axis **L2-scale** (background /cycle-bg agent · second-tier 심화 probe).
+cycle-11 L2 의 **단일점** (Qwen2.5-1.5B, readout-ready = layer 23/28 = 82% depth) 을
+**model-size scaling curve** 로 확장. 방법론 cycle-11 L2 와 **BYTE-IDENTICAL** (동일 8
+mixed English+code prompt / 98 next-token positions / 동일 logit-lens scoring loop).
+hexa-only 룰 예외 (capture-only .py, repo-external /tmp) user 승인 패턴 재사용.
+
+**pre-register 질문**: readout-ready DEPTH FRACTION (first-within-5pp / n_layers) 가
+model size 에 따라 up (bigger 가 늦게 결정 = deeper fraction) / down (일찍 결정 =
+shallower fraction) / flat? folk intuition 양쪽 다 있음 — 측정으로 결정.
+
+**준비 (T4 substrate · 재사용)**: ubu-1 RTX 5070 (12GB free) · venv `~/venvs/nex-capture`
+(torch 2.12.0+cu130 · transformers 4.51.3 · numpy 1.26.4 · CUDA True). 모델 fp16 cuda
+**one-at-a-time** 로드 (load → measure → `del model; torch.cuda.empty_cache()` → next),
+12GB 에 0.5B/1.5B 순차 적재. capture = `/tmp/nex_l2scale_logit_lens.py` (Mac 에서 작성 →
+scp → ubu-1 실행, feedback-pod-quoting 준수) → `/tmp/l2scale_result.json`.
+
+**per-model 측정 결과 (logit-lens: hidden → 모델 OWN final RMSNorm + lm_head → next-token argmax acc)**:
+
+| model | n_layers | last-acc | mid-acc | first-within-5pp | depth-fraction | peak layer | peak=final? |
+|-------|----------|----------|---------|------------------|----------------|------------|-------------|
+| Qwen2.5-0.5B-Instruct | 24 | 41.8% | 0.0% | **23/24** | **95.8%** | 24 (FINAL) | True (monotonic) |
+| Qwen2.5-1.5B-Instruct | 28 | 35.7% | 8.2% | **23/28** | **82.1%** | 27 (penult.) | False (non-monotonic) |
+| Qwen2.5-3B-Instruct | — | — | — | — | — | — | DISK-BLOCKED (NOT measured) |
+
+**SANITY ✓**: 1.5B 가 cycle-11 L2 를 EXACTLY 재현 — first-within-5pp=23, n_layers=28,
+last-acc=0.3571, total_positions=98, depth-fraction=82% (첫 run 에서 내가 다른 prompt 를
+써서 last=60%/70pos 로 어긋났던 것 발견 → ubu-1 의 원본 cycle-11 capture script 에서
+verbatim prompt 8개 복원 후 재현 성공). 방법+prompt 가 충실히 transfer 됐음을 확인 →
+0.5B 점도 신뢰 가능.
+
+**verbatim verifier checks (8/8 PASS · `__HEXA_CODEX_NUMERICS_NEUROEXP_L2SCALE_DEPTH_SCALING__ DONE` · ubu-1 native hexa build)**:
+- [x] check 1 — SANITY: 1.5B reproduces cycle-11 EXACTLY (first-within-5pp=23/28, depth=82%, last-acc=35.7%, 98 pos)
+- [x] check 2 — each depth-fraction in (0,1000]: 0.5B=958 · 1.5B=821
+- [x] check 3 — depth-fraction = first5pp/n_layers recomputes: 0.5B 23/24=958 · 1.5B 23/28=821
+- [x] check 4 — trend DOWN: 1.5B(821) < 0.5B(958), Δ=-137 (x1000) → bigger = shallower readout-fraction
+- [x] check 5 — |Δ depth-fraction| = 137 (13.7pp) > 2pp band → genuine trend, NOT flat/noise
+- [x] check 6 — absolute first-within-5pp layer SAME (23) for both → fraction trend driven by n_layers (24→28)
+- [x] check 7 — monotonicity contrast: 0.5B peak=final(24) · 1.5B peak=penultimate(27)
+- [x] check 8 — deterministic measurement · 98 positions (equal) · n_layers 24/28 · last-acc in sane band
+
+**KEY FINDING (depth-fraction trend)**: **DOWN** — 0.5B 95.8% → 1.5B 82.1% (Δ=-13.7pp).
+**bigger model = SHALLOWER readout-fraction = 'bigger decides EARLIER' (fractional depth 기준)**.
+folk 'bigger models decide LATER (deeper fraction)' 는 이 {0.5B,1.5B} pair 에서 **REFUTED**.
+**핵심 nuance**: ABSOLUTE readout layer 는 두 모델 모두 SAME (layer 23) — fraction 이 내려간
+이유는 오직 bigger model 의 total layers 가 더 많기 때문 (24 vs 28). 추가된 layer 들은
+late-stack 'slack' 으로 작동 → 0.5B 는 마지막 layer 까지 가서야 readout 완성 (peak=final,
+monotonic) 인 반면, 1.5B 는 readout 이 끝난 뒤에도 layer 가 남아 peak 이 penultimate
+(non-monotonic, final transform 이 raw logit-lens 를 살짝 de-optimize). **운영**: early-exit
+budget (skip 가능한 stack fraction) 이 model size 와 함께 커진다.
+
+**class**: method-transfer (logit-lens probe 기법 scaling · L2/L1/C1 MATCH 패턴 일관).
+
+**honest residual (NOT 100% done)**: 🟢 **2-point curve {0.5B,1.5B}**. **3B 점은 fabricate
+하지 않았다** — ubu-1 disk 가 100% (915G full, ~2.8G free) 라 6GB 3B download 가 `OSError:
+No space left on device` 로 실패 → DISK-BLOCKED. 다른 사용자/프로젝트의 cached 모델
+(dancinlab/* · meta-llama/*) 은 삭제하지 않고 (파괴적·내 소유 아님) 내가 받다 만 partial
+3B blob 만 정리. single prompt set (8 prompts / 98 positions) · logit-lens = 모델 OWN
+unembed = decodability lower bound (trained per-layer probe 는 더 일찍 읽을 수 있음).
+
+**연결 (frontier OPEN · NEUROEXP ♾️ perpetual)** ([[feedback_closure_is_physical_limit]]):
+3B/7B/14B rung (ubu-1 disk headroom 확보 후) + trained per-layer probe (logit-lens 아님) +
+multi-prompt-set + per-task scaling 이 OPEN ladder. 2-point curve = ladder 의 한 rung 일 뿐.
+verdict: `NEUROEXP/verdicts/l2scale_depth_scaling_verdict.txt`.
+
+
 ## 2026-05-27 — cycle-12 S2 first probe · spiking↔transformer activation spectral · 🟢 SUPPORTED-NUMERICAL 8/8 (alpha 4.54 ≫ spiking 1.0 · dense 0.95% · S2 falsifier HOLDS · MISMATCH)
 
 NEUROEXP cycle-12 axis S2 (background /cycle-bg agent). **두 번째 measured (🟢) cycle** —

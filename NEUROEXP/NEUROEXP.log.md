@@ -3,6 +3,80 @@
 Append-only history sister of `NEUROEXP.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-9 L1 first probe · attention head ablation degradation · 🔵 SUPPORTED-FORMAL 9/9 (head specialization 통념 강화 · L축 첫 closure)
+
+NEUROEXP cycle-9. 사용자 "all NEUROEXP 순차" 지속 ("go"). L축 (Lesion/Ablation) 첫
+closure — single attention head ablation 의 degradation closed-form upper bound +
+head-specialization signature.
+
+**검증기**: `NEUROEXP/verify/numerics_neuroexp_l1_head_ablation.hexa` (200 lines)
+**RUN**: pool ubu-1 native compile (`hexa cc` rebuild 패턴 15번째).
+
+**9/9 PASS (verbatim)**:
+- linear decomposition: out = Σ head_h·W_O^h · total contribution = 6.0 (1+2+3)
+- ablation exactness: ablate head 1 → Δ = 2.0 = head 1's own contribution (linearity)
+- degradation ∝ c²: head 0/1/2 → ΔL = 1/4/9 (×1000) · head-distinct quadratic
+- heterogeneous: ΔL 1≠4≠9 → ablation effect head별 DETERMINISTIC 차이 → specialization signature
+- quadratic scaling: head 1 (2× norm) → 4× ablation degradation
+- uniform-norm control: 동일 norm → identical ΔL → no specialization (null case)
+- sub-multiplicative bound: ||head·W_O|| = 5.0 ≤ ||head||·||W_O|| = 6.0 (Cauchy-Schwarz)
+- L1 falsifier REJECTED: heterogeneous → deterministic ablation pattern → specialization 강화
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (linear decomposition + quadratic degradation law, 9/9).
+
+**핵심 발견 (closed-form)**:
+1. **Linear ablation exactness**: multi-head out = Σ_h head_h·W_O^h → single head ablation
+   Δ = head_h·W_O^h EXACT (output projection linearity, no cross-head interaction).
+2. **Degradation law ΔL_h ∝ c_h²** (contribution norm², 2nd-order Taylor) — toy c=[1,2,3] →
+   ΔL=[1,4,9]; 2× norm head → 4× degradation (quadratic).
+3. **Head-specialization signature**: heterogeneous contribution norms → ablation effect 가
+   head 별로 DETERMINISTIC 하게 다름 → specialization 존재. uniform 이면 identical (null case).
+4. **L1 falsifier 'ablation effect head별 deterministic 패턴 없음' REJECTED** — heterogeneous norms
+   면 패턴 존재 → 'head specialization' 통념 (Voita 2019 · Michel 2019 · Olsson 2022) closed-form 강화.
+
+**운영 closed-form 결론**:
+- head pruning (Voita 2019 · Michel 2019 "Are Sixteen Heads Really Better than One?") 의 closed-form
+  근거: low-c_h heads 는 ablation-robust (ΔL 작음) → 안전하게 prune; high-c_h heads 는 specialized
+  → 보존.
+- bio lesion study 와 method-동형: 구조 제거 → 기능 손실 측정 → 기능 localization. bio neuron lesion
+  과 LLM head-ablation 모두 *intervention-based functional mapping* layer → MATCH.
+
+**⭐ Cross-axis 6-cycle pattern (cycle-4·5·6·7·8·9 통합)**:
+```
+N1 cycle-4: linear-attn ≡ Hebbian             MATCH    (weight-update 일치)
+Φ1 cycle-5: attention TPM Φ > baseline         MATCH    (substrate-measure 일치)
+S1 cycle-6: NCA ≢ token-AR                     MISMATCH (parallel-CA vs sequential)
+N2 cycle-7: STDP ≢ attention causal mask       MISMATCH (training-rule vs forward-compute)
+Φ2 cycle-8: LLM Φ < bio Φ (counter)            MISMATCH (방향성 inversion)
+L1 cycle-9: head ablation = bio lesion study   MATCH    (intervention-based functional mapping)
+```
+→ **MATCH 3 (N1·Φ1·L1) vs MISMATCH 3 (S1·N2·Φ2)** · mechanism-layer 일치 여부 기준 robust 확인.
+   MATCH 들은 bio-method 와 LLM-method 가 같은 abstraction layer (weight-update / substrate-measure /
+   intervention-mapping); MISMATCH 들은 layer 다름 (dynamics-class / training-vs-inference / 방향성).
+
+**honest residual**:
+- ablation degradation ∝ c_h² + heterogeneity → specialization = 🔵 closed-form (9/9).
+- 실제 head 의 c_h 분포 (어떤 head 가 얼마나 specialized) 는 SANDBOX 실측 (cycle-10+ T4).
+- 2nd-order Taylor (ΔL ∝ ||Δout||²) = smooth-loss 가정; 실제 ablation 은 OOD 일 수 있어 higher-order
+  term 가능 (실측 quadratic-fit 확인 필요).
+- zero-ablate vs mean-ablate 차이 (Nanda 2023): mean-ablate 가 더 보수적; 본 verifier 는 zero-ablate.
+- downstream layer cross-head interaction (MLP, 후속 attention) 은 linear decomposition 너머 —
+  single-layer output proj 만 exact, multi-layer 는 upper-bound.
+- external anchor: Voita 2019 (arXiv:1905.09418) · Michel 2019 (arXiv:1905.10650) · Olsson 2022
+  (Anthropic induction heads).
+- L1 frontier OPEN ([[feedback_closure_is_physical_limit]]): closed-form signature ≠ 실측 head
+  importance ranking (cycle-10+ SANDBOX Qwen2.5 head-ablation sweep).
+
+**연결**:
+- verifier: [`NEUROEXP/verify/numerics_neuroexp_l1_head_ablation.hexa`](verify/numerics_neuroexp_l1_head_ablation.hexa)
+- verdict: [`NEUROEXP/verdicts/l1_head_ablation_verdict.txt`](verdicts/l1_head_ablation_verdict.txt)
+- cross-axis 6-cycle: MATCH 3 (N1·Φ1·L1) vs MISMATCH 3 (S1·N2·Φ2) · mechanism-layer 분류 robust
+- 다음 순차 (사용자 "all NEUROEXP" 순차 중): **C1** (induction head causal closed-form) →
+  closed-form 5개 완료 후 T4 cost-bearing 3개 (L2·C2·S2)
+
+---
+
 ## 2026-05-27 — cycle-8 Φ2 first probe ⭐MAIN · LLM Φ vs C. elegans Φ · 🔵 SUPPORTED-FORMAL 11/11 (counter-intuitive · 자가-가설 closed-form REJECTED · honest-gradient rewrite)
 
 NEUROEXP cycle-8 ⭐MAIN. 사용자 "all NEUROEXP 순차" 지속. Φ축 마무리 — Φ2 = LLM Φ vs

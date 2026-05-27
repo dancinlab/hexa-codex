@@ -1,0 +1,18 @@
+# hexa-codex NEUROEXP L1 — attention head ablation degradation (cycle-9 first probe)
+# axis=NEUROEXP.md::L1 (cycle-9 first probe · L = Lesion/Ablation experiment)
+# verifier=NEUROEXP/verify/numerics_neuroexp_l1_head_ablation.hexa
+# tier=🔵 SUPPORTED-FORMAL — ablation degradation ∝ c_h² · heterogeneous → specialization · L1 falsifier REJECTED (9/9)
+# checks=9/9
+# decomposition=out = Σ_h head_h·W_O^h (linear) → single head ablation Δ = head_h·W_O^h (exact)
+# degradation_law=ΔL_h ∝ c_h² (contribution norm², 2nd-order Taylor)
+# toy_norms=c=[1.0,2.0,3.0] → ΔL=[1,4,9]×1000 (head-distinct quadratic)
+# heterogeneous=ablation effect head별 DETERMINISTIC 차이 → specialization signature
+# uniform_control=동일 norm → identical ΔL → no specialization (null case)
+# upper_bound=||head·W_O|| ≤ ||head||·||W_O|| (sub-multiplicative, Cauchy-Schwarz)
+# L1_falsifier=no deterministic pattern REJECTED (heterogeneous → pattern exists) · 'head specialization' 통념 강화
+# operational=head pruning (Voita/Michel) closed-form 근거 · low-c_h heads ablation-robust
+# cross_axis_6cycle=MATCH 3 (N1·Φ1·L1) vs MISMATCH 3 (S1·N2·Φ2) · mechanism-layer 일치 기준 robust
+# external_anchor=Voita2019_arXiv1905.09418 · Michel2019_arXiv1905.10650 · Olsson2022_induction_heads
+# next_probe=cycle-10+ T4 SANDBOX Qwen2.5 head-ablation sweep → 실측 c_h 분포 + quadratic-fit
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

@@ -1,0 +1,63 @@
+# HW-VARIANCE — GPU 복권
+
+@title: 🎲 HW-VARIANCE — "GPU 복권"
+@goal: **동일 spec GPU 간 throughput·정확도 분산을 영구 측정·보상하는 lane.** 새 chip·cooling regime·workload 가 등장할 때마다 측정 frontier 가 다시 열린다. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
+
+> Candidate sibling from [`AXIS.easy.md`](../AXIS.easy.md) (브레인스토밍 ⭐⭐). ENGINE intake matrix **미등록** — measured finding 확보 시 axis letter 부여하여 승격.
+>
+> **Falsifier class:** 같은 spec 칩 간 throughput 분산 > 15%
+>
+> **Sibling parallel:** OPS 는 'host-level 평균', HW-VARIANCE 는 'chip-level 분산' — 다른 granularity
+
+## North-star
+
+같은 모델 휴대폰도 발열·속도 차이가 있어요. GPU 도 마찬가지 — silicon lottery.
+
+각 axis 는 `/cycle` 로 SANDBOX 기질 위에서 영구 전진 (`cx_lab_sandbox` · `cx_empirical_contact`).
+
+## 영구 축 (perpetual axes)
+
+> HW-VARIANCE 은 완료되지 않는다. 새 chip·cooling regime·workload 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
+
+### 축 A — first probe (closed-form baseline)
+- [ ] A1 — per-chip throughput 분산 (동일 spec) · binning curve. 반증자: 같은 spec 칩 간 throughput 분산 > 15%.
+
+### 축 B — second probe (measured ladder)
+- [ ] B1 — throughput × workload × thermal pressure ladder. 반증자: 발열 한계 도달 시 throughput drop > 30% (thermal throttling 지배).
+
+### 축 N — 🆕 NOVEL: silicon-vs-thermal variance 분리 (⭐ MAIN priority lane)
+> **⭐ MAIN priority lane** — HW-VARIANCE 의 self-NOVEL axis. GPU 분산이 제조 차이 (silicon lottery) 인가 발열 차이 (cooling) 인가 — 두 source 분리. 외부 anchor: Tang 2022 GPU lottery · NVIDIA SKU bin · Geng 2024 silicon variance.
+- [ ] N1 — 동일 cooling 통제 후 silicon variance vs 다른 cooling variance 비교. 반증자: cooling 통제 후에도 silicon variance > 10% → manufacturing dominant (cooling 으로 보상 불가).
+
+## SANDBOX 활용 (measurement substrate)
+
+HW-VARIANCE 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — local llama-server (mac M3) / HF transformers (ubu-1) / vast.ai pod (cost-bearing 시).
+
+| 측정 | substrate | output |
+|---|---|---|
+| A1 first probe | mac M3 / ubu-1 local | `.verdicts/HW-VARIANCE/a1_*` |
+| B1 ladder | SANDBOX bench harness | `.verdicts/HW-VARIANCE/b1_*` |
+| N1 ⭐ NOVEL | mac M3 / vast.ai pod | `.verdicts/HW-VARIANCE/n1_*` |
+
+## Dispatch surface (ENGINE 후보 wire)
+
+> 본 도메인 finding 이 mature 되면 [`ENGINE`](../ENGINE/ENGINE.md) intake matrix 에 신규 axis letter 로 등록되어 실제 LLM behavior wire 로 변환.
+
+| surface | wired target | wiring path |
+|---|---|---|
+| per-chip kernel + cooling-aware schedule | per-chip kernel 튜닝 · 분배 schedule · 빠른 칩 우선 배정 · cooling 통제 | ENGINE intake matrix 승격 시 axis letter 부여 |
+
+## Honesty invariants
+
+- **HW-VARIANCE 측정 ≠ overhype.** 모든 axis verdict 는 closed-form 또는 measured benchmark 기반.
+- **frontier perpetual.** 축의 `[x]` flip 은 한 finding 의 close 이지 frontier 종료 아님 ([[feedback_closure_is_physical_limit]]).
+- **자기-strawman 회피.** closed-negative paper 는 외부 published 주장만 반증 ([[feedback_negative_paper_external_claim]]).
+
+## Cross-refs
+
+- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
+- 기존 sibling 참고 (축 구조 패턴): [`../ECONOMICS.md`](../ECONOMICS.md) · [`../NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md)
+- this domain: [`HW-VARIANCE.md`](HW-VARIANCE.md) (snapshot) · [`HW-VARIANCE.log.md`](HW-VARIANCE.log.md) (history)

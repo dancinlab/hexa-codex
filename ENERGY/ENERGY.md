@@ -1,0 +1,63 @@
+# ENERGY — 토큰당 배터리
+
+@title: 🔋 ENERGY — "토큰당 배터리"
+@goal: **학습·추론·서빙의 에너지 소모를 watt·joule 단위로 영구 측정·최적화하는 lane.** 새 HW (CPU/GPU/NPU)·kernel·model arch 가 등장할 때마다 측정 frontier 가 다시 열린다. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
+
+> Candidate sibling from [`AXIS.easy.md`](../AXIS.easy.md) (브레인스토밍 ⭐⭐⭐). ENGINE intake matrix **미등록** — measured finding 확보 시 axis letter 부여하여 승격.
+>
+> **Falsifier class:** tokens/J 가 SOTA 모델 대비 2배 초과 → 비효율 모델/구현
+>
+> **Sibling parallel:** OPS 는 '초당 처리량' (시간 차원), ENERGY 는 '같은 처리량의 비용' (에너지 차원) — 직각
+
+## North-star
+
+토큰 1개당 전기 얼마. 자동차 연비처럼 같은 거리 가는데 어느 모델이 덜 먹나.
+
+각 axis 는 `/cycle` 로 SANDBOX 기질 위에서 영구 전진 (`cx_lab_sandbox` · `cx_empirical_contact`).
+
+## 영구 축 (perpetual axes)
+
+> ENERGY 은 완료되지 않는다. 새 HW (CPU/GPU/NPU)·kernel·model arch 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
+
+### 축 A — first probe (closed-form baseline)
+- [ ] A1 — RAPL (CPU) · NVIDIA-smi (GPU) 로 tokens/J at fixed task 측정. 반증자: tokens/J 가 SOTA 모델 대비 2배 초과 → 비효율 모델/구현.
+
+### 축 B — second probe (measured ladder)
+- [ ] B1 — model scale · quant tier · batch size × tokens/J fit (Pareto frontier). 반증자: quant int4 의 energy 절감 < 30% vs fp16 → quant 의 energy 이득 marginal.
+
+### 축 N — 🆕 NOVEL: per-layer energy decomposition (⭐ MAIN priority lane)
+> **⭐ MAIN priority lane** — ENERGY 의 self-NOVEL axis. 전체 watt 가 아니라 layer/component 별 watt 가 어디 집중 — attention vs FFN vs embedding. 외부 anchor: Patterson 2021 carbon footprint · Strubell 2019 energy NLP · Schwartz 2020 Green AI.
+- [ ] N1 — RAPL + NVIDIA-smi per-kernel breakdown · layer 별 watt 측정. 반증자: attention/FFN/embed 의 energy 분포가 FLOP 분포와 ε > 20% 불일치 → memory-bound 영역 존재.
+
+## SANDBOX 활용 (measurement substrate)
+
+ENERGY 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — local llama-server (mac M3) / HF transformers (ubu-1) / vast.ai pod (cost-bearing 시).
+
+| 측정 | substrate | output |
+|---|---|---|
+| A1 first probe | mac M3 / ubu-1 local | `.verdicts/ENERGY/a1_*` |
+| B1 ladder | SANDBOX bench harness | `.verdicts/ENERGY/b1_*` |
+| N1 ⭐ NOVEL | mac M3 / vast.ai pod | `.verdicts/ENERGY/n1_*` |
+
+## Dispatch surface (ENGINE 후보 wire)
+
+> 본 도메인 finding 이 mature 되면 [`ENGINE`](../ENGINE/ENGINE.md) intake matrix 에 신규 axis letter 로 등록되어 실제 LLM behavior wire 로 변환.
+
+| surface | wired target | wiring path |
+|---|---|---|
+| kernel/quant tier per-layer | power-aware batch · DVFS schedule · region-time routing · per-layer quant tier | ENGINE intake matrix 승격 시 axis letter 부여 |
+
+## Honesty invariants
+
+- **ENERGY 측정 ≠ overhype.** 모든 axis verdict 는 closed-form 또는 measured benchmark 기반.
+- **frontier perpetual.** 축의 `[x]` flip 은 한 finding 의 close 이지 frontier 종료 아님 ([[feedback_closure_is_physical_limit]]).
+- **자기-strawman 회피.** closed-negative paper 는 외부 published 주장만 반증 ([[feedback_negative_paper_external_claim]]).
+
+## Cross-refs
+
+- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
+- 기존 sibling 참고 (축 구조 패턴): [`../ECONOMICS.md`](../ECONOMICS.md) · [`../NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md)
+- this domain: [`ENERGY.md`](ENERGY.md) (snapshot) · [`ENERGY.log.md`](ENERGY.log.md) (history)

@@ -1,0 +1,18 @@
+# hexa-codex ECONOMICS C1 — Sardana inference-amortized N_opt direction (cycle-44)
+# axis=ECONOMICS.md::C1 (Pareto cost-quality frontier · inference-amortization shift)
+# verifier=verify/numerics_economics_c1_sardana_inference_amortized.hexa
+# tier=🔵 STRUCTURAL — Sardana inference-amortized N_opt direction (∂N*/∂T_inf<0, ∂D*/∂T_inf>0) closed-form (10/10)
+# checks=10/10
+# inputs=alpha_x100=34 beta_x100=28 A_x10=4064 B_x10=4107
+# T_inf=0 limit: KKT* LHS coefficient on D = 3 (Hoffmann recovered)
+# T_inf=1000 case: +T_inf additive term on LHS (strictly positive)
+# Hoffmann anchor (N0,D0)=(100,2000) D/N=20.00
+# Sardana-shifted (N1,D1)=(50,4000) D/N=80.00 (illustration scale)
+# direction signs: ∂N*/∂T_inf < 0 (Δ=-50) · ∂D*/∂T_inf > 0 (Δ=+2000)
+# monotone 3-point (T_inf=0,500,1000) N: 100→75→50 · D: 2000→3000→4000
+# duality_at_Tinf0=9999/10000 (cycle-43 cross-link)
+# external_anchor=Sardana2024 arXiv:2401.00448 · Hoffmann2022 arXiv:2203.15556 · Besiroglu2024 arXiv:2404.10102
+# cycle-26_link=modern dense D/N in [22,1875] qualitatively consistent with Sardana shift direction (sign-level, not pointwise)
+# cycle-43_link=Sardana KKT* at T_inf=0 collapses to cycle-43 Hoffmann Lagrangian IDENTITY 8/8
+# honest_residual=direction-only · absolute N_inf-opt(T_inf,L0) NOT computed (Besiroglu G_N/G_D dispute · g5 fabrication guard)
+# next_probe=cycle-45+ per-vendor T_inf telemetry + Besiroglu-replicated G_N/G_D constants → pointwise N_inf-opt

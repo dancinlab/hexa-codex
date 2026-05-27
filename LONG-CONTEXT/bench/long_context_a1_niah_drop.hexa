@@ -1,0 +1,65 @@
+#!hexa strict
+// LONG-CONTEXT/bench/long_context_a1_niah_drop.hexa
+// LONG-CONTEXT A1 first probe (cycle-9 round-5 · CODEX fg) — needle-in-haystack
+// (NIAH) accuracy curve + drop ratio at context-len ladder.
+//
+// Identity (closed-form ratio · libm-free):
+//   acc_at(model, ctx_len) = N_correct@ctx / N_total
+//   drop_ratio(model)      = acc_at_64k / acc_at_4k    (long vs short baseline)
+//   falsifier_fires        = drop_ratio < 0.5          (CODEX A1 반증자: 64k < 4k × 0.5)
+//
+// Falsifier (CODEX A1): 64k context 에서 정확도가 4k 대비 50% 미만 drop →
+// 효과적 context window 가 stated window 보다 좁음.
+//
+// External anchors (citation tier · 🟡):
+//   Liu 2023 — lost-in-the-middle (arXiv:2307.03172)
+//   Kamradt 2023 — needle-in-a-haystack benchmark
+//   Bai 2023 — LongBench (arXiv:2308.14508)
+//   An 2023 — L-Eval (arXiv:2307.11088)
+//
+// Integer ledger (acc × 100 · drop_ratio × 1000) — libm-free. Placeholder NIAH
+// accuracies — 실측 (mac M3 llama-server · Qwen2.5/Llama-3.x 등) deferred.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure ratio identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (4 models · NIAH acc × 100 at {4k, 16k, 64k} context ladder)
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["solid",  "ok",   "degrades", "breaks"]
+let ACC_4K_x100  = [95, 92, 88, 90]
+let ACC_16K_x100 = [93, 80, 70, 65]
+let ACC_64K_x100 = [88, 65, 38, 20]
+
+let DROP_THRESHOLD_x1000 = 500    // drop_ratio < 0.5 → falsifier fires
+
+fn drop_ratio_x1000(i: int) -> int {
+    // (acc_64k / acc_4k) × 1000
+    return (ACC_64K_x100[i] * 1000) / ACC_4K_x100[i]
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return drop_ratio_x1000(i) < DROP_THRESHOLD_x1000
+}
+
+print("hexa-codex LONG-CONTEXT A1 — NIAH drop ratio closed-form (cycle-9 round-5)")
+print("===========================================================================")
+print("")
+print("per-model NIAH accuracy curve (placeholder · Liu 2023 lost-in-the-middle):")
+let n = MODEL_NAMES.len()
+let mut i = 0
+while i < n {
+    let dr = drop_ratio_x1000(i)
+    let mut flag = "ok"
+    if falsifier_fires(i) {
+        flag = "EFFECTIVE WINDOW NARROW (drop_ratio < 0.5 · falsifier fires)"
+    }
+    print("  " + MODEL_NAMES[i] + ": 4k=" + to_string(ACC_4K_x100[i]) +
+          " · 16k=" + to_string(ACC_16K_x100[i]) +
+          " · 64k=" + to_string(ACC_64K_x100[i]) +
+          " · drop_ratio=" + to_string(dr) + "/1000 · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_LONG_CONTEXT_A1_NIAH_DROP__ DONE")

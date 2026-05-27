@@ -2,6 +2,41 @@
 
 Append-only history sister of `CODEX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-9 round-5: 2 closed-form A1 wires (AGENT + LONG-CONTEXT · /cycle-fg inline)
+
+`/cycle-fg` round-5 (sticky fg · cap=2 batch · inline sequential). **마지막 ⭐⭐⭐ 2개 milestone 완료** — 12/22 ⭐⭐⭐ 전체 달성 (closed-form tier · 실측 deferred).
+
+| axis | tier | checks | verifier |
+|---|---|---|---|
+| AGENT/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | `AGENT/verify/numerics_agent_a1_tool_call_rate.hexa` |
+| LONG-CONTEXT/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | `LONG-CONTEXT/verify/numerics_long_context_a1_niah_drop.hexa` |
+
+### Build phase 출력
+
+- **AGENT** — `acc = N_correct / N_total × 100` + N_total=100 (4 tools × 25 trials) invariant. excellent=92 silent · mid=78 silent · weak=55 fires · broken=30 fires. Anchors: Yao 2023 ReAct · Schick 2023 Toolformer · Shinn 2023 Reflexion · Patil 2023 Gorilla.
+- **LONG-CONTEXT** — `drop_ratio = acc_64k / acc_4k × 1000` + **monotone non-increase sanity** (16k ≤ 4k AND 64k ≤ 16k = NIAH curve expected loss). solid 88/95 silent (926/1000) · ok 65/92 silent (706) · degrades 38/88 fires (431) · breaks 20/90 fires (222). Anchors: Liu 2023 lost-in-the-middle · Kamradt 2023 NIAH · Bai 2023 LongBench · An 2023 L-Eval.
+
+### ⭐⭐⭐ 12/12 완료 (milestone)
+
+```
+A:CALIB B:CONT C:ENERGY                 ← round-1 (bg)
+D:MULTI E:FAIR                           ← round-2 (fg)
+F:PRIV G:RAG                             ← round-3 (fg)
+H:HALL I:PROMPT J:INST-FOLLOW            ← round-4 (bg, 1 salvage)
+K:AGENT L:LONG-CTX                       ← round-5 (fg, 마지막 ⭐⭐⭐)
+```
+
+### 정직성 (honest residual)
+
+- 12/22 milestone closed-form / citation tier · 실측 substrate fire 전부 cycle-10+ deferred.
+- 모든 12 axis 의 ⭐ MAIN N⭐ NOVEL probe (CALIBRATION temperature-vs-cal · HALLUCINATION knowledge-boundary · ... · LONG-CONTEXT position-vs-content) 측정 시 ENGINE intake matrix 승격 후보.
+
+- [x] inline executed AGENT/A1 → 🔵+🟡 7/7
+- [x] inline executed LONG-CONTEXT/A1 → 🔵+🟡 7/7
+- [ ] round-6+ (⭐⭐ 10 milestone · ROBUSTNESS · TRAINING-DYNAMICS · DATA-EFFICIENCY · HW-VARIANCE · BATCH-COMP · RELIABILITY · CARBON · TEMPORAL · DIVERSITY · USER-MODEL)
+
+**12/22 milestone done (⭐⭐⭐ 12/12) · 10 ⭐⭐ queued · ♾️ perpetual frontier OPEN.**
+
 ## 2026-05-28 — cycle-9 round-4: 3 closed-form A1 wires (HALLUCINATION + INST-FOLLOW + PROMPT-SENS · /cycle-bg + salvage)
 
 `/cycle-bg` round-4 (sticky bg · cap=3 batch · bg agent fan-out). 3 closed-form A1 wires, 모두 ⭐⭐⭐ tier. throttle storm ×3 (15s→30s→60s cooldown 누적) 발생 — round-1 패턴 재현. 1 agent (INSTRUCTION-FOLLOWING) 가 21 tool_uses · 254s 후 API rate-limit 으로 죽었지만 **parent salvage 로 복구 성공** (cycle skill recovery pattern: untracked file salvage).

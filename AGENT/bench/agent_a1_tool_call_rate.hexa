@@ -1,0 +1,61 @@
+#!hexa strict
+// AGENT/bench/agent_a1_tool_call_rate.hexa
+// AGENT A1 first probe (cycle-9 round-5 · CODEX fg) — single-tool call accuracy
+// rate on basic tasks (calculator · search · get_rate · multiply).
+//
+// Identity (closed-form · libm-free):
+//   tool_call_acc(model) = N_correct_calls / N_total_calls × 100
+//   falsifier_fires      = tool_call_acc < 70  (CODEX A1 반증자)
+//
+// Falsifier (CODEX A1): basic 1-step tool call accuracy < 70% → 모델이 기본
+// tool dispatch (calculator · search · API call) 도 신뢰성 부족.
+//
+// External anchors (citation tier · 🟡):
+//   Yao 2023 — ReAct (arXiv:2210.03629)
+//   Schick 2023 — Toolformer (arXiv:2302.04761)
+//   Shinn 2023 — Reflexion (arXiv:2303.11366)
+//   Patil 2023 — Gorilla (arXiv:2305.15334)
+//
+// Integer ledger (acc × 100) — libm-free. Placeholder per-model accuracies —
+// 실측 (BFCL · Berkeley Function Calling Leaderboard 등) deferred.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure rate identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (4 models · 4 basic tools × 25 trials = 100 calls per model)
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES     = ["excellent", "mid",  "weak", "broken"]
+let TOOL_CALL_ACC_x100 = [92,           78,     55,     30]
+let CORRECT_COUNT   = [92, 78, 55, 30]   // per model on N_total=100
+
+let N_TOTAL = 100              // 4 tools × 25 trials
+let ACC_THRESHOLD_x100 = 70    // < 70 → falsifier fires
+
+fn acc_x100(i: int) -> int {
+    return (CORRECT_COUNT[i] * 100) / N_TOTAL
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return acc_x100(i) < ACC_THRESHOLD_x100
+}
+
+print("hexa-codex AGENT A1 — single-tool call rate closed-form (cycle-9 round-5)")
+print("==========================================================================")
+print("")
+print("per-model basic-tool call accuracy (placeholder · BFCL/ToolBench style):")
+let n = MODEL_NAMES.len()
+let mut i = 0
+while i < n {
+    let a = acc_x100(i)
+    let mut flag = "ok"
+    if falsifier_fires(i) {
+        flag = "BELOW 70% (falsifier fires · tool dispatch unreliable)"
+    }
+    print("  " + MODEL_NAMES[i] + ": " + to_string(CORRECT_COUNT[i]) + "/" +
+          to_string(N_TOTAL) + " = " + to_string(a) + "/100 · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_AGENT_A1_TOOL_CALL_RATE__ DONE")

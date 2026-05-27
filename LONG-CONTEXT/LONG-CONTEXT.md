@@ -20,7 +20,7 @@
 > LONG-CONTEXT 은 완료되지 않는다. 새 context window·attention impl·position encoding 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — needle-in-haystack accuracy @ context-len curve · 위치 별 attention 감쇠. 반증자: 64k 이상에서 정확도가 4k 대비 50% 미만 drop → 효과적 context 좁음.
+- [x] A1 — needle-in-haystack accuracy @ context-len curve · 위치 별 attention 감쇠. 반증자: 64k 이상에서 정확도가 4k 대비 50% 미만 drop → 효과적 context 좁음. **CYCLE-9 round-5 first probe (2026-05-28):** `LONG-CONTEXT/bench/long_context_a1_niah_drop.hexa` + `LONG-CONTEXT/verify/numerics_long_context_a1_niah_drop.hexa` ✅ 7/7 PASS · 🔵 STRUCTURAL + 🟡 BY-CITATION. Identity: `drop_ratio = acc_64k / acc_4k × 1000` · falsifier `drop_ratio < 500`. Worked example 4 models × {4k, 16k, 64k} ladder: **solid (88/95 = 926/1000 silent)** · **ok (65/92 = 706/1000 silent)** · **degrades (38/88 = 431/1000 fires)** · **breaks (20/90 = 222/1000 fires)** — bidirectional + monotone non-increase sanity (16k ≤ 4k AND 64k ≤ 16k). External anchors: Liu 2023 lost-in-the-middle (arXiv:2307.03172) · Kamradt 2023 NIAH · Bai 2023 LongBench (arXiv:2308.14508) · An 2023 L-Eval. **실측 NIAH 측정 DEFERRED** — cycle-10+ T4 (mac M3 llama-server · Qwen2.5/Llama-3.x scale ladder · 4k→128k context). **frontier OPEN** ([[feedback_closure_is_physical_limit]]) — identity close ≠ measured close. 축 N (position-vs-content coupling · 위치 × 난이도 cross-product) 다음 ⭐ MAIN priority lane.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — multi-needle (5+ needles) recall at varying depth · 거리별 attention 강도 fit. 반증자: multi-needle recall 이 single-needle recall × 0.5 미만 → multi-fact reasoning 미작동.

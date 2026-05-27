@@ -1,0 +1,11 @@
+# hexa-codex AGENT A1 — tool call rate verifier (cycle-9 round-5)
+# axis=AGENT/AGENT.md::A1 (single-tool call accuracy on basic tasks)
+# bench=AGENT/bench/agent_a1_tool_call_rate.hexa
+# verifier=AGENT/verify/numerics_agent_a1_tool_call_rate.hexa
+# tier=🔵 STRUCTURAL (rate identity + threshold semantics 7/7) + 🟡 BY-CITATION (70% threshold = BFCL/ToolBench convention)
+# checks=7/7
+# formula=acc = N_correct / N_total × 100; falsifier_fires = acc < 70
+# placeholder_data=4 models × N_total=100 (4 tools × 25 trials); excellent=92 mid=78 silent · weak=55 broken=30 fire
+# external_anchors=Yao 2023 ReAct (arXiv:2210.03629) · Schick 2023 Toolformer (arXiv:2302.04761) · Shinn 2023 Reflexion · Patil 2023 Gorilla
+# substrate_fire=DEFERRED (cycle-10+ · BFCL · ToolBench · API-Bank · ubu-1 HF)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close

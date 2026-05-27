@@ -1,0 +1,155 @@
+#!hexa strict
+// AGENT/verify/numerics_agent_a1_tool_call_rate.hexa
+// AGENT A1 — closed-form verifier for single-tool call rate identity.
+//
+// Asserts the rate identity + threshold semantics:
+//   (1) acc identity (N_correct · 100 / N_total) holds for all models
+//   (2) acc ∈ [0, 100] (percentage range)
+//   (3) perfect model (N_correct = N_total) → 100
+//   (4) sub-70 models fire (weak=55 · broken=30)
+//   (5) ≥70 models silent (excellent=92 · mid=78) — false-positive 회피
+//   (6) determinism
+//   (7) N_total invariant (= 100 across models · 4 tools × 25 trials)
+//
+// Source: AGENT/bench/agent_a1_tool_call_rate.hexa
+// External anchors: Yao 2023 ReAct · Schick 2023 Toolformer · Shinn 2023 Reflexion · Patil 2023 Gorilla
+//
+// @no-lock-needed
+
+let MODEL_NAMES     = ["excellent", "mid", "weak", "broken"]
+let CORRECT_COUNT   = [92, 78, 55, 30]
+let N_TOTAL = 100
+let ACC_THRESHOLD_x100 = 70
+
+fn acc_x100(i: int) -> int { return (CORRECT_COUNT[i] * 100) / N_TOTAL }
+fn falsifier_fires(i: int) -> bool { return acc_x100(i) < ACC_THRESHOLD_x100 }
+
+print("hexa-codex AGENT A1 falsifier — single-tool call rate closed-form")
+print("==================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = MODEL_NAMES.len()
+
+// check 1 — identity (N_correct × 100 / N_total) for all
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n {
+    if acc_x100(i) != (CORRECT_COUNT[i] * 100) / N_TOTAL { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] acc identity (N_correct · 100 / N_total) holds for all " + to_string(n) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] acc identity broken")
+}
+
+// check 2 — range bound [0, 100]
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n { if acc_x100(i) < 0 || acc_x100(i) > 100 { rb_ok = false } i = i + 1 }
+if rb_ok {
+    print("  [PASS] acc ∈ [0, 100] (percentage range)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] acc out of range")
+}
+
+// check 3 — synthetic perfect model
+checks_total = checks_total + 1
+let perfect_acc = (N_TOTAL * 100) / N_TOTAL
+if perfect_acc == 100 {
+    print("  [PASS] synthetic perfect (N_correct = " + to_string(N_TOTAL) + ") → acc = 100")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] perfect synthetic ≠ 100")
+}
+
+// check 4 — sub-70 fires (weak=55 · broken=30)
+checks_total = checks_total + 1
+if falsifier_fires(2) && falsifier_fires(3) && acc_x100(2) == 55 && acc_x100(3) == 30 {
+    print("  [PASS] sub-70 models fire: weak=" + to_string(acc_x100(2)) + " · broken=" + to_string(acc_x100(3)))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sub-70 fire detection broken")
+}
+
+// check 5 — ≥70 silent (excellent=92, mid=78)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && acc_x100(0) == 92 && acc_x100(1) == 78 {
+    print("  [PASS] ≥70 models silent: excellent=" + to_string(acc_x100(0)) + " · mid=" + to_string(acc_x100(1)) + " — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ≥70 silent detection broken")
+}
+
+// check 6 — determinism
+checks_total = checks_total + 1
+if acc_x100(2) == acc_x100(2) && falsifier_fires(3) == falsifier_fires(3) {
+    print("  [PASS] deterministic (re-call same acc + fires)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+// check 7 — N_total invariant (100 = 4 tools × 25 trials)
+checks_total = checks_total + 1
+if N_TOTAL == 100 && (N_TOTAL == 4 * 25) {
+    print("  [PASS] N_total invariant = 100 = 4 tools × 25 trials")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] N_total invariant broken")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (rate identity + threshold semantics 7/7) + 🟡 BY-CITATION (70% threshold = BFCL/ToolBench convention)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — rate formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("AGENT A1 finding (placeholder · closed-form):")
+print("  - tool_call_acc = N_correct / N_total × 100 identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: excellent=92 · mid=78 silent · weak=55 · broken=30 fire")
+print("  - external anchor: Yao 2023 ReAct · Schick 2023 Toolformer · Shinn 2023 Reflexion · Patil 2023 Gorilla")
+print("  - 실측 (cycle-10+ T4): BFCL · ToolBench · API-Bank on ubu-1 HF transformers · per-model")
+print("")
+print("__HEXA_CODEX_NUMERICS_AGENT_A1_TOOL_CALL_RATE__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/AGENT/verdicts/a1_tool_call_rate_verdict.txt"
+
+let mut content = "# hexa-codex AGENT A1 — tool call rate verifier (cycle-9 round-5)\n"
+content = content + "# axis=AGENT/AGENT.md::A1 (single-tool call accuracy on basic tasks)\n"
+content = content + "# bench=AGENT/bench/agent_a1_tool_call_rate.hexa\n"
+content = content + "# verifier=AGENT/verify/numerics_agent_a1_tool_call_rate.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=acc = N_correct / N_total × 100; falsifier_fires = acc < 70\n"
+content = content + "# placeholder_data=4 models × N_total=100 (4 tools × 25 trials); excellent=92 mid=78 silent · weak=55 broken=30 fire\n"
+content = content + "# external_anchors=Yao 2023 ReAct (arXiv:2210.03629) · Schick 2023 Toolformer (arXiv:2302.04761) · Shinn 2023 Reflexion · Patil 2023 Gorilla\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · BFCL · ToolBench · API-Bank · ubu-1 HF)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

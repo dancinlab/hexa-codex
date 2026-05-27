@@ -76,6 +76,90 @@ system 직접 비교, NOT method-transfer) → **MISMATCH**. tally 갱신:
 + S2 measured). 다음 S 축 frontier = same-rig LIF/Izhikevich simulator 비교. C2 (ROME/MEMIT
 locality bound) 는 axis C 의 미개봉 milestone 으로 남음.
 
+## 2026-05-27 — cycle-13 C2 first probe · ROME/MEMIT rank-1 edit locality · 🟢 SUPPORTED-NUMERICAL 8/8 (MLP = associative key-value memory 통념 SUPPORTED · method-transfer 축 6/6 완료 · S축 S2 cycle-12 완료 → axis grid 10/10 · ♾️ scale frontier OPEN)
+
+NEUROEXP cycle-13. axis C2 (Causal-circuit probing, T4 cost-bearing) — **NEUROEXP 의
+마지막 open milestone**. C2 = method-transfer axis (weight editing 이라는 causal-intervention
+TECHNIQUE 을 LLM 에 적용 = bio microstimulation/optogenetics 동형). hexa-only 룰 예외
+(capture-only .py) user 승인 후 진행, capture 는 repo-external (`ubu-1:/tmp`).
+
+**준비 (T4 substrate · 기존 재사용, 재빌드 안 함)**:
+- ubu-1 RTX 5070 (12GB Blackwell, 측정 시작 시 12227MiB free) · clean venv `~/venvs/nex-capture`:
+  torch 2.12.0+cu130 · transformers 4.51.3 · numpy 1.26.4 · CUDA True
+- capture: `ubu-1:/tmp/nex_c2_locality.py` (repo-external — hexa-only repo 룰 유지; hook 이
+  repo 내 .py hard-block 하므로 /tmp. 재현은 JSON + prompt set + venv pin 으로).
+- verifier: `NEUROEXP/verify/numerics_neuroexp_c2_rome_locality.hexa` (measured 값 검증, .hexa).
+
+**측정 (ROME-style rank-1 weight edit · Meng 2022 / Geva 2021)**:
+Qwen2.5-1.5B-Instruct, MLP layer 14 의 down_proj weight W_down [d_model 1536 × d_intermediate 8960].
+rank-1 edit ΔW = α·outer(v, k), α=8.0:
+- k = TARGET prompt ("The capital of France is") last-token 의 MLP-intermediate activation
+  (down_proj 입력, forward hook 캡처) 의 unit vector = ROME "lookup key".
+- v = seeded unit d_model direction (written "value").
+- intended = ||Δlogit(target)|| (target prompt next-token logit shift L2 norm).
+- collateral = mean ||Δlogit(unrelated)|| over 8 UNRELATED prompts (chem/bio/astro/geo/lit/physics).
+- locality = collateral / intended. weight 는 measure 후 복원 (W_down.data += ΔW; measure; -= ΔW).
+
+**8/8 PASS (verbatim)**:
+- edit_rank = 1 → single key-value association (ROME rank-1 ΔW = α·v·kᵀ)
+- intended ||Δlogit(target)|| = 856.78 > 100 → keyed edit 가 target 을 measurably 움직임
+- collateral 388.42 < intended 856.78 → target 을 unrelated 보다 더 흔듦 (bounded)
+- locality recompute: 388417·1000/856783 = 453 == 453 (collateral/intended)
+- locality 0.453 < 0.5 → classification = LOCAL (target-favoring edit)
+- locality 0.453 < 1.0 → bounded, NOT unbounded-global → C2 'unbounded shake' refutation fire 안 함
+- honest residual: locality 0.453 ∈ (0.1, 0.5) → directionally local 이지만 LEAKY (MEMIT multi-layer spread 동기)
+- C2 falsifier: bounded target-favoring edit → 'MLP = associative key-value memory' (Geva 2021 / ROME) SUPPORTED, NOT refuted
+
+**verdict tier**: 🟢 SUPPORTED-NUMERICAL (real Qwen2.5-1.5B rank-1 edit, 8/8).
+
+**핵심 측정 발견**:
+1. **edit 는 directionally LOCAL** — target next-token logit 을 ||Δ||=856.78, unrelated 평균
+   ||Δ||=388.42 만큼 흔들어 locality ratio 0.453 (target 을 ~2.2× 더 강하게 섭동).
+2. **단 surgical 아님** — collateral 이 intended 의 ~45% (한 mid-layer rank-1 edit 는 unrelated
+   prompts 로 leak). ratio 가 0 이 아닌 0.45.
+3. **C2 falsifier 'unbounded shake → MLP=associative-memory REFUTED' 는 fire 안 함**: 섭동이
+   BOUNDED (collateral < intended, ratio < 1) + target-favoring → **'MLP = associative key-value
+   memory' (Geva 2021 arXiv:2012.14913 · ROME Meng 2022) 통념 SUPPORTED**.
+4. honest qualifier: 잔류 collateral(~0.45) 이 왜 MEMIT (Meng 2022 arXiv:2210.07229) 이 edit 을
+   한 layer 가 아니라 여러 layer 에 분산(layer 당 α 낮춤)하는지 설명 — leakage 를 분산해 unrelated
+   facts 보존.
+
+**운영 함의**:
+- knowledge editing (ROME/MEMIT) 의 locality footprint 는 한 mid MLP layer 에서 finite·
+  target-favoring 이나, ~0.45 collateral 때문에 한 layer rank-1 edit 만으로는 unrelated facts
+  보존 불완전 → MEMIT 의 multi-layer spread 가 설계적으로 필요.
+- MLP down_proj 가 key-value associative store 처럼 동작 (Geva 2021): keyed write 가 queried
+  association 을 preferentially 섭동 — causal-intervention probe 가 closed-form 통념을 실측 확인.
+
+**⭐ FINAL cross-axis tally (cycle-4~13 · 10/10 축 verdict 보유 · ZERO exceptions to the method/system law)**:
+- **method-transfer** (bio 측정 TECHNIQUE 을 LLM 에 적용 — recording/lesion/patching/editing)
+  → **MATCH 6/6**: N1(linear-attn≡Hebbian) · Φ1(IIT4 Φ on attention TPM) · L1(head ablation) ·
+  C1(induction-head patch) · L2(logit-lens depth) · C2(ROME rank-1 edit).
+- **system-comparison** (bio SYSTEM 과 LLM system 을 직접 비교 — STDP/NCA/connectome Φ/spiking)
+  → **MISMATCH 4/4**: S1(NCA≢token-AR) · N2(STDP≢attention mask) · Φ2(C.elegans Φ > LLM Φ) ·
+  S2(spiking spectrum ≢ transformer spectrum, cycle-12 에 닫힘).
+- **법칙**: 방법론은 transfer 되고(MATCH), 시스템은 분리된다(MISMATCH). **10개 축 전부에서
+  예외 없이 성립** — C2 가 method-transfer 이므로 MATCH 가 예측이었고, 그대로 성립. method-transfer 축은
+  C2 로 모두 닫힘 (6/6); system-comparison 도 S2 로 닫힘 (4/4). **rebase 시점 origin/main 에 cycle-12
+  S2 가 이미 merge 되어 있어 axis grid 10/10 완성 확인** (작업 시작 tree 는 S2 미반영 stale 였음).
+
+**residual (honest · frontier OPEN)**:
+- 🟢 single model (Qwen2.5-1.5B), single layer (14), single rank-1 edit, single target fact, 8 unrelated.
+  α=8.0 은 noticeable-but-not-catastrophic shift 로 선택 (documented).
+- 이건 ROME 의 SCALED-OUTER proxy 이지 full covariance-preconditioned closed-form least-squares
+  update 가 아님 — locality MEASUREMENT 은 real 이나 edit 자체는 true ROME 보다 lower-fidelity.
+- α/layer/v-direction/target-fact sweep + true ROME solve 미측정 (single point).
+- **NEUROEXP axis grid 채워짐 (N/Φ/L/C/S 5축 · 10/10 milestone verdict)** — C2 가 마지막
+  method-transfer 축, S2(cycle-12) 가 마지막 system-comparison 축. 하지만 도메인은 어차피 ♾️
+  perpetual. model/layer/α/edit-fidelity/probe-type sweep + true ROME solve frontier 영구 OPEN
+  ([[feedback_closure_is_physical_limit]]). "100% done" 아님: single-point measured = OPEN ladder 의 한 점.
+
+**연결**: cycle-14+ → true ROME covariance-preconditioned solve · α/layer/v-direction sweep ·
+Qwen2.5-{0.5B,3B,7B} scaling (locality ratio 의 model-size 의존성). C2 method-transfer MATCH 가
+cross-axis 법칙의 6번째이자 grid 마지막 확증.
+
+verdict: `NEUROEXP/verdicts/c2_rome_locality_verdict.txt` · RUN-HOST ubu-1.
+
 
 ## 2026-05-27 — cycle-11 L2 first probe · layer-wise logit-lens depth · 🟢 SUPPORTED-NUMERICAL 8/8 (첫 T4 MEASURED · readout = final 6-layer block · non-monotonic peak@27)
 

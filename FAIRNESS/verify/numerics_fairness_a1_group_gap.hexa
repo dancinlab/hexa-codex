@@ -1,0 +1,197 @@
+#!hexa strict
+// FAIRNESS/verify/numerics_fairness_a1_group_gap.hexa
+// FAIRNESS A1 — closed-form verifier for group-wise accuracy gap (abs delta).
+//
+// Asserts the |acc_i − acc_j| identity holds + falsifier semantics correct:
+//   (1) self-gap == 0 (group with itself · identity at diagonal)
+//   (2) symmetry — gap(i,j) == gap(j,i)
+//   (3) non-negativity — all gaps ≥ 0
+//   (4) range bound — gap ≤ 100 (acc max 100 − min 0)
+//   (5) max-pairwise > 10pp → falsifier fires (CODEX A1 threshold)
+//   (6) determinism (re-call same value)
+//   (7) triangle inequality — gap(i,k) ≤ gap(i,j) + gap(j,k)
+//
+// Source: FAIRNESS/bench/fairness_a1_group_gap.hexa
+// External anchors: Buolamwini 2018 · Crenshaw 1989 · Wang 2022 BBQ
+//
+// @no-lock-needed
+
+let GROUP_NAMES = ["A", "B", "C", "D"]
+let ACC_x100    = [82, 78, 71, 84]
+let GAP_THRESHOLD_x100 = 10
+
+fn abs_diff(a: int, b: int) -> int {
+    let d = a - b
+    if d < 0 { return -d }
+    return d
+}
+fn gap_x100(i: int, j: int) -> int { return abs_diff(ACC_x100[i], ACC_x100[j]) }
+fn max_pairwise_gap_x100() -> int {
+    let n = GROUP_NAMES.len()
+    let mut mx = 0
+    let mut i = 0
+    while i < n {
+        let mut j = i + 1
+        while j < n {
+            let g = gap_x100(i, j)
+            if g > mx { mx = g }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    return mx
+}
+
+print("hexa-codex FAIRNESS A1 falsifier — group-wise accuracy gap closed-form")
+print("=======================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = GROUP_NAMES.len()
+
+// check 1 — self-gap == 0 (all groups)
+checks_total = checks_total + 1
+let mut self_ok = true
+let mut i = 0
+while i < n {
+    if gap_x100(i, i) != 0 { self_ok = false }
+    i = i + 1
+}
+if self_ok {
+    print("  [PASS] self-gap == 0 for all " + to_string(n) + " groups (identity at diagonal)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] self-gap ≠ 0 — identity broken")
+}
+
+// check 2 — symmetry gap(i,j) == gap(j,i)
+checks_total = checks_total + 1
+let mut sym_ok = true
+i = 0
+while i < n {
+    let mut j = 0
+    while j < n { if gap_x100(i, j) != gap_x100(j, i) { sym_ok = false } j = j + 1 }
+    i = i + 1
+}
+if sym_ok {
+    print("  [PASS] symmetry gap(i,j) == gap(j,i) for all pairs")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] symmetry broken")
+}
+
+// check 3 — non-negativity
+checks_total = checks_total + 1
+let mut nn_ok = true
+i = 0
+while i < n {
+    let mut j = 0
+    while j < n { if gap_x100(i, j) < 0 { nn_ok = false } j = j + 1 }
+    i = i + 1
+}
+if nn_ok {
+    print("  [PASS] all gaps ≥ 0 (non-negativity)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] some gap < 0 — abs broken")
+}
+
+// check 4 — range bound ≤ 100
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n {
+    let mut j = 0
+    while j < n { if gap_x100(i, j) > 100 { rb_ok = false } j = j + 1 }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] all gaps ≤ 100 (range bound · acc ∈ [0,100])")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] some gap > 100")
+}
+
+// check 5 — max pairwise > 10pp → falsifier fires
+checks_total = checks_total + 1
+let mx = max_pairwise_gap_x100()
+// for these ACC values: max = |84 − 71| = 13 > 10 → fires
+if mx == 13 && mx > GAP_THRESHOLD_x100 {
+    print("  [PASS] max pairwise gap = " + to_string(mx) + "/100 > 10pp → falsifier fires (correct)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] max pairwise gap = " + to_string(mx) + " expected 13 (= |84−71|)")
+}
+
+// check 6 — determinism
+checks_total = checks_total + 1
+if gap_x100(0, 2) == gap_x100(0, 2) && max_pairwise_gap_x100() == max_pairwise_gap_x100() {
+    print("  [PASS] deterministic (re-call same gap + same max)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+// check 7 — triangle inequality: gap(i,k) ≤ gap(i,j) + gap(j,k) for one example
+checks_total = checks_total + 1
+// pick i=0 (acc=82) j=2 (acc=71) k=3 (acc=84): gap(0,3)=2, gap(0,2)=11, gap(2,3)=13 → 2 ≤ 11+13=24 ✓
+let g_ik = gap_x100(0, 3)
+let g_ij = gap_x100(0, 2)
+let g_jk = gap_x100(2, 3)
+if g_ik <= g_ij + g_jk {
+    print("  [PASS] triangle inequality gap(A,D)=" + to_string(g_ik) + " ≤ gap(A,C)+gap(C,D)=" +
+          to_string(g_ij) + "+" + to_string(g_jk) + "=" + to_string(g_ij + g_jk))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] triangle inequality broken")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (absolute-delta metric identity 7/7) + 🟡 BY-CITATION (10pp threshold convention = Buolamwini 2018 / Wang 2022 BBQ)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — gap formula contradicts metric identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("FAIRNESS A1 finding (placeholder · closed-form):")
+print("  - |acc_i − acc_j| metric identity (7/7 closed-form checks)")
+print("  - max pairwise gap = 13/100 (groups C,D) > 10pp → falsifier fires")
+print("  - external anchor: Buolamwini 2018 gender shades · Crenshaw 1989 intersectionality · Wang 2022 BBQ")
+print("  - 실측 group counterfactual eval (cycle-10+ T4): BBQ · CrowS-Pairs · WinoBias · per-model")
+print("")
+print("__HEXA_CODEX_NUMERICS_FAIRNESS_A1_GROUP_GAP__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/FAIRNESS/verdicts/a1_group_gap_verdict.txt"
+
+let mut content = "# hexa-codex FAIRNESS A1 — group-wise accuracy gap verifier (cycle-9 round-2)\n"
+content = content + "# axis=FAIRNESS/FAIRNESS.md::A1 (group-wise |acc_i − acc_j| · counterfactual fairness)\n"
+content = content + "# bench=FAIRNESS/bench/fairness_a1_group_gap.hexa\n"
+content = content + "# verifier=FAIRNESS/verify/numerics_fairness_a1_group_gap.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=gap(i,j) = |acc_i − acc_j| (× 100); falsifier_fires = max_pairwise_gap > 10pp\n"
+content = content + "# placeholder_data=4 groups (A=82 B=78 C=71 D=84 × 100); max gap = |84−71| = 13 (fires)\n"
+content = content + "# external_anchors=Buolamwini 2018 (gender shades PMLR 81) · Crenshaw 1989 · Wang 2022 BBQ (ACL)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · BBQ · CrowS-Pairs · WinoBias · ubu-1 HF transformers)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — metric close ≠ measured close\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

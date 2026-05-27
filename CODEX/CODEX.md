@@ -42,8 +42,8 @@
 - [ ] AGENT/A1 — single-tool call 정확도 · 반증자: basic task 1-step < 70%
 - [x] CONTAMINATION/A1 — n-gram contamination rate (13-gram match) · 반증자: 표준 eval > 30% · **CYCLE-9 round-1 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 6/6 PASS · `CONTAMINATION/verify/numerics_contamination_a1_ngram_ratio.hexa`
 - [ ] INSTRUCTION-FOLLOWING/A1 — IFEval format compliance · 반증자: simple constraint 준수 < 90%
-- [ ] MULTILINGUAL/A1 — per-language perplexity · bytes/token · 반증자: low-resource 성능 < 영어 × 0.5
-- [ ] FAIRNESS/A1 — group-wise accuracy gap · counterfactual fairness · 반증자: demographic gap > 10pp
+- [x] MULTILINGUAL/A1 — per-language perplexity · bytes/token · 반증자: low-resource 성능 < 영어 × 0.5 · **CYCLE-9 round-2 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `MULTILINGUAL/verify/numerics_multilingual_a1_perplexity_gap.hexa`
+- [x] FAIRNESS/A1 — group-wise accuracy gap · counterfactual fairness · 반증자: demographic gap > 10pp · **CYCLE-9 round-2 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `FAIRNESS/verify/numerics_fairness_a1_group_gap.hexa`
 - [ ] PRIVACY/A1 — membership inference accuracy vs baseline · 반증자: > random + 5pp
 
 ### ⭐⭐ 10 (보조 후보)

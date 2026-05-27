@@ -1,0 +1,11 @@
+# hexa-codex FAIRNESS A1 — group-wise accuracy gap verifier (cycle-9 round-2)
+# axis=FAIRNESS/FAIRNESS.md::A1 (group-wise |acc_i − acc_j| · counterfactual fairness)
+# bench=FAIRNESS/bench/fairness_a1_group_gap.hexa
+# verifier=FAIRNESS/verify/numerics_fairness_a1_group_gap.hexa
+# tier=🔵 STRUCTURAL (absolute-delta metric identity 7/7) + 🟡 BY-CITATION (10pp threshold convention = Buolamwini 2018 / Wang 2022 BBQ)
+# checks=7/7
+# formula=gap(i,j) = |acc_i − acc_j| (× 100); falsifier_fires = max_pairwise_gap > 10pp
+# placeholder_data=4 groups (A=82 B=78 C=71 D=84 × 100); max gap = |84−71| = 13 (fires)
+# external_anchors=Buolamwini 2018 (gender shades PMLR 81) · Crenshaw 1989 · Wang 2022 BBQ (ACL)
+# substrate_fire=DEFERRED (cycle-10+ · BBQ · CrowS-Pairs · WinoBias · ubu-1 HF transformers)
+# frontier_open=feedback_closure_is_physical_limit — metric close ≠ measured close

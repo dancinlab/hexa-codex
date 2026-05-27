@@ -2,6 +2,37 @@
 
 Append-only history sister of `CODEX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-9 round-2: 2 closed-form A1 wires (MULTILINGUAL + FAIRNESS · /cycle-fg inline)
+
+`/cycle-fg` round-2 (sticky fg · cap=2 batch · inline sequential · NO bg agent). throttle 학습 반영 — 1-at-a-time 인-세션 직접 실행. 둘 다 group-comparison 구조의 closed-form metric (ratio · absolute delta).
+
+| axis | tier | checks | verifier |
+|---|---|---|---|
+| MULTILINGUAL/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | `MULTILINGUAL/verify/numerics_multilingual_a1_perplexity_gap.hexa` |
+| FAIRNESS/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | `FAIRNESS/verify/numerics_fairness_a1_group_gap.hexa` |
+
+### Build phase 출력
+
+- **MULTILINGUAL** — `ppl_gap = PPL_lang / PPL_en` (× 1000) + `bytes_gap = bytes/tok_lang / bytes/tok_en` (× 100) + compound `low_resource = (ppl_gap > 2.0) AND (bytes_gap > 2.0)`. Bidirectional discrimination 검증: sw 정확 발화 (5600/310) · ja 정확 silent (1400/121) · ko AND-trap (ppl 위 2133, bytes 아래 189 → False). Anchors: Pires 2019 · Conneau 2020 XLM-R · Wu 2024.
+- **FAIRNESS** — `gap(i,j) = |acc_i − acc_j|` (× 100) absolute-delta metric. 5 properties 검증: self=0 · symmetry · non-neg · range bound · triangle inequality. Worked example 4 groups (A=82·B=78·C=71·D=84): max pairwise = 13 (C↔D) > 10pp → falsifier 정확 발화. Anchors: Buolamwini 2018 · Crenshaw 1989 · Wang 2022 BBQ.
+
+### 정직성 (honest residual)
+
+- 둘 다 **closed-form metric tier** · 실측 substrate fire 별 cycle-10+ deferred.
+- MULTILINGUAL: placeholder PPL/bytes per lang · 실측은 mac M3 llama-server / ubu-1 HF + MMLU multilingual.
+- FAIRNESS: placeholder acc per group · 실측은 BBQ · CrowS-Pairs · WinoBias on ubu-1 HF.
+- ⭐ MAIN N⭐ NOVEL (cross-lingual transfer asymmetry · intersectional vs single-axis gap) 다음 라운드 후보.
+
+### Throttle 회피 성공
+
+bg agent fan-out 0개 → throttle storm 0건 (round-1 의 3 storm 회피). fg sequential 이 다중 milestone batch 에 안전.
+
+- [x] inline executed MULTILINGUAL/A1 → 🔵+🟡 7/7
+- [x] inline executed FAIRNESS/A1 → 🔵+🟡 7/7
+- [ ] round-3 (남은 17 milestone · ⭐⭐⭐ 7 + ⭐⭐ 10)
+
+**5/22 milestone done · 17 queued · ♾️ perpetual frontier OPEN.**
+
 ## 2026-05-28 — cycle-9 round-1: 3 closed-form A1 wires (CALIBRATION + CONTAMINATION + ENERGY)
 
 `/cycle-bg` round-1 (cap=3 batch · bg agent fan-out · worktree isolation). 3 agent 모두 build phase 완료 (closed-form / citation tier) — 실측 substrate fire 는 cost-bearing 으로 별 라운드 deferred.

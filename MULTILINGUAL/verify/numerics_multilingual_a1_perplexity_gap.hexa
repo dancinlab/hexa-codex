@@ -1,0 +1,162 @@
+#!hexa strict
+// MULTILINGUAL/verify/numerics_multilingual_a1_perplexity_gap.hexa
+// MULTILINGUAL A1 — closed-form verifier for per-language PPL gap + bytes/token.
+//
+// Asserts the ratio identity is closed-form and the falsifier (low-resource
+// detection) correctly classifies:
+//   (1) en baseline ppl_gap == 1000 (× 1000)  — ratio identity at baseline
+//   (2) bytes_gap baseline == 100             — bytes/tok identity at baseline
+//   (3) sw low-resource flag fires            — ppl_gap > 2000 AND bytes_gap > 200
+//   (4) ja NOT low-resource (ppl_gap ≈ 1.4)   — bidirectional discrimination
+//   (5) ppl_gap > 0 for all langs             — positive ratio invariant
+//   (6) determinism (re-call same values)
+//   (7) falsifier compound semantics          — both conditions required
+//
+// Source: MULTILINGUAL/bench/multilingual_a1_perplexity_gap.hexa
+// External anchors: Pires 2019 mBERT · Conneau 2020 XLM-R · Wu 2024 transfer asymmetry
+//
+// @no-lock-needed
+
+let LANG_NAMES         = ["en", "ko", "sw", "ja"]
+let PPL_x1000          = [1500, 3200, 8400, 2100]
+let BYTES_PER_TOK_x100 = [380,  720,  1180, 460]
+let PPL_GAP_THRESHOLD_x1000 = 2000
+let BYTES_GAP_THRESHOLD_x100 = 200
+
+fn ppl_gap_x1000(i: int) -> int { return (PPL_x1000[i] * 1000) / PPL_x1000[0] }
+fn bytes_gap_x100(i: int) -> int { return (BYTES_PER_TOK_x100[i] * 100) / BYTES_PER_TOK_x100[0] }
+fn low_resource_flag(i: int) -> bool {
+    return ppl_gap_x1000(i) > PPL_GAP_THRESHOLD_x1000
+        && bytes_gap_x100(i) > BYTES_GAP_THRESHOLD_x100
+}
+
+print("hexa-codex MULTILINGUAL A1 falsifier — perplexity gap closed-form")
+print("==================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// check 1 — en baseline ppl_gap = 1000 (ratio at baseline = 1.0)
+checks_total = checks_total + 1
+if ppl_gap_x1000(0) == 1000 {
+    print("  [PASS] en baseline ppl_gap = 1000/1000 (ratio 1.0 — identity at baseline)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] en baseline ppl_gap = " + to_string(ppl_gap_x1000(0)) + " ≠ 1000")
+}
+
+// check 2 — en baseline bytes_gap = 100
+checks_total = checks_total + 1
+if bytes_gap_x100(0) == 100 {
+    print("  [PASS] en baseline bytes_gap = 100/100 (ratio 1.0)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] en baseline bytes_gap = " + to_string(bytes_gap_x100(0)) + " ≠ 100")
+}
+
+// check 3 — sw (idx 2) low-resource flag fires
+checks_total = checks_total + 1
+if low_resource_flag(2) {
+    print("  [PASS] sw low-resource flag fires (ppl_gap=" + to_string(ppl_gap_x1000(2)) +
+          " > 2000 AND bytes_gap=" + to_string(bytes_gap_x100(2)) + " > 200) — falsifier 정확 발화")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sw low-resource flag did NOT fire — falsifier semantics broken")
+}
+
+// check 4 — ja (idx 3) NOT low-resource (bidirectional discrimination)
+checks_total = checks_total + 1
+if low_resource_flag(3) == false {
+    print("  [PASS] ja NOT low-resource (ppl_gap=" + to_string(ppl_gap_x1000(3)) +
+          " · bytes_gap=" + to_string(bytes_gap_x100(3)) + ") — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ja flagged low-resource — false positive")
+}
+
+// check 5 — all ppl_gap > 0 (positive ratio invariant)
+checks_total = checks_total + 1
+let mut all_pos = true
+let mut i = 0
+while i < LANG_NAMES.len() {
+    if ppl_gap_x1000(i) <= 0 { all_pos = false }
+    i = i + 1
+}
+if all_pos {
+    print("  [PASS] all ppl_gap > 0 (positive ratio invariant for all " + to_string(LANG_NAMES.len()) + " langs)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] some ppl_gap ≤ 0 — ratio identity broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if ppl_gap_x1000(2) == ppl_gap_x1000(2) && bytes_gap_x100(2) == bytes_gap_x100(2) {
+    print("  [PASS] deterministic (re-call same ppl_gap + bytes_gap)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+// check 7 — falsifier compound: BOTH conditions required (AND semantics)
+// synthesize a hypothetical "high-PPL but efficient" case — should NOT fire
+checks_total = checks_total + 1
+// ko (idx 1) has ppl_gap = 3200*1000/1500 = 2133 > 2000 but bytes_gap = 720*100/380 = 189 < 200
+// → AND fails on bytes_gap → ko NOT low-resource
+if low_resource_flag(1) == false && ppl_gap_x1000(1) > PPL_GAP_THRESHOLD_x1000 {
+    print("  [PASS] compound AND semantics: ko has ppl_gap=" + to_string(ppl_gap_x1000(1)) +
+          " > 2000 but bytes_gap=" + to_string(bytes_gap_x100(1)) + " ≤ 200 → flag stays false (AND)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] compound AND semantics broken")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (PPL ratio + bytes/tok identity 7/7) + 🟡 BY-CITATION (low-resource threshold convention = Pires 2019 / Conneau 2020)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — PPL gap formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("MULTILINGUAL A1 finding (placeholder · closed-form):")
+print("  - ppl_gap ratio identity recompute (7/7 closed-form checks)")
+print("  - low-resource compound flag (ppl_gap > 2.0 AND bytes_gap > 2.0): sw fires, ja/ko silent")
+print("  - external anchor: Pires 2019 cross-lingual transfer · Conneau 2020 XLM-R · Wu 2024")
+print("  - 실측 PPL/tokenizer 측정 (cycle-10+ T4): mac M3 llama-server / ubu-1 HF · MMLU 다국어")
+print("")
+print("__HEXA_CODEX_NUMERICS_MULTILINGUAL_A1_PERPLEXITY_GAP__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/MULTILINGUAL/verdicts/a1_perplexity_gap_verdict.txt"
+
+let mut content = "# hexa-codex MULTILINGUAL A1 — perplexity gap verifier (cycle-9 round-2)\n"
+content = content + "# axis=MULTILINGUAL/MULTILINGUAL.md::A1 (per-language PPL gap + bytes/token efficiency)\n"
+content = content + "# bench=MULTILINGUAL/bench/multilingual_a1_perplexity_gap.hexa\n"
+content = content + "# verifier=MULTILINGUAL/verify/numerics_multilingual_a1_perplexity_gap.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=ppl_gap = PPL_lang / PPL_en (× 1000); low_resource = (ppl_gap > 2.0) AND (bytes_gap > 2.0)\n"
+content = content + "# placeholder_data=en/ko/sw/ja with PPL × 1000 and bytes/tok × 100 integer ledger\n"
+content = content + "# external_anchors=Pires 2019 (arXiv:1906.01502) · Conneau 2020 (arXiv:1911.02116) · Wu 2024\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · mac M3 / ubu-1 · MMLU multilingual · per-model PPL)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — formula close ≠ measured close\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

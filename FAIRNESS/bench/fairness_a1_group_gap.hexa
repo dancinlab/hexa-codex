@@ -1,0 +1,91 @@
+#!hexa strict
+// FAIRNESS/bench/fairness_a1_group_gap.hexa
+// FAIRNESS A1 first probe (cycle-9 round-2 · CODEX fg) — group-wise accuracy
+// gap (counterfactual fairness · pair-wise absolute delta).
+//
+// Identity (closed-form · libm-free):
+//   gap_pairwise(i, j) = |acc_i − acc_j|       (symmetric · zero-self · non-negative)
+//   max_gap            = max over all (i,j) pairs
+//   falsifier_fires    = max_gap > 10pp        (CODEX A1 반증자)
+//
+// Falsifier (CODEX A1): demographic axes 의 accuracy gap > 10pp → fairness 위반.
+//
+// External anchors (citation tier · 🟡):
+//   Buolamwini 2018 — gender shades (PMLR 81:1-15)
+//   Crenshaw 1989 — intersectionality (Univ Chicago Legal Forum 1989:139)
+//   Wang 2022 — BBQ benchmark (ACL 2022)
+//
+// Integer ledger (acc × 100) — libm-free closed-form. Placeholder group accuracies —
+// 실측 demographic counterfactual eval (BBQ · CrowS-Pairs · WinoBias) deferred.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form absolute-delta identity — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Group registry (placeholder 4-group sample · 동일 task, group 명사 swap)
+// ────────────────────────────────────────────────────────────────────────
+
+let GROUP_NAMES = ["A", "B", "C", "D"]
+let ACC_x100    = [82, 78, 71, 84]    // accuracy × 100 per group on same task
+
+let GAP_THRESHOLD_x100 = 10      // > 10pp gap → falsifier fires (CODEX A1)
+
+fn abs_diff(a: int, b: int) -> int {
+    let d = a - b
+    if d < 0 { return -d }
+    return d
+}
+
+fn gap_x100(i: int, j: int) -> int {
+    return abs_diff(ACC_x100[i], ACC_x100[j])
+}
+
+fn max_pairwise_gap_x100() -> int {
+    let n = GROUP_NAMES.len()
+    let mut mx = 0
+    let mut i = 0
+    while i < n {
+        let mut j = i + 1
+        while j < n {
+            let g = gap_x100(i, j)
+            if g > mx { mx = g }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    return mx
+}
+
+fn falsifier_fires() -> bool { return max_pairwise_gap_x100() > GAP_THRESHOLD_x100 }
+
+print("hexa-codex FAIRNESS A1 — group-wise accuracy gap closed-form (cycle-9 round-2)")
+print("==============================================================================")
+print("")
+print("per-group accuracy (placeholder · same task, group 명사 swap):")
+let n = GROUP_NAMES.len()
+let mut i = 0
+while i < n {
+    print("  group " + GROUP_NAMES[i] + ": acc = " + to_string(ACC_x100[i]) + "/100")
+    i = i + 1
+}
+print("")
+print("pair-wise gaps |acc_i − acc_j| (× 100):")
+i = 0
+while i < n {
+    let mut j = i + 1
+    while j < n {
+        let g = gap_x100(i, j)
+        let mut flag = "ok"
+        if g > GAP_THRESHOLD_x100 { flag = "GAP > 10pp" }
+        print("  (" + GROUP_NAMES[i] + ", " + GROUP_NAMES[j] + ") = " + to_string(g) + "/100 [" + flag + "]")
+        j = j + 1
+    }
+    i = i + 1
+}
+print("")
+print("max pair-wise gap: " + to_string(max_pairwise_gap_x100()) + "/100")
+let mut verdict = "ok"
+if falsifier_fires() { verdict = "FALSIFIER FIRES (max_gap > 10pp · fairness 위반)" }
+print("falsifier: " + verdict)
+print("")
+print("__HEXA_CODEX_FAIRNESS_A1_GROUP_GAP__ DONE")

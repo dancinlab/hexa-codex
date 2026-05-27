@@ -1,0 +1,70 @@
+#!hexa strict
+// MULTILINGUAL/bench/multilingual_a1_perplexity_gap.hexa
+// MULTILINGUAL A1 first probe (cycle-9 round-2 · CODEX fg) — per-language
+// perplexity gap vs English baseline + tokenizer bytes/token efficiency.
+//
+// Identity (closed-form ratio · libm-free):
+//   ppl_gap(lang)        = PPL_lang / PPL_en
+//   bytes_per_tok_gap(l) = bytes_per_tok_lang / bytes_per_tok_en
+//   low_resource_flag(l) = (ppl_gap > 2.0) AND (bytes_per_tok_gap > 2.0)
+//
+// Falsifier (CODEX A1): low-resource language 성능 < 영어 × 0.5 (즉 ppl_gap > 2.0
+// AND bytes/tok > 2.0 → 모델이 token-당 효율도 낮고 perplexity 도 2× 이상 나쁨).
+//
+// External anchors (citation tier · 🟡):
+//   Pires 2019 — mBERT cross-lingual transfer (arXiv:1906.01502)
+//   Conneau 2020 — XLM-R (arXiv:1911.02116)
+//   Wu 2024 — cross-lingual transfer asymmetry
+//
+// Integer ledger (× 1000 for PPL ratio · × 100 for bytes/tok) — libm-free closed-form.
+// Placeholder constants — real per-model PPL measurement deferred (cost-bearing).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form ratio identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Language registry — en baseline · ko mid-resource · sw low-resource · ja mid
+// (placeholder values · real values per-model on cycle-10+ measured round)
+// ────────────────────────────────────────────────────────────────────────
+
+let LANG_NAMES         = ["en", "ko", "sw", "ja"]
+let PPL_x1000          = [1500, 3200, 8400, 2100]    // PPL × 1000
+let BYTES_PER_TOK_x100 = [380,  720,  1180, 460]     // bytes/token × 100
+
+let PPL_GAP_THRESHOLD_x1000 = 2000          // > 2.0 ratio → potential low-resource
+let BYTES_GAP_THRESHOLD_x100 = 200          // > 2.0 ratio → potential low-resource
+
+fn ppl_gap_x1000(i: int) -> int {
+    // PPL_lang / PPL_en × 1000 (en baseline)
+    return (PPL_x1000[i] * 1000) / PPL_x1000[0]
+}
+
+fn bytes_gap_x100(i: int) -> int {
+    return (BYTES_PER_TOK_x100[i] * 100) / BYTES_PER_TOK_x100[0]
+}
+
+fn low_resource_flag(i: int) -> bool {
+    return ppl_gap_x1000(i) > PPL_GAP_THRESHOLD_x1000
+        && bytes_gap_x100(i) > BYTES_GAP_THRESHOLD_x100
+}
+
+print("hexa-codex MULTILINGUAL A1 — perplexity gap closed-form (cycle-9 round-2)")
+print("=========================================================================")
+print("")
+print("per-language profile (placeholder · real per-model measurement deferred):")
+let n = LANG_NAMES.len()
+let mut i = 0
+while i < n {
+    let pg = ppl_gap_x1000(i)
+    let bg = bytes_gap_x100(i)
+    let lr = low_resource_flag(i)
+    let mut flag = "ok"
+    if lr { flag = "LOW-RESOURCE (falsifier fires)" }
+    print("  " + LANG_NAMES[i] + ": PPL=" + to_string(PPL_x1000[i]) + "/1000" +
+          " · bytes/tok=" + to_string(BYTES_PER_TOK_x100[i]) + "/100" +
+          " · ppl_gap=" + to_string(pg) + "/1000" +
+          " · bytes_gap=" + to_string(bg) + "/100 · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_MULTILINGUAL_A1_PERPLEXITY_GAP__ DONE")

@@ -1,0 +1,11 @@
+# hexa-codex MULTILINGUAL A1 — perplexity gap verifier (cycle-9 round-2)
+# axis=MULTILINGUAL/MULTILINGUAL.md::A1 (per-language PPL gap + bytes/token efficiency)
+# bench=MULTILINGUAL/bench/multilingual_a1_perplexity_gap.hexa
+# verifier=MULTILINGUAL/verify/numerics_multilingual_a1_perplexity_gap.hexa
+# tier=🔵 STRUCTURAL (PPL ratio + bytes/tok identity 7/7) + 🟡 BY-CITATION (low-resource threshold convention = Pires 2019 / Conneau 2020)
+# checks=7/7
+# formula=ppl_gap = PPL_lang / PPL_en (× 1000); low_resource = (ppl_gap > 2.0) AND (bytes_gap > 2.0)
+# placeholder_data=en/ko/sw/ja with PPL × 1000 and bytes/tok × 100 integer ledger
+# external_anchors=Pires 2019 (arXiv:1906.01502) · Conneau 2020 (arXiv:1911.02116) · Wu 2024
+# substrate_fire=DEFERRED (cycle-10+ · mac M3 / ubu-1 · MMLU multilingual · per-model PPL)
+# frontier_open=feedback_closure_is_physical_limit — formula close ≠ measured close

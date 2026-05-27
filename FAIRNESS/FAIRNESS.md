@@ -20,7 +20,7 @@
 > FAIRNESS 은 완료되지 않는다. 새 demographic axis·domain·intersectional pair 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — group-wise accuracy gap (race · gender · age) · counterfactual fairness. 반증자: demographic axes 의 accuracy gap > 10pp on standard task.
+- [x] A1 — group-wise accuracy gap (race · gender · age) · counterfactual fairness. 반증자: demographic axes 의 accuracy gap > 10pp on standard task. **CYCLE-9 round-2 first probe (2026-05-28):** `FAIRNESS/bench/fairness_a1_group_gap.hexa` + `FAIRNESS/verify/numerics_fairness_a1_group_gap.hexa` ✅ 7/7 PASS · 🔵 STRUCTURAL (absolute-delta metric identity) + 🟡 BY-CITATION (10pp threshold = Buolamwini 2018 / Wang 2022 BBQ). Identity: `gap(i,j) = |acc_i − acc_j|` (× 100) · `falsifier_fires = max_pairwise_gap > 10pp`. Metric properties 전부 검증: self-gap=0 · symmetry · non-negativity · range bound [0,100] · triangle inequality. Worked example 4 groups (A=82·B=78·C=71·D=84 × 100), max pairwise = |84−71| = 13 (groups C↔D) → falsifier 정확 발화. External anchors: Buolamwini 2018 gender shades (PMLR 81:1-15) · Crenshaw 1989 intersectionality (Univ Chicago Legal Forum 1989:139) · Wang 2022 BBQ (ACL 2022). **실측 demographic counterfactual eval DEFERRED** — cycle-10+ T4 (BBQ · CrowS-Pairs · WinoBias · ubu-1 HF transformers). **frontier OPEN** ([[feedback_closure_is_physical_limit]]) — metric close ≠ measured close. 축 N (intersectional vs single-axis gap · Crenshaw 1989) 다음 ⭐ MAIN priority lane.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — stereotype rate × profession/role × persona × scale ladder. 반증자: scale ↑ 에도 stereotype rate 가 monotone-decrease 안 함 → scale 만으로 fairness 미해결.

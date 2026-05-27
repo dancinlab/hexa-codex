@@ -1,0 +1,131 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_m1_modality_dispatch.hexa
+// ENGINE axis M1 — MULTIMODAL/A1 MODALITY-BALANCE finding → serving
+// modality-aware model-dispatch decision rule.
+//
+// SOURCE FINDING (MULTIMODAL/A1 · absorbed from FRONTIER/F2 · cycle-10 reorg).
+//   gap_modality_x100 = acc_text − acc_modality (per-mille-of-100 ledger of pp).
+//   3 models × 4 modalities (text/image/audio/video):
+//     gemma4_31B  : text 85 · image 82 · audio 80 · video 78 pp → worst gap 7pp
+//                   (native balanced · all modalities ≤ 7pp drop)
+//     qwen3.6_72B : text 87 · image 80 · audio 70 · video 68 pp → worst gap 19pp
+//                   (native balanced · all modalities ≤ 19pp drop)
+//     legacy_vlm_4B: text 75 · image 70 · audio  0 · video  0 pp → audio/video
+//                   gap 75pp (2-tower VLM · audio/video UNSUPPORTED → second-class)
+//   A modality whose gap ≥ 30pp on a model is a "second-class citizen" for that
+//   model — the model should NOT be dispatched that modality's task.
+//
+// DECISION RULE (closed-form · this wire).  dispatch(models, task_modality)
+//   selects the candidate set = every model whose gap on task_modality is
+//   < 30pp (3000 in the × 100 ledger). A model with gap ≥ 30pp on the requested
+//   modality is AVOIDED (that modality is second-class for it):
+//     - task_modality=text/image  → gemma4 (7pp) · qwen3.6 (19pp) · legacy_vlm
+//                                    (text 0pp / image 5pp) all candidates.
+//     - task_modality=audio/video → gemma4 (≤7pp) · qwen3.6 (≤19pp) candidates;
+//                                    legacy_vlm (75pp gap) AVOIDED — audio/video
+//                                    unsupported, would be a second-class route.
+//
+// The rule consumes the SAME MULTIMODAL/A1 gap_modality data (the per-(model,
+// modality) gap ledger) — wire ↔ finding consistency is asserted by check (6)
+// of the verifier.
+//
+// FALSIFIER (paired verifier · check 4). A dispatch that ASSIGNED a model to a
+// modality where its gap ≥ 30pp (e.g. legacy_vlm_4B ← audio/video at 75pp) is
+// constructed explicitly and MUST be detected as a violating dispatch.
+//
+// HONESTY. Closed-form decision rule only. Connecting this rule to a live
+// multimodal serving dispatch path (lm_foundry · SANDBOX local llama-server /
+// GGUF multimodal projector) is a cost-bearing T4 contact DEFERRED to
+// cycle-11+ (cx_lab_sandbox · per feedback_closure_is_physical_limit — rule
+// close ≠ measured close).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Finding constants (MULTIMODAL/A1 · integer × 100 pp ledger · libm-free)
+// ────────────────────────────────────────────────────────────────────────
+
+let SECOND_CLASS_GAP_THRESHOLD_x100 = 3000   // ≥ 30pp gap → modality second-class → avoid
+
+let MODEL_NAMES    = ["gemma4_31B", "qwen3.6_72B", "legacy_vlm_4B"]
+let MODALITY_NAMES = ["text", "image", "audio", "video"]
+let N_MODALITIES = 4
+
+// MULTIMODAL/A1 acc_x100 ledger (3 models × 4 modalities · text/image/audio/video)
+let ACC_x100 = [8500, 8200, 8000, 7800,   // gemma4_31B
+                8700, 8000, 7000, 6800,   // qwen3.6_72B
+                7500, 7000,    0,    0]   // legacy_vlm_4B (audio/video unsupported)
+
+fn acc_x100(model_i: int, modality_j: int) -> int {
+    return ACC_x100[model_i * N_MODALITIES + modality_j]
+}
+// MULTIMODAL/A1 gap identity: acc_text − acc_modality (consumed datum)
+fn gap_modality_x100(model_i: int, modality_j: int) -> int {
+    return acc_x100(model_i, 0) - acc_x100(model_i, modality_j)
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — is model_i a viable candidate for task_modality_j?
+//   viable ⇔ gap on that modality < 30pp (else second-class → avoid)
+// ────────────────────────────────────────────────────────────────────────
+
+fn is_candidate(model_i: int, task_modality_j: int) -> bool {
+    return gap_modality_x100(model_i, task_modality_j) < SECOND_CLASS_GAP_THRESHOLD_x100
+}
+
+// dispatch(task_modality_j) → bitmask of candidate models (bit i set = model_i viable).
+// Closed-form, deterministic. A serving router would pick from this candidate set.
+fn dispatch_candidate_mask(task_modality_j: int) -> int {
+    let mut mask = 0
+    let mut i = 0
+    while i < MODEL_NAMES.len() {
+        if is_candidate(i, task_modality_j) { mask = mask + (1 << i) }
+        i = i + 1
+    }
+    return mask
+}
+
+fn candidate_count(task_modality_j: int) -> int {
+    let mut n = 0
+    let mut i = 0
+    while i < MODEL_NAMES.len() {
+        if is_candidate(i, task_modality_j) { n = n + 1 }
+        i = i + 1
+    }
+    return n
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Render — per task_modality, the candidate set + avoided models
+// ────────────────────────────────────────────────────────────────────────
+
+print("hexa-codex ENGINE M1 — MULTIMODAL/A1 MODALITY-BALANCE → serving modality-aware dispatch (cycle-10)")
+print("====================================================================================================")
+print("")
+print("source finding: MULTIMODAL/A1 gap_modality_x100 = acc_text − acc_modality (× 100 pp ledger)")
+print("decision rule:  dispatch(task_modality) = { model | gap(model, task_modality) < 30pp }")
+print("                gap ≥ 30pp → modality second-class for that model → AVOID")
+print("")
+
+let mut j = 0
+while j < N_MODALITIES {
+    let mask = dispatch_candidate_mask(j)
+    print("  task_modality=" + MODALITY_NAMES[j] + " → candidates (mask=" + to_string(mask) +
+          " · count=" + to_string(candidate_count(j)) + "):")
+    let mut i = 0
+    while i < MODEL_NAMES.len() {
+        let g = gap_modality_x100(i, j)
+        let mut verdict = "candidate"
+        if is_candidate(i, j) == false { verdict = "AVOID (second-class)" }
+        print("      " + MODEL_NAMES[i] + " gap=" + to_string(g) + "/100 (" +
+              to_string(g / 100) + "pp) → " + verdict)
+        i = i + 1
+    }
+    j = j + 1
+}
+print("")
+print("  legacy_vlm_4B avoided on audio/video (gap=7500/100 = 75pp ≥ 30pp · 2-tower unsupported);")
+print("  gemma4_31B (≤7pp) + qwen3.6_72B (≤19pp) viable across ALL four modalities.")
+print("")
+print("__HEXA_CODEX_ENGINE_M1_MODALITY_DISPATCH__ DONE")

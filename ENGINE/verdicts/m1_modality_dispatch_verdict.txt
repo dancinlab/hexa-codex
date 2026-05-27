@@ -1,0 +1,13 @@
+# hexa-codex ENGINE M1 — modality-aware dispatch verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::M1 (MULTIMODAL/A1 MODALITY-BALANCE finding -> serving modality-aware model-dispatch decision rule)
+# wire=ENGINE/wires/wire_m1_modality_dispatch.hexa
+# verifier=ENGINE/verify/numerics_engine_m1_modality_dispatch.hexa
+# tier=🔵 STRUCTURAL (dispatch decision rule 7/7) + 🟡 BY-CITATION (MULTIMODAL/A1 finding consume · gap data placeholder · cite Gemma 4 technical report + Liu 2023 LLaVA + Driess 2023 PaLM-E + Chu 2024 Qwen-Audio) — dispatch wires the modality-balance gap into a modality-aware serving model-dispatch candidate set · per-modality dependent
+# checks=7/7
+# rule=dispatch(task_modality) = { model | gap_modality_x100(model, task_modality) < 3000 (< 30pp) }; gap >= 30pp -> modality second-class -> AVOID
+# source_finding=MULTIMODAL/A1 gap_modality_x100 = acc_text - acc_modality; gemma4_31B worst 7pp (all OK) · qwen3.6_72B worst 19pp (all OK) · legacy_vlm_4B audio/video 75pp (avoid audio/video · 2-tower unsupported)
+# cases=text/image -> all 3 candidates · audio/video -> gemma4_31B + qwen3.6_72B candidates, legacy_vlm_4B AVOIDED (75pp gap)
+# falsifier=finding-ignorant dispatch (assigns legacy_vlm_4B <- audio/video at 75pp gap) detected as VIOLATING vs dispatch AVOID (check 4)
+# external_anchor=Yang 2023 GPT-4V · Liu 2023 LLaVA (arXiv:2304.08485) · Driess 2023 PaLM-E (arXiv:2303.03378) · Chu 2024 Qwen-Audio (arXiv:2407.10759) · Google DeepMind 2026 Gemma 4 technical report (consumed via MULTIMODAL/A1)
+# per_modality_dependent=dispatch candidacy is per (model, modality) — a model viable on text/image can be second-class on audio/video (legacy_vlm) · NOT a global model ranking
+# honest_residual=live multimodal serving dispatch wiring (lm_foundry · SANDBOX local llama-server / GGUF multimodal projector) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)

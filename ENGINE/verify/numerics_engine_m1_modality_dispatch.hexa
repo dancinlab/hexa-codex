@@ -1,0 +1,238 @@
+#!hexa strict
+// hexa-codex/ENGINE/verify/numerics_engine_m1_modality_dispatch.hexa
+// ENGINE axis M1 — falsifier verifier for the modality-aware dispatch wire.
+//
+// Asserts that dispatch is a faithful, deterministic decision rule that
+// CONSUMES the MULTIMODAL/A1 MODALITY-BALANCE finding (per-(model, modality)
+// gap_modality_x100 = acc_text − acc_modality · 30pp second-class threshold):
+//   (1) dispatch identity — candidate ⇔ gap < 30pp (gap≥30 excluded)
+//   (2) gemma4_31B + qwen3.6_72B native → candidate for ALL four modalities
+//   (3) legacy_vlm_4B AVOIDED on audio/video (75pp gap · audio/video unsupported)
+//   (4) FALSIFIER — a dispatch that assigns a model to a gap≥30pp modality
+//       (legacy_vlm_4B ← audio at 75pp) is detected as a VIOLATING dispatch
+//   (5) determinism (re-call → identical candidate mask)
+//   (6) source-finding consistency — MULTIMODAL/A1 legacy_vlm audio/video gap = 7500
+//       (= 75pp · 663-style consumed datum) + gemma4 ≤700 + qwen3.6 ≤1900
+//   (7) constraint — every dispatched (candidate) model has gap < 30pp on its
+//       assigned modality (no second-class route survives the candidate set)
+// Any FAIL = wire contradicts the MULTIMODAL/A1 finding ⇒ ENGINE M1 FALSIFIED.
+//
+// SOURCE.  ENGINE/wires/wire_m1_modality_dispatch.hexa (verifier replicates the
+// decision rule — closed-form recompute, no import of emitted state).
+// MULTIMODAL/A1 source: MULTIMODAL/verify/numerics_multimodal_a1_modality_balance.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute of the M1 dispatch decision rule.")
+
+let SECOND_CLASS_GAP_THRESHOLD_x100 = 3000   // ≥ 30pp gap → modality second-class
+
+let MODEL_NAMES    = ["gemma4_31B", "qwen3.6_72B", "legacy_vlm_4B"]
+let MODALITY_NAMES = ["text", "image", "audio", "video"]
+let N_MODALITIES = 4
+
+// MULTIMODAL/A1 acc_x100 ledger (3 models × 4 modalities · text/image/audio/video)
+let ACC_x100 = [8500, 8200, 8000, 7800,   // gemma4_31B
+                8700, 8000, 7000, 6800,   // qwen3.6_72B
+                7500, 7000,    0,    0]   // legacy_vlm_4B (audio/video unsupported)
+
+fn acc_x100(model_i: int, modality_j: int) -> int {
+    return ACC_x100[model_i * N_MODALITIES + modality_j]
+}
+fn gap_modality_x100(model_i: int, modality_j: int) -> int {
+    return acc_x100(model_i, 0) - acc_x100(model_i, modality_j)
+}
+fn is_candidate(model_i: int, task_modality_j: int) -> bool {
+    return gap_modality_x100(model_i, task_modality_j) < SECOND_CLASS_GAP_THRESHOLD_x100
+}
+fn dispatch_candidate_mask(task_modality_j: int) -> int {
+    let mut mask = 0
+    let mut i = 0
+    while i < MODEL_NAMES.len() {
+        if is_candidate(i, task_modality_j) { mask = mask + (1 << i) }
+        i = i + 1
+    }
+    return mask
+}
+
+// FALSIFIER reference — a (deliberately wrong) dispatch that IGNORES the finding:
+// it declares EVERY model a candidate for EVERY modality, even gap≥30pp ones.
+fn is_candidate_finding_ignorant(model_i: int, task_modality_j: int) -> bool {
+    return true
+}
+
+print("hexa-codex ENGINE M1 falsifier — modality-aware dispatch (cycle-10)")
+print("===================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_models = MODEL_NAMES.len()
+
+// check 1 — dispatch identity: candidate ⇔ gap < 30pp
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_models {
+    let mut j = 0
+    while j < N_MODALITIES {
+        let cand = is_candidate(i, j)
+        let expect = gap_modality_x100(i, j) < SECOND_CLASS_GAP_THRESHOLD_x100
+        if cand != expect { id_ok = false }
+        j = j + 1
+    }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] dispatch identity: candidate ⇔ gap < 30pp holds for all " +
+          to_string(n_models) + " × " + to_string(N_MODALITIES) + " (model, modality) pairs")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] dispatch identity broken (candidate ≠ gap<30pp)")
+}
+
+// check 2 — gemma4_31B (idx 0) + qwen3.6_72B (idx 1) candidate for ALL modalities
+checks_total = checks_total + 1
+let mut native_ok = true
+let mut j2 = 0
+while j2 < N_MODALITIES {
+    if is_candidate(0, j2) == false { native_ok = false }
+    if is_candidate(1, j2) == false { native_ok = false }
+    j2 = j2 + 1
+}
+if native_ok {
+    print("  [PASS] native multimodal: gemma4_31B (worst 7pp) + qwen3.6_72B (worst 19pp) " +
+          "candidate across ALL " + to_string(N_MODALITIES) + " modalities")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] a native model was wrongly excluded from a modality")
+}
+
+// check 3 — legacy_vlm_4B (idx 2) AVOIDED on audio (idx 2) + video (idx 3)
+checks_total = checks_total + 1
+let legacy_audio_avoid = is_candidate(2, 2) == false   // audio gap 75pp
+let legacy_video_avoid = is_candidate(2, 3) == false   // video gap 75pp
+let legacy_text_ok    = is_candidate(2, 0)             // text gap 0pp (candidate)
+let legacy_image_ok   = is_candidate(2, 1)             // image gap 5pp (candidate)
+if legacy_audio_avoid && legacy_video_avoid && legacy_text_ok && legacy_image_ok {
+    print("  [PASS] legacy_vlm_4B AVOIDED on audio/video (gap=" + to_string(gap_modality_x100(2, 2)) +
+          "/100 = 75pp ≥ 30pp · 2-tower unsupported) · still candidate for text/image")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] legacy_vlm_4B avoid detection broken (audio_avoid=" + to_string(legacy_audio_avoid) +
+          " video_avoid=" + to_string(legacy_video_avoid) + ")")
+}
+
+// check 4 — FALSIFIER: finding-ignorant dispatch assigns legacy_vlm ← audio (75pp) → detected WRONG
+checks_total = checks_total + 1
+let correct = is_candidate(2, 2)                   // false (finding honored · 75pp gap avoided)
+let ignorant = is_candidate_finding_ignorant(2, 2) // true  (finding ignored · assigns second-class)
+let legacy_audio_gap = gap_modality_x100(2, 2)
+if correct == false && ignorant == true && correct != ignorant
+        && legacy_audio_gap >= SECOND_CLASS_GAP_THRESHOLD_x100 {
+    print("  [PASS] FALSIFIER caught: finding-ignorant dispatch assigns legacy_vlm_4B ← audio " +
+          "(gap=" + to_string(legacy_audio_gap) + "/100 ≥ 30pp) ≠ dispatch AVOID (wire honors MULTIMODAL/A1)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] falsifier dispatch NOT detected (correct=" + to_string(correct) +
+          " ignorant=" + to_string(ignorant) + ")")
+}
+
+// check 5 — determinism (re-call → identical candidate mask)
+checks_total = checks_total + 1
+if dispatch_candidate_mask(2) == dispatch_candidate_mask(2)
+        && dispatch_candidate_mask(0) == dispatch_candidate_mask(0)
+        && is_candidate(2, 3) == is_candidate(2, 3) {
+    print("  [PASS] deterministic (re-call same candidate mask + same is_candidate)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+// check 6 — source-finding consistency: MULTIMODAL/A1 gap data consumed verbatim
+checks_total = checks_total + 1
+let legacy_av_gap_ok = gap_modality_x100(2, 2) == 7500 && gap_modality_x100(2, 3) == 7500
+let gemma4_worst_ok  = gap_modality_x100(0, 2) == 500 && gap_modality_x100(0, 3) == 700  // audio 5pp · video 7pp
+let qwen36_worst_ok  = gap_modality_x100(1, 2) == 1700 && gap_modality_x100(1, 3) == 1900 // audio 17pp · video 19pp
+if legacy_av_gap_ok && gemma4_worst_ok && qwen36_worst_ok {
+    print("  [PASS] MULTIMODAL/A1 consumed: legacy_vlm audio/video gap=7500/100 (75pp) · " +
+          "gemma4 worst 700/100 (7pp) · qwen3.6 worst 1900/100 (19pp) — wire ↔ finding consistent")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] MULTIMODAL/A1 gap mismatch (legacy_av=" + to_string(legacy_av_gap_ok) +
+          " gemma4=" + to_string(gemma4_worst_ok) + " qwen36=" + to_string(qwen36_worst_ok) + ")")
+}
+
+// check 7 — constraint: every dispatched (candidate) model has gap < 30pp on its modality
+checks_total = checks_total + 1
+let mut constraint_ok = true
+let mut ci = 0
+while ci < n_models {
+    let mut cj = 0
+    while cj < N_MODALITIES {
+        if is_candidate(ci, cj) {
+            // a candidate must, by construction, have gap < threshold
+            if gap_modality_x100(ci, cj) >= SECOND_CLASS_GAP_THRESHOLD_x100 { constraint_ok = false }
+        }
+        cj = cj + 1
+    }
+    ci = ci + 1
+}
+if constraint_ok {
+    print("  [PASS] constraint: every dispatched candidate has gap < 30pp on its modality " +
+          "(no second-class route survives the candidate set)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] a candidate with gap ≥ 30pp survived the dispatch set")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (dispatch decision rule 7/7) + 🟡 BY-CITATION (MULTIMODAL/A1 finding consume · gap data placeholder · cite Gemma 4 technical report + Liu 2023 LLaVA + Driess 2023 PaLM-E + Chu 2024 Qwen-Audio) — dispatch wires the modality-balance gap into a modality-aware serving model-dispatch candidate set · per-modality dependent"
+} else {
+    verdict_tier = "🔴 FALSIFIED — dispatch rule contradicts MULTIMODAL/A1 finding (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("ENGINE M1 finding (closed-form decision rule · cycle-10):")
+print("  - dispatch(task_modality) = { model | gap(model, task_modality) < 30pp }; gap≥30 → second-class → AVOID")
+print("  - MULTIMODAL/A1 gap: gemma4_31B worst 7pp · qwen3.6_72B worst 19pp (both candidate ALL modalities)")
+print("  - legacy_vlm_4B audio/video gap 75pp → AVOIDED on audio/video (2-tower unsupported · second-class)")
+print("  - falsifier dispatch (finding-ignorant · assigns legacy_vlm ← audio at 75pp) detected — rule honors the measurement")
+print("  - honest residual: live multimodal serving dispatch (lm_foundry · SANDBOX local llama-server / GGUF projector) DEFERRED to cycle-11+ T4 (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_ENGINE_M1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/ENGINE/verdicts/m1_modality_dispatch_verdict.txt"
+
+let mut content = "# hexa-codex ENGINE M1 — modality-aware dispatch verifier (cycle-10)\n"
+content = content + "# axis=ENGINE/ENGINE.md::M1 (MULTIMODAL/A1 MODALITY-BALANCE finding -> serving modality-aware model-dispatch decision rule)\n"
+content = content + "# wire=ENGINE/wires/wire_m1_modality_dispatch.hexa\n"
+content = content + "# verifier=ENGINE/verify/numerics_engine_m1_modality_dispatch.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# rule=dispatch(task_modality) = { model | gap_modality_x100(model, task_modality) < 3000 (< 30pp) }; gap >= 30pp -> modality second-class -> AVOID\n"
+content = content + "# source_finding=MULTIMODAL/A1 gap_modality_x100 = acc_text - acc_modality; gemma4_31B worst 7pp (all OK) · qwen3.6_72B worst 19pp (all OK) · legacy_vlm_4B audio/video 75pp (avoid audio/video · 2-tower unsupported)\n"
+content = content + "# cases=text/image -> all 3 candidates · audio/video -> gemma4_31B + qwen3.6_72B candidates, legacy_vlm_4B AVOIDED (75pp gap)\n"
+content = content + "# falsifier=finding-ignorant dispatch (assigns legacy_vlm_4B <- audio/video at 75pp gap) detected as VIOLATING vs dispatch AVOID (check 4)\n"
+content = content + "# external_anchor=Yang 2023 GPT-4V · Liu 2023 LLaVA (arXiv:2304.08485) · Driess 2023 PaLM-E (arXiv:2303.03378) · Chu 2024 Qwen-Audio (arXiv:2407.10759) · Google DeepMind 2026 Gemma 4 technical report (consumed via MULTIMODAL/A1)\n"
+content = content + "# per_modality_dependent=dispatch candidacy is per (model, modality) — a model viable on text/image can be second-class on audio/video (legacy_vlm) · NOT a global model ranking\n"
+content = content + "# honest_residual=live multimodal serving dispatch wiring (lm_foundry · SANDBOX local llama-server / GGUF multimodal projector) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

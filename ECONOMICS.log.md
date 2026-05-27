@@ -6,6 +6,54 @@
 
 ---
 
+## 2026-05-27 — cycle-50 G5 first probe · conversation KV growth · 🔵 9/9 (G axis 5 seeds 완료)
+
+NOVEL 축 G **마지막** first-probe — G axis 5 seeds 전부 first-probed.
+G5 = conversation KV growth + K_opt sqrt 닫힌형 + MLA 비교.
+
+**검증기**: `verify/numerics_economics_g5_conversation_kv_growth.hexa`
+**RUN**: pool ubu-1 native compile (cycle-44/46/47/48/49 검증 `hexa cc` 패턴).
+
+**9/9 PASS (verbatim)**:
+- KV/turn(ctx=500) = 64 MB EXACT (Llama3-8B GQA F2 formula)
+- naive 30-turn = 1.83 GiB (linear in N, 30× per-turn)
+- sliding K=20 cap → 1.22 GiB (StreamingLLM)
+- K_opt scaling: doubling c_s → ×1.444 ≈ sqrt(2)
+- K_opt scaling: doubling ctx → ×0.722 ≈ 1/sqrt(2) (int trunc ±5%)
+- K_opt at typical op point ($0.10/sum, 500tok, $0.01/GB-hr) = **18 turns** (seed 10-20 적중)
+- MLA / MHA = 0.062× (DeepSeek-V2 architecture)
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL.
+
+**G axis 종합 (cycle-46→50 · 5 seeds first-probed)**:
+| seed | tier | 핵심 결과 |
+|------|------|----------|
+| G1 prompt-cache | 🔵 8/8 | N_break **2→3 corrected** · 86% asymptotic (90% headline 4pp gap) |
+| G2 trajectory cost | 🔵 8/8 | super-linear k≈1.3 · cache flattens slope 20.2→7.65 |
+| G3 cache-hit decay | 🔵 9/9 | aggregate hit 0.51 · effective discount **2× overstated** |
+| G4 spec-dec α drift | 🔵+🟠 9/9 | 15-20% degradation → **12.6% corrected** |
+| G5 KV growth | 🔵 9/9 | linear N · K_opt sqrt-shape · MLA 0.06× |
+
+모두 G frontier OPEN — closed-form 닫음은 T4 SANDBOX 실측의 시작점.
+
+**G axis 운영규칙 5종 (composite operational guidance)**:
+1. cache 는 turn 3 부터 pays off (turn 2 아님)
+2. agent loop 비용은 super-linear (k≈1.3) — caching 으로 flatten 가능
+3. vendor headline cache 할인은 per-task 로 약 절반 (overstated 2×)
+4. spec-dec 는 multi-turn 에서도 평균 이득 (12.6% degradation)
+5. summarize cadence sweet spot K ≈ 10-20 turns, MLA architecture > policy 압축
+
+**honest residual**: 모든 첫 probe 가 STRUCTURAL 또는 vendor-spec 기반 closed-form;
+substrate-side 실측 (T4) 은 cycle-51+ 의 자연 후속.
+
+**연결**:
+- verifier: [`verify/numerics_economics_g5_conversation_kv_growth.hexa`](verify/numerics_economics_g5_conversation_kv_growth.hexa)
+- verdict: [`.verdicts/economics/g5_conversation_kv_growth_verdict.txt`](.verdicts/economics/g5_conversation_kv_growth_verdict.txt)
+- G axis 5 seeds: [`.discoveries/economics-g-agentic-amortization-spawn.tape`](.discoveries/economics-g-agentic-amortization-spawn.tape)
+
+---
+
 ## 2026-05-27 — cycle-49 G4 first probe · multi-turn spec-dec α drift · 🔵 formula + 🟠 drift_rate 9/9
 
 NOVEL 축 G 네번째 first-probe. G4 = F3 speedup × α(turn) drift 합성.

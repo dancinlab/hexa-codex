@@ -3,6 +3,73 @@
 Append-only history sister of `BIO.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-4 D1 first probe · Hebbian Δw ↔ linear attention 항등식 · 🔵 SUPPORTED-FORMAL 8/8 (mixed-verdict)
+
+BIO 도메인 cycle-4. D1 = Hebbian / synaptic plasticity 의 Δw=η·x·y 가 transformer
+attention 의 in-context "weight update" 와 닫힌형으로 mapping 되는지. 사용자 지시:
+"E1,D1" 의 첫 번째 (D1 우선 — closed-form $0 → cycle-3 리듬 유지).
+
+**검증기**: `BIO/verify/numerics_bio_d1_hebbian_attention.hexa` (220 lines)
+**RUN**: pool ubu-1 native compile (`hexa cc` rebuild 패턴 9번째 적용).
+
+**8/8 PASS (verbatim)**:
+- Hebbian rank-1 outer product (x_1, y_1) → W1[1,1]=2.0 · W1[1,3]=2.0 · W1[3,1]=0
+- Linear-attn 누적기 W_3 = Σ k_s·v_s^T (3 rank-1 Hebbian update) → diag=(2,3,0)
+- Linear-attn output: out_3 = W_3 · q_3, q_3=(1,0,0,0) → out[1]=2.0
+- **Schlag 2021 identity**: W_3[2,1] = Hebbian Σ η·x_s[2]·y_s[1] (bit-exact)
+- Softmax attn out[1] ≈ 0.7672 ≠ linear-attn out[1] = 2.0 → softmax ≢ pure Hebbian
+- D1 falsifier mixed-verdict: linear REFUTES · softmax HOLDS
+- 차원 일치 (D=4 head, T=3 seq, W = 4×4 fast-weight rank ≤ T)
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (Schlag 2021 항등식 + softmax 분해불가 toy demo, 8/8).
+
+**핵심 발견 (Schlag 2021 closed-form identity)**:
+1. **Linear attention = Hebbian online learner (bit-exact)**:
+   ```
+   W_t = Σ_{s≤t} φ(k_s) · v_s^T   ≡   Δw = η · x · y  누적 (η=1, x_s=φ(k_s), y_s=v_s)
+   out_t = W_t · φ(q_t)
+   ```
+   (Schlag/Schmidhuber 2021, "Linear Transformers Are Secretly Fast Weight Programmers")
+2. **Softmax attention NOT pure Hebbian**: input-dependent `1/Z(t)` 정규화는 static
+   `W_t` 로 흡수 불가. 동일 입력에 linear=2.0, softmax≈0.77 (다른 함수).
+3. **Mixed-verdict 정직 처리**:
+   - linear-attn 가족 (Mamba/Performer/Linformer/Schlag-FWP) → D1 falsifier REFUTES
+   - softmax-attn 가족 (Vaswani 2017 표준) → D1 falsifier HOLDS
+   → 'transformer = plasticity proxy' 통념은 **architecture-family-dependent**.
+
+**운영 closed-form 결론**:
+- bio-inspired LLM 설계 시 linear-attn 가족 선택 → Hebbian fast-weight 직접 mapping 가능
+- softmax-attn 가족은 plasticity proxy 가 아닌 *modulated/contrast* 형 일반화
+- **cross-axis A2↔D1 발견**: cycle-3 의 "DNA-LLM 은 linear-attn 필수 (n²·d 비용)" 가족이
+  동시에 cycle-4 의 "Hebbian-equivalent" 가족 — **bio-data + bio-update rule 의 자연스러운 짝**.
+  이는 우연이 아니라 구조적: 짧은 어휘 + 긴 sequence + 생체 학습규칙이 같은 architecture
+  선호로 수렴. Caduceus (V=4 + Mamba) 가 wet-lab 으로 검증할 BIO bio-inspired 가설.
+
+**honest residual**:
+- linear-attn ≡ Hebbian = 🔵 closed-form structural identity (8/8 deterministic, Schlag 항등식).
+- softmax ≢ Hebbian = 🔵 toy-example demonstration (q_3=(1,0,0,0) 한 example); 일반 gap 정량화는
+  cycle-5+ 측정 영역.
+- φ(·) feature map 은 여기서 identity. ELU+1, kernel feature 등 *positive* feature map 어떤
+  것이든 Σ 가 bilinear 유지 → Schlag 항등식 robust.
+- 항등식 대상은 **UPDATE RULE** 이지 *learning dynamics* 아님. 실제 brain plasticity 는
+  LTP/LTD, spike-timing, neuromodulation 추가 항이 있어 pure Hebbian 보다 풍부.
+- cycle-5+ T4: SANDBOX Qwen2.5-1.5B 의 1개 attention block 을 Mamba-1 으로 치환 → ICL
+  pattern parity 실측 (empirical mixed-verdict 닫기).
+- external anchor: Hebb 1949 (Organization of Behavior) · Vaswani 2017 (arXiv:1706.03762) ·
+  Katharopoulos 2020 (arXiv:2006.16236) · Schlag 2021 (arXiv:2102.11174) · Ba 2016 (arXiv:1610.06258).
+- D1 frontier OPEN ([[feedback_closure_is_physical_limit]]): closed structural identity ≠
+  measured behavioral equivalence under real SGD + softmax mixture + multi-head.
+
+**연결**:
+- verifier: [`BIO/verify/numerics_bio_d1_hebbian_attention.hexa`](verify/numerics_bio_d1_hebbian_attention.hexa)
+- verdict: [`BIO/verdicts/d1_hebbian_attention_verdict.txt`](verdicts/d1_hebbian_attention_verdict.txt)
+- cross-axis: BIO A2 cycle-3 (DNA-LLM linear-attn 필수 → Hebbian-equivalent 가족과 일치)
+- 다음 순차 (사용자 지시 "E1,D1" 의 두 번째): **E1** UNIVERSE H_278 IIT4 faithful Φ 를
+  Qwen2.5-1.5B layer activation 위 적용 — cost-bearing T4 (substrate measurement 첫 발).
+
+---
+
 ## 2026-05-27 — cycle-3 A2 first probe · vocab size effect on LLM capacity · 🔵 SUPPORTED-FORMAL 8/8 ('V 무관' REFUTED)
 
 BIO 도메인 cycle-3. A2 = 어휘 크기 V (text 50k vs protein 20-amino vs DNA 4-nt) 가

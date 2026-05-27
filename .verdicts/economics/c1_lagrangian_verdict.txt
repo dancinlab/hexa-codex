@@ -1,0 +1,14 @@
+# hexa-codex ECONOMICS C1 — Hoffmann Lagrangian compute-optimal closed-form (cycle-42)
+# axis=ECONOMICS.md::C1 (Pareto cost-quality frontier · Lagrangian gate)
+# verifier=verify/numerics_economics_c1_lagrangian.hexa
+# tier=🔵 SUPPORTED-FORMAL — Hoffmann Lagrangian compute-optimal closed-form IDENTITY (8/8)
+# checks=8/8
+# inputs=alpha_x100=34 beta_x100=28 A_x10=4064 B_x10=4107
+# derived_N_opt_exp_C_x10000=4516 (0.4516)
+# derived_D_opt_exp_C_x10000=5483 (0.5483)
+# duality_sum_x10000=9999 (1.0 EXACT, int trunc eps<=1)
+# D_over_N_exp_C_x10000=967 (0.097, SMALL -> near-scale-invariant)
+# degenerate_alpha_eq_beta_DN_exp=0 (D/N = (B/A)^(1/alpha) IDENTITY)
+# external_anchor=Hoffmann2022 arXiv:2203.15556 · Besiroglu2024 arXiv:2404.10102 · Sardana2024 arXiv:2401.00448
+# cycle-26_empirical_gap=modern dense D/N in [22,1875] vs Hoffmann ~20 -> Hoffmann train-only ASSUMPTION incomplete (Sardana inference-amortization restores)
+# next_probe=cycle-43+ Sardana inference-amortized N_opt closed-form replication

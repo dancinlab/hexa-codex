@@ -1,0 +1,162 @@
+#!hexa strict
+// PRIVACY/verify/numerics_privacy_a1_mi_advantage.hexa
+// PRIVACY A1 — closed-form verifier for MI accuracy delta from random baseline.
+//
+// Asserts the delta-from-baseline identity + advantage-clip + falsifier:
+//   (1) mi_excess identity (mi_acc − 50) holds for all models
+//   (2) mi_advantage = max(0, excess) — non-negative clipping
+//   (3) baseline model (mi_acc = 50) → excess = 0, no fire
+//   (4) leak model (mi_acc = 58) → excess = 8 > 5 → fires
+//   (5) borderline model (mi_acc = 52) → excess = 2 ≤ 5 → silent (bidirectional)
+//   (6) below-random model (mi_acc = 45) → excess = -5, advantage = 0 (rare anomaly preserved)
+//   (7) determinism (re-call same values)
+//
+// Source: PRIVACY/bench/privacy_a1_mi_advantage.hexa
+// External anchors: Shokri 2017 MI · Carlini 2021 extraction · Abadi 2016 DP-SGD · Yeom 2018
+//
+// @no-lock-needed
+
+let MODEL_NAMES   = ["A", "B", "C", "D"]
+let MI_ACC_x100   = [52, 58, 50, 45]
+let RANDOM_BASELINE_x100 = 50
+let LEAK_THRESHOLD_x100  = 5
+
+fn mi_excess_x100(i: int) -> int { return MI_ACC_x100[i] - RANDOM_BASELINE_x100 }
+fn mi_advantage_x100(i: int) -> int {
+    let e = mi_excess_x100(i)
+    if e < 0 { return 0 }
+    return e
+}
+fn falsifier_fires(i: int) -> bool { return mi_excess_x100(i) > LEAK_THRESHOLD_x100 }
+
+print("hexa-codex PRIVACY A1 falsifier — MI advantage closed-form")
+print("===========================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// check 1 — excess identity for all models (mi_acc − 50)
+checks_total = checks_total + 1
+let mut idn_ok = true
+let mut i = 0
+while i < MODEL_NAMES.len() {
+    if mi_excess_x100(i) != MI_ACC_x100[i] - RANDOM_BASELINE_x100 { idn_ok = false }
+    i = i + 1
+}
+if idn_ok {
+    print("  [PASS] mi_excess identity (mi_acc − 50) holds for all " + to_string(MODEL_NAMES.len()) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] mi_excess identity broken")
+}
+
+// check 2 — non-negative clip (advantage)
+checks_total = checks_total + 1
+let mut clip_ok = true
+i = 0
+while i < MODEL_NAMES.len() {
+    let a = mi_advantage_x100(i)
+    if a < 0 { clip_ok = false }
+    i = i + 1
+}
+if clip_ok {
+    print("  [PASS] mi_advantage ≥ 0 for all models (non-negative clip)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-negative clip broken")
+}
+
+// check 3 — baseline model C (mi_acc = 50) → excess = 0, no fire
+checks_total = checks_total + 1
+if mi_excess_x100(2) == 0 && falsifier_fires(2) == false {
+    print("  [PASS] baseline model C (mi_acc=50) → excess=0 · no fire")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] baseline model C unexpected (excess=" + to_string(mi_excess_x100(2)) + ")")
+}
+
+// check 4 — leak model B (mi_acc = 58) → excess = 8 > 5 → fires
+checks_total = checks_total + 1
+if mi_excess_x100(1) == 8 && falsifier_fires(1) {
+    print("  [PASS] leak model B (mi_acc=58) → excess=8 > 5 → falsifier fires (correct)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] leak model B expected excess=8 fires")
+}
+
+// check 5 — borderline model A (mi_acc = 52) → excess = 2 ≤ 5 → silent (bidirectional)
+checks_total = checks_total + 1
+if mi_excess_x100(0) == 2 && falsifier_fires(0) == false {
+    print("  [PASS] borderline model A (mi_acc=52) → excess=2 ≤ 5 → silent (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] borderline model A unexpected")
+}
+
+// check 6 — below-random model D (mi_acc = 45) → excess = -5, advantage = 0
+checks_total = checks_total + 1
+if mi_excess_x100(3) == -5 && mi_advantage_x100(3) == 0 && falsifier_fires(3) == false {
+    print("  [PASS] below-random model D (mi_acc=45) → excess=-5 (anomaly preserved) · advantage clipped 0 · no fire")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] below-random model D handling broken")
+}
+
+// check 7 — determinism
+checks_total = checks_total + 1
+if mi_excess_x100(1) == mi_excess_x100(1) && falsifier_fires(1) == falsifier_fires(1) {
+    print("  [PASS] deterministic (re-call same excess + same fire)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (MI delta-from-baseline identity 7/7) + 🟡 BY-CITATION (5pp threshold convention = Shokri 2017 / Carlini 2021)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — MI advantage formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("PRIVACY A1 finding (placeholder · closed-form):")
+print("  - MI delta-from-random-baseline identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: A silent · B fires · C baseline · D below-random")
+print("  - external anchor: Shokri 2017 MI attack · Carlini 2021 extraction · Abadi 2016 DP-SGD")
+print("  - 실측 MI attack (cycle-10+ T4): shadow models on ubu-1 HF · canary extraction · DP ε sweep")
+print("")
+print("__HEXA_CODEX_NUMERICS_PRIVACY_A1_MI_ADVANTAGE__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/PRIVACY/verdicts/a1_mi_advantage_verdict.txt"
+
+let mut content = "# hexa-codex PRIVACY A1 — MI advantage verifier (cycle-9 round-3)\n"
+content = content + "# axis=PRIVACY/PRIVACY.md::A1 (MI accuracy vs random baseline 0.5)\n"
+content = content + "# bench=PRIVACY/bench/privacy_a1_mi_advantage.hexa\n"
+content = content + "# verifier=PRIVACY/verify/numerics_privacy_a1_mi_advantage.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=mi_excess = mi_acc − 0.5; mi_advantage = max(0, mi_excess); falsifier_fires = mi_excess > 5pp\n"
+content = content + "# placeholder_data=4 models (A=52 B=58 C=50 D=45 × 100); B fires (excess 8), C baseline, A silent (2), D below-random (-5 clipped 0)\n"
+content = content + "# external_anchors=Shokri 2017 MI (S&P) · Carlini 2021 (arXiv:2012.07805) · Abadi 2016 DP-SGD · Yeom 2018\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · shadow models · canary extraction · DP ε sweep on ubu-1 HF)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

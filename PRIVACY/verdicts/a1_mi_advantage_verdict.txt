@@ -1,0 +1,11 @@
+# hexa-codex PRIVACY A1 — MI advantage verifier (cycle-9 round-3)
+# axis=PRIVACY/PRIVACY.md::A1 (MI accuracy vs random baseline 0.5)
+# bench=PRIVACY/bench/privacy_a1_mi_advantage.hexa
+# verifier=PRIVACY/verify/numerics_privacy_a1_mi_advantage.hexa
+# tier=🔵 STRUCTURAL (MI delta-from-baseline identity 7/7) + 🟡 BY-CITATION (5pp threshold convention = Shokri 2017 / Carlini 2021)
+# checks=7/7
+# formula=mi_excess = mi_acc − 0.5; mi_advantage = max(0, mi_excess); falsifier_fires = mi_excess > 5pp
+# placeholder_data=4 models (A=52 B=58 C=50 D=45 × 100); B fires (excess 8), C baseline, A silent (2), D below-random (-5 clipped 0)
+# external_anchors=Shokri 2017 MI (S&P) · Carlini 2021 (arXiv:2012.07805) · Abadi 2016 DP-SGD · Yeom 2018
+# substrate_fire=DEFERRED (cycle-10+ · shadow models · canary extraction · DP ε sweep on ubu-1 HF)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close

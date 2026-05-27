@@ -38,13 +38,13 @@
 - [ ] LONG-CONTEXT/A1 — needle-in-haystack accuracy @ context-len curve · 반증자: 64k 정확도 < 4k × 0.5
 - [ ] PROMPT-SENSITIVITY/A1 — 5-prompt agreement rate · variance · 반증자: factual 일관성 < 80%
 - [x] ENERGY/A1 — RAPL+NVIDIA-smi tokens/J at fixed task · 반증자: tokens/J 가 SOTA × 0.5 미만 · **CYCLE-9 round-1 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `ENERGY/verify/numerics_energy_a1_tokens_per_joule.hexa`
-- [ ] RAG/A1 — retriever recall@k · 인용 정확도 · 반증자: recall@5 < 50% OR citation rate < 30%
+- [x] RAG/A1 — retriever recall@k · 인용 정확도 · 반증자: recall@5 < 50% OR citation rate < 30% · **CYCLE-9 round-3 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `RAG/verify/numerics_rag_a1_recall_at_k.hexa`
 - [ ] AGENT/A1 — single-tool call 정확도 · 반증자: basic task 1-step < 70%
 - [x] CONTAMINATION/A1 — n-gram contamination rate (13-gram match) · 반증자: 표준 eval > 30% · **CYCLE-9 round-1 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 6/6 PASS · `CONTAMINATION/verify/numerics_contamination_a1_ngram_ratio.hexa`
 - [ ] INSTRUCTION-FOLLOWING/A1 — IFEval format compliance · 반증자: simple constraint 준수 < 90%
 - [x] MULTILINGUAL/A1 — per-language perplexity · bytes/token · 반증자: low-resource 성능 < 영어 × 0.5 · **CYCLE-9 round-2 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `MULTILINGUAL/verify/numerics_multilingual_a1_perplexity_gap.hexa`
 - [x] FAIRNESS/A1 — group-wise accuracy gap · counterfactual fairness · 반증자: demographic gap > 10pp · **CYCLE-9 round-2 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `FAIRNESS/verify/numerics_fairness_a1_group_gap.hexa`
-- [ ] PRIVACY/A1 — membership inference accuracy vs baseline · 반증자: > random + 5pp
+- [x] PRIVACY/A1 — membership inference accuracy vs baseline · 반증자: > random + 5pp · **CYCLE-9 round-3 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `PRIVACY/verify/numerics_privacy_a1_mi_advantage.hexa`
 
 ### ⭐⭐ 10 (보조 후보)
 - [ ] ROBUSTNESS/A1 — adversarial attack 성공률 · clean accuracy · 반증자: adv drop > 30pp

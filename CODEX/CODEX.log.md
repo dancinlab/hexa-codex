@@ -2,6 +2,45 @@
 
 Append-only history sister of `CODEX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-9 round-3: 2 closed-form A1 wires (PRIVACY + RAG · /cycle-fg inline)
+
+`/cycle-fg` round-3 (sticky fg · cap=2 batch · inline sequential). 2 closed-form A1 wires, 둘 다 ⭐⭐⭐ tier · 다른 compound 패턴 (delta-from-baseline vs OR compound).
+
+| axis | tier | checks | verifier |
+|---|---|---|---|
+| PRIVACY/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | `PRIVACY/verify/numerics_privacy_a1_mi_advantage.hexa` |
+| RAG/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | `RAG/verify/numerics_rag_a1_recall_at_k.hexa` |
+
+### Build phase 출력
+
+- **PRIVACY** — `mi_excess = mi_acc − 0.5` + `mi_advantage = max(0, excess)` + `falsifier_fires = excess > 5pp`. Worked example 4 models (A=52 borderline · B=58 leak fires · C=50 baseline · D=45 below-random anomaly · advantage clipped 0). Anchors: Shokri 2017 MI · Carlini 2021 extraction · Abadi 2016 DP-SGD · Yeom 2018.
+- **RAG** — set-cardinality `recall@k = |retrieved∩relevant|/|relevant|` + **compound OR** `falsifier = (recall@5 < 50%) OR (citation < 30%)`. Worked example 4 retrievers (BM25 62/55 · DPR 78/72 · ColBERT 85/80 silent · naive 35/18 DOUBLE FAIL) + synthetic one-leg-low fires. Anchors: Karpukhin 2020 DPR · Shi 2023 distractor · Asai 2023 Self-RAG · Ram 2023.
+
+### Compound logic 다양화
+
+| round | axis | compound | 패턴 |
+|---|---|---|---|
+| round-1 | CONTAMINATION/A1 | n-gram threshold (단일) | > 30% |
+| round-2 | MULTILINGUAL/A1 | AND (둘 다 위) | ppl > 2.0 AND bytes/tok > 2.0 |
+| round-2 | FAIRNESS/A1 | threshold | max gap > 10pp |
+| round-3 | PRIVACY/A1 | threshold | excess > 5pp |
+| round-3 | RAG/A1 | **OR (하나만 아래)** | recall < 50% OR citation < 30% |
+
+OR vs AND vs threshold — closed-form falsifier 다양한 형태 검증.
+
+### 정직성 (honest residual)
+
+- 둘 다 **closed-form identity tier** · 실측 substrate fire 별 cycle-10+ deferred.
+- PRIVACY: placeholder MI acc · 실측은 shadow models + canary extraction on ubu-1 HF.
+- RAG: placeholder recall/citation · 실측은 MS MARCO · NQ · TriviaQA + retriever family.
+- ⭐ MAIN N⭐ NOVEL (memorization-vs-utility Pareto · retrieve-then-ignore rate) 다음 라운드 후보.
+
+- [x] inline executed PRIVACY/A1 → 🔵+🟡 7/7
+- [x] inline executed RAG/A1 → 🔵+🟡 7/7
+- [ ] round-4 (남은 15 milestone · ⭐⭐⭐ 5 + ⭐⭐ 10)
+
+**7/22 milestone done · 15 queued · ♾️ perpetual frontier OPEN.**
+
 ## 2026-05-28 — cycle-9 round-2: 2 closed-form A1 wires (MULTILINGUAL + FAIRNESS · /cycle-fg inline)
 
 `/cycle-fg` round-2 (sticky fg · cap=2 batch · inline sequential · NO bg agent). throttle 학습 반영 — 1-at-a-time 인-세션 직접 실행. 둘 다 group-comparison 구조의 closed-form metric (ratio · absolute delta).

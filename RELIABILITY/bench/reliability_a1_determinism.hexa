@@ -1,0 +1,72 @@
+#!hexa strict
+// RELIABILITY/bench/reliability_a1_determinism.hexa
+// RELIABILITY A1 first probe (cycle-9 round-6 · CODEX fg) — determinism
+// reproduction rate on same seed · same model · same prompt N times.
+//
+// Identity (closed-form · libm-free · × 1000 ledger for 99.9% precision):
+//   reproduction_rate(setup) = N_match / N_total × 1000
+//   failure_rate             = 1000 − reproduction_rate
+//   falsifier_fires          = reproduction_rate < 999  (= < 99.9%)
+//
+// Falsifier (CODEX RELIABILITY A1): 결정론 재현률 < 99.9% (같은 seed · 같은
+// model 인데 N_total 번 중 N_match < 99.9% 만 동일 출력) → silent corruption
+// 또는 non-deterministic kernel · floating-point quirk 가능성.
+//
+// External anchors (citation tier · 🟡):
+//   Dixit 2021 — Silent Data Corruptions at Scale (arXiv:2102.11245)
+//   Hochschild 2021 — Cores that don't count (HotOS · fail-silent CPU)
+//   NVIDIA — bit-flip · ECC SBE/DBE on H100/A100 datasheet
+//
+// Integer ledger (rate × 1000) — libm-free. Placeholder per-setup match counts
+// — 실측 (cycle-10+ T4 · llama-server · HF transformers · vast.ai pod ECC inject)
+// deferred. SANDBOX 측정 substrate (`cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure rate identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Setup registry (4 setups · N_total = 1000 inference trials per setup)
+//   deterministic-seed     : ideal — seed pin · temp=0 · single GPU
+//   fp32-quirk             : borderline — fp32 accumulator order varies
+//   bit-flip-injected      : silent corruption injected (NVIDIA ECC SBE sim)
+//   nondet-kernel          : known non-det kernel (e.g. atomicAdd float reduce)
+// ────────────────────────────────────────────────────────────────────────
+
+let SETUP_NAMES = ["deterministic-seed", "fp32-quirk", "bit-flip-injected", "nondet-kernel"]
+let MATCH_COUNT = [1000, 999, 995, 850]   // N_match per setup on N_total=1000
+
+let N_TOTAL = 1000                  // trials per setup
+let RATE_THRESHOLD_x1000 = 999      // < 999 → falsifier fires (= < 99.9%)
+
+fn rate_x1000(i: int) -> int {
+    return (MATCH_COUNT[i] * 1000) / N_TOTAL
+}
+
+fn failure_rate_x1000(i: int) -> int {
+    return 1000 - rate_x1000(i)
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return rate_x1000(i) < RATE_THRESHOLD_x1000
+}
+
+print("hexa-codex RELIABILITY A1 — determinism reproduction rate (cycle-9 round-6)")
+print("============================================================================")
+print("")
+print("per-setup determinism reproduction rate (placeholder · × 1000 ledger):")
+let n = SETUP_NAMES.len()
+let mut i = 0
+while i < n {
+    let r = rate_x1000(i)
+    let f = failure_rate_x1000(i)
+    let mut flag = "ok (silent · ≥ 99.9%)"
+    if falsifier_fires(i) {
+        flag = "BELOW 99.9% (falsifier fires · silent corruption suspect)"
+    }
+    print("  " + SETUP_NAMES[i] + ": " + to_string(MATCH_COUNT[i]) + "/" +
+          to_string(N_TOTAL) + " = " + to_string(r) + "/1000 · failure=" +
+          to_string(f) + "/1000 · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_RELIABILITY_A1_DETERMINISM__ DONE")

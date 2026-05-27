@@ -1,0 +1,11 @@
+# hexa-codex RELIABILITY A1 — determinism reproduction-rate verifier (cycle-9 round-6)
+# axis=RELIABILITY/RELIABILITY.md::A1 (결정론 재현률 · silent corruption · same seed·model 다른 답)
+# bench=RELIABILITY/bench/reliability_a1_determinism.hexa
+# verifier=RELIABILITY/verify/numerics_reliability_a1_determinism.hexa
+# tier=🔵 STRUCTURAL (rate identity + threshold semantics 7/7) + 🟡 BY-CITATION (99.9% threshold = Dixit/Hochschild silent-corruption convention)
+# checks=7/7
+# formula=reproduction_rate = N_match / N_total × 1000; falsifier_fires = rate < 999 (< 99.9%)
+# placeholder_data=4 setups × N_total=1000; det-seed=1000 fp32-quirk=999 silent · bit-flip=995 nondet-kernel=850 fire
+# external_anchors=Dixit 2021 silent data corruption (arXiv:2102.11245) · Hochschild 2021 fail-silent (HotOS) · NVIDIA bit-flip (ECC SBE/DBE)
+# substrate_fire=DEFERRED (cycle-10+ · llama-server mac M3 · HF transformers ubu-1 · vast.ai pod ECC inject)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · 새 HW·model·serving stack 마다 frontier 재오픈

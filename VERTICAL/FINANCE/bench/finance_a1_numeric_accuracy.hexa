@@ -1,0 +1,113 @@
+#!hexa strict
+// VERTICAL/FINANCE/bench/finance_a1_numeric_accuracy.hexa
+// VERTICAL 전문 모델 측정 도메인군 · FINANCE (금융 전문 모델) — closed-form first probe.
+// "금융 전문 모델이 금융 수치 질문(FinQA · 재무제표 계산 · 비율/성장률)을 얼마나
+//  정밀하게 계산해내는가 (numeric accuracy)" 의 측정.
+//
+// ⚠ recipe ≠ measurement — 다른 layer:
+//   (build recipe) = 어떻게 금융 모델을 만드나 (financial corpus SFT · numeric-reasoning RL)
+//   VERTICAL/FINANCE 도메인 = MEASUREMENT (얼마나 정밀하게 계산하나 · numeric accuracy)
+// BloombergGPT 의 financial-numeric-reasoning 패러다임 (FinQA program-of-thought) 가 본 측정의 truth surface.
+//
+// Identity (closed-form · libm-free · percentage ledger):
+//   numeric_acc_x100(model) = numeric_correct × 100 / numeric_questions
+//                           = "금융 수치 질문 중 정답을 맞힌 %"
+//   accuracy_ok(model)      = numeric_acc_x100 ≥ THRESHOLD_x100 (90.00%)
+//   falsifier_fires(model)  = numeric_acc_x100 <  THRESHOLD_x100
+//                             → numeric accuracy < 90%
+//                             → 수치 계산 신뢰 불가 (금융은 정밀 critical · 1% 오차도 큰 손실)
+//
+// Falsifier (FINANCE A1): numeric accuracy 가 90% 미만이면 (numeric_acc < 9000)
+// 그 모델의 금융 수치 계산은 신뢰 불가 — 금융은 정밀 critical 도메인 (1% 오차 = 큰 손실).
+// 금융-전문 모델은 silent (정밀 계산) · general-purpose 모델은 fires (수치 오차 누적).
+//
+// External anchors (citation tier · 🟡):
+//   Chen 2021      — FinQA: A Dataset of Numerical Reasoning over Financial Data (arXiv:2109.00122)
+//   Wu 2023        — BloombergGPT: A Large Language Model for Finance (arXiv:2303.17564)
+//   Islam 2023     — FinanceBench: A New Benchmark for Financial Question Answering (arXiv:2311.11944)
+//
+// Integer ledger (pct × 100) — libm-free closed-form. Placeholder per-model
+// {numeric_questions, numeric_correct} — 실측 FinQA / FinanceBench numeric eval deferred
+// (cycle-11+ T4 · HF transformers infer + program-of-thought exec · vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure financial-numeric accuracy identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 models · {numeric_questions, numeric_correct} · counts)
+//   bloomberg_gpt : 100 q · 95 correct (acc 95.00% · finance SOTA · silent)
+//   gpt5_finance  : 100 q · 93 correct (acc 93.00% · finance-tuned · silent)
+//   fin_claude    : 100 q · 91 correct (acc 91.00% · finance-tuned · silent)
+//   general_gpt5  : 100 q · 82 correct (acc 82.00% · general-purpose · FIRES · 수치 오차)
+//   weak_fin      : 100 q · 70 correct (acc 70.00% · weak · FIRES · 수치 신뢰 불가)
+//
+// numeric_questions = FinQA-style 금융 수치 질문 수 of THIS model's eval set.
+// numeric_correct   = 그 중 수치 정답을 (program-of-thought exec 기준) 맞힌 수 of THIS model.
+//   numeric_acc = correct/questions × 100 → "금융 수치 계산 정확도".
+//   general_gpt5 + weak_fin 은 fire 행 (수치 정밀도 90% 미만 → fires by design).
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["bloomberg_gpt", "gpt5_finance", "fin_claude", "general_gpt5", "weak_fin"]
+
+// row-major {numeric_questions, numeric_correct} (5 models × 2 fields)
+//   bloomberg_gpt : [100, 95]  → 95.00% silent
+//   gpt5_finance  : [100, 93]  → 93.00% silent
+//   fin_claude    : [100, 91]  → 91.00% silent
+//   general_gpt5  : [100, 82]  → 82.00% FIRES (general-purpose · 수치 오차)
+//   weak_fin      : [100, 70]  → 70.00% FIRES (weak · 수치 신뢰 불가)
+let MODEL_DATA = [100, 95,
+                  100, 93,
+                  100, 91,
+                  100, 82,
+                  100, 70]
+
+let N_FIELDS = 2
+let THRESHOLD_x100 = 90 * 100       // numeric_acc < 90.00% → 수치 계산 신뢰 불가 (금융 정밀 critical)
+let ACC_MAX_x100 = 100 * 100        // acc ∈ [0, 100] pct · × 100 ledger ∈ [0, 10000]
+
+fn numeric_questions(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn numeric_correct(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn numeric_acc_x100(model_i: int) -> int {
+    // financial numeric accuracy (pct × 100) = numeric_correct × 100 / numeric_questions × 100.
+    //   to land on the pct × 100 ledger: correct × 10000 / questions.
+    //   "금융 수치 질문 중 정답 %" — answer numeric precision (금융 정밀 critical).
+    return numeric_correct(model_i) * ACC_MAX_x100 / numeric_questions(model_i)
+}
+
+fn accuracy_ok(model_i: int) -> bool {
+    return numeric_acc_x100(model_i) >= THRESHOLD_x100
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // numeric accuracy < 90% → 수치 계산 신뢰 불가 (금융은 정밀 critical · 1% 오차도 큰 손실)
+    return numeric_acc_x100(model_i) < THRESHOLD_x100
+}
+
+print("hexa-codex VERTICAL/FINANCE A1 — financial numeric-accuracy closed-form (금융 전문 모델 측정 · cycle-10)")
+print("=============================================================================================================")
+print("")
+print("⚠ recipe ≠ measurement — build recipe = 만들기 · FINANCE 도메인 = 측정 (numeric accuracy)")
+print("")
+print("per-model financial numeric-accuracy profile (placeholder · pct × 100 ledger · libm-free):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let nq = numeric_questions(i)
+    let nc = numeric_correct(i)
+    let a = numeric_acc_x100(i)
+    let mut flag = "silent (numeric_acc ≥ 90% · 정밀 계산 신뢰 가능)"
+    if falsifier_fires(i) {
+        flag = "FIRES (numeric_acc < 90% · 수치 계산 신뢰 불가 · 금융 정밀 critical)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    numeric_questions=" + to_string(nq) + " · numeric_correct=" + to_string(nc))
+    print("    → numeric_acc=" + to_string(a / 100) + "." + to_string(a % 100) + "% · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_FINANCE_A1_NUMERIC_ACCURACY__ DONE")

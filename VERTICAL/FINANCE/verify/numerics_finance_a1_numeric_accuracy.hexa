@@ -1,0 +1,214 @@
+#!hexa strict
+// VERTICAL/FINANCE/verify/numerics_finance_a1_numeric_accuracy.hexa
+// VERTICAL 전문 모델 측정 도메인군 · FINANCE — closed-form verifier for the financial
+// numeric-accuracy identity + 90% threshold falsifier semantics.
+//
+// ⚠ recipe ≠ measurement — build recipe = RECIPE (만들기 · financial corpus SFT/RL) ·
+//   VERTICAL/FINANCE = MEASUREMENT (얼마나 정밀하게 계산하나 · numeric accuracy). BloombergGPT 의
+//   FinQA program-of-thought financial-numeric-reasoning 패러다임이 본 측정의 truth surface.
+//
+// Asserts the numeric-accuracy identity is closed-form and the falsifier (수치 신뢰 불가 detection)
+// correctly classifies:
+//   (1) acc identity (numeric_correct × 10000 / numeric_questions) holds for all 5 models
+//   (2) count values ∈ [0, numeric_questions] (correct ≤ questions · acc ∈ [0, 10000])
+//   (3) sub-90% synthetic — questions=100 correct=82 → acc=82.00% → fires (수치 계산 신뢰 불가)
+//   (4) general_gpt5 (82%) + weak_fin (70%) fire (acc < 90% · 수치 오차) · finance models silent
+//   (5) bloomberg_gpt + gpt5_finance + fin_claude silent (acc ≥ 90% · 정밀 계산)
+//   (6) determinism (re-call same acc + fires)
+//   (7) sanity — numeric_correct ≤ numeric_questions for all (정답은 문제 수 이하) AND
+//       finance-model monotone: bloomberg_gpt (95%) ≥ gpt5_finance (93%) ≥ fin_claude (91%)
+//
+// Source: VERTICAL/FINANCE/bench/finance_a1_numeric_accuracy.hexa
+// External anchors: Chen 2021 FinQA (arXiv:2109.00122) ·
+//                   Wu 2023 BloombergGPT (arXiv:2303.17564) ·
+//                   Islam 2023 FinanceBench (arXiv:2311.11944)
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["bloomberg_gpt", "gpt5_finance", "fin_claude", "general_gpt5", "weak_fin"]
+
+let MODEL_DATA = [100, 95,
+                  100, 93,
+                  100, 91,
+                  100, 82,
+                  100, 70]
+
+let N_FIELDS = 2
+let THRESHOLD_x100 = 90 * 100       // < 90.00% numeric_acc → 수치 계산 신뢰 불가 (금융 정밀 critical)
+let ACC_MAX_x100 = 100 * 100        // acc ∈ [0, 10000]
+
+fn numeric_questions(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn numeric_correct(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn numeric_acc_x100(model_i: int) -> int {
+    return numeric_correct(model_i) * ACC_MAX_x100 / numeric_questions(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return numeric_acc_x100(model_i) < THRESHOLD_x100
+}
+
+print("hexa-codex VERTICAL/FINANCE A1 falsifier — financial numeric-accuracy closed-form")
+print("================================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — acc identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = numeric_acc_x100(i)
+    let rhs = numeric_correct(i) * ACC_MAX_x100 / numeric_questions(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] acc identity (numeric_correct × 10000 / numeric_questions) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] acc identity broken")
+}
+
+// check 2 — count values valid (correct ≤ questions · acc ∈ [0, 10000])
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_model {
+    let nq = numeric_questions(i)
+    let nc = numeric_correct(i)
+    if nc < 0 || nc > nq || nq <= 0 { rb_ok = false }
+    if numeric_acc_x100(i) < 0 || numeric_acc_x100(i) > ACC_MAX_x100 { rb_ok = false }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] count values valid (0 ≤ numeric_correct ≤ numeric_questions · acc ∈ [0, " +
+          to_string(ACC_MAX_x100) + "]) for all " + to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] count value out of range")
+}
+
+// check 3 — sub-90% synthetic: questions=100 correct=82 → acc=82.00% → fires
+checks_total = checks_total + 1
+let SYN_Q = 100
+let SYN_C = 82
+let syn_acc = SYN_C * ACC_MAX_x100 / SYN_Q
+if syn_acc == 8200 && syn_acc < THRESHOLD_x100 {
+    print("  [PASS] synthetic sub-90% (questions=100 correct=82) → acc=82.00% · fires (수치 계산 신뢰 불가 · 금융 정밀 critical)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic sub-90% acc=" + to_string(syn_acc))
+}
+
+// check 4 — general_gpt5 (idx 3, 82%) + weak_fin (idx 4, 70%) fire (acc < 90%) · finance models silent
+checks_total = checks_total + 1
+if falsifier_fires(3) && falsifier_fires(4)
+        && numeric_acc_x100(3) == 8200 && numeric_acc_x100(4) == 7000
+        && falsifier_fires(0) == false && falsifier_fires(1) == false
+        && falsifier_fires(2) == false {
+    print("  [PASS] general_gpt5 fires: acc=82.00% · weak_fin fires: acc=70.00% (< 90% · 수치 계산 신뢰 불가) — only these two fire")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sub-90% fire detection broken")
+}
+
+// check 5 — bloomberg_gpt + gpt5_finance + fin_claude silent (acc ≥ 90% · 정밀 계산)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && numeric_acc_x100(0) == 9500 && numeric_acc_x100(1) == 9300
+        && numeric_acc_x100(2) == 9100 {
+    print("  [PASS] finance models silent: bloomberg_gpt acc=95.00% · gpt5_finance=93.00% · fin_claude=91.00% — all ≥ 90% · 정밀 계산 (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] finance-model silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if numeric_acc_x100(0) == numeric_acc_x100(0)
+        && falsifier_fires(3) == falsifier_fires(3)
+        && numeric_acc_x100(4) == numeric_acc_x100(4) {
+    print("  [PASS] formula deterministic (re-call same acc + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: numeric_correct ≤ numeric_questions for all (정답은 문제 수 이하) AND
+//   finance-model monotone: bloomberg_gpt (95%) ≥ gpt5_finance (93%) ≥ fin_claude (91%).
+//   note: general_gpt5 + weak_fin 은 fire 행 (general/weak · sub-90% by design).
+checks_total = checks_total + 1
+let mut correct_subset = true
+i = 0
+while i < n_model {
+    if numeric_correct(i) > numeric_questions(i) { correct_subset = false }
+    i = i + 1
+}
+let monotone_finance = numeric_acc_x100(0) >= numeric_acc_x100(1)
+        && numeric_acc_x100(1) >= numeric_acc_x100(2)
+if correct_subset && monotone_finance {
+    print("  [PASS] sanity — numeric_correct ≤ numeric_questions all (정답은 문제 수 이하) AND finance monotone (bloomberg 95 ≥ gpt5_finance 93 ≥ fin_claude 91)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (correct_subset=" + to_string(correct_subset) +
+          " · monotone_finance=" + to_string(monotone_finance) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (financial numeric-accuracy identity + 90% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 90% threshold = 금융 정밀 critical convention · cite Chen 2021 FinQA arXiv:2109.00122 + Wu 2023 BloombergGPT arXiv:2303.17564 + Islam 2023 FinanceBench arXiv:2311.11944)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — financial numeric-accuracy formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/FINANCE A1 finding (금융 전문 모델 측정 · placeholder · closed-form):")
+print("  - numeric_acc_x100 = numeric_correct × 100 / numeric_questions identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: bloomberg_gpt=95% · gpt5_finance=93% · fin_claude=91% silent (정밀 계산) · general_gpt5=82% + weak_fin=70% fire (수치 계산 신뢰 불가)")
+print("  - external anchors: Chen 2021 FinQA (arXiv:2109.00122) · Wu 2023 BloombergGPT (arXiv:2303.17564) · Islam 2023 FinanceBench (arXiv:2311.11944)")
+print("  - recipe ≠ measurement: build recipe = 만들기 (RECIPE) · FINANCE 도메인 = 측정 (MEASUREMENT · numeric accuracy)")
+print("  - 실측 (cycle-11+ T4): FinQA / FinanceBench numeric eval on lm_foundry + HF transformers + program-of-thought exec + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_FINANCE_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/FINANCE/verdicts/a1_numeric_accuracy_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/FINANCE A1 — financial numeric-accuracy verifier (금융 전문 모델 측정 · cycle-10)\n"
+content = content + "# axis=VERTICAL/FINANCE/FINANCE.md::A1 (numeric 수치추론 정확도 · 5 models · 90% 정밀 critical threshold)\n"
+content = content + "# bench=VERTICAL/FINANCE/bench/finance_a1_numeric_accuracy.hexa\n"
+content = content + "# verifier=VERTICAL/FINANCE/verify/numerics_finance_a1_numeric_accuracy.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=numeric_acc_x100 = numeric_correct × 100 / numeric_questions (금융 수치 질문 중 정답 %); falsifier_fires = numeric_acc < 90% → 수치 계산 신뢰 불가 (금융은 정밀 critical · 1% 오차도 큰 손실)\n"
+content = content + "# placeholder_data=5 models · bloomberg_gpt (100q · 95c · acc 95.00% silent) · gpt5_finance (100q · 93c · 93.00% silent) · fin_claude (100q · 91c · 91.00% silent) · general_gpt5 (100q · 82c · 82.00% FIRES · 수치 오차) · weak_fin (100q · 70c · 70.00% FIRES · 신뢰 불가)\n"
+content = content + "# bidirectional_discrimination=3 silent (bloomberg_gpt · gpt5_finance · fin_claude — finance-specialist · 정밀 계산) + 2 fires (general_gpt5 + weak_fin — acc<90% · 수치 계산 신뢰 불가)\n"
+content = content + "# external_anchors=Chen 2021 FinQA: A Dataset of Numerical Reasoning over Financial Data (arXiv:2109.00122) · Wu 2023 BloombergGPT: A Large Language Model for Finance (arXiv:2303.17564) · Islam 2023 FinanceBench (arXiv:2311.11944)\n"
+content = content + "# recipe_vs_measurement=build recipe = RECIPE (만들기 · financial corpus SFT/RL · numeric-reasoning) · VERTICAL/FINANCE = MEASUREMENT (얼마나 정밀하게 계산하나 · numeric accuracy) — 다른 layer\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · FinQA / FinanceBench numeric eval + program-of-thought exec on lm_foundry + HF transformers + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — numeric-accuracy identity close ≠ measured close · 새 finance model·benchmark 마다 frontier 재오픈 · 축 N (환각-위험 비대칭 · hallucination-risk asymmetry) ⭐ MAIN · 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

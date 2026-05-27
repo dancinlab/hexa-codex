@@ -1,0 +1,13 @@
+# hexa-codex VERTICAL/FINANCE A1 — financial numeric-accuracy verifier (금융 전문 모델 측정 · cycle-10)
+# axis=VERTICAL/FINANCE/FINANCE.md::A1 (numeric 수치추론 정확도 · 5 models · 90% 정밀 critical threshold)
+# bench=VERTICAL/FINANCE/bench/finance_a1_numeric_accuracy.hexa
+# verifier=VERTICAL/FINANCE/verify/numerics_finance_a1_numeric_accuracy.hexa
+# tier=🔵 STRUCTURAL (financial numeric-accuracy identity + 90% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 90% threshold = 금융 정밀 critical convention · cite Chen 2021 FinQA arXiv:2109.00122 + Wu 2023 BloombergGPT arXiv:2303.17564 + Islam 2023 FinanceBench arXiv:2311.11944)
+# checks=7/7
+# formula=numeric_acc_x100 = numeric_correct × 100 / numeric_questions (금융 수치 질문 중 정답 %); falsifier_fires = numeric_acc < 90% → 수치 계산 신뢰 불가 (금융은 정밀 critical · 1% 오차도 큰 손실)
+# placeholder_data=5 models · bloomberg_gpt (100q · 95c · acc 95.00% silent) · gpt5_finance (100q · 93c · 93.00% silent) · fin_claude (100q · 91c · 91.00% silent) · general_gpt5 (100q · 82c · 82.00% FIRES · 수치 오차) · weak_fin (100q · 70c · 70.00% FIRES · 신뢰 불가)
+# bidirectional_discrimination=3 silent (bloomberg_gpt · gpt5_finance · fin_claude — finance-specialist · 정밀 계산) + 2 fires (general_gpt5 + weak_fin — acc<90% · 수치 계산 신뢰 불가)
+# external_anchors=Chen 2021 FinQA: A Dataset of Numerical Reasoning over Financial Data (arXiv:2109.00122) · Wu 2023 BloombergGPT: A Large Language Model for Finance (arXiv:2303.17564) · Islam 2023 FinanceBench (arXiv:2311.11944)
+# recipe_vs_measurement=build recipe = RECIPE (만들기 · financial corpus SFT/RL · numeric-reasoning) · VERTICAL/FINANCE = MEASUREMENT (얼마나 정밀하게 계산하나 · numeric accuracy) — 다른 layer
+# substrate_fire=DEFERRED (cycle-11+ · FinQA / FinanceBench numeric eval + program-of-thought exec on lm_foundry + HF transformers + vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — numeric-accuracy identity close ≠ measured close · 새 finance model·benchmark 마다 frontier 재오픈 · 축 N (환각-위험 비대칭 · hallucination-risk asymmetry) ⭐ MAIN · 도착지 없음

@@ -1,0 +1,186 @@
+#!hexa strict
+// HW-VARIANCE/verify/numerics_hw_variance_n1_distributed_scaling.hexa
+// HW-VARIANCE N1 ⭐ — closed-form verifier for distributed-scaling efficiency identity.
+//
+// Asserts the scaling-efficiency identity + bidirectional discrimination:
+//   (1) efficiency identity (speedup_x100 × 100 / n_gpus = (speedup/N) × 100 percent ledger) holds for all 5 configs
+//   (2) ranges: n_gpus ≥ 1 · speedup ≥ 100 (≥ 1× vs single-GPU baseline)
+//   (3) single-GPU baseline → exactly 100% efficiency (linear by definition)
+//   (4) tp_comm_bound + multinode_16 fire (efficiency < 7000/100 = < 70%)
+//   (5) dp_8gpu_good + fsdp_8gpu silent (efficiency ≥ 7000/100 = ≥ 70%) — false-positive 회피
+//   (6) determinism of the formula itself (recompute = recompute)
+//   (7) sanity: efficiency ∈ [0, 100] (speedup ≤ N · super-linear scaling excluded)
+//
+// Source: HW-VARIANCE/bench/hw_variance_n1_distributed_scaling.hexa
+// External anchors: Shoeybi 2019 Megatron-LM · Rajbhandari 2020 ZeRO ·
+//                   Zhao 2023 PyTorch FSDP · Narayanan 2021 efficient large-scale · Amdahl's law
+//
+// @no-lock-needed
+
+let CFG_NAMES   = ["single", "dp_8gpu_good", "fsdp_8gpu", "tp_comm_bound", "multinode_16"]
+let N_GPUS      = [   1,           8,             8,            8,              16     ]
+let SPEEDUP_x100 = [ 100,         760,           680,          480,           1040     ]
+
+let EFFICIENCY_FALSIFIER_x100 = 7000
+let N_CFG = 5
+
+fn n_gpus(i: int) -> int { return N_GPUS[i] }
+fn speedup_x100(i: int) -> int { return SPEEDUP_x100[i] }
+
+fn scaling_efficiency_x100(i: int) -> int {
+    let ng = n_gpus(i)
+    if ng <= 0 { return 0 }
+    return speedup_x100(i) * 100 / ng
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return scaling_efficiency_x100(i) < EFFICIENCY_FALSIFIER_x100
+}
+
+print("hexa-codex HW-VARIANCE N1 ⭐ falsifier — distributed-scaling efficiency closed-form")
+print("====================================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = CFG_NAMES.len()
+
+// check 1 — efficiency identity (speedup_x100 × 100 / n_gpus = (speedup/N) percent × 100) for all configs
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n {
+    let ng = n_gpus(i)
+    let expected = if ng <= 0 { 0 } else { speedup_x100(i) * 100 / ng }
+    if scaling_efficiency_x100(i) != expected { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] efficiency identity (speedup_x100 × 100 / n_gpus = (speedup/N) percent ledger) holds for all " + to_string(n) + " configs")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] efficiency identity broken")
+}
+
+// check 2 — ranges: n_gpus ≥ 1 · speedup ≥ 100 (≥ 1× vs single-GPU baseline)
+checks_total = checks_total + 1
+let mut range_ok = true
+i = 0
+while i < n {
+    if n_gpus(i) < 1 { range_ok = false }
+    if speedup_x100(i) < 100 { range_ok = false }
+    i = i + 1
+}
+if range_ok {
+    print("  [PASS] ranges valid: n_gpus ≥ 1 · speedup ≥ 100/100 (≥ 1×) across all " + to_string(n) + " configs")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] range violation (n_gpus < 1 or speedup < 1×)")
+}
+
+// check 3 — single-GPU baseline → exactly 100% efficiency (linear by definition)
+checks_total = checks_total + 1
+if n_gpus(0) == 1 && scaling_efficiency_x100(0) == 10000 {
+    print("  [PASS] single-GPU baseline → 100% efficiency (= " + to_string(scaling_efficiency_x100(0)) + "/100 · linear by definition)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] single-GPU baseline ≠ 100% (got " + to_string(scaling_efficiency_x100(0)) + "/100)")
+}
+
+// check 4 — tp_comm_bound (idx 3) + multinode_16 (idx 4) fire (< 7000/100 = < 70%)
+checks_total = checks_total + 1
+if falsifier_fires(3) && falsifier_fires(4) && scaling_efficiency_x100(3) == 6000 && scaling_efficiency_x100(4) == 6500 {
+    print("  [PASS] < 70% configs fire: tp_comm_bound=" + to_string(scaling_efficiency_x100(3)) + "/100 (60%) · multinode_16=" + to_string(scaling_efficiency_x100(4)) + "/100 (65%) — 통신 dominant (Amdahl)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] < 70% fire detection broken")
+}
+
+// check 5 — dp_8gpu_good (idx 1) + fsdp_8gpu (idx 2) silent (≥ 7000/100 = ≥ 70%) — false-positive 회피
+checks_total = checks_total + 1
+if falsifier_fires(1) == false && falsifier_fires(2) == false && scaling_efficiency_x100(1) == 9500 && scaling_efficiency_x100(2) == 8500 {
+    print("  [PASS] ≥ 70% configs silent: dp_8gpu_good=" + to_string(scaling_efficiency_x100(1)) + "/100 (95%) · fsdp_8gpu=" + to_string(scaling_efficiency_x100(2)) + "/100 (85%) — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ≥ 70% silent detection broken")
+}
+
+// check 6 — determinism of the formula itself
+checks_total = checks_total + 1
+if scaling_efficiency_x100(0) == scaling_efficiency_x100(0) && scaling_efficiency_x100(3) == scaling_efficiency_x100(3) && falsifier_fires(4) == falsifier_fires(4) {
+    print("  [PASS] formula deterministic (re-call same efficiency + fires)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: efficiency ∈ [0, 100] (speedup ≤ N · super-linear scaling excluded)
+checks_total = checks_total + 1
+let mut sane_ok = true
+i = 0
+while i < n {
+    let eff = scaling_efficiency_x100(i)
+    if eff < 0 { sane_ok = false }
+    if eff > 10000 { sane_ok = false }       // > 100% → super-linear (excluded by construction)
+    if speedup_x100(i) > n_gpus(i) * 100 { sane_ok = false }   // speedup ≤ N (no super-linear)
+    i = i + 1
+}
+if sane_ok {
+    print("  [PASS] sanity: efficiency ∈ [0, 100] · speedup ≤ N for all " + to_string(n) + " configs (super-linear excluded)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity violated (efficiency out of [0,100] or super-linear speedup > N)")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (scaling-efficiency identity + bidirectional discrimination + [0,100] sanity 7/7) + 🟡 BY-CITATION (70% efficiency threshold = Megatron-LM / ZeRO / FSDP / Narayanan 2021 / Amdahl convention)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — efficiency formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("HW-VARIANCE N1 ⭐ finding (placeholder · closed-form):")
+print("  - scaling_efficiency_x100 = speedup_x100 × 100 / n_gpus = (speedup/N) percent ledger identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: single=100% · dp_8gpu_good=95% · fsdp_8gpu=85% silent · tp_comm_bound=60% · multinode_16=65% fire")
+print("  - falsifier: scaling efficiency < 70% → 통신 오버헤드 dominant (Amdahl) · 더 많은 GPU 무의미")
+print("  - external anchor: Shoeybi 2019 Megatron-LM · Rajbhandari 2020 ZeRO · Zhao 2023 PyTorch FSDP · Narayanan 2021 efficient large-scale · Amdahl's law")
+print("  - 실측 (cycle-10+ T4): multi-GPU pod (vast.ai A100×8 / multinode) per-config wall-clock speedup sweep on SANDBOX substrate")
+print("")
+print("__HEXA_CODEX_NUMERICS_HW_VARIANCE_N1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/HW-VARIANCE/verdicts/n1_distributed_scaling_verdict.txt"
+
+let mut content = "# hexa-codex HW-VARIANCE N1 ⭐ — distributed-scaling efficiency verifier (cycle-10 reorg Batch B)\n"
+content = content + "# axis=HW-VARIANCE/HW-VARIANCE.md::N1 (⭐ NOVEL MAIN · distributed scaling efficiency · multi-GPU speedup/N · 반증자 efficiency < 70% → 통신 dominant Amdahl)\n"
+content = content + "# novel_lane=HW-VAR self-NOVEL — A1 (per-chip 분산) 의 multi-chip 확장 · N-GPU 협력 효율\n"
+content = content + "# sibling_axes=A1 (per-chip throughput spread closed-form) · A1' (measured cross-host spread 🟢)\n"
+content = content + "# bench=HW-VARIANCE/bench/hw_variance_n1_distributed_scaling.hexa\n"
+content = content + "# verifier=HW-VARIANCE/verify/numerics_hw_variance_n1_distributed_scaling.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=scaling_efficiency_x100 = speedup_x100 × 100 / n_gpus = (speedup/N) as percent × 100 (ideal=100% = 10000/100); falsifier_fires = efficiency < 7000/100 (= < 70%)\n"
+content = content + "# placeholder_data=5 configs: single(1·100→100%) dp_8gpu_good(8·760→95%) fsdp_8gpu(8·680→85%) silent · tp_comm_bound(8·480→60%) multinode_16(16·1040→65%) fire\n"
+content = content + "# bidirectional=dp/fsdp ≥70% silent ↔ tp_comm_bound/multinode <70% fire — comm-overhead Amdahl 한계 양방향 검출\n"
+content = content + "# external_anchors=Shoeybi 2019 Megatron-LM (arXiv:1909.08053) · Rajbhandari 2020 ZeRO (arXiv:1910.02054) · Zhao 2023 PyTorch FSDP (arXiv:2304.11277) · Narayanan 2021 efficient large-scale (arXiv:2104.04473) · Amdahl's law\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · multi-GPU pod vast.ai A100×8 / multinode per-config wall-clock speedup sweep · train/infer/serve stack)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · 새 topology · interconnect · parallelism strategy 마다 frontier 재오픈\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

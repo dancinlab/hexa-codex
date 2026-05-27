@@ -2,6 +2,17 @@
 
 Append-only history sister of `HW-VARIANCE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — N1 ⭐ NOVEL MAIN = distributed-scaling efficiency wired (cycle-10 reorg Batch B · CODEX bg)
+
+- [x] `HW-VARIANCE/bench/hw_variance_n1_distributed_scaling.hexa` — closed-form `scaling_efficiency_x100 = speedup_x100 × 100 / n_gpus` (= (speedup/N) as a percent in a × 100-of-percent integer ledger · libm-free). 5-config train/infer/serve distributed sweep: single (1·100→100%) · dp_8gpu_good (8·760→95%) · fsdp_8gpu (8·680→85%) · tp_comm_bound (8·480→60%) · multinode_16 (16·1040→65%). Sentinel `__HEXA_CODEX_HW_VARIANCE_N1_DISTRIBUTED_SCALING__ DONE`.
+- [x] **NOVEL axis rationale** — HW-VAR 의 self-NOVEL: A1 (per-chip 분산 = 한 칩의 silicon-lottery) 의 multi-chip 확장. N개 칩이 협력할 때 통신 오버헤드 (all-reduce · pipeline bubble · cross-node bandwidth) 가 linear scaling 을 얼마나 잠식하는가 — Amdahl 의 분산 한계.
+- [x] **Identity correction** — task 가 명시한 literal `× 100 / (n_gpus × 100)` 는 단위가 한 자리수로 붕괴 (single → 100 not 10000). task 자신이 요구한 expected values (95%=9500 · threshold 7000) 와 일치하는 수학적으로 옳은 형태 `speedup_x100 × 100 / n_gpus` 로 구현 — 동일 의미 (speedup/N × 100), × 100-of-percent ledger 유지.
+- [x] `HW-VARIANCE/verify/numerics_hw_variance_n1_distributed_scaling.hexa` — 7-check verifier: (1) efficiency identity (2) ranges n_gpus≥1·speedup≥1× (3) single-GPU → 100% (4) tp_comm_bound + multinode_16 fire (< 70%) (5) dp_good + fsdp silent (≥ 70%) — false-positive 회피 (6) determinism (7) sanity efficiency ∈ [0,100] · speedup ≤ N (super-linear 제외). env-driven `_root()`. Sentinel `__HEXA_CODEX_NUMERICS_HW_VARIANCE_N1__ DONE`.
+- [x] `hexa run` verdict — **7/7 checks passed** · 🔵 STRUCTURAL (scaling-efficiency identity + bidirectional discrimination + [0,100] sanity) + 🟡 BY-CITATION (70% efficiency threshold = Megatron-LM / ZeRO / FSDP / Narayanan 2021 / Amdahl convention). Bidirectional: dp_8gpu_good (95%) · fsdp_8gpu (85%) silent ↔ tp_comm_bound (60%) · multinode_16 (65%) fire. Verdict persisted at `HW-VARIANCE/verdicts/n1_distributed_scaling_verdict.txt`.
+- [x] **External anchors** — Shoeybi 2019 Megatron-LM (arXiv:1909.08053) · Rajbhandari 2020 ZeRO (arXiv:1910.02054) · Zhao 2023 PyTorch FSDP (arXiv:2304.11277) · Narayanan 2021 efficient large-scale (arXiv:2104.04473) · Amdahl's law.
+- [x] **N-axis renumber** — cycle-9 의 N1 (silicon-vs-thermal variance 분리) → **N2 로 강등**. N1 letter 를 distributed-scaling 신규 NOVEL 이 차지 (⭐ MAIN priority lane). N2 는 여전히 OPEN (`- [ ]`). Snapshot 축 N 섹션 + dispatch surface 테이블 업데이트.
+- [ ] **Honest residual** — substrate fire DEFERRED (`feedback_closure_is_physical_limit`): cycle-10+ T4 measured contact via multi-GPU pod (vast.ai A100×8 / multinode) per-config wall-clock speedup sweep on SANDBOX substrate (`cx_lab_sandbox`) required to bind placeholder speedup/N to real interconnect-bound scaling cohorts. Identity-close ≠ measured-close · 새 topology · interconnect · parallelism strategy 마다 frontier 재오픈. 도착지 없음.
+
 ## 2026-05-28 — A1' measured tier-2 elevation 🟡 → 🟢 (cycle-10 round-1 · CODEX bg)
 
 - [x] `HW-VARIANCE/verify/numerics_hw_variance_a1_measured_spread.hexa` — measured Tier-2 🟢 SUPPORTED-NUMERICAL counterpart to round-8 closed-form A1. 7-check verifier embedding raw trial data + integer-ledger throughput recompute + identity recheck + bidirectional comparison against the 4 closed-form synthetic populations. Sentinel `__HEXA_CODEX_HW_VARIANCE_A1_MEASURED__ DONE`.

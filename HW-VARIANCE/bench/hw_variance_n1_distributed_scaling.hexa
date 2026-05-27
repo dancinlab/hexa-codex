@@ -1,0 +1,97 @@
+#!hexa strict
+// HW-VARIANCE/bench/hw_variance_n1_distributed_scaling.hexa
+// HW-VARIANCE N1 ⭐ NOVEL MAIN (cycle-10 reorg Batch B · CODEX bg) — multi-GPU
+// distributed-scaling efficiency closed-form. A1 (per-chip 분산) 의 multi-chip
+// 확장: 한 칩의 silicon-lottery 가 아니라 N개 칩이 협력할 때 통신 오버헤드가
+// linear scaling 을 얼마나 잠식하는가 (Amdahl 의 분산 한계).
+//
+// Identity (closed-form · libm-free · × 100-of-percent ledger):
+//   scaling_efficiency_x100(cfg) = speedup_x100 × 100 / n_gpus      (= (speedup/N) as a %, × 100)
+//   where speedup_x100 is itself a × 100 ledger of the raw speedup (760 = 7.6×).
+//   Equivalent: efficiency% = (speedup / n_gpus) × 100; the ledger keeps it integer.
+//   ideal = 100% (= 10000/100): linear scaling, speedup == n_gpus.
+//   falsifier_fires(cfg) = scaling_efficiency_x100 < 7000  (= < 70%)
+//     → 통신 오버헤드 dominant (Amdahl) · all-reduce / pipeline bubble /
+//       cross-node bandwidth 가 compute 를 압도 · 더 많은 GPU 가 무의미.
+//
+// Bidirectional (catches BOTH well-scaled silent AND comm-bound fire):
+//   single        (1  · 100)  → 100% · silent (trivially linear baseline)
+//   dp_8gpu_good  (8  · 760)  →  95% · silent (DDP well-tuned · NCCL all-reduce hidden)
+//   fsdp_8gpu     (8  · 680)  →  85% · silent (FSDP gather/scatter overhead acceptable)
+//   tp_comm_bound (8  · 480)  →  60% · FIRES  (tensor-parallel all-reduce per layer dominant)
+//   multinode_16  (16 · 1040) →  65% · FIRES  (cross-node InfiniBand bandwidth dominant)
+//
+// External anchors (citation tier · 🟡):
+//   Shoeybi 2019 — Megatron-LM (tensor-parallel · arXiv:1909.08053)
+//   Rajbhandari 2020 — ZeRO (memory-optimal data-parallel · arXiv:1910.02054)
+//   Zhao 2023 — PyTorch FSDP (fully-sharded data-parallel · arXiv:2304.11277)
+//   Narayanan 2021 — Efficient large-scale LM training on GPU clusters (arXiv:2104.04473)
+//   Amdahl's law — parallel speedup bound by the serial (communication) fraction
+//
+// Integer ledger (speedup × 100 · n_gpus × 100) — libm-free closed-form. The
+// × 100 on n_gpus cancels in the ratio, keeping the identity a pure division.
+// Placeholder 5-config sweep of a train/infer/serve distributed stack. 실측
+// (cycle-10+ T4) deferred — multi-GPU pod (vast.ai A100×8 / multinode) per-config
+// wall-clock speedup sweep on SANDBOX substrate (`cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form scaling-efficiency identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Config registry (5 distributed configs · same model + global batch)
+//   single        : 1-GPU baseline                (100% · silent · linear by def)
+//   dp_8gpu_good   : DDP 8-GPU well-tuned          ( 95% · silent · NCCL hidden)
+//   fsdp_8gpu      : FSDP 8-GPU                     ( 85% · silent · gather acceptable)
+//   tp_comm_bound  : tensor-parallel 8-GPU         ( 60% · FIRES · all-reduce dominant)
+//   multinode_16   : 16-GPU 2-node                 ( 65% · FIRES · cross-node bandwidth)
+//
+// speedup × 100 ledger. ideal speedup == n_gpus → efficiency 100%.
+// ────────────────────────────────────────────────────────────────────────
+
+let CFG_NAMES   = ["single", "dp_8gpu_good", "fsdp_8gpu", "tp_comm_bound", "multinode_16"]
+let N_GPUS      = [   1,           8,             8,            8,              16     ]
+let SPEEDUP_x100 = [ 100,         760,           680,          480,           1040     ]
+
+let EFFICIENCY_FALSIFIER_x100 = 7000     // < 7000/100 (= < 70%) → comm dominant (Amdahl)
+let N_CFG = 5
+
+fn n_gpus(i: int) -> int { return N_GPUS[i] }
+fn speedup_x100(i: int) -> int { return SPEEDUP_x100[i] }
+
+fn scaling_efficiency_x100(i: int) -> int {
+    // scaling_efficiency_x100 = speedup_x100 × 100 / n_gpus
+    //   = (speedup/N) expressed as a percentage in a × 100 ledger.
+    //   single:  100×100/1  = 10000 (= 100%)
+    //   dp_good: 760×100/8  =  9500 (=  95%)
+    let ng = n_gpus(i)
+    if ng <= 0 { return 0 }
+    return speedup_x100(i) * 100 / ng
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return scaling_efficiency_x100(i) < EFFICIENCY_FALSIFIER_x100
+}
+
+print("hexa-codex HW-VARIANCE N1 ⭐ — distributed-scaling efficiency closed-form (cycle-10 reorg Batch B)")
+print("====================================================================================================")
+print("")
+print("per-config profile (5 distributed configs · same model + global batch · train/infer/serve · placeholder):")
+let n = CFG_NAMES.len()
+let mut i = 0
+while i < n {
+    let eff = scaling_efficiency_x100(i)
+    let ng = n_gpus(i)
+    let sp = speedup_x100(i)
+    let mut tag = "silent (≥ 70% efficiency · scaling honest · comm overhead hidden)"
+    if falsifier_fires(i) {
+        tag = "FALSIFIER FIRES (< 70% efficiency · 통신 오버헤드 dominant · Amdahl 한계 · 더 많은 GPU 무의미)"
+    }
+    print("  " + CFG_NAMES[i] +
+          ": n_gpus=" + to_string(ng) +
+          " · speedup=" + to_string(sp) + "/100 (" + to_string(sp / 100) + "." + to_string(sp - (sp / 100) * 100) + "×)" +
+          " · efficiency=" + to_string(eff) + "/100 (" + to_string(eff / 100) + "%)" +
+          " · [" + tag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_HW_VARIANCE_N1_DISTRIBUTED_SCALING__ DONE")

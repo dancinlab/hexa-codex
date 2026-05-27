@@ -26,9 +26,12 @@
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — throughput × workload × thermal pressure ladder. 반증자: 발열 한계 도달 시 throughput drop > 30% (thermal throttling 지배).
 
-### 축 N — 🆕 NOVEL: silicon-vs-thermal variance 분리 (⭐ MAIN priority lane)
-> **⭐ MAIN priority lane** — HW-VARIANCE 의 self-NOVEL axis. GPU 분산이 제조 차이 (silicon lottery) 인가 발열 차이 (cooling) 인가 — 두 source 분리. 외부 anchor: Tang 2022 GPU lottery · NVIDIA SKU bin · Geng 2024 silicon variance.
-- [ ] N1 — 동일 cooling 통제 후 silicon variance vs 다른 cooling variance 비교. 반증자: cooling 통제 후에도 silicon variance > 10% → manufacturing dominant (cooling 으로 보상 불가).
+### 축 N — 🆕 NOVEL (⭐ MAIN priority lane)
+- [x] N1 — distributed scaling efficiency: multi-GPU speedup/N (HW-VAR 의 NOVEL — 통신 오버헤드). 반증자: scaling efficiency < 70% → 통신 dominant (Amdahl). **CYCLE-10 reorg Batch B (2026-05-28 · train/infer/serve stack)** ✅ 🔵+🟡 · 7/7 · `HW-VARIANCE/verify/numerics_hw_variance_n1_distributed_scaling.hexa` · tp_comm_bound/multinode fires · dp/fsdp silent.
+> **⭐ MAIN priority lane** — HW-VAR self-NOVEL. A1 (per-chip 분산) 의 multi-chip 확장 — N-GPU 협력 효율. Megatron · ZeRO · FSDP · Amdahl anchor. 도착지 없음 ([[feedback_closure_is_physical_limit]]).
+
+> 자매 NOVEL probe — silicon-vs-thermal variance 분리. GPU 분산이 제조 차이 (silicon lottery) 인가 발열 차이 (cooling) 인가 — 두 source 분리. 외부 anchor: Tang 2022 GPU lottery · NVIDIA SKU bin · Geng 2024 silicon variance.
+- [ ] N2 — 동일 cooling 통제 후 silicon variance vs 다른 cooling variance 비교. 반증자: cooling 통제 후에도 silicon variance > 10% → manufacturing dominant (cooling 으로 보상 불가). _(cycle-9 N1 → cycle-10 reorg Batch B 에서 N2 로 강등 · N1 = distributed-scaling 신규 차지)_
 
 ## SANDBOX 활용 (measurement substrate)
 
@@ -38,7 +41,8 @@ HW-VARIANCE 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — loc
 |---|---|---|
 | A1 first probe | mac M3 / ubu-1 local | `.verdicts/HW-VARIANCE/a1_*` |
 | B1 ladder | SANDBOX bench harness | `.verdicts/HW-VARIANCE/b1_*` |
-| N1 ⭐ NOVEL | mac M3 / vast.ai pod | `.verdicts/HW-VARIANCE/n1_*` |
+| N1 ⭐ NOVEL (distributed-scaling) | multi-GPU pod (vast.ai A100×8 / multinode) | `HW-VARIANCE/verdicts/n1_*` |
+| N2 NOVEL (silicon-vs-thermal) | mac M3 / vast.ai pod (cooling-controlled) | `HW-VARIANCE/verdicts/n2_*` |
 
 ## Dispatch surface (ENGINE 후보 wire)
 

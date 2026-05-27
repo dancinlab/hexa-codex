@@ -1,0 +1,14 @@
+# hexa-codex HW-VARIANCE N1 ⭐ — distributed-scaling efficiency verifier (cycle-10 reorg Batch B)
+# axis=HW-VARIANCE/HW-VARIANCE.md::N1 (⭐ NOVEL MAIN · distributed scaling efficiency · multi-GPU speedup/N · 반증자 efficiency < 70% → 통신 dominant Amdahl)
+# novel_lane=HW-VAR self-NOVEL — A1 (per-chip 분산) 의 multi-chip 확장 · N-GPU 협력 효율
+# sibling_axes=A1 (per-chip throughput spread closed-form) · A1' (measured cross-host spread 🟢)
+# bench=HW-VARIANCE/bench/hw_variance_n1_distributed_scaling.hexa
+# verifier=HW-VARIANCE/verify/numerics_hw_variance_n1_distributed_scaling.hexa
+# tier=🔵 STRUCTURAL (scaling-efficiency identity + bidirectional discrimination + [0,100] sanity 7/7) + 🟡 BY-CITATION (70% efficiency threshold = Megatron-LM / ZeRO / FSDP / Narayanan 2021 / Amdahl convention)
+# checks=7/7
+# formula=scaling_efficiency_x100 = speedup_x100 × 100 / n_gpus = (speedup/N) as percent × 100 (ideal=100% = 10000/100); falsifier_fires = efficiency < 7000/100 (= < 70%)
+# placeholder_data=5 configs: single(1·100→100%) dp_8gpu_good(8·760→95%) fsdp_8gpu(8·680→85%) silent · tp_comm_bound(8·480→60%) multinode_16(16·1040→65%) fire
+# bidirectional=dp/fsdp ≥70% silent ↔ tp_comm_bound/multinode <70% fire — comm-overhead Amdahl 한계 양방향 검출
+# external_anchors=Shoeybi 2019 Megatron-LM (arXiv:1909.08053) · Rajbhandari 2020 ZeRO (arXiv:1910.02054) · Zhao 2023 PyTorch FSDP (arXiv:2304.11277) · Narayanan 2021 efficient large-scale (arXiv:2104.04473) · Amdahl's law
+# substrate_fire=DEFERRED (cycle-10+ · multi-GPU pod vast.ai A100×8 / multinode per-config wall-clock speedup sweep · train/infer/serve stack)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · 새 topology · interconnect · parallelism strategy 마다 frontier 재오픈

@@ -6,6 +6,55 @@
 
 ---
 
+## 2026-05-27 — cycle-43 C1 Lagrangian VERIFIED · 🔵 SUPPORTED-FORMAL 8/8 (Mac local `hexa build` 토큰 통과)
+
+cycle-42 의 BLOCKED 가 사용자 `! sidecar sign local` 토큰 발급으로 즉시 unblock.
+Mac 로컬에서 `hexa build verify/numerics_economics_c1_lagrangian.hexa -o build/c1bin`
+컴파일+실행 → 8/8 PASS · 🔵 SUPPORTED-FORMAL.
+
+**verbatim 결과**:
+- α+β = 62/100 = 0.62 ✓
+- N_opt exponent a = β/(α+β) = 4516/10000 = 0.4516 ✓
+- D_opt exponent b = α/(α+β) = 5483/10000 = 0.5483 ✓
+- DUALITY a+b = 9999/10000 ≈ 1.0 EXACT (int truncation ε≤1)
+- D/N exponent of C = (α−β)/(α+β) = 967/10000 ≈ 0.097 SMALL
+- α=β degenerate: D/N C-exponent = 0 → IDENTITY (N/D)^α = A/B
+- D/N C-exponent < 0.20 ⇒ SUB-LINEAR (10× compute → D/N ~25% drift only)
+- deterministic ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL — Hoffmann Lagrangian compute-optimal closed-form IDENTITY (8/8).
+
+**구조적 발견 (closed-form)**:
+- Lagrangian compute-optimal N/D 지수 합 = 1.0 (duality conservation).
+- Hoffmann α=0.34/β=0.28 ⇒ D/N C-지수 0.097 (SMALL) ⇒ "D/N≈20 rule-of-thumb"
+  은 근사 **scale-invariant** (10× compute 당 ≤25% drift).
+- α=β degenerate ⇒ D/N EXACTLY 상수 (IDENTITY (N/D)^α = A/B = ECONOMICS.md::C1 의
+  명시된 falsifier formula 자체 — closed-form 으로 재확인됨).
+
+**honest residual**:
+- Lagrangian ALGEBRA 는 🔵 closed-form identity (perturbation 결정론).
+- 절대 N_opt(C), D_opt(C) 는 G_N, G_D 상수 필요 — Hoffmann 의 보고값은 Besiroglu
+  2024 replication attempt 에서 inconsistency 제기. g5 fabrication 금지로
+  STRUCTURAL exponent 수준에 머무름 (🔵), pointwise N_opt 는 🟠.
+- cycle-26 의 EMPIRICAL 갭 (modern dense D/N ∈ [22, 1875] vs Hoffmann ~20) 은
+  formula 버그 아니라 Hoffmann train-only ASSUMPTION 부족 (Sardana 2024
+  inference-amortization 이 N_opt 를 더 작게 shift → 작은 모델 overtrain → modern 매칭).
+- C1 frontier OPEN: Sardana closed-form replication 이 cycle-44+ 자연 후속.
+
+**인프라 메모**: 본 cycle 은 사용자 sign-token 으로만 가능 (Mac fork-storm 게이트
++ pool ubu-1 transpiler instability 양쪽 차단된 상황에서). `/tmp` 출력도 Mac 가드
+(2026-04-20 kernel panic 트리거) 에 막혀 `build/` 출력으로 회피. cycle-42 의
+"verifier 만 commit, milestone 안 flip" 정직 처리가 cycle-43 unblock 으로 즉시
+upgrade — 손검산 예측 8/8 그대로 적중.
+
+**연결**:
+- verifier: [`verify/numerics_economics_c1_lagrangian.hexa`](verify/numerics_economics_c1_lagrangian.hexa)
+- verdict: [`.verdicts/economics/c1_lagrangian_verdict.txt`](.verdicts/economics/c1_lagrangian_verdict.txt)
+- 외부 anchor: Hoffmann 2022 arXiv:2203.15556 · Besiroglu 2024 arXiv:2404.10102 · Sardana 2024 arXiv:2401.00448
+- 다음 후속: cycle-44+ Sardana inference-amortized N_opt 닫힌형 복제
+
+---
+
 ## 2026-05-27 — cycle-42 C1 Lagrangian verifier authored · 🟠 INSUFFICIENT (toolchain BLOCKED)
 
 axis C1 (Hoffmann Lagrangian compute-optimal) closed-form verifier 작성 완료

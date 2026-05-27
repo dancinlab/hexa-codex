@@ -1,11 +1,13 @@
-# hexa-codex ENGINE N1 — latency baseline verifier (cycle-8 · per-sibling)
+# hexa-codex ENGINE N1 — latency ledger verifier (cycle-10 · +13 same-cycle)
 # axis=ENGINE/ENGINE.md::N1 (⭐ MAIN — discovery→execution closed-loop latency)
 # wire=ENGINE/wires/wire_n1_latency_baseline.hexa
 # verifier=ENGINE/verify/numerics_engine_n1_latency_baseline.hexa
-# tier=🟢 SUPPORTED-NUMERICAL — ENGINE N1 baseline corrected to per-sibling counter (7/7 checks · n=6 anchored · mean ΔM 2.0)
+# tier=🟢 SUPPORTED-NUMERICAL — ENGINE N1 ledger +13 cycle-10 same-cycle wires (7/7 checks · n=19 anchored · mean ΔM 0.63)
 # checks=7/7
-# method=per-sibling-counter (cycle-8 fix · cycle-5 conflated ECON/SAFETY counters)
-# deltaM_A1_spawn=7 A1_mature=0 C1=1 D1=1 E1=1 F1=2
-# n_anchored=6 mean_deltaM_x10=20 max=7 bottleneck=1/6
+# method=per-sibling-counter (cycle-8 fix · cycle-10 +13 same-cycle batch)
+# deltaM_A1_spawn=7 A1_mature=0 C1=1 D1=1 E1=1 F1=2 · H1..U1=0 (13 cells)
+# n_anchored=19 sum_deltaM=12 mean_deltaM_x100=63 max=7 bottleneck=1/19 samecycle=13/19
 # B1=UNANCHORED disc=20 deltaM_upper=10 (wire-time unrecorded · excluded)
-# finding=human-in-loop bottleneck was STARTUP artifact (A1-spawn); recent wires ΔM 1-2 fast
+# finding=cycle-10 reorg dropped mean 2.0(n=6)->0.63(n=19); 13/19 same-cycle ΔM=0
+# HONEST_RESIDUAL=ΔM=0 is same-SESSION absorb+wire (one operator), NOT cross-session automation (STILL UNBUILT · frontier OPEN)
+# CAVEAT=cycle-10 low-ΔM cluster may be one-session-did-it-all artifact (mirror of cycle-5 A1-spawn=7 startup outlier)

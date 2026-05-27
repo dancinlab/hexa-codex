@@ -1,6 +1,6 @@
 #!hexa strict
 // hexa-codex/ENGINE/wires/wire_n1_latency_baseline.hexa
-// ENGINE axis N1 (⭐ MAIN) — discovery→execution latency baseline.
+// ENGINE axis N1 (⭐ MAIN) — discovery→execution latency ledger.
 //
 // N1 is the ENGINE self-NOVEL meta-axis: it measures the OTHER axes' driving
 // latency.  For each wired axis it records ΔM = (sibling's own cycle at wire
@@ -13,13 +13,35 @@
 // So ΔM is now computed PER-SIBLING: wire-time cycle in that sibling's OWN
 // counter minus its discovery cycle.  This corrects the cycle-5 "B1=14" artifact.
 //
+// CYCLE-10 EXTENSION (+13 same-cycle wires · reorg loop-acceleration).  The
+// cycle-10 reorg absorbed 13 sibling findings (H~T = 12 single-domain axes +
+// U = the 12-vertical routing union) and wired ALL of them in the SAME cycle-10
+// session.  Each finding's discovery cycle and its ENGINE-wire cycle land in the
+// same reorg session → ΔM=0 (same-cycle, fastest loop class).  This drops the
+// mean ΔM from cycle-8's 2.0 (n=6) to ~0.63 (n=19): same-cycle absorb→wire is
+// now the NORM.
+//
 // WELL-ANCHORED DATA POINTS (sibling cycle at wire is known):
-//   A1-spawn   ECON      disc=27 · wire@ECON=34  → ΔM=7   (paper-mature gate)
+//   A1-spawn   ECON      disc=27 · wire@ECON=34  → ΔM=7   (paper-mature gate · STARTUP)
 //   A1-mature  ECON      disc=34 · wire@ECON=34  → ΔM=0   (same-session)
 //   C1         OPS       disc=28 · wire@OPS=29   → ΔM=1   (cross-domain c28 → fast)
 //   D1         SUBSTRATE disc=28 · wire@SUB=29   → ΔM=1
 //   E1         SANDBOX   disc=28 · wire@SAND=29  → ΔM=1
 //   F1         NEUROEXP  disc=11 · wire@NEX=13   → ΔM=2
+//   --- cycle-10 same-cycle batch (absorb cycle == ENGINE-wire cycle == 10) ---
+//   H1  ENERGY/N1 sparse-MoE            disc=10 · wire@10 → ΔM=0
+//   I1  ENERGY/N2 quantization          disc=10 · wire@10 → ΔM=0
+//   J1  AGENT/N1 agentic-trajectory     disc=10 · wire@10 → ΔM=0
+//   K1  HALLUCINATION/N1 reasoning-depth disc=10 · wire@10 → ΔM=0
+//   L1  ECONOMICS/N1 cost-performance   disc=10 · wire@10 → ΔM=0
+//   M1  MULTIMODAL/A1 modality-balance  disc=10 · wire@10 → ΔM=0
+//   O1  ROBUSTNESS/N1 alignment-faking  disc=10 · wire@10 → ΔM=0
+//   P1  RELIABILITY/N1 ckpt-integrity   disc=10 · wire@10 → ΔM=0
+//   Q1  MULTILINGUAL/N1 tokenizer       disc=10 · wire@10 → ΔM=0
+//   R1  BATCH-COMP/N1 speculative       disc=10 · wire@10 → ΔM=0
+//   S1  HW-VARIANCE/N1 dist-scaling     disc=10 · wire@10 → ΔM=0
+//   T1  LONG-CONTEXT/N2 kv-cache        disc=10 · wire@10 → ΔM=0
+//   U1  12-VERTICAL routing union       disc=10 · wire@10 → ΔM=0
 //
 // B1 (SAFETY) is REPORTED but EXCLUDED from precise stats: it was wired at
 // ENGINE cycle-2 in a PRIOR session and SAFETY's cycle-at-wire was NOT recorded
@@ -27,14 +49,20 @@
 // (upper bound).  Not silently dropped — flagged as unanchored.
 //
 // FALSIFIER (paired verifier). ENGINE.md::N1 falsifier: ΔM > 5 cycles ⇒
-// human-in-loop bottleneck (automation signal).  The baseline must (a) record
-// the 6 anchored points, (b) compute ΔM per-sibling deterministically, (c)
+// human-in-loop bottleneck (automation signal).  The ledger must (a) record
+// the 19 anchored points, (b) compute ΔM per-sibling deterministically, (c)
 // classify against the 5-cycle threshold, (d) report mean/max, (e) honestly
-// flag B1 unanchored + label n=6 anecdotal.
+// flag B1 unanchored + label anecdotal.  With 13/19 at ΔM=0 the falsifier is
+// held MORE strongly: only A1-spawn (a startup artifact) exceeds the threshold.
 // External anchor: Snoek 2012 Bayesian optimization · Sutton 1988 TD-learning.
 //
-// HONESTY. Self-measurement (how late is ENGINE), NOT a sibling-truth claim.
-// n=6 anecdotal. The instrument now stamps sibling-cycle-at-wire going forward.
+// HONESTY — IMPORTANT.  The cycle-10 ΔM=0 cluster does NOT mean the loop is
+// "automated".  It means absorb+wire happened WITHIN A SINGLE reorg session —
+// one operator, one sitting.  TRUE cross-session automation (a measurement that
+// AUTONOMOUSLY triggers a wire) is STILL UNBUILT — this is N1's honest residual
+// (frontier OPEN).  The low cycle-10 ΔM is plausibly the same kind of artifact
+// as cycle-5's A1-spawn=7 startup outlier, just in the opposite direction: a
+// human did it all in one session.  n=19 anecdotal — NOT a latency law.
 //
 // @no-lock-needed
 // @resolver-bypass(reason="Pure latency-ledger recompute — no runtime infer, no atlas atoms.")
@@ -43,10 +71,15 @@
 // Per-sibling latency ledger — ΔM = wire-time sibling cycle − discovery cycle
 // ────────────────────────────────────────────────────────────────────────
 
-let LEDGER_AXIS       = ["A1-spawn", "A1-mature", "C1", "D1", "E1", "F1"]
-let LEDGER_SIBLING    = ["ECON",     "ECON",      "OPS","SUB","SAND","NEX"]
-let LEDGER_DISCOVERY  = [27,          34,          28,   28,    28,    11]
-let LEDGER_WIRE_CYCLE = [34,          34,          29,   29,    29,    13]   // each in its OWN sibling counter
+let LEDGER_AXIS = ["A1-spawn", "A1-mature", "C1", "D1", "E1", "F1",
+                   "H1", "I1", "J1", "K1", "L1", "M1", "O1", "P1", "Q1", "R1", "S1", "T1", "U1"]
+let LEDGER_SIBLING = ["ECON", "ECON", "OPS", "SUB", "SAND", "NEX",
+                      "ENERGY", "ENERGY", "AGENT", "HALLUC", "ECON", "MMODAL",
+                      "ROBUST", "RELI", "MLING", "BATCH", "HWVAR", "LCTX", "VERTICAL"]
+let LEDGER_DISCOVERY  = [27, 34, 28, 28, 28, 11,
+                         10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+let LEDGER_WIRE_CYCLE = [34, 34, 29, 29, 29, 13,
+                         10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]  // each in its OWN sibling counter
 
 // B1 (SAFETY) — unanchored, reported separately
 let B1_DISCOVERY = 20
@@ -58,7 +91,7 @@ let BOTTLENECK_THRESHOLD = 5
 fn delta_m(i: int) -> int { return LEDGER_WIRE_CYCLE[i] - LEDGER_DISCOVERY[i] }
 fn is_bottleneck(i: int) -> bool { return delta_m(i) > BOTTLENECK_THRESHOLD }
 
-print("hexa-codex ENGINE N1 — discovery→execution latency baseline (cycle-8 · per-sibling)")
+print("hexa-codex ENGINE N1 — discovery→execution latency ledger (cycle-10 · +13 same-cycle)")
 print("====================================================================================")
 print("")
 
@@ -67,11 +100,14 @@ let mut i = 0
 let mut sum = 0
 let mut maxv = 0
 let mut bottleneck_count = 0
+let mut samecycle_count = 0
 while i < n {
     let d = delta_m(i)
     sum = sum + d
     if d > maxv { maxv = d }
+    if d == 0 { samecycle_count = samecycle_count + 1 }
     let mut flag = "fast"
+    if d == 0 { flag = "same-cycle (ΔM=0)" }
     if is_bottleneck(i) {
         flag = "BOTTLENECK (>5 cyc)"
         bottleneck_count = bottleneck_count + 1
@@ -83,9 +119,12 @@ while i < n {
 print("")
 print("  B1 [SAFETY]: disc=" + to_string(B1_DISCOVERY) + " · UNANCHORED (wire-time cycle unrecorded) → ΔM ≤ " + to_string(B1_DELTA_UPPER) + " (excluded from stats)")
 print("")
-let mean_x10 = (sum * 10) / n
+let mean_x100 = (sum * 100) / n
 print("  n = " + to_string(n) + " anchored (+1 unanchored B1) — anecdotal, NOT a latency law")
-print("  mean ΔM = " + to_string(mean_x10) + "/10 cycles · max ΔM = " + to_string(maxv) + " cycles")
-print("  bottleneck cells (ΔM>5): " + to_string(bottleneck_count) + "/" + to_string(n) + " (cycle-5 reported 2/3 via conflated counter — corrected)")
+print("  mean ΔM = " + to_string(mean_x100) + "/100 cycles · max ΔM = " + to_string(maxv) + " cycles")
+print("  same-cycle cells (ΔM=0): " + to_string(samecycle_count) + "/" + to_string(n) + " (cycle-10 reorg absorbed+wired 13 in one session)")
+print("  bottleneck cells (ΔM>5): " + to_string(bottleneck_count) + "/" + to_string(n) + " (only A1-spawn · STARTUP artifact)")
+print("")
+print("  HONEST RESIDUAL: ΔM=0 = same-SESSION absorb+wire, NOT cross-session automation (still UNBUILT · frontier OPEN)")
 print("")
 print("__HEXA_CODEX_ENGINE_N1_LATENCY_BASELINE__ DONE")

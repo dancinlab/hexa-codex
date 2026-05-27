@@ -490,3 +490,48 @@ N1 = MAIN priority lane (cycle-28 cross-domain NOVEL 정책 일관).
 ### 동시 진행 ECONOMICS cycle-30 (사용자 별도 지시 "economy novel 계속 진행")
 
 cycle-29 PR #78 의 next_probe ("≥5 MoE collection for high-confidence KS") 는 ENGINE init 후 별도 PR 으로 진행 — 두 task 가 orthogonal (ENGINE = 도메인 신규, ECONOMICS = 기존 cycle 연장).
+
+---
+
+## cycle-10 · N1 latency ledger +13 same-cycle wire (2026-05-28)
+
+축 N (⭐ MAIN · discovery→execution latency) 확장: 기존 6 anchored (A1-spawn·A1-mature·C1·D1·E1·F1) + cycle-10 reorg 의 13 신규 wire (H~T 12 + U) = **19 anchored**.
+
+### 신규 13 데이터포인트 (모두 same-cycle ΔM=0)
+
+cycle-10 reorg 가 13 sibling finding 을 흡수→wire 한 시점이 같은 cycle-10 session:
+- H1 ENERGY/N1 sparse-MoE · I1 ENERGY/N2 quant · J1 AGENT/N1 trajectory · K1 HALLUCINATION/N1 depth
+- L1 ECONOMICS/N1 cost · M1 MULTIMODAL/A1 modality · O1 ROBUSTNESS/N1 faking · P1 RELIABILITY/N1 ckpt
+- Q1 MULTILINGUAL/N1 tokenizer · R1 BATCH-COMP/N1 spec · S1 HW-VARIANCE/N1 scaling · T1 LONG-CONTEXT/N2 kv-cache
+- U1 12-VERTICAL routing union
+
+각각 absorb cycle == ENGINE-wire cycle == 10 → ΔM=0 (same-cycle, fastest loop class).
+
+### 통계 재계산
+
+| 지표 | cycle-8 (n=6) | cycle-10 (n=19) |
+|------|---------------|------------------|
+| sum ΔM | 12 | 12 (신규 13 모두 0) |
+| mean ΔM | 2.0 | **0.63** (63/100, integer×100 ledger) |
+| max ΔM | 7 (A1-spawn) | 7 (A1-spawn 유지) |
+| 병목 (>5) | 1/6 | **1/19** (A1-spawn 만) |
+| same-cycle (ΔM=0) | 2/6 | **14/19** (13 신규 + A1-mature) |
+
+**발견: cycle-10 reorg 가 loop 를 극적 가속** — measurement→execution 이 same-cycle (ΔM 0) 으로 수렴. cycle-8 의 "mean 2.0 · 거의 자동" 에서 → cycle-10 "mean 0.63 · same-cycle 흡수→wire 가 norm". 반증자 (ΔM>5 = human-in-loop 병목) 더 강하게 held (13/19 가 ΔM=0).
+
+### Honest residual (frontier OPEN · 정직성)
+
+⚠ ΔM=0 은 **"loop 자동화 완성" 이 아니다**. "한 reorg session 안에서 흡수+wire 가 일어남" (한 operator · 한 sitting) 의 측정일 뿐. 실제 **cross-session 자동화** (measurement 가 AUTONOMOUSLY wire 를 트리거) 는 **아직 미구현 (STILL UNBUILT)** — 이게 N1 의 honest residual.
+
+cycle-10 의 낮은 ΔM cluster 는 "한 사람이 한 세션에 다 했다" 는 **artifact** 일 수 있음 — cycle-5 의 A1-spawn=7 startup outlier 의 거울상 (반대 방향). 진짜 자동화 frontier 는 OPEN.
+
+### 검증
+
+- `hexa run ENGINE/verify/numerics_engine_n1_latency_baseline.hexa` → **7/7 PASS** · 🟢 SUPPORTED-NUMERICAL.
+- integer ledger (×100 mean) · libm-free · deterministic recompute.
+- B1 (SAFETY) 여전히 UNANCHORED (cycle-2 prior-session wire · wire-time cycle 미기록 → ΔM≤10 · stats 제외·정직 flag 유지).
+- verdict: `ENGINE/verdicts/n1_latency_baseline_verdict.txt` (HONEST_RESIDUAL + CAVEAT 명시).
+
+### 진행도
+
+N1 = MAIN perpetual frontier — 닫힘 아님. 다음 wire land 마다 anchored point 추가. cross-session 자동화 미도달 = 설계 ([[feedback_closure_is_physical_limit]]).

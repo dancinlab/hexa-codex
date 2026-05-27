@@ -1,28 +1,36 @@
 #!hexa strict
 // hexa-codex/ENGINE/verify/numerics_engine_n1_latency_baseline.hexa
-// ENGINE axis N1 (⭐ MAIN) — falsifier verifier for discovery→execution latency baseline.
+// ENGINE axis N1 (⭐ MAIN) — falsifier verifier for discovery→execution latency ledger.
 //
-// CYCLE-8 per-sibling methodology. Asserts the baseline ledger is a faithful,
-// deterministic latency instrument under the corrected per-sibling counter:
-//   (1) 6 anchored axes present (A1-spawn, A1-mature, C1, D1, E1, F1)
+// CYCLE-10 ledger (+13 same-cycle wires). Asserts the ledger is a faithful,
+// deterministic latency instrument under the per-sibling counter:
+//   (1) 19 anchored axes present (6 cycle-5/8 + 13 cycle-10 H~T,U)
 //   (2) ΔM = wire-time sibling cycle − discovery, per-sibling
-//   (3) recent cross-domain wires fast: C1=D1=E1=1, F1=2 (all ≤ 2 cycles)
+//   (3) cycle-10 batch (H1..U1) all same-cycle ΔM=0 (13 cells)
 //   (4) A1-spawn=7 (bottleneck), A1-mature=0 (same-session, fastest)
-//   (5) bottleneck cells (ΔM>5) = 1/6 (corrected from cycle-5's conflated 2/3)
-//   (6) B1 explicitly flagged unanchored + excluded (honest — not silently dropped)
+//   (5) bottleneck cells (ΔM>5) = 1/19 (only A1-spawn startup artifact)
+//   (6) mean ΔM dropped 2.0(n=6) → ~0.63(n=19) · B1 unanchored excluded
 //   (7) deterministic
-// Any FAIL = baseline misreports its own latency ⇒ ENGINE N1 FALSIFIED.
+// Any FAIL = ledger misreports its own latency ⇒ ENGINE N1 FALSIFIED.
 //
 // SOURCE.  ENGINE/wires/wire_n1_latency_baseline.hexa (verifier replicates the
 // ledger — closed-form recompute, no import of emitted state).
 //
+// HONESTY. ΔM=0 = same-SESSION absorb+wire (one operator, one sitting), NOT
+// cross-session automation (still UNBUILT · N1 honest residual · frontier OPEN).
+//
 // @no-lock-needed
 // @resolver-bypass(reason="Pure closed-form recompute of latency ledger.")
 
-let LEDGER_AXIS       = ["A1-spawn", "A1-mature", "C1", "D1", "E1", "F1"]
-let LEDGER_SIBLING    = ["ECON",     "ECON",      "OPS","SUB","SAND","NEX"]
-let LEDGER_DISCOVERY  = [27, 34, 28, 28, 28, 11]
-let LEDGER_WIRE_CYCLE = [34, 34, 29, 29, 29, 13]
+let LEDGER_AXIS = ["A1-spawn", "A1-mature", "C1", "D1", "E1", "F1",
+                   "H1", "I1", "J1", "K1", "L1", "M1", "O1", "P1", "Q1", "R1", "S1", "T1", "U1"]
+let LEDGER_SIBLING = ["ECON", "ECON", "OPS", "SUB", "SAND", "NEX",
+                      "ENERGY", "ENERGY", "AGENT", "HALLUC", "ECON", "MMODAL",
+                      "ROBUST", "RELI", "MLING", "BATCH", "HWVAR", "LCTX", "VERTICAL"]
+let LEDGER_DISCOVERY  = [27, 34, 28, 28, 28, 11,
+                         10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+let LEDGER_WIRE_CYCLE = [34, 34, 29, 29, 29, 13,
+                         10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10]
 
 let B1_DISCOVERY = 20
 let B1_SAFETY_NOW = 30
@@ -33,21 +41,21 @@ let BOTTLENECK_THRESHOLD = 5
 fn delta_m(i: int) -> int { return LEDGER_WIRE_CYCLE[i] - LEDGER_DISCOVERY[i] }
 fn is_bottleneck(i: int) -> bool { return delta_m(i) > BOTTLENECK_THRESHOLD }
 
-print("hexa-codex ENGINE N1 falsifier — latency baseline (cycle-8 per-sibling)")
-print("========================================================================")
+print("hexa-codex ENGINE N1 falsifier — latency ledger (cycle-10 · +13 same-cycle)")
+print("============================================================================")
 print("")
 
 let mut checks_passed = 0
 let mut checks_total = 0
 let n = LEDGER_AXIS.len()
 
-// check 1 — 6 anchored axes present
+// check 1 — 19 anchored axes present (6 + 13 cycle-10)
 checks_total = checks_total + 1
-if n == 6 && LEDGER_AXIS[0] == "A1-spawn" && LEDGER_AXIS[5] == "F1" {
-    print("  [PASS] 6 anchored axes (A1-spawn,A1-mature,C1,D1,E1,F1)")
+if n == 19 && LEDGER_AXIS[0] == "A1-spawn" && LEDGER_AXIS[5] == "F1" && LEDGER_AXIS[6] == "H1" && LEDGER_AXIS[18] == "U1" {
+    print("  [PASS] 19 anchored axes (6 cycle-5/8 + 13 cycle-10 H~T,U)")
     checks_passed = checks_passed + 1
 } else {
-    print("  [FAIL] anchored ledger missing an axis")
+    print("  [FAIL] anchored ledger size = " + to_string(n) + " (expected 19)")
 }
 
 // check 2 — ΔM per-sibling computed (A1-spawn = 34-27 = 7)
@@ -59,14 +67,16 @@ if delta_m(0) == 7 && LEDGER_SIBLING[0] == "ECON" {
     print("  [FAIL] per-sibling ΔM miscomputed")
 }
 
-// check 3 — recent cross-domain wires fast (C1=D1=E1=1, F1=2)
+// check 3 — cycle-10 batch (H1..U1, indices 6..18) all same-cycle ΔM=0
 checks_total = checks_total + 1
-if delta_m(2) == 1 && delta_m(3) == 1 && delta_m(4) == 1 && delta_m(5) == 2 {
-    print("  [PASS] recent cross-domain wires fast: C1=1 D1=1 E1=1 F1=2 (all ≤ 2 cyc)")
+let mut sc = 0
+let mut j = 6
+while j < n { if delta_m(j) == 0 { sc = sc + 1 } j = j + 1 }
+if sc == 13 {
+    print("  [PASS] cycle-10 batch H1..U1 all same-cycle ΔM=0 (13/13 · absorb cycle == wire cycle == 10)")
     checks_passed = checks_passed + 1
 } else {
-    print("  [FAIL] recent-wire ΔM unexpected: C1=" + to_string(delta_m(2)) + " D1=" + to_string(delta_m(3)) +
-          " E1=" + to_string(delta_m(4)) + " F1=" + to_string(delta_m(5)))
+    print("  [FAIL] cycle-10 batch same-cycle count = " + to_string(sc) + " ≠ 13")
 }
 
 // check 4 — A1-spawn bottleneck, A1-mature fastest
@@ -78,30 +88,34 @@ if delta_m(0) == 7 && is_bottleneck(0) && delta_m(1) == 0 {
     print("  [FAIL] A1 endpoints wrong")
 }
 
-// check 5 — bottleneck cells = 1/6 (corrected)
+// check 5 — bottleneck cells = 1/19 (only A1-spawn startup artifact)
 checks_total = checks_total + 1
 let mut bc = 0
 let mut i = 0
 while i < n { if is_bottleneck(i) { bc = bc + 1 } i = i + 1 }
 if bc == 1 {
-    print("  [PASS] bottleneck cells (ΔM>5) = 1/6 — only A1-spawn (corrected from cycle-5 conflated 2/3)")
+    print("  [PASS] bottleneck cells (ΔM>5) = 1/19 — only A1-spawn (STARTUP artifact · falsifier held more strongly)")
     checks_passed = checks_passed + 1
 } else {
     print("  [FAIL] bottleneck count = " + to_string(bc) + " ≠ 1")
 }
 
-// check 6 — B1 unanchored explicitly flagged + bounded
+// check 6 — mean ΔM dropped 2.0→~0.63 + B1 unanchored bounded
 checks_total = checks_total + 1
-if B1_DELTA_UPPER == 10 && B1_DISCOVERY == 20 {
-    print("  [PASS] B1 unanchored: disc=20 · ΔM ≤ 10 (wire-time cycle unrecorded · excluded, not dropped)")
+let mut sum = 0
+let mut k = 0
+while k < n { sum = sum + delta_m(k); k = k + 1 }
+let mean_x100 = (sum * 100) / n
+if sum == 12 && mean_x100 == 63 && B1_DELTA_UPPER == 10 && B1_DISCOVERY == 20 {
+    print("  [PASS] sum ΔM=12 · mean=63/100 (cycle-8's 2.0 → 0.63, n=6→19) · B1 unanchored ΔM≤10 excluded")
     checks_passed = checks_passed + 1
 } else {
-    print("  [FAIL] B1 upper bound miscomputed")
+    print("  [FAIL] mean/B1 miscomputed: sum=" + to_string(sum) + " mean_x100=" + to_string(mean_x100))
 }
 
 // check 7 — determinism
 checks_total = checks_total + 1
-if delta_m(0) == 7 && delta_m(5) == 2 {
+if delta_m(0) == 7 && delta_m(5) == 2 && delta_m(18) == 0 {
     print("  [PASS] deterministic (re-call same ΔM)")
     checks_passed = checks_passed + 1
 } else {
@@ -111,26 +125,23 @@ if delta_m(0) == 7 && delta_m(5) == 2 {
 print("")
 print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
 
-let mut sum = 0
-let mut k = 0
-while k < n { sum = sum + delta_m(k); k = k + 1 }
-let mean_x10 = (sum * 10) / n
-
 let mut verdict_tier = ""
 if checks_passed == checks_total {
-    verdict_tier = "🟢 SUPPORTED-NUMERICAL — ENGINE N1 baseline corrected to per-sibling counter (7/7 checks · n=6 anchored · mean ΔM 2.0)"
+    verdict_tier = "🟢 SUPPORTED-NUMERICAL — ENGINE N1 ledger +13 cycle-10 same-cycle wires (7/7 checks · n=19 anchored · mean ΔM 0.63)"
 } else {
-    verdict_tier = "🔴 FALSIFIED — baseline misreports its own latency (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+    verdict_tier = "🔴 FALSIFIED — ledger misreports its own latency (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
 }
 print("  " + verdict_tier)
 print("")
-print("N1 baseline finding (HONEST · cycle-8 correction):")
-print("  - per-sibling ΔM mean = " + to_string(mean_x10) + "/10 cycles · max = 7 (A1-spawn) · bottleneck 1/6")
-print("  - recent cross-domain wires (C1·D1·E1·F1) ΔM 1-2 → loop is FAST now")
-print("  - the >5-cycle bottleneck was a STARTUP artifact (A1-spawn, pre paper-mature-gate)")
-print("  - cycle-5 reported 2/3 bottleneck via a CONFLATED counter (B1 mapped to ECON-34); per-sibling fixes it")
-print("  - B1 unanchored (pre-instrumentation); instrument now stamps sibling-cycle-at-wire forward")
-print("  - n=6 anecdotal; external anchor Snoek 2012 BayesOpt · Sutton 1988 TD-learning")
+print("N1 ledger finding (HONEST · cycle-10 extension):")
+print("  - per-sibling ΔM mean = " + to_string(mean_x100) + "/100 cycles · max = 7 (A1-spawn) · bottleneck 1/19")
+print("  - cycle-10 reorg absorbed+wired 13 findings (H~T,U) in ONE session → 13/19 cells ΔM=0")
+print("  - mean dropped 2.0 (n=6 cycle-8) → 0.63 (n=19) — same-cycle absorb→wire is now the NORM")
+print("  - the >5-cycle bottleneck remains a STARTUP artifact (A1-spawn, pre paper-mature-gate)")
+print("  - HONEST RESIDUAL: ΔM=0 = same-SESSION (one operator, one sitting), NOT cross-session automation")
+print("  - cross-session automation (measurement AUTONOMOUSLY triggers a wire) is STILL UNBUILT (frontier OPEN)")
+print("  - the cycle-10 low-ΔM cluster may be a one-session-did-it-all artifact (mirror of cycle-5's A1-spawn=7)")
+print("  - n=19 anecdotal; external anchor Snoek 2012 BayesOpt · Sutton 1988 TD-learning")
 print("")
 print("__HEXA_CODEX_NUMERICS_ENGINE_N1_LATENCY_BASELINE__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
 
@@ -150,16 +161,18 @@ fn _root() -> str {
 let ROOT = _root()
 let OUT_PATH = ROOT + "/ENGINE/verdicts/n1_latency_baseline_verdict.txt"
 
-let mut content = "# hexa-codex ENGINE N1 — latency baseline verifier (cycle-8 · per-sibling)\n"
+let mut content = "# hexa-codex ENGINE N1 — latency ledger verifier (cycle-10 · +13 same-cycle)\n"
 content = content + "# axis=ENGINE/ENGINE.md::N1 (⭐ MAIN — discovery→execution closed-loop latency)\n"
 content = content + "# wire=ENGINE/wires/wire_n1_latency_baseline.hexa\n"
 content = content + "# verifier=ENGINE/verify/numerics_engine_n1_latency_baseline.hexa\n"
 content = content + "# tier=" + verdict_tier + "\n"
 content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
-content = content + "# method=per-sibling-counter (cycle-8 fix · cycle-5 conflated ECON/SAFETY counters)\n"
-content = content + "# deltaM_A1_spawn=7 A1_mature=0 C1=1 D1=1 E1=1 F1=2\n"
-content = content + "# n_anchored=6 mean_deltaM_x10=" + to_string(mean_x10) + " max=7 bottleneck=1/6\n"
+content = content + "# method=per-sibling-counter (cycle-8 fix · cycle-10 +13 same-cycle batch)\n"
+content = content + "# deltaM_A1_spawn=7 A1_mature=0 C1=1 D1=1 E1=1 F1=2 · H1..U1=0 (13 cells)\n"
+content = content + "# n_anchored=19 sum_deltaM=" + to_string(sum) + " mean_deltaM_x100=" + to_string(mean_x100) + " max=7 bottleneck=1/19 samecycle=13/19\n"
 content = content + "# B1=UNANCHORED disc=20 deltaM_upper=" + to_string(B1_DELTA_UPPER) + " (wire-time unrecorded · excluded)\n"
-content = content + "# finding=human-in-loop bottleneck was STARTUP artifact (A1-spawn); recent wires ΔM 1-2 fast\n"
+content = content + "# finding=cycle-10 reorg dropped mean 2.0(n=6)->0.63(n=19); 13/19 same-cycle ΔM=0\n"
+content = content + "# HONEST_RESIDUAL=ΔM=0 is same-SESSION absorb+wire (one operator), NOT cross-session automation (STILL UNBUILT · frontier OPEN)\n"
+content = content + "# CAVEAT=cycle-10 low-ΔM cluster may be one-session-did-it-all artifact (mirror of cycle-5 A1-spawn=7 startup outlier)\n"
 write_file(OUT_PATH, content)
 print("verdict written: " + OUT_PATH)

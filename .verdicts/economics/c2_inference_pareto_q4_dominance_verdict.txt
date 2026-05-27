@@ -1,0 +1,14 @@
+# hexa-codex ECONOMICS C2 — inference Pareto Q4 vs Q8 dominance (cycle-40 F-composition)
+# axis=ECONOMICS.md::C2 (Pareto cost-quality frontier · inference-side)
+# composes=F1(energy∝bytes,c38) · F2(bytes∝bpw,c36) · F5(quality quant-invariant measured,c39)
+# verifier=verify/numerics_economics_c2_inference_pareto_q4_dominance.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — Q4 Pareto-dominates Q8 (F1+F2+F5 composition 7/7) · 🟠 scope-limited to F5 regime
+# checks=7/7
+# byte_ratio_q4_q8_x1000=529 (0.529)
+# energy_ratio_x1000=529 (=byte ratio, F1 memory-bound)
+# throughput_speedup_q8_to_q4_x1000=1888 (1.89x)
+# cost_saving_x1000=471 (47.1%)
+# quality_delta_counts=1 < 2SE=14 (F5 indistinguishable)
+# conclusion=Q4 Pareto-dominates Q8 (equal quality, 0.53x cost) for F5-measured regime
+# scope=🟠 conditional on F5 quant-invariance (1.5B/arithmetic/n=200/k-quants)
+# downstream=feeds ENGINE A1 router cost-sensitive class (deferred, ENGINE not this session)

@@ -6,6 +6,53 @@
 
 ---
 
+## 2026-05-27 — cycle-42 C1 Lagrangian verifier authored · 🟠 INSUFFICIENT (toolchain BLOCKED)
+
+axis C1 (Hoffmann Lagrangian compute-optimal) closed-form verifier 작성 완료
+(`verify/numerics_economics_c1_lagrangian.hexa`, 8 checks 설계). 실행 차단으로
+verdict 발급 못함 — cx_claim_verify 따라 milestone `[ ]` 유지, 🟠 INSUFFICIENT.
+
+**의도된 8 checks (정직 손검산 가능, 컴파일 보류)**:
+- α+β = 62 (×100)
+- N_opt exponent of C = β/(α+β) = 4516 (×10000 = 0.4516)
+- D_opt exponent of C = α/(α+β) = 5483 (×10000 = 0.5483, int trunc)
+- DUALITY: a+b = 9999/10000 ≈ 1.0 EXACT
+- D/N exponent of C = (α-β)/(α+β) = 967 (×10000 ≈ 0.097, SMALL)
+- α=β degenerate → D/N C-exponent = 0 (IDENTITY (N/D)^α = A/B)
+- D/N C-exponent < 0.20 → SUB-LINEAR (scale-invariant 근사)
+- determinism
+
+**예상 tier**: 🔵 SUPPORTED-FORMAL (Hoffmann Lagrangian closed-form IDENTITY)
+
+**BLOCKED**: pool ubu-1 `hexa_v2` transpiler instability — segfault on this
+verifier (and C3 도 re-build 시 segfault 재현). `hexa cc` 재빌드가 한 working
+window 만 만들고 다음 build 부터 다시 segfault. Mac 로컬은 fork-storm 게이트
+(`! sidecar sign local` 필요, agent 자가발급 금지). 다른 pool host (ubu-2/pi5)
+는 toolchain 미빌드.
+
+**hexa-lang inbox 후보** ([[feedback_kick_failure_inbox]]): transpiler 의
+`let mut` + 본문 mutation 패턴 segfault — bisect 로 trigger 좁힘:
+
+```hexa
+let mut x = 0
+if x == 1 { x = x + 1 }    // top-level if + 본문 mut → segfault (선행 fn 추가해도)
+```
+
+C3 가 한번 통과한 건 transpiler 의 일회성 working window (`hexa cc` 직후).
+inbox patch 등록은 별도 hexa-lang repo 작업 (이 세션 ECONOMICS-only 범위 밖).
+
+**처리**:
+- `verify/numerics_economics_c1_lagrangian.hexa` 는 commit (미래 실행가능 자산).
+- C1 milestone `[ ]` 유지 (cx_claim_verify 준수, PASS 주장 금지).
+- 이 entry 가 cycle-42 의 honest 상태 기록.
+
+**연결**:
+- verifier (BLOCKED): [`verify/numerics_economics_c1_lagrangian.hexa`](verify/numerics_economics_c1_lagrangian.hexa)
+- 외부 anchor: Hoffmann 2022 arXiv:2203.15556 · Besiroglu 2024 arXiv:2404.10102 · Sardana 2024 arXiv:2401.00448
+- C1 frontier OPEN — Mac 토큰 가능 시 즉시 verify (verifier 손검산 PASS 예상)
+
+---
+
 ## 2026-05-27 — cycle-41 C3 inference stacking · quant × spec-dec 결합 throughput · 🔵 6/6 (pool ubu-1 컴파일)
 
 axis C inference-side 두번째 합성. C2(quant) × F3(spec-dec) 가 곱해지는가 vs 간섭하는가.

@@ -1,0 +1,14 @@
+# hexa-codex ECONOMICS F1 — per-token energy scaling law (cycle-38 first probe)
+# axis=ECONOMICS.md::F1 (NOVEL · cycle-35 spawn · F = inference-substrate efficiency)
+# seed=.discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f1_energy_per_token_scaling_law
+# verifier=verify/numerics_economics_f1_energy_per_token_scaling.hexa
+# tier=🔵 SUPPORTED-FORMAL (roofline decode-energy model 6/6) + 🟠 empirical k_energy UNMEASURED
+# checks=6/6
+# decode_arithmetic_intensity=1_FLOP_per_byte (memory-bound, A100 ridge≈153)
+# roofline_t_per_tok_linear_in_N=EXACT
+# pure_weight_stream_k_energy=1.0_EXACT
+# affine_apparent_slope=k1N/(E0+k1N) <1 from FIXED OVERHEAD not bandwidth
+# key_finding=bandwidth-wall worsens LATENCY not energy N-exponent (seed k<1 misattributed)
+# empirical_k_energy=🟠 INSUFFICIENT (needs measured E0/k1; no verbatim MLPerf ladder)
+# next_probe=cycle-39+ T4 SANDBOX nvidia-smi power.draw Qwen2.5 0.5/1.5/3/7B-Q4 ladder
+# external_anchor=Patterson2021 · MLPerf_v4.0_energy · Williams2009_roofline

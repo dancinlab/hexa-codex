@@ -6,6 +6,49 @@
 
 ---
 
+## 2026-05-27 — cycle-38 F1 first probe · per-token energy scaling law · 🔵 roofline + 🟠 empirical-k 6/6
+
+NOVEL 축 F 세번째 first-probe. F1 = 토큰당 에너지 (J/tok) scaling. 정직한 범위:
+published per-model J/tok ladder 를 verbatim 갖고 있지 않으므로 (fabrication=g5 위반)
+**closed-form roofline 에너지 모델** 을 $0 first-probe 로, empirical exponent fit 은 🟠.
+
+**검증기**: `verify/numerics_economics_f1_energy_per_token_scaling.hexa`
+
+**6/6 PASS**:
+- decode arithmetic-intensity = 1 FLOP/byte ≪ A100 ridge 153 → deeply MEMORY-BOUND
+- roofline t/tok ∝ model_bytes EXACT (7B=6866µs · 70B=68661µs, ratio = param ratio)
+- roofline ceiling Llama2-7B = 145 tok/s (well-known memory-bound ceiling)
+- pure weight-stream k_energy = 1.0 EXACT (N 7B→14B 정확히 2× E/tok, E0=0)
+- affine apparent-slope = 0.50 at E0=k1·N (sub-linearity from FIXED OVERHEAD)
+- affine slope → 0.990 at N=700B (E0 amortized, weight-streaming dominates)
+
+**KEY FINDING (closed-form)**: seed 의 "memory-bandwidth-wall → sub-linear energy
+(k<1)" 직관은 **structurally MISATTRIBUTED**. bandwidth wall 은 LATENCY (t/tok 절대값)
+악화시키지만 energy 의 N-exponent 는 안 굽힘. apparent k<1 은 오직 fixed per-token
+overhead E0 에서 — affine 모델 E/tok = E0 + k1·N, apparent slope = k1·N/(E0+k1·N),
+E0=k1·N 일 때 정확히 0.5, N 증가 시 →1.0.
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (roofline 모델 6/6) + 🟠 empirical k_energy UNMEASURED.
+
+**honest residual**:
+- roofline + affine 구조 = 🔵 deterministic (formula-internal, Williams 2009 roofline).
+- actual k_energy at given N = 측정 E0/k1 ratio 필요 → 🟠 INSUFFICIENT. verbatim
+  published per-model J/tok ladder 없음; 숫자 fabrication 은 g5 위반.
+- external operational claim "energy scales with model size (k≈1)" 은 roofline
+  weight-streaming limit 에서 SUPPORTED — self-strawman 에 대한 closed-negative 아님
+  ([[feedback_negative_paper_external_claim]]).
+- cycle-39+ T4 (exponent close): SANDBOX nvidia-smi --query-gpu=power.draw on ubu-1
+  for Qwen2.5-{0.5B,1.5B,3B,7B}-Q4_K_M → E0/k1 측정 → real-ladder k_energy vs roofline.
+- F1 frontier OPEN: roofline close ≠ measured-exponent close.
+
+**연결**:
+- verifier: [`verify/numerics_economics_f1_energy_per_token_scaling.hexa`](verify/numerics_economics_f1_energy_per_token_scaling.hexa)
+- verdict: [`.verdicts/economics/f1_energy_per_token_scaling_verdict.txt`](.verdicts/economics/f1_energy_per_token_scaling_verdict.txt)
+- seed: [`.discoveries/economics-f-cost-axis-spawn.tape`](.discoveries/economics-f-cost-axis-spawn.tape) @C d_econ_f1_energy_per_token_scaling_law
+- 다음 순차: F5 (quantization quality-per-bit) — F-axis 4 seeds 의 마지막
+
+---
+
 ## 2026-05-27 — cycle-37 F3 first probe · speculative-decoding speedup law · 🔵 formula + 🟠 deployment-α 10/10
 
 NOVEL 축 F 두번째 first-probe. F3 = Leviathan-Kalman 2023 spec-decoding speedup

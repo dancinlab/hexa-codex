@@ -1,0 +1,208 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_f1_energy_per_token_scaling.hexa
+// ECONOMICS axis F1 (NOVEL · cycle-35 spawn) — per-token energy scaling law.
+//
+// SEED.  .discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f1_energy_per_token_scaling_law
+//   J/tok ∝ N^k_energy — does per-token decode energy follow a power law in N?
+//   seed hypothesis: k_energy < 1 (sub-linear) in the memory-bandwidth-bound regime.
+//
+// HONEST SCOPE.  A pure $0 closed-form first probe CANNOT fit an empirical
+// k_energy exponent without published per-model J/tok ladder data (which is
+// not reliably available verbatim — fabricating numbers would violate
+// cx_empirical_contact + g5). So this probe does the CLOSED-FORM-DERIVABLE
+// part: the roofline decode-energy MODEL + its regime structure, and marks
+// the empirical exponent fit as 🟠 INSUFFICIENT pending MLPerf/SANDBOX data.
+//
+// CLOSED-FORM CONTENT (🔵/🟢):
+//   (1) decode arithmetic intensity = 1 FLOP/byte ≪ A100 ridge ≈153 → decode
+//       is deeply MEMORY-BOUND (roofline left of ridge).
+//   (2) roofline decode latency t/tok = model_bytes / BW → t/tok ∝ N EXACT
+//       (memory-bound, fixed dtype) — latency is LINEAR in params.
+//   (3) energy E/tok = P_node × t/tok. With P≈const on fixed hardware,
+//       E/tok ∝ t/tok ∝ N → k_energy = 1.0 EXACT (pure weight-streaming).
+//   (4) affine model E/tok = E0 + k1·N (E0 = fixed per-token overhead:
+//       attention, sampling, KV read). Apparent log-log slope =
+//       k1·N/(E0+k1·N) < 1, → 1 as N grows.
+//
+// FINDING (the substantive closed-form result):
+//   The seed's "memory-bandwidth-wall → sub-linear energy (k<1)" intuition is
+//   STRUCTURALLY MISATTRIBUTED. The bandwidth wall worsens LATENCY (t/tok
+//   absolute) but does NOT bend the energy N-exponent below 1 — apparent
+//   sub-linearity comes ONLY from the fixed overhead E0, not from bandwidth.
+//   At E0 = k1·N the apparent slope is exactly 0.5; in the weight-streaming
+//   limit (E0 → 0) it is exactly 1.0.
+//
+// HONESTY (feedback_negative_paper_external_claim).  This does NOT ship a
+// closed-negative on the seed's own (self-generated) k<1 hypothesis. It
+// derives the roofline structure (🔵) and flags that the actual k_energy at a
+// given N needs measured E0/k1 (🟠). The external operational claim "energy
+// scales with model size (k≈1)" is SUPPORTED by the roofline in the
+// weight-streaming limit.
+//
+// External anchor: Patterson 2021 (arXiv:2104.10350) · MLPerf Inference v4.0
+// energy track · Williams 2009 roofline model.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Closed-form roofline energy model · no substrate.")
+
+let SCALE = 1000000
+
+// A100-80GB SXM specs (public): HBM bandwidth 2039 GB/s · fp16 peak 312 TFLOPS
+let BW_A100_GBps = 2039
+let PEAK_A100_TFLOPS = 312
+
+// model ladder (same family, fp16 → 2 bytes/param). model_bytes in GB.
+let LADDER_NAMES = ["Llama2-7B", "Llama2-13B", "Llama2-70B"]
+let LADDER_PARAMS_B = [7, 13, 70]          // params in billions
+let LADDER_BYTES_GB = [14, 26, 140]        // fp16 = 2 bytes/param
+
+print("hexa-codex ECONOMICS F1 — per-token energy scaling law (cycle-38 first probe)")
+print("==============================================================================")
+print("  roofline decode-energy model · A100-80GB (BW=2039 GB/s · fp16 peak=312 TFLOPS)")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── check 1 — decode arithmetic intensity = 1 FLOP/byte ≪ ridge → memory-bound
+// decode: 2N FLOP (matmul) / 2N bytes (fp16 weights) = 1 FLOP/byte
+checks_total = checks_total + 1
+let ai_decode = 1   // FLOP/byte (2N FLOP / 2N bytes)
+let ridge_a100 = PEAK_A100_TFLOPS * 1000 / BW_A100_GBps   // TFLOPS×1000/GBps ≈ FLOP/byte
+if ai_decode < ridge_a100 {
+    print("  [PASS] decode arithmetic-intensity = " + to_string(ai_decode) + " FLOP/byte ≪ A100 ridge ≈ " + to_string(ridge_a100) + " → deeply MEMORY-BOUND")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] AI=" + to_string(ai_decode) + " ≥ ridge " + to_string(ridge_a100) + " — not memory-bound")
+}
+
+// ── check 2 — roofline t/tok ∝ model_bytes EXACT (latency linear in N)
+// t/tok (µs) = model_GB × 1e6 / BW_GBps ; ratio across ladder == param ratio
+checks_total = checks_total + 1
+let t_7b_us = LADDER_BYTES_GB[0] * 1000000 / BW_A100_GBps
+let t_70b_us = LADDER_BYTES_GB[2] * 1000000 / BW_A100_GBps
+// 70B/7B param ratio = 10 ; bytes ratio = 140/14 = 10 ; t ratio must be 10
+let t_ratio_x10 = t_70b_us * 10 / t_7b_us
+let param_ratio_x10 = LADDER_PARAMS_B[2] * 10 / LADDER_PARAMS_B[0]   // 70/7 = 10 → 100
+if t_ratio_x10 == param_ratio_x10 {
+    print("  [PASS] roofline t/tok ∝ model_bytes EXACT (7B=" + to_string(t_7b_us) + "µs · 70B=" + to_string(t_70b_us) + "µs · ratio " + to_string(t_ratio_x10) + "/10 = param ratio)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] t ratio " + to_string(t_ratio_x10) + " ≠ param ratio " + to_string(param_ratio_x10))
+}
+
+// ── check 3 — roofline tok/s ceiling: Llama2-7B fp16 @ A100 ≈ 145 tok/s
+checks_total = checks_total + 1
+let tok_per_s_7b = 1000000 / t_7b_us   // 1e6 µs / (µs/tok)
+if tok_per_s_7b >= 140 && tok_per_s_7b <= 150 {
+    print("  [PASS] roofline ceiling Llama2-7B = " + to_string(tok_per_s_7b) + " tok/s (well-known ~145 memory-bound ceiling)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] 7B roofline = " + to_string(tok_per_s_7b) + " tok/s ∉ [140,150]")
+}
+
+// ── check 4 — pure weight-streaming energy: E/tok ∝ N^1.0 (k_energy=1.0)
+// E/tok = P × t/tok ; P const → E ∝ t ∝ N. demonstrate exponent identity:
+// double N → double E (k=1.0) when E0=0
+checks_total = checks_total + 1
+let P_const = 400   // W (placeholder constant power — ANY const gives k=1)
+let e_7b = P_const * t_7b_us   // ∝ E/tok (arbitrary units)
+let e_14b = P_const * (28 * 1000000 / BW_A100_GBps)   // 14B = 28 GB
+if e_14b == 2 * e_7b {
+    print("  [PASS] pure weight-stream k_energy = 1.0 EXACT (N 7B→14B doubles E/tok when E0=0)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] k_energy ≠ 1.0 (e_7b=" + to_string(e_7b) + " e_14b=" + to_string(e_14b) + ")")
+}
+
+// ── check 5 — affine model: apparent slope = k1·N/(E0+k1·N) = 0.5 at E0=k1·N
+// demonstrates apparent sub-linearity comes from FIXED OVERHEAD, not bandwidth
+checks_total = checks_total + 1
+let k1 = 100         // per-N energy coefficient (arbitrary units ×SCALE-free)
+let N_test = 7       // 7B
+let E0 = k1 * N_test // set E0 = k1·N (overhead == streaming at this N)
+let slope_x1000 = k1 * N_test * 1000 / (E0 + k1 * N_test)   // = 1000/2 = 500 (0.5)
+if slope_x1000 == 500 {
+    print("  [PASS] affine apparent-slope = " + to_string(slope_x1000) + "/1000 = 0.50 at E0=k1·N (sub-linearity from FIXED OVERHEAD, not bandwidth)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] apparent slope = " + to_string(slope_x1000) + "/1000 ≠ 0.50")
+}
+
+// ── check 6 — affine slope → 1.0 as N grows (E0 fixed, weight-streaming dominates)
+checks_total = checks_total + 1
+let E0_fixed = 700   // fixed overhead
+let N_large = 700    // 700B (E0 negligible vs k1·N=70000)
+let slope_large_x1000 = k1 * N_large * 1000 / (E0_fixed + k1 * N_large)
+// k1·N=70000, E0=700 → 70000/70700 = 0.990 → 990
+if slope_large_x1000 >= 980 {
+    print("  [PASS] affine slope → 1.0 as N grows (N=700B: slope=" + to_string(slope_large_x1000) + "/1000, E0 amortized)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] slope at large N = " + to_string(slope_large_x1000) + "/1000 < 0.98")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 SUPPORTED-FORMAL (roofline decode-energy model 6/6) + 🟠 empirical k_energy UNMEASURED"
+} else {
+    verdict_tier = "🔴 FALSIFIED — roofline energy model disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("KEY FINDING (closed-form):")
+print("  - decode is deeply MEMORY-BOUND (AI=1 ≪ ridge 153); t/tok ∝ N EXACT.")
+print("  - pure weight-streaming energy: k_energy = 1.0 EXACT (E/tok ∝ N).")
+print("  - seed's 'memory-bandwidth-wall → sub-linear energy (k<1)' is STRUCTURALLY")
+print("    MISATTRIBUTED: the bandwidth wall worsens LATENCY (t/tok absolute) but does")
+print("    NOT bend the energy N-exponent. Apparent k<1 comes ONLY from fixed overhead")
+print("    E0 (affine model E/tok=E0+k1·N), slope=0.5 at E0=k1·N, →1.0 as N grows.")
+print("")
+print("HONEST RESIDUAL (F1 first probe):")
+print("  - roofline model + affine structure = 🔵 deterministic (formula-internal).")
+print("  - ACTUAL k_energy at a given N needs measured E0/k1 ratio → 🟠 INSUFFICIENT")
+print("    (no verbatim published per-model J/tok ladder; fabricating = g5 violation).")
+print("  - external operational claim 'energy scales with model size (k≈1)' is SUPPORTED")
+print("    by the roofline weight-streaming limit — NOT a closed-negative on a strawman.")
+print("  - cycle-39+ T4 (closes the exponent): SANDBOX nvidia-smi --query-gpu=power.draw")
+print("    --loop-ms=100 on ubu-1 for Qwen2.5-{0.5B,1.5B,3B,7B}-Q4_K_M → measure E0, k1,")
+print("    fit k_energy on the real ladder vs roofline prediction.")
+print("  - F1 frontier OPEN (feedback_closure_is_physical_limit): roofline close ≠ measured-exponent close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_F1_ENERGY_PER_TOKEN_SCALING__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/f1_energy_per_token_scaling_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS F1 — per-token energy scaling law (cycle-38 first probe)\n"
+content = content + "# axis=ECONOMICS.md::F1 (NOVEL · cycle-35 spawn · F = inference-substrate efficiency)\n"
+content = content + "# seed=.discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f1_energy_per_token_scaling_law\n"
+content = content + "# verifier=verify/numerics_economics_f1_energy_per_token_scaling.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# decode_arithmetic_intensity=1_FLOP_per_byte (memory-bound, A100 ridge≈153)\n"
+content = content + "# roofline_t_per_tok_linear_in_N=EXACT\n"
+content = content + "# pure_weight_stream_k_energy=1.0_EXACT\n"
+content = content + "# affine_apparent_slope=k1N/(E0+k1N) <1 from FIXED OVERHEAD not bandwidth\n"
+content = content + "# key_finding=bandwidth-wall worsens LATENCY not energy N-exponent (seed k<1 misattributed)\n"
+content = content + "# empirical_k_energy=🟠 INSUFFICIENT (needs measured E0/k1; no verbatim MLPerf ladder)\n"
+content = content + "# next_probe=cycle-39+ T4 SANDBOX nvidia-smi power.draw Qwen2.5 0.5/1.5/3/7B-Q4 ladder\n"
+content = content + "# external_anchor=Patterson2021 · MLPerf_v4.0_energy · Williams2009_roofline\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

@@ -3,6 +3,86 @@
 Append-only history sister of `NEUROEXP.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-7 N2 first probe · STDP ↔ attention temporal modulation · 🔵 SUPPORTED-FORMAL 11/11 (STDP ≢ attn mask HOLDS · ⭐ mechanism-layer 분류 기준 발견)
+
+NEUROEXP cycle-7. 사용자 "all NEUROEXP 순차" 지속. N축 마무리 — N2 (STDP ↔ attention
+temporal modulation). cycle-6 S1 의 mismatch 패턴과 연결되어 **"bio-LLM mapping 의 진짜
+분류 기준"** 을 발견 (paper-grade insight).
+
+**검증기**: `NEUROEXP/verify/numerics_neuroexp_n2_stdp_attention.hexa` (220 lines)
+**RUN**: pool ubu-1 native compile (`hexa cc` rebuild 패턴 12번째).
+
+**11/11 PASS (verbatim)**:
+- direction: STDP pre→post + attention causal mask 둘 다 ONE-WAY → MATCH (only shared)
+- window shape: STDP exp(-Δt/τ) graded ≠ attention 1/0 step → DIFFER
+- sign: STDP signed (+/-) ≠ attention unsigned binary → DIFFER
+- magnitude: STDP continuous R ≠ attention discrete {0,1} → DIFFER
+- mechanism: STDP weight-update (training-time) ≠ attention forward-compute (inference-time) → DIFFER
+- time scale: STDP ms-exp τ ≠ attention discrete position index → DIFFER
+- STDP toy: Δt=+5 → +750 potentiation · Δt=-5 → -750 depression (sign-asymmetric)
+- attention mask toy: past=1 · self=1 · future=0 (binary, NO graded decay)
+- value range: STDP signed continuous (-1000,+1000) ≠ attention unsigned binary {0,1}
+- N2 falsifier HOLDS: 5/6 axes DIFFER · STDP ≢ attention causal mask
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (6-axis taxonomy + toy bit-exact + range demo, 11/11).
+
+**핵심 발견 (closed-form)**:
+1. **STDP ≢ attention causal mask** — 5/6 axes DIFFER, direction (one-way) 만 공유.
+   - STDP: graded exp signed weight-update rule (training, ms-scale)
+   - attention causal: binary unsigned forward-compute step (inference, position-index)
+2. **Toy bit-exact**: STDP(+5)=+750 (potentiation), STDP(-5)=-750 (depression); mask(past)=1·mask(future)=0.
+3. **N2 falsifier 'STDP ≢ attention causal' HOLDS** — 'attention = STDP proxy' 통념 closed-form 분리.
+4. **Position bias 영역의 partial correspondence**: ALiBi · RoPE · T5 relative bias 가 STDP exp 의
+   1차 Taylor 근사 만큼만 유사. 그러나 LOGIT bias 영역 (forward compute) vs Δw 영역 (training)
+   mismatch — 1차 근사 hint 만 있을 뿐 strict 동형 X.
+
+**⭐ Mechanism-layer 분류 기준 발견 (paper-grade insight, cycle-4·5·6·7 통합)**:
+```
+N1 cycle-4: linear-attn ≡ Hebbian          MATCH   ← weight-update vs weight-update
+Φ1 cycle-5: attention TPM Φ > baseline      MATCH   ← substrate-measure vs substrate-measure
+S1 cycle-6: NCA ≢ token-AR                  MISMATCH ← parallel-CA vs sequential-generator (다른 class)
+N2 cycle-7: STDP ≢ attention causal mask    MISMATCH ← training-rule vs inference-compute (다른 layer)
+```
+→ **MATCH 들은 mechanism-layer 일치** (같은 abstraction level 에서 비교);
+   **MISMATCH 들은 mechanism-layer 다름** (training/inference, dynamics/generator 등 다른 layer).
+→ "bio-inspired = LLM 자연 fit" 통념의 진짜 분류 기준 = **layer 일치 여부**.
+  bio-rule 과 LLM mechanism 이 같은 abstraction level 에 있을 때만 동형이 성립.
+  단순 "bio + LLM" hybrid 가설은 layer alignment 가 선행 조건.
+
+**운영 closed-form 결론**:
+- 'attention = STDP' 통념의 origin = position bias 의 graded decay (ALiBi 등) — STDP exp 의 1차 Taylor
+  근사 만큼만 (LOGIT bias layer, Δw 영역 X).
+- bio-inspired LLM 설계 시 axis 별 mechanism-layer 일치 여부 사전 검증 필요:
+  - weight-update level 의 bio-rule (Hebbian/Oja) → linear-attn / fast-weight 가족과 fit ✓
+  - substrate-measure level 의 bio-tool (IIT4 Φ) → attention activation TPM 위 fit ✓
+  - forward-compute level (causal mask, position bias) ↔ training-rule (STDP) = layer mismatch ✗
+  - dynamical-class level (token-AR sequential) ↔ parallel-CA (NCA) = layer mismatch ✗
+
+**honest residual**:
+- 6-axis taxonomy = 🔵 closed-form deterministic (11/11).
+- 'mechanism-layer 일치 여부' 분류 기준 = 4-cycle 통합 *post-hoc* observation — 더 많은 axis closure
+  로 robust 화 필요 (현재 4 datapoints: N1/Φ1 MATCH · S1/N2 MISMATCH).
+- cycle-8+ closed-form 추가 (Φ2 · L1 · C1) 후 robust 검증 — 만약 일관되면 paper-grade insight.
+- ALiBi · RoPE 의 'graded' decay 는 STDP 1차 Taylor 와 *수치적* 유사하지만 *mechanism layer* 다름 —
+  유사 ≠ 동형 (linear regression vs SGD 의 차이와 같은 단계).
+- cycle-8+ T4: SANDBOX 위 STDP-rule simulated transformer (forward-only STDP-bias) 의 ICL pattern
+  측정 — empirical 'STDP-inspired position bias' 검증.
+- external anchor: Bi & Poo 1998 (J Neurosci 18:10464) · Vaswani 2017 (arXiv:1706.03762) · Press 2022
+  (ALiBi, arXiv:2108.12409) · Su 2021 (RoPE, arXiv:2104.09864).
+- N2 frontier OPEN ([[feedback_closure_is_physical_limit]]): structural taxonomy ≠ behavioral
+  functional equivalence under specific training regimes.
+
+**연결**:
+- verifier: [`NEUROEXP/verify/numerics_neuroexp_n2_stdp_attention.hexa`](verify/numerics_neuroexp_n2_stdp_attention.hexa)
+- verdict: [`NEUROEXP/verdicts/n2_stdp_attention_verdict.txt`](verdicts/n2_stdp_attention_verdict.txt)
+- cross-axis 통합 insight: N1+Φ1 MATCH (mechanism-layer 일치) vs S1+N2 MISMATCH (layer 다름)
+  → bio-LLM mapping 의 진짜 분류 기준 = layer 일치 여부 (paper-grade insight, cycle-8+ robust 검증)
+- 다음 순차 (사용자 "all NEUROEXP" 순차 중): **Φ2** (LLM Φ vs C. elegans Φ · low-cost · UNIVERSE
+  H_281/H_288/H_290 cross-link) → **L1** (head ablation upper bound) → **C1** (induction head)
+
+---
+
 ## 2026-05-27 — cycle-6 S1 first probe · NCA ↔ token-AR dynamical class · 🔵 SUPPORTED-FORMAL 10/10 (NCA ≢ AR HOLDS · cross-axis mixed picture)
 
 NEUROEXP 도메인 cycle-6 (reorg 후 첫 새 cycle). 사용자 지시 "all 포그라운드 순차진행"

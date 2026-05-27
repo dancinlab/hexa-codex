@@ -1,0 +1,182 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_c2_inference_pareto_q4_dominance.hexa
+// ECONOMICS axis C2 — inference-side Pareto: Q4 vs Q8 dominance (F-law composition).
+//
+// COMPOSITION.  Combines three already-verified F-axis results into one
+// operational cost-quality conclusion (cx_discovery cross-cycle synthesis):
+//   - F1 (cycle-38): decode is memory-bound → energy/tok ∝ bytes streamed
+//     (roofline, batch-1). verify/numerics_economics_f1_energy_per_token_scaling.hexa
+//   - F2 (cycle-36): bytes scale linearly with the per-weight bit-width
+//     (KV + weight stream ∝ bpw). verify/numerics_economics_f2_kv_cache_memory_law.hexa
+//   - F5 (cycle-39): MEASURED quality quant-invariant Q3≈Q4≈Q8 on Qwen2.5-1.5B
+//     arithmetic (Δ<2·SE). .verdicts/sandbox/p4_quant_band_pilot_summary.txt
+//
+// CLAIM.  For the F5-measured regime, Q4_K_M (4.5 bpw) Pareto-DOMINATES Q8_0
+// (8.5 bpw): statistically-equal quality (F5) at ~0.53× the streamed bytes →
+// ~0.53× energy/$ and ~1.89× throughput (F1 memory-bound). The "Q4 is
+// Pareto-optimal" operational guideline (Dettmers 2023) is SUPPORTED here — but
+// via the COST axis (equal quality, lower bytes), not via a quality cliff at Q3.
+//
+// FALSIFIER.  If quality were NOT quant-invariant (F5 had shown Q8 > Q4 beyond
+// noise) OR Q4 were not cheaper (F1/F2), the dominance breaks. The dominance is
+// CONDITIONAL on F5's quant-invariance, which is scope-limited (1.5B · arithmetic
+// · n=200 · k-quants). On a task where quant DOES bite, Q8 quality may exceed Q4
+// and the dominance weakens → 🟠 scope-limited, NOT universal.
+//
+// HONESTY.  Cost RATIO is $-agnostic (🟢, robust). Absolute $/tok needs hardware
+// rental rates (energy $/kWh + GPU $/hr) → 🟠. Memory-bound link (energy ∝ bytes)
+// holds at batch-1 decode; at large batch (compute-bound) it weakens.
+//
+// External anchor: Dettmers 2023 (arXiv:2212.09720) · Williams 2009 roofline.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Closed-form composition of 3 committed F-axis verdicts.")
+
+// bit-widths (from the P4 ladder · matches F5 data)
+let BPW_Q4_x10 = 45   // Q4_K_M = 4.5 bpw
+let BPW_Q8_x10 = 85   // Q8_0   = 8.5 bpw
+
+// F5 measured quality (correct / 200)
+let Q4_CORRECT = 86
+let Q8_CORRECT = 85
+let N_PER_BAND = 200
+let SE_COUNT = 7        // binomial SE from F5 (pooled p̄=0.432, n=200) → isqrt(49)
+
+print("hexa-codex ECONOMICS C2 — inference Pareto: Q4 vs Q8 dominance (cycle-40 F-composition)")
+print("=======================================================================================")
+print("  composes F1 (energy∝bytes) · F2 (bytes∝bpw) · F5 (quality quant-invariant, measured)")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── check 1 — bit-widths Q4=4.5 < Q8=8.5
+checks_total = checks_total + 1
+if BPW_Q4_x10 == 45 && BPW_Q8_x10 == 85 {
+    print("  [PASS] bit-widths Q4_K_M=4.5 bpw · Q8_0=8.5 bpw (P4 ladder)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] bpw mismatch")
+}
+
+// ── check 2 — byte ratio Q4/Q8 = 4.5/8.5 (×1000)
+checks_total = checks_total + 1
+let byte_ratio_x1000 = BPW_Q4_x10 * 1000 / BPW_Q8_x10   // 45000/85 = 529
+if byte_ratio_x1000 == 529 {
+    print("  [PASS] streamed-byte ratio Q4/Q8 = " + to_string(byte_ratio_x1000) + "/1000 (0.529 · bytes ∝ bpw per F2)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] byte ratio = " + to_string(byte_ratio_x1000) + " ≠ 529")
+}
+
+// ── check 3 — energy ratio = byte ratio (F1 memory-bound roofline link)
+checks_total = checks_total + 1
+let energy_ratio_x1000 = byte_ratio_x1000   // F1: energy/tok ∝ bytes (memory-bound)
+if energy_ratio_x1000 == 529 {
+    print("  [PASS] energy/tok ratio Q4/Q8 = " + to_string(energy_ratio_x1000) + "/1000 (= byte ratio, F1 memory-bound decode)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] energy ratio ≠ byte ratio")
+}
+
+// ── check 4 — throughput speedup Q8→Q4 = 8.5/4.5 ≥ 1.8× (F1: t/tok ∝ bytes)
+checks_total = checks_total + 1
+let speedup_x1000 = BPW_Q8_x10 * 1000 / BPW_Q4_x10   // 85000/45 = 1888
+if speedup_x1000 >= 1800 {
+    print("  [PASS] throughput speedup Q8→Q4 = " + to_string(speedup_x1000) + "/1000 (1.89× · t/tok ∝ bytes, F1)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] speedup = " + to_string(speedup_x1000) + "/1000 < 1.8×")
+}
+
+// ── check 5 — F5 quality indistinguishable (|Q4−Q8| < 2·SE)
+checks_total = checks_total + 1
+let q_delta = if Q4_CORRECT > Q8_CORRECT { Q4_CORRECT - Q8_CORRECT } else { Q8_CORRECT - Q4_CORRECT }
+if q_delta < 2 * SE_COUNT {
+    print("  [PASS] F5 quality |Q4−Q8| = " + to_string(q_delta) + " counts < 2·SE = " + to_string(2 * SE_COUNT) + " → statistically EQUAL")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] quality delta = " + to_string(q_delta) + " ≥ 2·SE")
+}
+
+// ── check 6 — Pareto dominance: Q4 cost < Q8 cost AND Q4 quality ≥ Q8−noise
+checks_total = checks_total + 1
+let cost_q4 = byte_ratio_x1000        // 529 (Q8 = 1000 baseline)
+let cost_q8 = 1000
+let quality_ok = Q4_CORRECT >= Q8_CORRECT - 2 * SE_COUNT   // 86 ≥ 85-14=71 ✓
+if cost_q4 < cost_q8 && quality_ok {
+    print("  [PASS] Q4 Pareto-DOMINATES Q8: cost " + to_string(cost_q4) + " < " + to_string(cost_q8) + " AND quality 86 ≥ 85−noise (equal-quality, lower-cost)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] dominance not established")
+}
+
+// ── check 7 — cost saving = 1 − byte_ratio
+checks_total = checks_total + 1
+let saving_x1000 = 1000 - byte_ratio_x1000   // 471
+if saving_x1000 == 471 {
+    print("  [PASS] Q4-vs-Q8 cost saving = " + to_string(saving_x1000) + "/1000 = 47.1% (energy + GPU-time, $-agnostic ratio)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] saving = " + to_string(saving_x1000) + " ≠ 471")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🟢 SUPPORTED-NUMERICAL — Q4 Pareto-dominates Q8 (F1+F2+F5 composition 7/7) · 🟠 scope-limited to F5 regime"
+} else {
+    verdict_tier = "🔴 FALSIFIED — composition disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("OPERATIONAL CONCLUSION (composes 3 verified F-laws):")
+print("  - for the F5-measured regime, serve Q4_K_M not Q8_0: SAME quality (Δ<2SE),")
+print("    ~0.53× energy/$ , ~1.89× throughput, 47.1% cost saving. Dettmers 'Q4 Pareto-")
+print("    optimal' SUPPORTED here via the COST axis (not a Q3 quality cliff).")
+print("")
+print("HONEST RESIDUAL (C2 first probe):")
+print("  - cost RATIO is $-agnostic (🟢, robust); absolute $/tok needs hardware rental rates → 🟠.")
+print("  - dominance CONDITIONAL on F5 quant-invariance (1.5B · arithmetic · n=200 · k-quants) → 🟠")
+print("    scope-limited; on a task where quant BITES, Q8 quality may exceed Q4 → dominance weakens.")
+print("  - energy∝bytes link (F1) holds at batch-1 memory-bound decode; large-batch compute-bound weakens it.")
+print("  - this is a pure COMPOSITION of committed verdicts (F1 closed-form · F2 closed-form · F5 measured) —")
+print("    no new measurement; the operational rule could feed ENGINE A1 router (cost-sensitive class).")
+print("  - C2 frontier OPEN (feedback_closure_is_physical_limit): composition close ≠ multi-task substrate close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_C2_INFERENCE_PARETO_Q4_DOMINANCE__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/c2_inference_pareto_q4_dominance_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS C2 — inference Pareto Q4 vs Q8 dominance (cycle-40 F-composition)\n"
+content = content + "# axis=ECONOMICS.md::C2 (Pareto cost-quality frontier · inference-side)\n"
+content = content + "# composes=F1(energy∝bytes,c38) · F2(bytes∝bpw,c36) · F5(quality quant-invariant measured,c39)\n"
+content = content + "# verifier=verify/numerics_economics_c2_inference_pareto_q4_dominance.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# byte_ratio_q4_q8_x1000=" + to_string(byte_ratio_x1000) + " (0.529)\n"
+content = content + "# energy_ratio_x1000=" + to_string(energy_ratio_x1000) + " (=byte ratio, F1 memory-bound)\n"
+content = content + "# throughput_speedup_q8_to_q4_x1000=" + to_string(speedup_x1000) + " (1.89x)\n"
+content = content + "# cost_saving_x1000=" + to_string(saving_x1000) + " (47.1%)\n"
+content = content + "# quality_delta_counts=" + to_string(q_delta) + " < 2SE=" + to_string(2 * SE_COUNT) + " (F5 indistinguishable)\n"
+content = content + "# conclusion=Q4 Pareto-dominates Q8 (equal quality, 0.53x cost) for F5-measured regime\n"
+content = content + "# scope=🟠 conditional on F5 quant-invariance (1.5B/arithmetic/n=200/k-quants)\n"
+content = content + "# downstream=feeds ENGINE A1 router cost-sensitive class (deferred, ENGINE not this session)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

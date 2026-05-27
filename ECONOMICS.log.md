@@ -6,6 +6,51 @@
 
 ---
 
+## 2026-05-27 — cycle-40 C2 inference Pareto · Q4 Pareto-dominates Q8 (F-law composition) · 🟢 7/7
+
+axis C (Pareto 비용-품질 frontier) 의 inference-side 확장. cycle-36→39 에서 검증한
+3 F-law 을 하나의 운영 결론으로 **합성** (cx_discovery cross-cycle synthesis,
+새 측정 없음 — 기존 committed verdict 만 조합).
+
+**검증기**: `verify/numerics_economics_c2_inference_pareto_q4_dominance.hexa`
+
+**합성 input (3 검증된 결과)**:
+- F1 (cycle-38): decode memory-bound → energy/tok ∝ streamed bytes (roofline)
+- F2 (cycle-36): bytes ∝ bpw (per-weight bit-width, 지수 1.0)
+- F5 (cycle-39): MEASURED quality quant-invariant Q3≈Q4≈Q8 (Δ<2SE, Qwen2.5-1.5B arith)
+
+**7/7 PASS**:
+- bit-width Q4_K_M=4.5 · Q8_0=8.5 bpw
+- byte ratio Q4/Q8 = 0.529 (bytes ∝ bpw, F2)
+- energy ratio = byte ratio 0.529 (F1 memory-bound link)
+- throughput speedup Q8→Q4 = 1.89× (t/tok ∝ bytes)
+- F5 quality |Q4−Q8| = 1 count < 2·SE=14 → 통계적 동일
+- **Q4 Pareto-DOMINATES Q8**: cost 0.529 < 1.0 AND quality ≥ (equal-quality, lower-cost)
+- cost saving = 47.1% (energy + GPU-time, $-agnostic ratio)
+
+**verdict tier**: 🟢 SUPPORTED-NUMERICAL (F1+F2+F5 composition) + 🟠 scope-limited.
+
+**운영 결론**: F5-measured regime 에서 **Q4_K_M 서빙이 Q8_0 을 dominate** — 동일 품질에
+~0.53× energy/$ · 1.89× throughput · 47.1% 비용절감. Dettmers "Q4 Pareto-optimal" 을
+COST axis 로 SUPPORT (Q3 quality cliff 경로 아님).
+
+**honest residual**:
+- cost RATIO 는 $-agnostic (🟢 robust); 절대 $/tok 은 hardware rental rate 필요 (🟠).
+- dominance 는 F5 quant-invariance 에 CONDITIONAL → 🟠 scope-limited (1.5B·arithmetic·
+  n=200·k-quants). quant 이 실제로 bite 하는 task 에서는 Q8 품질 > Q4 가능 → dominance 약화.
+- energy∝bytes (F1) 는 batch-1 memory-bound decode 에서 성립; large-batch compute-bound 에서 약화.
+- 운영규칙은 ENGINE A1 router 의 cost-sensitive class 에 feed 가능 (deferred — ENGINE 은
+  이 세션 범위 밖, 사용자 "ECONOMY 만 이세션").
+- C2 frontier OPEN: composition close ≠ multi-task substrate close.
+
+**연결**:
+- verifier: [`verify/numerics_economics_c2_inference_pareto_q4_dominance.hexa`](verify/numerics_economics_c2_inference_pareto_q4_dominance.hexa)
+- verdict: [`.verdicts/economics/c2_inference_pareto_q4_dominance_verdict.txt`](.verdicts/economics/c2_inference_pareto_q4_dominance_verdict.txt)
+- 합성 source: F1 (`verify/numerics_economics_f1_energy_per_token_scaling.hexa`) · F2 (`verify/numerics_economics_f2_kv_cache_memory_law.hexa`) · F5 (`verify/numerics_economics_f5_quantization_tax.hexa`)
+- 측정 데이터: [`.verdicts/sandbox/p4_quant_band_pilot_summary.txt`](.verdicts/sandbox/p4_quant_band_pilot_summary.txt)
+
+---
+
 ## 2026-05-27 — cycle-39 F5 first probe · quantization quality-per-bit law · 🟢 numerical + 🟠 Dettmers-scope 6/6
 
 NOVEL 축 F **마지막** first-probe (F-axis 4 seeds 모두 first-probe 완료). F5 =

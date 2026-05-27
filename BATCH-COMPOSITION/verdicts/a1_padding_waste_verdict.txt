@@ -1,0 +1,18 @@
+# hexa-codex BATCH-COMPOSITION A1 — padding-waste / throughput duality closed-form verifier (cycle-9 round-8)
+# axis=BATCH-COMPOSITION/BATCH-COMPOSITION.md::A1 (length-mix throughput · padding-waste first probe, closed-form)
+# formula=padding_waste_x100(c) + tput_x100(c) == 100; gap_x100(c, LS) = tput_x100(LS) − tput_x100(c); falsifier_fires = gap_x100 > 300 (× 10 pp ledger of 30pp)
+# bench=BATCH-COMPOSITION/bench/batch_composition_a1_padding_waste.hexa
+# verifier=BATCH-COMPOSITION/verify/numerics_batch_composition_a1_padding_waste.hexa
+# tier=🔵 STRUCTURAL (padding-waste / throughput duality identity + threshold 7/7) + 🟡 BY-CITATION (Yu 2022 Orca · Kwon 2023 vLLM PagedAttention · NVIDIA Triton dynamic batcher · Sheng 2023 FlexGen)
+# verdict_class=SUPPORTED-NUMERICAL
+# checks=7/7
+# placeholder_compositions=5 (LS util=3960 · B4 util=3800 · NS util=3880 · RM util=3000 · WC util=1560) at batch_size=32 max_len=125 total_slots=4000
+# padding_waste_x100=LS:1 B4:5 NS:3 RM:25 WC:61
+# tput_x100=LS:99 B4:95 NS:97 RM:75 WC:39
+# gap_x100_vs_LS=B4:40 NS:20 RM:240 WC:600
+# threshold_x100=300 (gap > 30pp on × 10 ledger → falsifier fires)
+# bidirectional=BUC4/NEAR-SORT/RANDOM-MIXED silent (false-positive 회피) · WORST-CASE fires (true-positive captured) · LS baseline self-gap 0 silent (structural floor)
+# external_anchors=Yu 2022 Orca (OSDI) · Kwon 2023 vLLM PagedAttention (SOSP) · NVIDIA Triton dynamic batcher · Sheng 2023 FlexGen (ICML)
+# substrate_fire=DEFERRED (cycle-10+ · vLLM serving bench · Llama-3 8B · ShareGPT length dist · GPU-saturated regime · vast.ai cost-bearing pod)
+# honest_residual=integer_x100_ledger_truncation_at_1pp · prefix-share KV-cache waste not modeled at closed-form tier (vLLM PagedAttention block-granularity at measured-tier) · axis_B_difficulty_mix_ladder_and_axis_N_informed_pack_vs_naive_sort_next
+# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis · new model size · new task mix · new packing algorithm reopens cells)

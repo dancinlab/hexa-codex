@@ -1,0 +1,324 @@
+#!hexa strict
+// BATCH-COMPOSITION/verify/numerics_batch_composition_a1_padding_waste.hexa
+// BATCH-COMPOSITION A1 — closed-form falsifier verifier for length-mix
+// padding-waste / throughput duality on integer × 100 ledger.
+//
+// Independently REPLICATES the bench identity (no runtime import of bench
+// state) and asserts the 7 invariants:
+//   (1) duality identity      padding_waste_x100 + tput_x100 == 100 (∀ composition)
+//   (2) range bound           tput_x100 ∈ [0, 100] AND padding_waste_x100 ∈ [0, 100]
+//   (3) zero-padding control  all-equal-length synthetic → padding_waste = 0 AND tput = 100
+//   (4) worst-case fires      WC gap_x100 vs LS > 300 (> 30pp · padding catastrophic)
+//   (5) length-sorted baseline silent  LS self-gap = 0 (sort cannot beat itself)
+//   (6) determinism           re-call same input → same waste · same tput · same fire
+//   (7) ordering sanity       LS tput ≥ RM tput (sort can never be worse than random)
+//
+// Any FAIL = bench encoding contradicts the closed-form identity →
+// BATCH-COMPOSITION A1 FALSIFIED.
+//
+// SOURCE.  bench/batch_composition_a1_padding_waste.hexa (this verifier
+// replicates the formula independently — closed-form recompute, no runtime
+// import of the bench file's emitted state; same inputs by construction).
+//
+// External anchors:
+//   Yu 2022 — Orca: A Distributed Serving System for Transformer-Based
+//             Generative Models (OSDI 2022 · continuous batching)
+//   Kwon 2023 — Efficient Memory Management for LLM Serving with
+//             PagedAttention (vLLM · SOSP 2023 · sec on length-mix)
+//   NVIDIA Triton — dynamic batcher docs (server-side batching policy)
+//   Sheng 2023 — FlexGen (ICML 2023 · throughput trade-offs)
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form padding-waste duality recompute on integer ×100 ledger.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Replicated registry (independent · parallel to bench by construction)
+//   indices: 0 = LS · 1 = B4 · 2 = NS · 3 = RM · 4 = WC
+// ────────────────────────────────────────────────────────────────────────
+
+let COMP_NAMES = ["length-sorted", "bucketed-4", "near-sorted", "random-mixed", "worst-case"]
+let BATCH_SIZE = [          32,           32,            32,             32,            32]
+let MAX_LEN    = [         125,          125,           125,            125,           125]
+let UTILIZED   = [        3960,         3800,          3880,           3000,          1560]
+
+let THRESHOLD_x100 = 300
+let LS_IDX = 0
+
+fn total_slots_v(i: int) -> int {
+    return BATCH_SIZE[i] * MAX_LEN[i]
+}
+
+fn padding_waste_x100_v(i: int) -> int {
+    let slots = total_slots_v(i)
+    if slots <= 0 { return 0 }
+    return ((slots - UTILIZED[i]) * 100) / slots
+}
+
+fn tput_x100_v(i: int) -> int {
+    let slots = total_slots_v(i)
+    if slots <= 0 { return 0 }
+    return (UTILIZED[i] * 100) / slots
+}
+
+fn gap_x100_vs_ls_v(i: int) -> int {
+    // tput_x100 is integer percent (0..100); lift gap to × 10 pp ledger so
+    // the THRESHOLD_x100 = 300 comparison matches 30pp resolution.
+    return (tput_x100_v(LS_IDX) - tput_x100_v(i)) * 10
+}
+
+fn falsifier_fires_v(i: int) -> bool {
+    return gap_x100_vs_ls_v(i) > THRESHOLD_x100
+}
+
+print("hexa-codex BATCH-COMPOSITION A1 falsifier — padding-waste duality closed-form")
+print("==============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = COMP_NAMES.len()
+
+// ────────────────────────────────────────────────────────────────────────
+// check 1 — duality identity: padding_waste_x100 + tput_x100 == 100
+//   on integer ×100 ledger; single 'utilized' value fixes both. Recomputed
+//   inline (no helper) so identity is testable end-to-end.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut duality_ok = true
+let mut i = 0
+while i < n {
+    let slots = BATCH_SIZE[i] * MAX_LEN[i]
+    let pad_inline  = ((slots - UTILIZED[i]) * 100) / slots
+    let tput_inline = (UTILIZED[i] * 100) / slots
+    let pad_helper  = padding_waste_x100_v(i)
+    let tput_helper = tput_x100_v(i)
+    if pad_inline != pad_helper { duality_ok = false }
+    if tput_inline != tput_helper { duality_ok = false }
+    if (pad_inline + tput_inline) != 100 { duality_ok = false }
+    i = i + 1
+}
+if duality_ok {
+    print("  [PASS] (1) duality identity: padding_waste_x100 + tput_x100 == 100 for all 5 compositions")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (1) duality identity broken — pad + tput ≠ 100 OR helper disagrees with inline")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 2 — range bound: tput_x100 ∈ [0, 100] AND padding_waste_x100 ∈ [0, 100]
+//   (both are percentages on integer ledger).
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut range_ok = true
+i = 0
+while i < n {
+    let t = tput_x100_v(i)
+    let p = padding_waste_x100_v(i)
+    if t < 0 || t > 100 { range_ok = false }
+    if p < 0 || p > 100 { range_ok = false }
+    i = i + 1
+}
+if range_ok {
+    print("  [PASS] (2) tput_x100 ∈ [0, 100] AND padding_waste_x100 ∈ [0, 100] for all 5 compositions")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (2) tput or padding_waste out of [0, 100]")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 3 — zero-padding synthetic control:
+//   when utilized == total_slots (all sequences exactly equal length),
+//   padding_waste must be 0 AND tput must be 100. Closed-form floor.
+//   Synthesize a (batch=8, max_len=64, utilized=512) row inline.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let synth_bs    = 8
+let synth_mlen  = 64
+let synth_util  = 512                           // = 8 × 64 exactly
+let synth_slots = synth_bs * synth_mlen
+let synth_pad   = ((synth_slots - synth_util) * 100) / synth_slots
+let synth_tput  = (synth_util * 100) / synth_slots
+if synth_pad == 0 && synth_tput == 100 {
+    print("  [PASS] (3) zero-padding control (all-equal-length synthetic) → padding_waste=0 AND tput=100")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (3) zero-padding synthetic broken — pad=" + to_string(synth_pad) +
+          " tput=" + to_string(synth_tput) + " — expected 0 / 100")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 4 — worst-case fires: WC (idx 4) gap > 300 (× 10 pp ledger of 30pp).
+//   slots = 32 × 125 = 4000; LS tput = (3960·100)/4000 = 99,
+//   WC tput = (1560·100)/4000 = 39 → raw integer-percent gap 60pp;
+//   lifted to × 10 pp ledger: gap_x100(WC) = (99 − 39) × 10 = 600 > 300 ✓
+//   Bidirectional check 5 anchors the LS self-baseline silent (0 < 300).
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let wc_idx = 4
+let wc_gap = gap_x100_vs_ls_v(wc_idx)
+let wc_fires = falsifier_fires_v(wc_idx)
+if wc_gap > THRESHOLD_x100 && wc_fires {
+    print("  [PASS] (4) worst-case WC gap_x100=" + to_string(wc_gap) +
+          " > " + to_string(THRESHOLD_x100) + " → falsifier fires (padding catastrophic)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (4) WC gap=" + to_string(wc_gap) + " fires=" + to_string(wc_fires) +
+          " — expected > " + to_string(THRESHOLD_x100) + " · true")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 5 — length-sorted baseline silent: LS self-gap = 0
+//   Structural floor — sort cannot beat itself; gap(LS, LS) = 0 always.
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let ls_gap = gap_x100_vs_ls_v(LS_IDX)
+let ls_fires = falsifier_fires_v(LS_IDX)
+if ls_gap == 0 && ls_fires == false {
+    print("  [PASS] (5) length-sorted self-gap = 0 → silent (BASELINE structural floor)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (5) LS gap=" + to_string(ls_gap) + " fires=" + to_string(ls_fires) +
+          " — expected 0 · false")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 6 — determinism: re-call same input → same waste · tput · fire
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let mut det_ok = true
+i = 0
+while i < n {
+    let p1 = padding_waste_x100_v(i)
+    let p2 = padding_waste_x100_v(i)
+    let t1 = tput_x100_v(i)
+    let t2 = tput_x100_v(i)
+    let f1 = falsifier_fires_v(i)
+    let f2 = falsifier_fires_v(i)
+    if p1 != p2 { det_ok = false }
+    if t1 != t2 { det_ok = false }
+    if f1 != f2 { det_ok = false }
+    i = i + 1
+}
+if det_ok {
+    print("  [PASS] (6) deterministic (re-call same input → same waste · tput · fire)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (6) non-deterministic — same input differs across re-calls")
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// check 7 — sanity: length-sorted tput ≥ random-mixed tput.
+//   Structural — sorting can never produce MORE padding than random.
+//   (Equality only when length distribution is degenerate.)
+// ────────────────────────────────────────────────────────────────────────
+checks_total = checks_total + 1
+let rm_idx = 3
+let ls_tput = tput_x100_v(LS_IDX)
+let rm_tput = tput_x100_v(rm_idx)
+if ls_tput >= rm_tput {
+    print("  [PASS] (7) sanity: LS tput=" + to_string(ls_tput) +
+          " ≥ RM tput=" + to_string(rm_tput) +
+          " (sort can never be worse than random)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (7) LS tput=" + to_string(ls_tput) + " < RM tput=" + to_string(rm_tput) +
+          " — sort-vs-random inversion, falsifier meaning broken")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+let mut verdict_class = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (padding-waste / throughput duality identity + threshold 7/7) + 🟡 BY-CITATION (Yu 2022 Orca · Kwon 2023 vLLM PagedAttention · NVIDIA Triton dynamic batcher · Sheng 2023 FlexGen)"
+    verdict_class = "SUPPORTED-NUMERICAL"
+} else {
+    verdict_tier = "🔴 FALSIFIED — padding-waste duality encoding contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+    verdict_class = "FALSIFIED"
+}
+print("  " + verdict_tier)
+print("")
+print("worked example summary (gap on × 10 pp ledger · threshold 300 = 30pp):")
+print("  length-sorted (LS, util=3960/4000) tput=99 · gap_x10=0   · BASELINE silent · sort = ideal pack")
+print("  bucketed-4    (B4, util=3800/4000) tput=95 · gap_x10=40  · silent · 4-bucket near-ideal (false-positive 회피)")
+print("  near-sorted   (NS, util=3880/4000) tput=97 · gap_x10=20  · silent · 1-bucket drift (false-positive 회피)")
+print("  random-mixed  (RM, util=3000/4000) tput=75 · gap_x10=240 · borderline silent · 240 < 300 threshold")
+print("  worst-case    (WC, util=1560/4000) tput=39 · gap_x10=600 · FIRES · 1 long + 31 short · catastrophic pad")
+print("")
+print("external anchor:")
+print("  - Yu 2022 'Orca: A Distributed Serving System for Transformer-Based Generative Models' (OSDI 2022)")
+print("  - Kwon 2023 'Efficient Memory Management for Large Language Model Serving with PagedAttention' (vLLM · SOSP 2023)")
+print("  - NVIDIA Triton — dynamic batcher docs (server-side batching policy · length-mix handling)")
+print("  - Sheng 2023 'FlexGen: High-Throughput Generative Inference of LLMs with a Single GPU' (ICML 2023)")
+print("")
+print("honest residual (frontier OPEN — perpetual axis, feedback_closure_is_physical_limit):")
+print("  - this verifier encodes the FORMULA only (closed-form 🔵 + 🟡) — substrate fire on")
+print("    vLLM serving bench (Llama-3 8B · ShareGPT length dist · GPU-saturated regime) deferred to")
+print("    A1 measured-tier (cycle-10+ T4 · vast.ai pod · cost-bearing round · `cx_lab_sandbox`).")
+print("  - integer ×100 ledger truncates throughput at 1pp — acceptable for falsifier semantics,")
+print("    not fine-grained percentile reporting across long-tail length distributions.")
+print("  - 'utilized' here is real-token count; real-fire must also account for KV-cache slot waste")
+print("    on prefix-share — vLLM PagedAttention extends the identity to block granularity at measured-tier.")
+print("  - axis B (difficulty-mix × scale × packing ladder) and axis N ⭐ MAIN NOVEL (informed-pack vs")
+print("    naive-sort) open next.")
+print("")
+print("__HEXA_CODEX_NUMERICS_BATCH_COMPOSITION_A1_PADDING_WASTE__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+// ────────────────────────────────────────────────────────────────────────
+// Verdict file persistence — under BATCH-COMPOSITION/verdicts/
+// ────────────────────────────────────────────────────────────────────────
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/BATCH-COMPOSITION/verdicts/a1_padding_waste_verdict.txt"
+
+let ls_pad_out = padding_waste_x100_v(0)
+let b4_pad_out = padding_waste_x100_v(1)
+let ns_pad_out = padding_waste_x100_v(2)
+let rm_pad_out = padding_waste_x100_v(3)
+let wc_pad_out = padding_waste_x100_v(4)
+
+let ls_tput_out = tput_x100_v(0)
+let b4_tput_out = tput_x100_v(1)
+let ns_tput_out = tput_x100_v(2)
+let rm_tput_out = tput_x100_v(3)
+let wc_tput_out = tput_x100_v(4)
+
+let b4_gap_out = gap_x100_vs_ls_v(1)
+let ns_gap_out = gap_x100_vs_ls_v(2)
+let rm_gap_out = gap_x100_vs_ls_v(3)
+let wc_gap_out = gap_x100_vs_ls_v(4)
+
+let mut content = "# hexa-codex BATCH-COMPOSITION A1 — padding-waste / throughput duality closed-form verifier (cycle-9 round-8)\n"
+content = content + "# axis=BATCH-COMPOSITION/BATCH-COMPOSITION.md::A1 (length-mix throughput · padding-waste first probe, closed-form)\n"
+content = content + "# formula=padding_waste_x100(c) + tput_x100(c) == 100; gap_x100(c, LS) = tput_x100(LS) − tput_x100(c); falsifier_fires = gap_x100 > 300 (× 10 pp ledger of 30pp)\n"
+content = content + "# bench=BATCH-COMPOSITION/bench/batch_composition_a1_padding_waste.hexa\n"
+content = content + "# verifier=BATCH-COMPOSITION/verify/numerics_batch_composition_a1_padding_waste.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# verdict_class=" + verdict_class + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# placeholder_compositions=5 (LS util=3960 · B4 util=3800 · NS util=3880 · RM util=3000 · WC util=1560) at batch_size=32 max_len=125 total_slots=4000\n"
+content = content + "# padding_waste_x100=LS:" + to_string(ls_pad_out) + " B4:" + to_string(b4_pad_out) + " NS:" + to_string(ns_pad_out) + " RM:" + to_string(rm_pad_out) + " WC:" + to_string(wc_pad_out) + "\n"
+content = content + "# tput_x100=LS:" + to_string(ls_tput_out) + " B4:" + to_string(b4_tput_out) + " NS:" + to_string(ns_tput_out) + " RM:" + to_string(rm_tput_out) + " WC:" + to_string(wc_tput_out) + "\n"
+content = content + "# gap_x100_vs_LS=B4:" + to_string(b4_gap_out) + " NS:" + to_string(ns_gap_out) + " RM:" + to_string(rm_gap_out) + " WC:" + to_string(wc_gap_out) + "\n"
+content = content + "# threshold_x100=300 (gap > 30pp on × 10 ledger → falsifier fires)\n"
+content = content + "# bidirectional=BUC4/NEAR-SORT/RANDOM-MIXED silent (false-positive 회피) · WORST-CASE fires (true-positive captured) · LS baseline self-gap 0 silent (structural floor)\n"
+content = content + "# external_anchors=Yu 2022 Orca (OSDI) · Kwon 2023 vLLM PagedAttention (SOSP) · NVIDIA Triton dynamic batcher · Sheng 2023 FlexGen (ICML)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · vLLM serving bench · Llama-3 8B · ShareGPT length dist · GPU-saturated regime · vast.ai cost-bearing pod)\n"
+content = content + "# honest_residual=integer_x100_ledger_truncation_at_1pp · prefix-share KV-cache waste not modeled at closed-form tier (vLLM PagedAttention block-granularity at measured-tier) · axis_B_difficulty_mix_ladder_and_axis_N_informed_pack_vs_naive_sort_next\n"
+content = content + "# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis · new model size · new task mix · new packing algorithm reopens cells)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

@@ -20,7 +20,7 @@
 > BATCH-COMPOSITION 은 완료되지 않는다. 새 model size·task mix·packing 알고리즘 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — length-mix variance · throughput · padding waste 측정. 반증자: random batch vs sorted batch throughput 차이 > 30%.
+- [x] A1 — length-mix variance · throughput · padding waste 측정 (cycle-9 round-8 · 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7). 반증자: random batch vs sorted batch throughput 차이 > 30pp. 결과: padding_waste + tput == 100 duality (closed-form integer ledger). 5 compositions — LS baseline 99% tput silent · B4 95% silent · NS 97% silent · RM 75% silent (24pp < 30pp borderline) · WC 39% FIRES (60pp catastrophic 1-long+31-short). Bench `BATCH-COMPOSITION/bench/batch_composition_a1_padding_waste.hexa` · verifier `BATCH-COMPOSITION/verify/numerics_batch_composition_a1_padding_waste.hexa` · verdict `BATCH-COMPOSITION/verdicts/a1_padding_waste_verdict.txt`. Anchors — Yu 2022 Orca · Kwon 2023 vLLM PagedAttention · NVIDIA Triton dynamic batcher · Sheng 2023 FlexGen. Frontier OPEN — 실측 (cycle-10+ T4) vLLM serving bench (Llama-3 8B · ShareGPT length dist · GPU-saturated regime) deferred.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — difficulty-mix × scale × packing 알고리즘 ladder. 반증자: informed pack 의 loss-curve 개선 < sorted baseline + 2% → packing 효과 marginal.

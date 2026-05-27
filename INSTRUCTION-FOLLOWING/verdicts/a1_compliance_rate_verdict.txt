@@ -1,0 +1,14 @@
+# hexa-codex INSTRUCTION-FOLLOWING A1 — compliance rate closed-form verifier (cycle-9 round-4)
+# axis=INSTRUCTION-FOLLOWING/INSTRUCTION-FOLLOWING.md::A1 (format compliance first probe, closed-form)
+# formula=compliance_rate = N_passed / N_total · 100
+# bench=INSTRUCTION-FOLLOWING/bench/instruction_following_a1_compliance_rate.hexa
+# verifier=INSTRUCTION-FOLLOWING/verify/numerics_instruction_following_a1_compliance_rate.hexa
+# tier=🔵 STRUCTURAL (compliance identity + per-constraint sum sanity 7/7) + 🟡 BY-CITATION (90% threshold = IFEval simple-constraint convention)
+# verdict_class=SUPPORTED-NUMERICAL
+# checks=7/7
+# placeholder_data=4 models (strict-trained 95 · mid 82 · weak 68 · raw-base 45 × 100) × 4 constraints (5-word-limit · JSON-format · no-punctuation · line-per-item) × 25 prompts (N_total=100)
+# falsifier=compliance < 90% on simple constraints (mid/weak/raw-base fire · strict-trained silent)
+# external_anchors=Zhou 2023 IFEval (arXiv:2311.07911) | Tam 2024 strict-format (arXiv:2402.10210) | Wadhwa 2024 instruction taxonomy
+# substrate_fire=DEFERRED (cycle-10+ · IFEval ~541-prompt set × per-model strict regex check on mac M3 llama-server / ubu-1 HF transformers)
+# honest_residual=integer_percentage_ledger · 4-model 4-constraint placeholder · IFEval real prompts deferred · axes B (complexity ladder) + N⭐ (format-vs-content Pareto) next
+# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis)

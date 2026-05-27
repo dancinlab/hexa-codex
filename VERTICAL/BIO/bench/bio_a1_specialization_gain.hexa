@@ -1,0 +1,114 @@
+#!hexa strict
+// VERTICAL/BIO/bench/bio_a1_specialization_gain.hexa
+// VERTICAL 전문 모델 측정 도메인군 · BIO (바이오/의료 전문 모델) — closed-form first probe.
+// "바이오 전문 모델이 general 모델 대비 bio task 에서 얼마나 더 잘하는가" 의 측정.
+//
+// ⚠ 구 BIODATA (retire 2026-05-27 · 데이터셋) 와 구분 — 다른 layer:
+//   lm_foundry/docs/bio-llm.md = RECIPE (어떻게 만드나 · §STRUCT dataset · §FLOW 학습 단계)
+//   VERTICAL/BIO 도메인       = MEASUREMENT (얼마나 잘하나 · specialization gain 측정)
+// bio-llm.md §EVOLVE 의 eval harness (MedQA · PubMedQA · ProteinGym) 가 본 측정의 task surface.
+//
+// Identity (closed-form · libm-free · × 100 ledger of pp):
+//   specialization_gain_x100(model) = bio_specialized_acc_x100 − general_model_bio_acc_x100
+//   specialization_meaningful(model) = gain_x100 ≥ THRESHOLD_x100 (10pp)
+//   falsifier_fires(model)           = gain_x100 <  THRESHOLD_x100
+//                                      → bio-specialized 가 general 대비 < 10pp 향상
+//                                      → specialization 무의미 (general 로 충분)
+//
+// Falsifier (BIO A1): bio-specialized 모델이 general 모델 대비 bio task < 10pp 향상이면
+// 그 specialization 은 무의미 (general 로 충분). 강한 bio model 은 silent (gain 큼 ·
+// specialization 유의미) · 얕은 bio-tune / general baseline 은 fires (gain<10pp · 무의미).
+//
+// External anchors (citation tier · 🟡):
+//   Singhal 2023 — Med-PaLM 2: Towards Expert-Level Medical QA (arXiv:2305.09617)
+//   Lin 2023    — ESM-2 / ESMFold: evolutionary-scale protein structure (Science 379:1123)
+//   Jumper 2021 — AlphaFold: highly accurate protein structure (Nature 596:583)
+//   Luo 2022    — BioGPT: generative pre-trained transformer for biomedical text (arXiv:2210.10341)
+//
+// Integer ledger (pp × 100) — libm-free closed-form. Placeholder per-model
+// {bio_task_acc, general_model_bio_acc} — 실측 MedQA/PubMedQA/ProteinGym eval deferred
+// (cycle-11+ T4 · HF transformers eval + lm_foundry · vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure specialization-gain identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 models · {bio_task_acc_x100, general_model_bio_acc_x100} · pp × 100)
+//   med_palm2          : bio 85.0 · general-on-bio 60.0 (gain 25.0pp · clinical SOTA · silent)
+//   bio_gpt            : bio 80.0 · general-on-bio 60.0 (gain 20.0pp · biomed text · silent)
+//   esm_protein        : bio 78.0 · general-on-bio 55.0 (gain 23.0pp · protein property · silent)
+//   general_gpt5_on_bio: bio 60.0 · general-on-bio 60.0 (gain  0.0pp · BASELINE · FIRES)
+//   shallow_bio_tune   : bio 62.0 · general-on-bio 60.0 (gain  2.0pp · 얕은 tune · FIRES)
+//
+// bio_task_acc        = bio benchmark (MedQA/PubMedQA/protein property) accuracy of THIS model.
+// general_model_bio_acc = the SAME bio benchmark accuracy of an equivalent-size GENERAL model
+//                         (the no-specialization counterfactual). Stored × 100 (85.0pp → 8500).
+//   gain > 0 → specialization adds bio capability beyond what a general FM already has.
+//   general_gpt5_on_bio is the BASELINE row (bio == general == 60 → gain 0 → fires by design).
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["med_palm2", "bio_gpt", "esm_protein", "general_gpt5_on_bio", "shallow_bio_tune"]
+
+// row-major {bio_task_acc_x100, general_model_bio_acc_x100} (5 models × 2 fields)
+//   med_palm2           : [8500, 6000]  → bio 85.0 · gen 60.0 · gain 25.0pp silent
+//   bio_gpt             : [8000, 6000]  → bio 80.0 · gen 60.0 · gain 20.0pp silent
+//   esm_protein         : [7800, 5500]  → bio 78.0 · gen 55.0 · gain 23.0pp silent
+//   general_gpt5_on_bio : [6000, 6000]  → bio 60.0 · gen 60.0 · gain  0.0pp FIRES (baseline)
+//   shallow_bio_tune    : [6200, 6000]  → bio 62.0 · gen 60.0 · gain  2.0pp FIRES
+let MODEL_DATA = [8500, 6000,
+                  8000, 6000,
+                  7800, 5500,
+                  6000, 6000,
+                  6200, 6000]
+
+let N_FIELDS = 2
+let THRESHOLD_x100 = 1000           // < 10pp gain → specialization 무의미 (general 로 충분)
+let ACC_MAX_x100 = 100 * 100        // acc ∈ [0, 100] pp · × 100 ledger ∈ [0, 10000]
+
+fn bio_task_acc_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn general_model_bio_acc_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn specialization_gain_x100(model_i: int) -> int {
+    // signed pp gain from bio specialization (× 100 ledger).
+    //   gain = bio_task_acc − general_model_bio_acc (positive when specialization helps)
+    return bio_task_acc_x100(model_i) - general_model_bio_acc_x100(model_i)
+}
+
+fn specialization_meaningful(model_i: int) -> bool {
+    return specialization_gain_x100(model_i) >= THRESHOLD_x100
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // bio-specialized 가 general 대비 < 10pp 향상 → specialization 무의미
+    return specialization_gain_x100(model_i) < THRESHOLD_x100
+}
+
+print("hexa-codex VERTICAL/BIO A1 — specialization-gain closed-form (바이오 전문 모델 측정 · cycle-10)")
+print("=====================================================================================================")
+print("")
+print("⚠ recipe ≠ measurement — bio-llm.md = 만들기 (RECIPE) · BIO 도메인 = 측정 (MEASUREMENT)")
+print("")
+print("per-model bio-specialization profile (placeholder · × 100 ledger · libm-free):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let bio = bio_task_acc_x100(i)
+    let gen = general_model_bio_acc_x100(i)
+    let g = specialization_gain_x100(i)
+    let mut flag = "silent (specialization 유의미 · gain ≥ 10pp)"
+    if falsifier_fires(i) {
+        flag = "FIRES (gain < 10pp · specialization 무의미 · general 로 충분)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    bio_task_acc=" + to_string(bio / 100) + "pp · general-on-bio=" +
+          to_string(gen / 100) + "pp")
+    print("    → specialization_gain=" + to_string(g) + "/100 (" + to_string(g / 100) + "." +
+          to_string((g % 100) / 10) + "pp) · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_BIO_A1_SPECIALIZATION_GAIN__ DONE")

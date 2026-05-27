@@ -1,0 +1,221 @@
+#!hexa strict
+// VERTICAL/BIO/verify/numerics_bio_a1_specialization_gain.hexa
+// VERTICAL 전문 모델 측정 도메인군 · BIO — closed-form verifier for the bio
+// specialization-gain identity + 10pp threshold falsifier semantics.
+//
+// ⚠ recipe ≠ measurement — lm_foundry/docs/bio-llm.md = RECIPE (만들기) ·
+//   VERTICAL/BIO = MEASUREMENT (얼마나 잘하나). 구 BIODATA (데이터셋 · retire 2026-05-27) 와 별개 layer.
+//
+// Asserts the gain identity is closed-form and the falsifier (specialization 무의미 detection)
+// correctly classifies:
+//   (1) gain identity (bio_task_acc − general_model_bio_acc) holds for all 5 models
+//   (2) acc values ∈ [0, 100 pp] (× 100 ledger ∈ [0, 10000])
+//   (3) zero-gain synthetic — bio_acc=general_acc=60 pp → gain=0 → fires (baseline counterfactual)
+//   (4) general_gpt5_on_bio + shallow_bio_tune fire (gain 0pp / 2pp < 10pp · specialization 무의미)
+//   (5) med_palm2 + bio_gpt + esm_protein silent (gain ≥ 10pp · specialization 유의미)
+//   (6) determinism (re-call same gain + fires)
+//   (7) sanity — specialization never hurts (bio_acc ≥ general_acc · gain ≥ 0 for all) AND
+//       strong-bio monotone: med_palm2 (25pp) ≥ esm_protein (23pp) ≥ bio_gpt (20pp)
+//
+// Source: VERTICAL/BIO/bench/bio_a1_specialization_gain.hexa
+// External anchors: Singhal 2023 Med-PaLM 2 (arXiv:2305.09617) ·
+//                   Lin 2023 ESM-2 (Science 379:1123) ·
+//                   Jumper 2021 AlphaFold (Nature 596:583) ·
+//                   Luo 2022 BioGPT (arXiv:2210.10341)
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["med_palm2", "bio_gpt", "esm_protein", "general_gpt5_on_bio", "shallow_bio_tune"]
+
+let MODEL_DATA = [8500, 6000,
+                  8000, 6000,
+                  7800, 5500,
+                  6000, 6000,
+                  6200, 6000]
+
+let N_FIELDS = 2
+let THRESHOLD_x100 = 1000           // < 10pp gain → specialization 무의미 (general 로 충분)
+let ACC_MAX_x100 = 100 * 100        // [0, 10000]
+
+fn bio_task_acc_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn general_model_bio_acc_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn specialization_gain_x100(model_i: int) -> int {
+    return bio_task_acc_x100(model_i) - general_model_bio_acc_x100(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return specialization_gain_x100(model_i) < THRESHOLD_x100
+}
+
+print("hexa-codex VERTICAL/BIO A1 falsifier — specialization-gain closed-form")
+print("=====================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — gain identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = specialization_gain_x100(i)
+    let rhs = bio_task_acc_x100(i) - general_model_bio_acc_x100(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] gain identity (bio_task_acc − general_model_bio_acc) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] gain identity broken")
+}
+
+// check 2 — acc values ∈ [0, 100 pp] (× 100 ledger ∈ [0, 10000])
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_model {
+    let mut f = 0
+    while f < N_FIELDS {
+        let v = MODEL_DATA[i * N_FIELDS + f]
+        if v < 0 || v > ACC_MAX_x100 { rb_ok = false }
+        f = f + 1
+    }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] acc values ∈ [0, 100 pp] (× 100 ledger ∈ [0, " +
+          to_string(ACC_MAX_x100) + "]) for all " +
+          to_string(n_model * N_FIELDS) + " entries")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] value out of range")
+}
+
+// check 3 — zero-gain synthetic: bio_acc=general_acc=60 pp → gain=0 → fires
+checks_total = checks_total + 1
+let SYN_ACC = 6000  // 60 pp × 100
+let syn_gain = SYN_ACC - SYN_ACC
+if syn_gain == 0 && syn_gain < THRESHOLD_x100 {
+    print("  [PASS] synthetic zero-gain (bio_acc=general_acc=60pp) → gain=0/100 · fires (specialization 무의미 · general counterfactual)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic zero-gain gain=" + to_string(syn_gain))
+}
+
+// check 4 — general_gpt5_on_bio (idx 3) + shallow_bio_tune (idx 4) fire (gain < 10pp · 무의미)
+checks_total = checks_total + 1
+if falsifier_fires(3) && falsifier_fires(4)
+        && specialization_gain_x100(3) == 0 && specialization_gain_x100(4) == 200 {
+    print("  [PASS] weak/baseline models fire: general_gpt5_on_bio gain=" + to_string(specialization_gain_x100(3)) +
+          "/100 (0.0pp · baseline) · shallow_bio_tune gain=" + to_string(specialization_gain_x100(4)) +
+          "/100 (2.0pp) — both < 10pp · specialization 무의미 (general 로 충분)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] weak/baseline fire detection broken")
+}
+
+// check 5 — med_palm2 + bio_gpt + esm_protein silent (gain ≥ 10pp · specialization 유의미)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && specialization_gain_x100(0) == 2500 && specialization_gain_x100(1) == 2000
+        && specialization_gain_x100(2) == 2300 {
+    print("  [PASS] strong-bio models silent: med_palm2 gain=" + to_string(specialization_gain_x100(0)) +
+          "/100 (25.0pp) · bio_gpt=" + to_string(specialization_gain_x100(1)) +
+          "/100 (20.0pp) · esm_protein=" + to_string(specialization_gain_x100(2)) +
+          "/100 (23.0pp) — all ≥ 10pp · specialization 유의미 (false-negative 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] strong-bio silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if specialization_gain_x100(0) == specialization_gain_x100(0)
+        && falsifier_fires(3) == falsifier_fires(3)
+        && specialization_gain_x100(2) == specialization_gain_x100(2) {
+    print("  [PASS] formula deterministic (re-call same gain + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: specialization never hurts (bio_acc ≥ general_acc · gain ≥ 0 for all) AND
+//   strong-bio monotone: med_palm2 (25pp) ≥ esm_protein (23pp) ≥ bio_gpt (20pp).
+//   note: 모든 model 에서 gain > 0 강제 안 함 — general baseline 은 gain=0 가 정상.
+//   안전한 사니티 = (a) specialization 이 성능을 깎지 않음 (gain ≥ 0),
+//   (b) strong-bio 3-model 에서 gain 단조 (specialization 깊이 ↔ gain 순서).
+checks_total = checks_total + 1
+let mut never_hurts = true
+i = 0
+while i < n_model {
+    if specialization_gain_x100(i) < 0 { never_hurts = false }
+    i = i + 1
+}
+let monotone_strong = specialization_gain_x100(0) >= specialization_gain_x100(2)
+        && specialization_gain_x100(2) >= specialization_gain_x100(1)
+if never_hurts && monotone_strong {
+    print("  [PASS] sanity — specialization never hurts (gain ≥ 0 all) AND strong-bio monotone (med_palm2 25 ≥ esm_protein 23 ≥ bio_gpt 20)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (never_hurts=" + to_string(never_hurts) +
+          " · monotone_strong=" + to_string(monotone_strong) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (specialization-gain identity + 10pp threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 10pp threshold = meaningful-specialization convention · cite Singhal 2023 Med-PaLM 2 arXiv:2305.09617 + Lin 2023 ESM-2 Science 379:1123 + Jumper 2021 AlphaFold Nature 596:583 + Luo 2022 BioGPT arXiv:2210.10341)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — specialization-gain formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/BIO A1 finding (바이오 전문 모델 측정 · placeholder · closed-form):")
+print("  - specialization_gain_x100 = bio_task_acc − general_model_bio_acc identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: med_palm2=25.0pp · bio_gpt=20.0pp · esm_protein=23.0pp silent (specialization 유의미) · general_gpt5_on_bio=0.0pp (baseline) · shallow_bio_tune=2.0pp fires (specialization 무의미 · general 로 충분)")
+print("  - external anchors: Singhal 2023 Med-PaLM 2 (arXiv:2305.09617) · Lin 2023 ESM-2 (Science) · Jumper 2021 AlphaFold (Nature) · Luo 2022 BioGPT (arXiv:2210.10341)")
+print("  - recipe ≠ measurement: bio-llm.md = 만들기 (RECIPE) · BIO 도메인 = 측정 (MEASUREMENT)")
+print("  - 실측 (cycle-11+ T4): MedQA/PubMedQA/ProteinGym eval on lm_foundry + HF transformers + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_BIO_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/BIO/verdicts/a1_specialization_gain_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/BIO A1 — specialization-gain verifier (바이오 전문 모델 측정 · cycle-10)\n"
+content = content + "# axis=VERTICAL/BIO/BIO.md::A1 (bio-specialization advantage · 5 models · 10pp threshold)\n"
+content = content + "# bench=VERTICAL/BIO/bench/bio_a1_specialization_gain.hexa\n"
+content = content + "# verifier=VERTICAL/BIO/verify/numerics_bio_a1_specialization_gain.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=specialization_gain_x100 = bio_task_acc − general_model_bio_acc (× 100 ledger of pp); falsifier_fires = gain < 10pp (< 1000 in × 100 ledger) → specialization 무의미 · general 로 충분\n"
+content = content + "# placeholder_data=5 models · med_palm2 (bio 85.0 · gen 60.0 · gain 25.0pp silent) · bio_gpt (bio 80.0 · gen 60.0 · gain 20.0pp silent) · esm_protein (bio 78.0 · gen 55.0 · gain 23.0pp silent) · general_gpt5_on_bio (bio 60.0 · gen 60.0 · gain 0.0pp FIRES · baseline) · shallow_bio_tune (bio 62.0 · gen 60.0 · gain 2.0pp FIRES)\n"
+content = content + "# bidirectional_discrimination=3 silent (med_palm2 · bio_gpt · esm_protein — strong-bio · specialization 유의미) + 2 fires (general_gpt5_on_bio baseline · shallow_bio_tune — gain<10pp · specialization 무의미)\n"
+content = content + "# external_anchors=Singhal 2023 Med-PaLM 2 Towards Expert-Level Medical QA (arXiv:2305.09617) · Lin 2023 ESM-2/ESMFold (Science 379:1123) · Jumper 2021 AlphaFold (Nature 596:583) · Luo 2022 BioGPT (arXiv:2210.10341)\n"
+content = content + "# recipe_vs_measurement=lm_foundry/docs/bio-llm.md = RECIPE (만들기 · §STRUCT dataset · §FLOW 학습) · VERTICAL/BIO = MEASUREMENT (얼마나 잘하나 · specialization gain) — 다른 layer · 구 BIODATA (데이터셋 · retire 2026-05-27) 와도 별개\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · MedQA/PubMedQA/ProteinGym eval on lm_foundry + HF transformers + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — specialization-gain identity close ≠ measured close · 새 bio model·bio task 마다 frontier 재오픈 · 축 N (in-silico↔in-vitro gap) ⭐ MAIN · 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

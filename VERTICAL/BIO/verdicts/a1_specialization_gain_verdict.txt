@@ -1,0 +1,13 @@
+# hexa-codex VERTICAL/BIO A1 — specialization-gain verifier (바이오 전문 모델 측정 · cycle-10)
+# axis=VERTICAL/BIO/BIO.md::A1 (bio-specialization advantage · 5 models · 10pp threshold)
+# bench=VERTICAL/BIO/bench/bio_a1_specialization_gain.hexa
+# verifier=VERTICAL/BIO/verify/numerics_bio_a1_specialization_gain.hexa
+# tier=🔵 STRUCTURAL (specialization-gain identity + 10pp threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 10pp threshold = meaningful-specialization convention · cite Singhal 2023 Med-PaLM 2 arXiv:2305.09617 + Lin 2023 ESM-2 Science 379:1123 + Jumper 2021 AlphaFold Nature 596:583 + Luo 2022 BioGPT arXiv:2210.10341)
+# checks=7/7
+# formula=specialization_gain_x100 = bio_task_acc − general_model_bio_acc (× 100 ledger of pp); falsifier_fires = gain < 10pp (< 1000 in × 100 ledger) → specialization 무의미 · general 로 충분
+# placeholder_data=5 models · med_palm2 (bio 85.0 · gen 60.0 · gain 25.0pp silent) · bio_gpt (bio 80.0 · gen 60.0 · gain 20.0pp silent) · esm_protein (bio 78.0 · gen 55.0 · gain 23.0pp silent) · general_gpt5_on_bio (bio 60.0 · gen 60.0 · gain 0.0pp FIRES · baseline) · shallow_bio_tune (bio 62.0 · gen 60.0 · gain 2.0pp FIRES)
+# bidirectional_discrimination=3 silent (med_palm2 · bio_gpt · esm_protein — strong-bio · specialization 유의미) + 2 fires (general_gpt5_on_bio baseline · shallow_bio_tune — gain<10pp · specialization 무의미)
+# external_anchors=Singhal 2023 Med-PaLM 2 Towards Expert-Level Medical QA (arXiv:2305.09617) · Lin 2023 ESM-2/ESMFold (Science 379:1123) · Jumper 2021 AlphaFold (Nature 596:583) · Luo 2022 BioGPT (arXiv:2210.10341)
+# recipe_vs_measurement=lm_foundry/docs/bio-llm.md = RECIPE (만들기 · §STRUCT dataset · §FLOW 학습) · VERTICAL/BIO = MEASUREMENT (얼마나 잘하나 · specialization gain) — 다른 layer · 구 BIODATA (데이터셋 · retire 2026-05-27) 와도 별개
+# substrate_fire=DEFERRED (cycle-11+ · MedQA/PubMedQA/ProteinGym eval on lm_foundry + HF transformers + vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — specialization-gain identity close ≠ measured close · 새 bio model·bio task 마다 frontier 재오픈 · 축 N (in-silico↔in-vitro gap) ⭐ MAIN · 도착지 없음

@@ -1,0 +1,19 @@
+# hexa-codex NEUROEXP C2 — ROME/MEMIT rank-1 edit locality (cycle-13 first probe · 🟢 MEASURED)
+# axis=NEUROEXP.md::C2 (cycle-13 first probe · C = Causal-circuit probing · T4 cost-bearing)
+# verifier=NEUROEXP/verify/numerics_neuroexp_c2_rome_locality.hexa
+# capture=ubu-1 /tmp/nex_c2_locality.py (repo-external · hexa-only rule · user-approved capture-only .py)
+# tier=🟢 SUPPORTED-NUMERICAL — Qwen2.5-1.5B ROME rank-1 edit: intended 857 > collateral 388, locality 0.453 LOCAL, bounded (8/8)
+# checks=8/8
+# model=Qwen2.5-1.5B-Instruct · n_layers=28 · MLP layer=14 · down_proj [1536 x 8960] · edit_rank=1 · alpha=8.0
+# env=RTX5070 · torch2.12.0+cu130 · transformers4.51.3 · numpy1.26.4 (clean venv ubu-1)
+# intended=0.856783 (||Δlogit(target)||) · collateral=0.388417 (mean ||Δlogit(8 unrelated)||)
+# locality_ratio=0.453 (collateral/intended) → classification=LOCAL (< 0.5, bounded, < 1.0)
+# target_prompt='The capital of France is' · n_unrelated=8 (chem/bio/astro/geo/lit/physics)
+# C2_falsifier=BOUNDED target-favoring edit → 'unbounded shake' does NOT fire → 'MLP = associative key-value memory' (Geva2021/ROME) SUPPORTED
+# honest_residual=collateral ~45% of intended → single-layer rank-1 edit is LEAKY (motivates MEMIT multi-layer spread)
+# operational=knowledge editing has finite target-favoring footprint · MEMIT spreads over layers to keep unrelated facts intact
+# class=method-transfer (weight editing = causal intervention, like microstimulation/optogenetics → MATCH, as predicted)
+# cross_axis_tally=method-transfer MATCH 6/6 (N1·Φ1·L1·C1·L2·C2) : system-comparison MISMATCH 4/4 (S1·N2·Φ2·S2, S2 closed cycle-12) — 10/10 axes have verdicts, law held across ALL 10 axes
+# external_anchor=Meng2022_ROME_arXiv2202.05262 · Meng2022_MEMIT_arXiv2210.07229 · Geva2021_arXiv2012.14913
+# next_probe=cycle-14+ true ROME covariance-preconditioned solve + alpha/layer/v-direction sweep + Qwen2.5-{0.5B,3B,7B} scaling
+# RUN-HOST: ubu-1 (RTX 5070 12GB · torch 2.12.0+cu130 · transformers 4.51.3 · numpy 1.26.4) · hexa build /tmp/nex_c2vbin · HEXA_CODEX_ROOT=/tmp/hxc · 2026-05-27

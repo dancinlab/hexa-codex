@@ -181,11 +181,11 @@ fn main() {
     println("  - MLP down_proj behaves as a key-value associative store (Geva 2021): a keyed write")
     println("    preferentially perturbs the queried association — causal-intervention probe confirms it.")
     println("")
-    println("CROSS-AXIS (cycle-4~13 · 10 axes · ZERO exceptions to the method/system law):")
+    println("CROSS-AXIS (cycle-4~13 · 10/10 axes have verdicts · ZERO exceptions to the method/system law):")
     println("  - method-transfer (apply a bio measurement TECHNIQUE to the LLM) → MATCH: N1·Φ1·L1·C1·L2·C2 = 6/6")
     println("  - system-comparison (compare bio SYSTEM vs LLM system) → MISMATCH: S1·N2·Φ2·S2 = 4/4")
     println("  - C2 is method-transfer (weight editing = causal intervention, like microstimulation) → MATCH,")
-    println("    as predicted. The law held across ALL 10 axes: method transfers, systems differ.")
+    println("    as predicted. The law held across ALL 10 measured axes: method transfers, systems differ.")
     println("")
     println("HONEST RESIDUAL:")
     println("  - 🟢 single model (Qwen2.5-1.5B), single layer (14), single rank-1 edit, single target fact,")
@@ -197,7 +197,8 @@ fn main() {
     println("    venv pin (transformers 4.51.3 · numpy 1.26.4 · torch 2.12 cu130).")
     println("  - C2 frontier OPEN ([[feedback_closure_is_physical_limit]]): single-point measurement;")
     println("    model/layer/alpha/edit-fidelity sweep is the open ladder. NEUROEXP axis grid filled (10/10)")
-    println("    but the domain is ♾️ perpetual — scale/model/probe-type frontier never closes.")
+    println("    — C2 is the last method-transfer axis (6/6), S2 closed the system-comparison side (4/4) in")
+    println("    cycle-12. The domain is ♾️ perpetual regardless — scale/model/probe-type frontier never closes.")
     println("")
     println("__HEXA_CODEX_NUMERICS_NEUROEXP_C2_ROME_LOCALITY__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
 
@@ -219,7 +220,7 @@ fn main() {
     content = content + "# honest_residual=collateral ~45% of intended → single-layer rank-1 edit is LEAKY (motivates MEMIT multi-layer spread)\n"
     content = content + "# operational=knowledge editing has finite target-favoring footprint · MEMIT spreads over layers to keep unrelated facts intact\n"
     content = content + "# class=method-transfer (weight editing = causal intervention, like microstimulation/optogenetics → MATCH, as predicted)\n"
-    content = content + "# cross_axis_tally=method-transfer MATCH 6/6 (N1·Φ1·L1·C1·L2·C2) : system-comparison MISMATCH 4/4 (S1·N2·Φ2·S2) — law held across ALL 10 axes\n"
+    content = content + "# cross_axis_tally=method-transfer MATCH 6/6 (N1·Φ1·L1·C1·L2·C2) : system-comparison MISMATCH 4/4 (S1·N2·Φ2·S2, S2 closed cycle-12) — 10/10 axes have verdicts, law held across ALL 10 axes\n"
     content = content + "# external_anchor=Meng2022_ROME_arXiv2202.05262 · Meng2022_MEMIT_arXiv2210.07229 · Geva2021_arXiv2012.14913\n"
     content = content + "# next_probe=cycle-14+ true ROME covariance-preconditioned solve + alpha/layer/v-direction sweep + Qwen2.5-{0.5B,3B,7B} scaling\n"
     write_file(OUT_PATH, content)

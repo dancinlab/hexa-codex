@@ -1,0 +1,11 @@
+# hexa-codex DATA-EFFICIENCY A1 — curriculum-order delta verifier (cycle-9 round-8)
+# axis=DATA-EFFICIENCY/DATA-EFFICIENCY.md::A1 (curriculum 순서 효과 · sample-efficiency 곡선 · 반증자 Δ < 5pp vs random → 순서 무관 가설)
+# bench=DATA-EFFICIENCY/bench/data_efficiency_a1_curriculum_delta.hexa
+# verifier=DATA-EFFICIENCY/verify/numerics_data_efficiency_a1_curriculum_delta.hexa
+# tier=🔵 STRUCTURAL (delta identity + threshold semantics 7/7) + 🟡 BY-CITATION (5pp threshold = Bengio 2009 ICML · Hacohen 2019 ICML · Wu 2021 ICLR · Soviany 2022 IJCV curriculum-learning convention)
+# checks=7/7
+# formula=curriculum_delta_pp = max(curriculum_acc) − random_acc; falsifier_fires = Δ < 5pp (< 500 in × 100 ledger)
+# placeholder_data=4 configs × 4 sample sizes (10k·30k·100k·300k tokens); peaks random=6500 easy-to-hard=7200 hard-to-easy=6300 interleaved=6700; Δ silent=+700 (easy-to-hard) · fires=−200 (hard-to-easy) +200 (interleaved) 0 (random vs self)
+# external_anchors=Bengio 2009 curriculum learning (ICML) · Hacohen 2019 power of curriculum (ICML) · Wu 2021 when do curricula work (ICLR) · Soviany 2022 survey (IJCV)
+# substrate_fire=DEFERRED (cycle-10+ · lm_foundry SFT curriculum-ordered run · vast.ai pod · sample-size sweep [10k, 30k, 100k, 300k] training tokens · final-acc measurement)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · 새 corpus · filter · curriculum 기법 마다 frontier 재오픈

@@ -1,0 +1,225 @@
+#!hexa strict
+// hexa-codex/ENERGY/verify/numerics_energy_a1_tokens_per_joule.hexa
+// ENERGY axis A1 — falsifier verifier for tokens/J closed-form first probe.
+//
+// Asserts the bench emits a tokens/J value consistent with the closed-form
+// energy identity AND a placeholder SOTA threshold:
+//   (1) tokens/J = N_tokens / E_total                — closed-form identity
+//   (2) tokens/J > 0                                  — positivity
+//   (3) 2× N_tokens  → 2× tokens/J                    — numerator linearity
+//   (4) 2× E_total   → ½ tokens/J                     — denominator inverse
+//   (5) tokens/J >= SOTA × 0.5                        — SOTA floor (🟡 by-citation)
+//   (6) Σ P_k·Δt_k = mean_W · T_sec                   — Riemann ↔ mean-power identity
+//   (7) deterministic re-call                          — same input → same output
+// Any FAIL = closed-form contradicted → ENERGY A1 FALSIFIED.
+//
+// SOURCE.  bench/energy_a1_tokens_per_joule.hexa (this verifier replicates the
+// same integer-scaled constants — closed-form recompute, no runtime import of
+// the bench file's emitted state).
+//
+// External anchor: Patterson 2021 (arXiv:2104.10350) · Strubell 2019
+// (arXiv:1906.02243) · Schwartz 2020 (arXiv:1907.10597).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute of tokens/J identity — no atlas atoms, no substrate call.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Bench replicate — IDENTICAL constants to ENERGY/bench/energy_a1_tokens_per_joule.hexa
+// ────────────────────────────────────────────────────────────────────────
+
+let T_SEC = 60
+let MEAN_W_x100 = 20000          // = 200.00 W
+let N_TOKENS = 480
+
+let P_MW = [180000, 220000, 210000, 190000, 200000]
+let DT_MS = [12000, 12000, 12000, 12000, 12000]
+
+let SOTA_TOKENS_PER_J_x1000 = 50      // = 0.050 tok/J small-deployment ballpark (Patterson 2021 § A)
+let SOTA_FLOOR_FACTOR_x100 = 50       // × 0.5
+
+// ── replicated helpers (closed-form, no float) ──────────────────────────
+
+fn riemann_energy_mJ_v(p_mw: list[int], dt_ms: list[int]) -> int {
+    let n = p_mw.len()
+    let mut sum_uj = 0
+    let mut i = 0
+    while i < n {
+        sum_uj = sum_uj + p_mw[i] * dt_ms[i]
+        i = i + 1
+    }
+    return sum_uj / 1000
+}
+
+fn mean_power_energy_mJ_v(mean_w_x100: int, t_sec: int) -> int {
+    return mean_w_x100 * t_sec * 10
+}
+
+fn tokens_per_J_x1000_v(n_tok: int, energy_mJ: int) -> int {
+    if energy_mJ <= 0 { return 0 }
+    return (n_tok * 1000 * 1000) / energy_mJ
+}
+
+fn dec3(scaled: int) -> str {
+    let whole = scaled / 1000
+    let frac = scaled - whole * 1000
+    let mut neg = ""
+    let mut w = whole
+    let mut f = frac
+    if scaled < 0 {
+        neg = "-"
+        w = -w
+        f = -f
+    }
+    let mut fs = to_string(f)
+    while fs.len() < 3 { fs = "0" + fs }
+    return neg + to_string(w) + "." + fs
+}
+
+// ────────────────────────────────────────────────────────────────────────
+
+print("hexa-codex ENERGY A1 falsifier — tokens/J closed-form (cycle-9 round-1)")
+print("=========================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+let E_TOTAL_mJ = mean_power_energy_mJ_v(MEAN_W_x100, T_SEC)             // = 12 000 000 mJ
+let TPJ_x1000 = tokens_per_J_x1000_v(N_TOKENS, E_TOTAL_mJ)              // = 40
+let E_RIEMANN_mJ = riemann_energy_mJ_v(P_MW, DT_MS)                     // = 12 000 000 mJ
+let SOTA_FLOOR_x1000 = (SOTA_TOKENS_PER_J_x1000 * SOTA_FLOOR_FACTOR_x100) / 100   // = 25
+
+// ── check 1 — tokens/J = N_tokens / E_total (identity, closed-form recompute)
+checks_total = checks_total + 1
+// Recompute via two routes:
+//   A: N * 1000 * 1000 / E_mJ
+//   B: also direct: floor(N / E_J_x100) ?  use route A as canonical and confirm > 0 form
+let TPJ_route_a = (N_TOKENS * 1000 * 1000) / E_TOTAL_mJ
+if TPJ_route_a == TPJ_x1000 {
+    print("  [PASS] tokens/J = N/E identity: " + dec3(TPJ_x1000) + " = " + to_string(N_TOKENS) + "/" + dec3(E_TOTAL_mJ))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] identity broken: route_a=" + to_string(TPJ_route_a) + " ≠ stored=" + to_string(TPJ_x1000))
+}
+
+// ── check 2 — positivity
+checks_total = checks_total + 1
+if TPJ_x1000 > 0 {
+    print("  [PASS] tokens/J > 0 (= " + dec3(TPJ_x1000) + ")")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] tokens/J ≤ 0")
+}
+
+// ── check 3 — numerator linearity: 2× N_tokens → 2× tokens/J
+checks_total = checks_total + 1
+let TPJ_2N = tokens_per_J_x1000_v(2 * N_TOKENS, E_TOTAL_mJ)
+if TPJ_2N == 2 * TPJ_x1000 {
+    print("  [PASS] 2× N_tokens → 2× tokens/J : " + dec3(TPJ_2N) + " = 2 × " + dec3(TPJ_x1000))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] linearity broken: 2N→" + to_string(TPJ_2N) + " ≠ 2×" + to_string(TPJ_x1000))
+}
+
+// ── check 4 — denominator inverse linearity: 2× E_total → ½ tokens/J
+checks_total = checks_total + 1
+let TPJ_2E = tokens_per_J_x1000_v(N_TOKENS, 2 * E_TOTAL_mJ)
+if 2 * TPJ_2E == TPJ_x1000 {
+    print("  [PASS] 2× E_total → ½ tokens/J : " + dec3(TPJ_2E) + " = ½ × " + dec3(TPJ_x1000))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] inverse linearity broken: 2E→" + to_string(TPJ_2E) + " ≠ ½×" + to_string(TPJ_x1000))
+}
+
+// ── check 5 — SOTA floor (🟡 BY-CITATION): tokens/J >= SOTA × 0.5
+checks_total = checks_total + 1
+if TPJ_x1000 >= SOTA_FLOOR_x1000 {
+    print("  [PASS] tokens/J = " + dec3(TPJ_x1000) + " >= SOTA × 0.5 = " + dec3(SOTA_FLOOR_x1000) +
+          "  (🟡 by-citation Patterson 2021 ballpark)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] tokens/J " + dec3(TPJ_x1000) + " < SOTA floor " + dec3(SOTA_FLOOR_x1000) +
+          " — falsifier fires (inefficient model/impl)")
+}
+
+// ── check 6 — Riemann ↔ mean-power identity (Σ P_k·Δt_k = mean_W · T_sec)
+checks_total = checks_total + 1
+if E_RIEMANN_mJ == E_TOTAL_mJ {
+    print("  [PASS] Σ P_k·Δt_k = mean_W·T identity: " + dec3(E_RIEMANN_mJ) + " J = " + dec3(E_TOTAL_mJ) + " J")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Riemann " + to_string(E_RIEMANN_mJ) + " ≠ mean·T " + to_string(E_TOTAL_mJ))
+}
+
+// ── check 7 — determinism (re-call same → same)
+checks_total = checks_total + 1
+let TPJ_again = tokens_per_J_x1000_v(N_TOKENS, mean_power_energy_mJ_v(MEAN_W_x100, T_SEC))
+if TPJ_again == TPJ_x1000 {
+    print("  [PASS] deterministic re-call (same inputs → " + dec3(TPJ_again) + ")")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (closed-form identity 6/7) + 🟡 BY-CITATION SOTA floor 1/7 — A1 first probe HOLDS"
+} else {
+    verdict_tier = "🔴 FALSIFIED — closed-form contradicted (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("KEY FINDING (closed-form composition with placeholder inputs):")
+print("  - tokens/J = N_tokens / E_total[J]  is the closed-form identity (instrumentation-agnostic).")
+print("  - E_total = ∫P(t)dt ≈ Σ P_k·Δt_k ≈ mean_W·T  (Riemann ↔ mean-power, verified bit-identical).")
+print("  - Worked example: 200 W · 60 s · 480 tok → 12 000 J → 0.04 tok/J (above 0.025 floor).")
+print("  - Linearity (N → 2N) and inverse (E → 2E) hold exactly under integer arithmetic.")
+print("")
+print("HONEST RESIDUAL (A1 first probe):")
+print("  - Identity arithmetic = 🔵 STRUCTURAL closed-form (6/7 checks).")
+print("  - SOTA threshold      = 🟡 BY-CITATION (Patterson 2021 small-deployment ballpark, NOT own-fit).")
+print("  - Real RAPL + NVIDIA-smi measurement = COST-BEARING, deferred to a separate")
+print("    cycle on ubu-1 (RTX 5070 + 13900K) with a per-task fixture.  On macOS Mx see")
+print("    bench/bitnet_m6_energy_per_token.hexa for the real-meter recipe (powermetrics).")
+print("  - A1 frontier OPEN (feedback_closure_is_physical_limit) — new HW (CPU/GPU/NPU)")
+print("    reopens the axis; one closed verdict ≠ axis termination.")
+print("  - external anchor: Patterson 2021 (arXiv:2104.10350) · Strubell 2019 (arXiv:1906.02243)")
+print("                     · Schwartz 2020 (arXiv:1907.10597).")
+print("")
+print("__HEXA_CODEX_NUMERICS_ENERGY_A1_TOKENS_PER_JOULE__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/ENERGY/verdicts/a1_tokens_per_joule_verdict.txt"
+
+let mut content = "# hexa-codex ENERGY A1 — tokens/J closed-form first probe (cycle-9 round-1)\n"
+content = content + "# axis=ENERGY/ENERGY.md::A1 (RAPL CPU + NVIDIA-smi GPU instrumentation identity)\n"
+content = content + "# bench=ENERGY/bench/energy_a1_tokens_per_joule.hexa\n"
+content = content + "# verifier=ENERGY/verify/numerics_energy_a1_tokens_per_joule.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# inputs=T_sec=" + to_string(T_SEC) + " · mean_W_x100=" + to_string(MEAN_W_x100) + " · N_tokens=" + to_string(N_TOKENS) + "\n"
+content = content + "# derived=E_total_mJ=" + to_string(E_TOTAL_mJ) + " · tokens_per_J_x1000=" + to_string(TPJ_x1000) + "\n"
+content = content + "# riemann_mJ=" + to_string(E_RIEMANN_mJ) + "  identity_delta_mJ=0\n"
+content = content + "# sota_floor_x1000=" + to_string(SOTA_FLOOR_x1000) + " (= SOTA " + to_string(SOTA_TOKENS_PER_J_x1000) + "/1000 × 0.5; Patterson 2021 ballpark · 🟡 by-citation)\n"
+content = content + "# external_anchor=Patterson2021_arXiv2104.10350 · Strubell2019_arXiv1906.02243 · Schwartz2020_arXiv1907.10597\n"
+content = content + "# honest_residual=real RAPL+NVIDIA-smi measurement DEFERRED (cost-bearing · ubu-1 RTX 5070 next cycle); macOS Mx see bench/bitnet_m6_energy_per_token.hexa\n"
+content = content + "# next_probe=cycle-10+ A1 measured run on ubu-1 (per-task fixture · RAPL+nvidia-smi sampler) → 🟢 SUPPORTED-NUMERICAL\n"
+content = content + "# frontier_open=true (feedback_closure_is_physical_limit — new HW reopens axis)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

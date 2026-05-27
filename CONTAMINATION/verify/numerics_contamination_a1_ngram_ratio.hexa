@@ -1,0 +1,254 @@
+#!hexa strict
+// hexa-codex/CONTAMINATION/verify/numerics_contamination_a1_ngram_ratio.hexa
+// CONTAMINATION axis A1 — falsifier verifier for the n-gram contamination
+// ratio closed-form (cycle-9 round-1 first probe). Replicates the ratio
+// formula and exercises the 6 checks below.
+//
+// Asserts:
+//   (1) closed-form ratio recompute matches matched/total · 10000 (combinatorial identity)
+//   (2) every ratio ∈ [0, 1] (range invariant — ratio is a proper proportion)
+//   (3) zero contamination (matched=0) → ratio = 0  (edge: empty match)
+//   (4) full contamination (matched=total) → ratio = 1 = 10000/10000  (edge: full match)
+//   (5) standard eval > 30% → falsifier fires (Sainz 2023 ChatGPT-eval threshold)
+//   (6) determinism (same input → same output)
+// Any FAIL = formula/threshold encoding contradicts the citation-grounded
+// claim → CONTAMINATION A1 FALSIFIED (closed-negative on the encoding itself,
+// NOT on the underlying citations).
+//
+// SOURCE.  CONTAMINATION/bench/contamination_a1_ngram_ratio.hexa
+// (this verifier replicates the ratio + threshold logic via the same
+// worked-example registry — closed-form recompute, no runtime import).
+//
+// TIER MIX. 🔵 STRUCTURAL (combinatorial ratio identity) +
+//           🟡 BY-CITATION (13-gram + 30% threshold = Dodge 2021 C4 / Sainz 2023).
+//
+// External anchors: Dodge 2021 arXiv:2104.08758 · Sainz 2023 arXiv:2310.18018 ·
+// Magar & Schwartz 2022 arXiv:2203.08242.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute of contamination-rate formula · no substrate.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Worked example registry — identical to bench file (verifier replicates).
+// ────────────────────────────────────────────────────────────────────────
+
+let EVAL_NAMES = [
+    "example_clean",
+    "example_full",
+    "example_low",
+    "example_borderline",
+    "example_tripped",
+    "example_max_real",
+]
+
+let TOTAL_13GRAMS = [
+    1000, 1000, 1000, 1000, 1000, 1000,
+]
+
+let MATCHED_13GRAMS = [
+    0, 1000, 50, 290, 420, 850,
+]
+
+let THRESHOLD_PCT_x100 = 3000   // 30.00% × 100
+
+// closed-form expected ratios × 10000 (independent recompute path — done by
+// hand from matched / total · 10000 — verifier MUST agree)
+let EXPECTED_RATIO_x10000 = [
+    0,      // 0/1000        = 0.0000
+    10000,  // 1000/1000     = 1.0000
+    500,    // 50/1000       = 0.0500
+    2900,   // 290/1000      = 0.2900
+    4200,   // 420/1000      = 0.4200
+    8500,   // 850/1000      = 0.8500
+]
+
+let EXPECTED_FALSIFIER = [
+    0, 1, 0, 0, 1, 1,
+]
+
+fn contamination_rate_x10000_v(matched: int, total: int) -> int {
+    if total <= 0 { return -1 }
+    if matched < 0 { return -1 }
+    if matched > total { return -1 }
+    return matched * 10000 / total
+}
+
+fn falsifier_fires_v(rate_x10000: int) -> int {
+    if rate_x10000 > THRESHOLD_PCT_x100 { return 1 }
+    return 0
+}
+
+print("hexa-codex CONTAMINATION A1 falsifier — n-gram ratio closed-form (cycle-9 round-1)")
+print("====================================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── check 1 — closed-form ratio recompute matches expected (combinatorial identity)
+checks_total = checks_total + 1
+let n = EVAL_NAMES.len()
+let mut all_match = true
+let mut diag_first_miss = ""
+let mut i = 0
+while i < n {
+    let r = contamination_rate_x10000_v(MATCHED_13GRAMS[i], TOTAL_13GRAMS[i])
+    if r != EXPECTED_RATIO_x10000[i] {
+        all_match = false
+        if diag_first_miss.len() == 0 {
+            diag_first_miss = EVAL_NAMES[i] + " got=" + to_string(r) + " expected=" + to_string(EXPECTED_RATIO_x10000[i])
+        }
+    }
+    i = i + 1
+}
+if all_match {
+    print("  [PASS] (1) closed-form recompute matches expected for all " + to_string(n) + " worked rows (combinatorial identity ratio = matched/total)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (1) recompute mismatch: " + diag_first_miss)
+}
+
+// ── check 2 — every ratio ∈ [0, 1] (range invariant — × 10000 → [0, 10000])
+checks_total = checks_total + 1
+let mut all_in_range = true
+let mut diag_oor = ""
+let mut j = 0
+while j < n {
+    let r = contamination_rate_x10000_v(MATCHED_13GRAMS[j], TOTAL_13GRAMS[j])
+    if r < 0 || r > 10000 {
+        all_in_range = false
+        if diag_oor.len() == 0 {
+            diag_oor = EVAL_NAMES[j] + " r=" + to_string(r)
+        }
+    }
+    j = j + 1
+}
+if all_in_range {
+    print("  [PASS] (2) every ratio ∈ [0, 1] (× 10000 → [0, 10000]) — range invariant holds for all " + to_string(n) + " rows")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (2) out-of-range ratio: " + diag_oor)
+}
+
+// ── check 3 — zero contamination → ratio = 0 (matched=0 edge)
+checks_total = checks_total + 1
+let r_zero = contamination_rate_x10000_v(0, 1000)
+if r_zero == 0 {
+    print("  [PASS] (3) zero contamination edge: matched=0/1000 → ratio = 0 (=" + to_string(r_zero) + "/10000)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (3) zero edge: got " + to_string(r_zero) + ", expected 0")
+}
+
+// ── check 4 — full contamination → ratio = 1 (matched=total edge)
+checks_total = checks_total + 1
+let r_full = contamination_rate_x10000_v(1000, 1000)
+if r_full == 10000 {
+    print("  [PASS] (4) full contamination edge: matched=1000/1000 → ratio = 1 (= " + to_string(r_full) + "/10000)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (4) full edge: got " + to_string(r_full) + ", expected 10000")
+}
+
+// ── check 5 — standard eval > 30% → falsifier fires (Sainz 2023 threshold)
+checks_total = checks_total + 1
+let mut falsifier_correct = true
+let mut diag_fal = ""
+let mut k = 0
+while k < n {
+    let r = contamination_rate_x10000_v(MATCHED_13GRAMS[k], TOTAL_13GRAMS[k])
+    let f = falsifier_fires_v(r)
+    if f != EXPECTED_FALSIFIER[k] {
+        falsifier_correct = false
+        if diag_fal.len() == 0 {
+            diag_fal = EVAL_NAMES[k] + " rate=" + to_string(r) + " got_falsifier=" + to_string(f) + " expected=" + to_string(EXPECTED_FALSIFIER[k])
+        }
+    }
+    k = k + 1
+}
+if falsifier_correct {
+    print("  [PASS] (5) falsifier fires iff rate > 30% (Sainz 2023): 3/6 rows trip threshold = {full, tripped, max_real}; others stay 🟢 (incl. borderline 29% just-below)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (5) falsifier behavior wrong: " + diag_fal)
+}
+
+// ── check 6 — determinism (re-call same inputs, compare)
+checks_total = checks_total + 1
+let r_a = contamination_rate_x10000_v(420, 1000)
+let r_b = contamination_rate_x10000_v(420, 1000)
+let f_a = falsifier_fires_v(r_a)
+let f_b = falsifier_fires_v(r_b)
+if r_a == r_b && f_a == f_b && r_a == 4200 && f_a == 1 {
+    print("  [PASS] (6) deterministic: rate(420/1000) = 4200/10000 (=0.42) reproducible; falsifier = 1 stable")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (6) non-deterministic: r_a=" + to_string(r_a) + " r_b=" + to_string(r_b) + " f_a=" + to_string(f_a) + " f_b=" + to_string(f_b))
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (combinatorial ratio identity 6/6) + 🟡 BY-CITATION (13-gram + 30% threshold = Dodge 2021 / Sainz 2023)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — formula recompute disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("KEY FINDING (closed-form composition with cited inputs):")
+print("  - contamination_rate(eval, corpus, n=13) = |matched_n-grams| / |total_n-grams| ∈ [0, 1]")
+print("    is a proper combinatorial proportion (closed-form, deterministic, range-preserving).")
+print("  - Falsifier `> 30%` is grounded in Dodge 2021 C4 + Sainz 2023 ChatGPT-eval conventions")
+print("    (BY-CITATION 🟡 — no own threshold-derivation in this probe).")
+print("  - 13-gram window is Dodge 2021 C4 convention; alternate windows (8 / 50) would shift")
+print("    the absolute ratio but not the formula's structural identity.")
+print("")
+print("HONEST RESIDUAL (A1 first probe — cx_lab_sandbox + cx_empirical_contact):")
+print("  - Closed-form ratio + 30% threshold = 🔵 + 🟡; NO real pretrain corpus scan.")
+print("  - Real scan = cycle-10+ T4 (cost-bearing, deferred): C4/Pile/RedPajama × MMLU/HellaSwag")
+print("    via Dodge-style 13-gram bloom-filter; output → .verdicts/CONTAMINATION/a1_<eval>_<corpus>_real.txt.")
+print("  - Eval set HF registration: dancinlab/hexa-codex-contamination-evals-v1 (cx_hf_eval_register, deferred).")
+print("  - A1 frontier OPEN (feedback_closure_is_physical_limit): formula close ≠ measured close;")
+print("    new eval sets / new corpora / new detection methods reopen the axis (perpetual lane).")
+print("  - external anchors: Dodge 2021 (arXiv:2104.08758) · Sainz 2023 (arXiv:2310.18018) ·")
+print("    Magar & Schwartz 2022 (arXiv:2203.08242).")
+print("")
+print("__HEXA_CODEX_NUMERICS_CONTAMINATION_A1_NGRAM_RATIO__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    // explicit env wins
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    // walk up to find DOMAINS.tape marker (hexa cd's to the .hexa file's
+    // grandparent when invoked from CONTAMINATION/verify/<file>.hexa
+    // that's CONTAMINATION/, NOT repo root).
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/CONTAMINATION/verdicts/a1_ngram_ratio_verdict.txt"
+
+let mut content = "# hexa-codex CONTAMINATION A1 — n-gram contamination ratio (cycle-9 round-1 first probe)\n"
+content = content + "# axis=CONTAMINATION/CONTAMINATION.md::A1 (n-gram contamination ratio · 13-gram match)\n"
+content = content + "# bench=CONTAMINATION/bench/contamination_a1_ngram_ratio.hexa\n"
+content = content + "# verifier=CONTAMINATION/verify/numerics_contamination_a1_ngram_ratio.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=contamination_rate(eval,corpus,n=13) = |matched_n-grams|/|total_n-grams| ∈ [0,1]\n"
+content = content + "# threshold_pct=30 (Dodge 2021 C4 / Sainz 2023 ChatGPT-eval convention)\n"
+content = content + "# n_gram_window=13 (Dodge 2021 C4 convention)\n"
+content = content + "# worked_example_n=" + to_string(n) + " (PLACEHOLDER counts · no real corpus scan in this probe)\n"
+content = content + "# external_anchor=Dodge2021_arXiv2104.08758 (C4 contamination · 13-gram) · Sainz2023_arXiv2310.18018 (ChatGPT eval contamination) · Magar2022_arXiv2203.08242 (memorization→exploitation)\n"
+content = content + "# next_probe=cycle-10+ T4 real scan (C4/Pile/RedPajama × MMLU/HellaSwag/GSM8K · Dodge-style 13-gram bloom-filter on ubu-1, cost-bearing)\n"
+content = content + "# honesty=closed-form close ≠ measured close · A1 frontier OPEN (feedback_closure_is_physical_limit)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

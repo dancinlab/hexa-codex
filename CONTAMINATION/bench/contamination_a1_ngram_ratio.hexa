@@ -1,0 +1,136 @@
+#!hexa strict
+// hexa-codex/CONTAMINATION/bench/contamination_a1_ngram_ratio.hexa
+// CONTAMINATION axis A1 first probe (cycle-9 round-1) — n-gram contamination
+// ratio (closed-form formula encoding for a worked example · NO real pretrain
+// corpus scan, that round is cost-bearing and DEFERRED).
+//
+// CLAIM (CONTAMINATION.md::A1).
+//   contamination_rate(eval, corpus, n=13)
+//     = |{ g ∈ ngrams_n(eval) : g ∈ ngrams_n(corpus) }|
+//     / |ngrams_n(eval)|
+//   ∈ [0, 1]  (Dodge 2021 C4 contamination · 13-gram convention).
+//   Falsifier: if standard eval ratio > 0.30 → benchmark scores are an
+//   unsafe mix of memorization + skill (Sainz 2023 ChatGPT contamination,
+//   Magar 2022 data contamination).
+//
+// CLOSED-FORM COMPOSITION (this bench · 🔵 STRUCTURAL + 🟡 BY-CITATION).
+//   Worked example uses PLACEHOLDER integer constants for n-gram match
+//   counts — NO actual corpus is scanned. The numbers are illustrative,
+//   chosen to exercise edges (0%, 100%, mid-range, falsifier-tripping).
+//   Real measurement = cycle-10+ on ubu-1 with C4/Pile + standard eval
+//   sets (MMLU/HellaSwag/etc.) and HF datasets `dancinlab/hexa-codex-
+//   contamination-evals-v1` (separate cost-bearing round per cx_lab_sandbox).
+//
+// TIER MIX. 🔵 STRUCTURAL (combinatorial identity: ratio = matched / total) ·
+// 🟡 BY-CITATION (13-gram threshold + 0.30 contamination cutoff are Dodge
+// 2021 C4 / Sainz 2023 recommendations, not own-derived).
+//
+// External anchors:
+//   - Dodge et al. 2021 "Documenting Large Webtext Corpora: A Case Study
+//     on the Colossal Clean Crawled Corpus" arXiv:2104.08758 (C4 contamination
+//     analysis · 13-gram match convention).
+//   - Sainz et al. 2023 "NLP Evaluation in trouble: On the Need to Measure
+//     LLM Data Contamination for each Benchmark" arXiv:2310.18018.
+//   - Magar & Schwartz 2022 "Data Contamination: From Memorization to
+//     Exploitation" arXiv:2203.08242.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form ratio emission — no runtime infer call, no atlas atoms touched, NO real corpus scan.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Worked example registry — placeholder integer counts (NOT measured).
+// Each row = (eval_set_name, total_13grams, matched_13grams).
+// Matched count must satisfy 0 ≤ matched ≤ total.
+// ────────────────────────────────────────────────────────────────────────
+
+let EVAL_NAMES = [
+    "example_clean",     // 0 matches / 1000 → 0% (zero contamination edge)
+    "example_full",      // 1000 / 1000     → 100% (full contamination edge)
+    "example_low",       // 50 / 1000       → 5%  (below 30% falsifier)
+    "example_borderline",// 290 / 1000      → 29% (just below threshold)
+    "example_tripped",   // 420 / 1000      → 42% (ABOVE 30% — falsifier fires)
+    "example_max_real",  // 850 / 1000      → 85% (high-contamination worked case)
+]
+
+let TOTAL_13GRAMS = [
+    1000, 1000, 1000, 1000, 1000, 1000,
+]
+
+let MATCHED_13GRAMS = [
+    0, 1000, 50, 290, 420, 850,
+]
+
+let THRESHOLD_PCT_x100 = 3000   // 30.00% × 100 (Dodge 2021 / Sainz 2023 convention)
+
+// ────────────────────────────────────────────────────────────────────────
+// Closed-form ratio computation (scaled ×10000 → 4-decimal-place precision)
+// ────────────────────────────────────────────────────────────────────────
+
+fn contamination_rate_x10000(matched: int, total: int) -> int {
+    // returns ratio × 10000 (so 0.42 → 4200; 0.0 → 0; 1.0 → 10000)
+    // closed-form: |matched| / |total| · 10000
+    // Guard: total > 0 (caller's responsibility — eval set always has 13-grams)
+    if total <= 0 { return -1 }            // sentinel: invalid total
+    if matched < 0 { return -1 }           // sentinel: invalid match count
+    if matched > total { return -1 }       // sentinel: count exceeds total
+    return matched * 10000 / total
+}
+
+fn falsifier_fires(rate_x10000: int) -> int {
+    // returns 1 if rate × 100 (so rate_x10000 ↔ rate × 10000 = percent × 100)
+    // exceeds 30% threshold (THRESHOLD_PCT_x100 = 3000 = 30.00% × 100).
+    // 30% × 10000 / 100 = 3000 — same scale.
+    if rate_x10000 > THRESHOLD_PCT_x100 { return 1 }
+    return 0
+}
+
+print("hexa-codex CONTAMINATION A1 — n-gram contamination ratio (cycle-9 round-1 first probe)")
+print("======================================================================================")
+print("")
+print("formula:  contamination_rate(eval, corpus, n=13) = |matched_n-grams| / |total_n-grams|")
+print("range:    [0, 1]")
+print("falsifier threshold: > 0.30 (Dodge 2021 C4 / Sainz 2023 ChatGPT-eval convention)")
+print("")
+print("worked example (PLACEHOLDER counts · NO real corpus scan in this round):")
+print("eval_set                        total  matched   rate     falsifier")
+print("------------------------------- -----  -------   ------   ---------")
+
+let n = EVAL_NAMES.len()
+let mut i = 0
+while i < n {
+    let r = contamination_rate_x10000(MATCHED_13GRAMS[i], TOTAL_13GRAMS[i])
+    let f = falsifier_fires(r)
+    let pct_int = r / 100             // integer percent
+    let pct_frac = r - pct_int * 100  // 2-digit fraction
+    let mut frac_str = to_string(pct_frac)
+    if pct_frac < 10 { frac_str = "0" + frac_str }
+    let mut name_pad = EVAL_NAMES[i]
+    while name_pad.len() < 31 { name_pad = name_pad + " " }
+    let mut total_str = to_string(TOTAL_13GRAMS[i])
+    while total_str.len() < 5 { total_str = " " + total_str }
+    let mut matched_str = to_string(MATCHED_13GRAMS[i])
+    while matched_str.len() < 7 { matched_str = " " + matched_str }
+    let mut rate_str = to_string(pct_int) + "." + frac_str + "%"
+    while rate_str.len() < 8 { rate_str = " " + rate_str }
+    let f_str = if f == 1 { "🔴 FIRES" } else { "🟢 ok" }
+    print(name_pad + " " + total_str + "  " + matched_str + "  " + rate_str + "   " + f_str)
+    i = i + 1
+}
+
+print("")
+print("interpretation (Sainz 2023 ChatGPT eval contamination):")
+print("  - rate < 30% → score reflects skill (with some memorization noise).")
+print("  - rate ≥ 30% → benchmark UNSAFE — score is memorization+skill mix; reported")
+print("                  number cannot be cited as evidence of LLM 'understanding'.")
+print("")
+print("HONEST RESIDUAL (A1 first probe):")
+print("  - Numbers above are PLACEHOLDER worked-example constants, NOT measured.")
+print("  - Real contamination scan = cycle-10+ T4 round on ubu-1 (cost-bearing):")
+print("      pretrain corpus = C4 / Pile / RedPajama (HF dataset stream)")
+print("      eval set = MMLU / HellaSwag / GSM8K (HF datasets/lm-eval-harness)")
+print("      tool = Dodge 2021 13-gram hash-bloom-filter scan (O(|corpus| + |eval|))")
+print("      output → .verdicts/CONTAMINATION/a1_<eval>_<corpus>_real.txt")
+print("  - A1 frontier OPEN (feedback_closure_is_physical_limit): citation-based")
+print("    close ≠ measured close; new eval sets / new corpora reopen the axis.")
+print("")
+print("__HEXA_CODEX_CONTAMINATION_A1_NGRAM_RATIO__ DONE")

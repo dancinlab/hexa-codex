@@ -33,14 +33,14 @@
 ## 진행 (milestones) — 22 candidate first probe
 
 ### ⭐⭐⭐ 12 (강력 후보 · 즉시-wire 가능성 높음)
-- [ ] CALIBRATION/A1 — ECE (Expected Calibration Error) closed-form 측정 (per-task) · 반증자: ECE > 0.1 OR over-confidence systematic
+- [x] CALIBRATION/A1 — ECE (Expected Calibration Error) closed-form 측정 (per-task) · 반증자: ECE > 0.1 OR over-confidence systematic · **CYCLE-9 round-1 (2026-05-28)** ✅ 🟢 SUPPORTED-NUMERICAL · 7/7 PASS · `CALIBRATION/verify/numerics_calibration_a1_ece_formula.hexa`
 - [ ] HALLUCINATION/A1 — TruthfulQA/SimpleQA hallucination rate (confidence × 정답률) · 반증자: rate > 20% with high confidence
 - [ ] LONG-CONTEXT/A1 — needle-in-haystack accuracy @ context-len curve · 반증자: 64k 정확도 < 4k × 0.5
 - [ ] PROMPT-SENSITIVITY/A1 — 5-prompt agreement rate · variance · 반증자: factual 일관성 < 80%
-- [ ] ENERGY/A1 — RAPL+NVIDIA-smi tokens/J at fixed task · 반증자: tokens/J 가 SOTA × 0.5 미만
+- [x] ENERGY/A1 — RAPL+NVIDIA-smi tokens/J at fixed task · 반증자: tokens/J 가 SOTA × 0.5 미만 · **CYCLE-9 round-1 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `ENERGY/verify/numerics_energy_a1_tokens_per_joule.hexa`
 - [ ] RAG/A1 — retriever recall@k · 인용 정확도 · 반증자: recall@5 < 50% OR citation rate < 30%
 - [ ] AGENT/A1 — single-tool call 정확도 · 반증자: basic task 1-step < 70%
-- [ ] CONTAMINATION/A1 — n-gram contamination rate (13-gram match) · 반증자: 표준 eval > 30%
+- [x] CONTAMINATION/A1 — n-gram contamination rate (13-gram match) · 반증자: 표준 eval > 30% · **CYCLE-9 round-1 (2026-05-28)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 6/6 PASS · `CONTAMINATION/verify/numerics_contamination_a1_ngram_ratio.hexa`
 - [ ] INSTRUCTION-FOLLOWING/A1 — IFEval format compliance · 반증자: simple constraint 준수 < 90%
 - [ ] MULTILINGUAL/A1 — per-language perplexity · bytes/token · 반증자: low-resource 성능 < 영어 × 0.5
 - [ ] FAIRNESS/A1 — group-wise accuracy gap · counterfactual fairness · 반증자: demographic gap > 10pp

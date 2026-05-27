@@ -1,0 +1,282 @@
+#!hexa strict
+// hexa-codex/CALIBRATION/bench/calibration_a1_ece_formula.hexa
+// CALIBRATION axis A1 — ECE (Expected Calibration Error) closed-form formula
+//
+// CLAIM.  ECE = Σ_b (n_b / N) · |acc_b − conf_b|
+//   where bins partition [0, 1] confidence into B equal-width slots,
+//   n_b   = count of predictions whose confidence falls into bin b,
+//   N     = Σ_b n_b (total predictions),
+//   acc_b = fraction of bin-b predictions that are correct,
+//   conf_b= mean predicted confidence within bin b.
+//
+// External anchor: Naeini 2015 "Obtaining Well Calibrated Probabilities
+// Using Bayesian Binning" (AAAI) — original ECE formulation. Guo 2017
+// "On Calibration of Modern Neural Networks" (ICML) — re-introduced and
+// proved ECE > 0.1 for modern over-confident nets.
+//
+// SCALE.  All probabilities encoded as integers ×100 to stay in hexa-native
+// integer arithmetic (closed-form recompute; libm-free → 🔵 candidate).
+// Final ECE printed also as ×100 (so ECE=0.073 → "ECE_x100 = 7").
+//
+// WORKED EXAMPLES (B=10 bins, equal-width [0,1] → bin width 0.1).
+//   ex1 = perfectly calibrated 10-bin dataset → expected ECE = 0
+//   ex2 = systematically over-confident dataset → expected ECE > 0.1
+//   ex3 = mixed (small ECE, ~0.04) → expected ECE < 0.1 (boundary)
+//
+// FALSIFIER (paired verifier).
+//   verify/numerics_calibration_a1_ece_formula.hexa asserts:
+//     (1) ex1 ECE_x100 == 0 (perfectly calibrated)
+//     (2) ECE_x100 ∈ [0, 100] (range)
+//     (3) ex2 ECE_x100 > 10 (over-conf triggers > 0.1)
+//     (4) determinism
+//     (5) sum n_b == N (bin partition is total)
+//     (6) bin-by-bin recompute matches closed-form aggregate
+//     (7) acc_b ∈ [0, 100], conf_b ∈ [0, 100] for non-empty bins
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form ECE recompute on integer ×100 ledger — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Closed-form ECE on integer ×100 ledger
+// ────────────────────────────────────────────────────────────────────────
+//
+// Inputs (parallel arrays, length = N predictions):
+//   conf_x100[i] ∈ [0, 100] = predicted confidence × 100
+//   correct[i]   ∈ {0, 1}   = ground-truth correctness
+// B = 10 (bins of width 10 in ×100 scale → [0,10), [10,20), …, [90,100])
+// final bin [90, 100] inclusive on the right edge.
+
+let B_BINS = 10
+
+fn bin_index(conf_x100: int) -> int {
+    // map conf ∈ [0, 100] → bin ∈ [0, B-1]
+    let mut b = conf_x100 / 10
+    if b >= B_BINS { b = B_BINS - 1 }    // pin 100 into the last bin
+    if b < 0 { b = 0 }
+    return b
+}
+
+fn ece_x100(conf_x100: list[int], correct: list[int]) -> int {
+    // returns Σ_b (n_b / N) · |acc_b − conf_b| × 100, computed in integer arithmetic
+    let N = conf_x100.len()
+    if N == 0 { return 0 }
+
+    let mut n_b = []
+    let mut conf_sum_b = []
+    let mut correct_sum_b = []
+    let mut k = 0
+    while k < B_BINS {
+        n_b = n_b + [0]
+        conf_sum_b = conf_sum_b + [0]
+        correct_sum_b = correct_sum_b + [0]
+        k = k + 1
+    }
+
+    // bin the predictions
+    let mut i = 0
+    while i < N {
+        let b = bin_index(conf_x100[i])
+        n_b[b] = n_b[b] + 1
+        conf_sum_b[b] = conf_sum_b[b] + conf_x100[i]
+        correct_sum_b[b] = correct_sum_b[b] + correct[i]
+        i = i + 1
+    }
+
+    // ECE_x100 = Σ_b (n_b / N) · |acc_b_x100 − conf_b_x100|
+    // To preserve precision in integer arithmetic: accumulate
+    //   numer = Σ_b n_b · |acc_b_x100 − conf_b_x100|
+    //   ECE_x100 = numer / N    (integer truncation)
+    //
+    // where acc_b_x100 = (correct_sum_b · 100) / n_b
+    //       conf_b_x100 = conf_sum_b / n_b
+    //
+    // To avoid per-bin division loss, recombine:
+    //   n_b · |acc_b_x100 − conf_b_x100|
+    //     = | n_b · acc_b_x100 − n_b · conf_b_x100 |
+    //     = | correct_sum_b · 100 − conf_sum_b |
+    // (exact; no division until the final /N).
+
+    let mut numer = 0
+    let mut b = 0
+    while b < B_BINS {
+        if n_b[b] > 0 {
+            let lhs = correct_sum_b[b] * 100
+            let rhs = conf_sum_b[b]
+            let mut diff = lhs - rhs
+            if diff < 0 { diff = -diff }
+            numer = numer + diff
+        }
+        b = b + 1
+    }
+    return numer / N
+}
+
+// helper — per-bin acc and conf in ×100 scale (None for empty bins → -1 sentinel)
+fn bin_stats(conf_x100: list[int], correct: list[int]) -> list[list[int]] {
+    // returns [n_b, acc_b_x100, conf_b_x100] per bin (acc/conf = -1 if n_b==0)
+    let N = conf_x100.len()
+    let mut n_b = []
+    let mut conf_sum_b = []
+    let mut correct_sum_b = []
+    let mut k = 0
+    while k < B_BINS {
+        n_b = n_b + [0]
+        conf_sum_b = conf_sum_b + [0]
+        correct_sum_b = correct_sum_b + [0]
+        k = k + 1
+    }
+    let mut i = 0
+    while i < N {
+        let b = bin_index(conf_x100[i])
+        n_b[b] = n_b[b] + 1
+        conf_sum_b[b] = conf_sum_b[b] + conf_x100[i]
+        correct_sum_b[b] = correct_sum_b[b] + correct[i]
+        i = i + 1
+    }
+    let mut out = []
+    let mut b = 0
+    while b < B_BINS {
+        let mut acc_x100 = -1
+        let mut conf_x100_b = -1
+        if n_b[b] > 0 {
+            acc_x100 = (correct_sum_b[b] * 100) / n_b[b]
+            conf_x100_b = conf_sum_b[b] / n_b[b]
+        }
+        out = out + [[n_b[b], acc_x100, conf_x100_b]]
+        b = b + 1
+    }
+    return out
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Worked examples
+// ────────────────────────────────────────────────────────────────────────
+
+// ex1 — perfectly calibrated 10-bin dataset.
+//   For each bin b (mid-point conf c_b = 10b+5), generate samples whose
+//   per-sample correctness rate equals c_b/100. With 10 samples per bin
+//   that's c_b/10 correct out of 10. → acc_b = conf_b for every non-empty
+//   bin → ECE = 0.
+//
+//   bin 0 [0,10): conf=5,   acc=5/100 → 10 samples, 1 correct (wait — need correct=0 or 1 per sample)
+//   We pick conf at mid (5, 15, 25, ..., 95), 10 samples per bin, and #correct = round(c_b · 10 / 100).
+//     b=0 c=5  → 0 correct out of 10 (acc=0,  conf=5)   ⇒ |acc-conf| = 5  (rounding artifact)
+//     b=1 c=15 → 1 correct           (acc=10, conf=15)  ⇒ |acc-conf| = 5
+//     ...
+//   That's NOT perfect ECE=0 due to integer rounding of "10% correct".
+//
+//   Cleaner perfect-cal construction — vary per-bin sample count so that
+//   acc_b == conf_b exactly. Use conf c_b = {0, 10, 20, ..., 90} and
+//   samples_b = 10, correct_b = c_b/10 → acc_b = c_b/10 · 10 / 10 · 100 = c_b. ✓
+//   conf_x100 entries inside each bin: pin to lower-edge of the bin so
+//   bin_index lands deterministically; mean conf inside bin = c_b too.
+
+let mut ex1_conf = []
+let mut ex1_correct = []
+
+let bin_conf_vals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+let bin_correct_counts = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+// bin 0 lower-edge 0  → b=0; bin 1 lower-edge 10 → b=1; ...; bin 9 lower-edge 90 → b=9. ✓
+
+let mut b1 = 0
+while b1 < 10 {
+    let c = bin_conf_vals[b1]
+    let nc = bin_correct_counts[b1]
+    // 10 samples in this bin: first nc are correct (1), rest incorrect (0)
+    let mut s = 0
+    while s < 10 {
+        ex1_conf = ex1_conf + [c]
+        if s < nc {
+            ex1_correct = ex1_correct + [1]
+        } else {
+            ex1_correct = ex1_correct + [0]
+        }
+        s = s + 1
+    }
+    b1 = b1 + 1
+}
+// verify by hand: bin b has n=10, correct_sum=b, conf_sum=10·(10b) = 100b
+//   acc_x100 = (b · 100) / 10 = 10b ;  conf_x100 = 100b / 10 = 10b → diff = 0 ✓
+// → ECE_x100 = 0
+
+let ex1_ece = ece_x100(ex1_conf, ex1_correct)
+
+// ex2 — systematically over-confident: every prediction says 90% confidence
+// but is only correct 50% of the time. All 100 samples in bin 9 (conf=90).
+//   acc_b9 = 50/100 = 50 ;  conf_b9 = 90 → |diff|=40 ;  ECE = 1·40 = 40
+let mut ex2_conf = []
+let mut ex2_correct = []
+let mut s2 = 0
+while s2 < 100 {
+    ex2_conf = ex2_conf + [90]
+    if s2 < 50 {
+        ex2_correct = ex2_correct + [1]
+    } else {
+        ex2_correct = ex2_correct + [0]
+    }
+    s2 = s2 + 1
+}
+let ex2_ece = ece_x100(ex2_conf, ex2_correct)
+
+// ex3 — mixed mild miscal: 50 samples at conf=80 with acc=75, 50 at conf=20 with acc=25.
+//   bin 8 (conf=80): n=50, acc=75 → |75-80|=5 ; bin 2 (conf=20): n=50, acc=25 → |25-20|=5
+//   weighted: (50·5 + 50·5)/100 = 5  → ECE_x100 = 5
+let mut ex3_conf = []
+let mut ex3_correct = []
+// bin 8 group: 50 samples at conf=80, 75% correct (38 correct, 12 wrong — 38/50 = 76%; closer to target use 37 → 74%)
+// To hit acc_x100 == 75 exactly: 75 = (k·100)/50 → k = 37.5 — non-integer. Use 38 → acc_x100 = 76.
+// We'll keep the demo with 38 correct → |76-80|=4 ; bin 2: 12 correct out of 50 → acc=24 ; |24-20|=4
+//   ECE_x100 = (50·4 + 50·4)/100 = 4
+let mut s3a = 0
+while s3a < 50 {
+    ex3_conf = ex3_conf + [80]
+    if s3a < 38 { ex3_correct = ex3_correct + [1] } else { ex3_correct = ex3_correct + [0] }
+    s3a = s3a + 1
+}
+let mut s3b = 0
+while s3b < 50 {
+    ex3_conf = ex3_conf + [20]
+    if s3b < 12 { ex3_correct = ex3_correct + [1] } else { ex3_correct = ex3_correct + [0] }
+    s3b = s3b + 1
+}
+let ex3_ece = ece_x100(ex3_conf, ex3_correct)
+
+// ────────────────────────────────────────────────────────────────────────
+// Print
+// ────────────────────────────────────────────────────────────────────────
+
+print("hexa-codex CALIBRATION A1 — ECE closed-form (cycle-9 round-1)")
+print("==============================================================")
+print("")
+print("Formula:  ECE = Σ_b (n_b/N) · |acc_b − conf_b|       (Naeini 2015 · Guo 2017)")
+print("Scale:    integer ×100 throughout (closed-form, libm-free)")
+print("Bins:     B = " + to_string(B_BINS) + " equal-width over [0,1]")
+print("")
+
+print("ex1 — perfectly calibrated (10 bins, acc_b == conf_b by construction)")
+print("  N = " + to_string(ex1_conf.len()))
+print("  ECE_x100 = " + to_string(ex1_ece) + "   (expected: 0)")
+print("")
+
+print("ex2 — systematically over-confident (conf=90 everywhere, acc=50)")
+print("  N = " + to_string(ex2_conf.len()))
+print("  ECE_x100 = " + to_string(ex2_ece) + "   (expected: 40 — fires > 10 falsifier)")
+print("")
+
+print("ex3 — mild miscalibration (two bins, |diff|=4 each)")
+print("  N = " + to_string(ex3_conf.len()))
+print("  ECE_x100 = " + to_string(ex3_ece) + "   (expected: 4 — below 10 threshold)")
+print("")
+
+print("per-bin stats (ex1):")
+let ex1_stats = bin_stats(ex1_conf, ex1_correct)
+let mut bb = 0
+while bb < B_BINS {
+    let row = ex1_stats[bb]
+    print("  b=" + to_string(bb) + " n=" + to_string(row[0]) +
+          " acc_x100=" + to_string(row[1]) +
+          " conf_x100=" + to_string(row[2]))
+    bb = bb + 1
+}
+print("")
+print("__HEXA_CODEX_CALIBRATION_A1_ECE_FORMULA__ DONE")

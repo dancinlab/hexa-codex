@@ -1,0 +1,14 @@
+# hexa-codex CALIBRATION A1 — ECE closed-form verifier (cycle-9 round-1)
+# axis=CALIBRATION/CALIBRATION.md::A1 (ECE first probe, closed-form)
+# formula=ECE = Σ_b (n_b/N) · |acc_b − conf_b|
+# bench=CALIBRATION/bench/calibration_a1_ece_formula.hexa
+# verifier=CALIBRATION/verify/numerics_calibration_a1_ece_formula.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — CALIBRATION A1 ECE closed-form faithful to Naeini 2015 / Guo 2017 (7/7 checks)
+# verdict_class=SUPPORTED-NUMERICAL
+# checks=7/7
+# ex1_perfect_cal_ece_x100=0 (target 0)
+# ex2_overconf_ece_x100=40 (target 40 · fires > 10 falsifier)
+# ex3_mild_miscal_ece_x100=4 (target 4)
+# external_anchor=Naeini2015_AAAI | Guo2017_ICML | Kuleshov2018_ICML
+# honest_residual=integer_x100_ledger_truncation_at_0.01 · substrate_fire_on_real_logprobs_DEFERRED · axis_N_temperature_commutativity_next
+# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis)

@@ -1,0 +1,13 @@
+# hexa-codex ENGINE S1 — GPU-count selector verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::S1 (HW-VARIANCE/N1 DISTRIBUTED-SCALING finding → serving/training GPU-count selector decision rule)
+# wire=ENGINE/wires/wire_s1_gpu_count_selector.hexa
+# verifier=ENGINE/verify/numerics_engine_s1_gpu_count_selector.hexa
+# tier=🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (HW-VARIANCE/N1 finding consume · Megatron-LM / ZeRO / FSDP / Narayanan 2021 / Amdahl) — gpu_select wires distributed-scaling efficiency into a scale_out-vs-stop_scaling GPU-count placement choice · 70% Amdahl threshold
+# checks=7/7
+# rule=gpu_select(efficiency_x100): efficiency>=7000 (70%) -> scale_out (GPU 추가 효율적); efficiency<7000 -> stop_scaling (통신 오버헤드 dominant · Amdahl)
+# source_finding=HW-VARIANCE/N1 scaling_efficiency_x100 = speedup_x100 x 100 / n_gpus = (speedup/N) percent x 100 ledger
+# cases=single(1gpu·100%)->scale_out · dp_8gpu_good(8gpu·95%)->scale_out · fsdp_8gpu(8gpu·85%)->scale_out · tp_comm_bound(8gpu·60%)->stop_scaling · multinode_16(16gpu·65%)->stop_scaling
+# falsifier=finding-ignorant rule (scale_out-always for efficiency<70% · Amdahl ceiling ignored) detected as WRONG vs gpu_select stop_scaling (check 4)
+# external_anchor=Shoeybi 2019 Megatron-LM (arXiv:1909.08053) · Rajbhandari 2020 ZeRO (arXiv:1910.02054) · Zhao 2023 PyTorch FSDP (arXiv:2304.11277) · Narayanan 2021 (arXiv:2104.04473) · Amdahl's law (consumed via HW-VARIANCE/N1)
+# amdahl_ceiling=efficiency < 70% → comm-overhead dominant · adding GPUs buys < 0.7x linear/chip · stop scaling (serving/training GPU-count placement)
+# honest_residual=live multi-GPU serving GPU-count selector wiring (lm_foundry · SANDBOX local llama-server · vast.ai A100x8 / multinode wall-clock sweep) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)

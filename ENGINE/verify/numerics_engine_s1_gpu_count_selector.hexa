@@ -1,0 +1,197 @@
+#!hexa strict
+// hexa-codex/ENGINE/verify/numerics_engine_s1_gpu_count_selector.hexa
+// ENGINE axis S1 — falsifier verifier for the GPU-count selector wire.
+//
+// Asserts that gpu_select is a faithful, deterministic decision rule that
+// CONSUMES the HW-VARIANCE/N1 DISTRIBUTED-SCALING finding (per-config scaling
+// efficiency ledger 100·95·85·60·65 · falsifier efficiency < 70% → 통신 dominant
+// Amdahl ceiling · Shoeybi 2019 / Rajbhandari 2020 / Zhao 2023 / Narayanan 2021):
+//   (1) decision rule identity — efficiency ≥ 70% → "scale_out"
+//   (2) dp/fsdp (95% / 85%) ≥ 70% → "scale_out"
+//   (3) tp_comm_bound (60%) + multinode_16 (65%) < 70% → "stop_scaling"
+//   (4) FALSIFIER wire — a rule that ignores the finding (efficiency < 70% →
+//       "scale_out", Amdahl ceiling ignored) is detected as WRONG vs gpu_select's
+//       "stop_scaling"
+//   (5) determinism (re-call → identical decision)
+//   (6) source-finding consistency — HW-VARIANCE/N1 efficiency = speedup × 100 / N
+//       reproduces the 5-config ledger 100·95·85·60·65
+//   (7) decision ∈ {scale_out, stop_scaling} for every config (valid output domain)
+// Any FAIL = wire contradicts the HW-VARIANCE/N1 finding ⇒ ENGINE S1 FALSIFIED.
+//
+// SOURCE.  ENGINE/wires/wire_s1_gpu_count_selector.hexa (verifier replicates the
+// decision rule — closed-form recompute, no import of emitted state).
+// HW-VARIANCE/N1 source: HW-VARIANCE/verify/numerics_hw_variance_n1_distributed_scaling.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form recompute of the S1 decision rule.")
+
+let EFFICIENCY_THRESHOLD_x100 = 7000
+
+// HW-VARIANCE/N1 5-config ledger
+let CFG_NAMES        = ["single", "dp_8gpu_good", "fsdp_8gpu", "tp_comm_bound", "multinode_16"]
+let CFG_N_GPUS       = [   1,           8,             8,            8,              16     ]
+let CFG_SPEEDUP_x100 = [ 100,         760,           680,          480,           1040     ]
+
+fn scaling_efficiency_x100(n_gpus: int, speedup_x100: int) -> int {
+    if n_gpus <= 0 { return 0 }
+    return speedup_x100 * 100 / n_gpus
+}
+
+fn gpu_select(efficiency_x100: int) -> str {
+    if efficiency_x100 >= EFFICIENCY_THRESHOLD_x100 { return "scale_out" }
+    return "stop_scaling"
+}
+
+// FALSIFIER reference — a (deliberately wrong) rule that IGNORES the finding:
+// it always returns "scale_out", even when efficiency < 70% (Amdahl ceiling).
+fn gpu_select_finding_ignorant(efficiency_x100: int) -> str {
+    return "scale_out"
+}
+
+print("hexa-codex ENGINE S1 falsifier — GPU-count selector (HW-VARIANCE/N1 · cycle-10)")
+print("===============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// check 1 — decision rule identity: efficiency ≥ 70% → "scale_out"
+checks_total = checks_total + 1
+if gpu_select(7000) == "scale_out" &&
+   gpu_select(8500) == "scale_out" &&
+   gpu_select(10000) == "scale_out" {
+    print("  [PASS] identity: efficiency ≥ 70% → scale_out (7000 boundary · 8500 · 10000/100)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] efficiency ≥ 70% did not map to scale_out")
+}
+
+// check 2 — dp/fsdp (95% / 85%) ≥ 70% → "scale_out"
+checks_total = checks_total + 1
+let eff_dp = scaling_efficiency_x100(CFG_N_GPUS[1], CFG_SPEEDUP_x100[1])     // 9500 (95%)
+let eff_fsdp = scaling_efficiency_x100(CFG_N_GPUS[2], CFG_SPEEDUP_x100[2])   // 8500 (85%)
+if gpu_select(eff_dp) == "scale_out" && gpu_select(eff_fsdp) == "scale_out" &&
+   eff_dp == 9500 && eff_fsdp == 8500 {
+    print("  [PASS] dp_8gpu_good=" + to_string(eff_dp) + "/100 (95%) · fsdp_8gpu=" + to_string(eff_fsdp) +
+          "/100 (85%) ≥ 70% → scale_out (각 GPU 추가 효율적)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] dp/fsdp ≥ 70% did not map to scale_out (dp=" + to_string(eff_dp) + " fsdp=" + to_string(eff_fsdp) + ")")
+}
+
+// check 3 — tp_comm_bound (60%) + multinode_16 (65%) < 70% → "stop_scaling"
+checks_total = checks_total + 1
+let eff_tp = scaling_efficiency_x100(CFG_N_GPUS[3], CFG_SPEEDUP_x100[3])      // 6000 (60%)
+let eff_mn = scaling_efficiency_x100(CFG_N_GPUS[4], CFG_SPEEDUP_x100[4])      // 6500 (65%)
+if gpu_select(eff_tp) == "stop_scaling" && gpu_select(eff_mn) == "stop_scaling" &&
+   eff_tp == 6000 && eff_mn == 6500 {
+    print("  [PASS] tp_comm_bound=" + to_string(eff_tp) + "/100 (60%) · multinode_16=" + to_string(eff_mn) +
+          "/100 (65%) < 70% → stop_scaling (통신 오버헤드 dominant · Amdahl ceiling)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] tp/multinode < 70% did not map to stop_scaling (tp=" + to_string(eff_tp) + " mn=" + to_string(eff_mn) + ")")
+}
+
+// check 4 — FALSIFIER wire: finding-ignorant rule detected as WRONG
+checks_total = checks_total + 1
+let correct = gpu_select(eff_tp)                          // "stop_scaling" (finding honored)
+let ignorant = gpu_select_finding_ignorant(eff_tp)        // "scale_out" (finding ignored)
+if correct == "stop_scaling" && ignorant == "scale_out" && correct != ignorant {
+    print("  [PASS] FALSIFIER caught: finding-ignorant rule → scale_out ≠ gpu_select → stop_scaling " +
+          "(efficiency 60%<70% MUST stop · wire honors HW-VARIANCE/N1 Amdahl ceiling)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] falsifier wire NOT detected (correct=" + correct + " ignorant=" + ignorant + ")")
+}
+
+// check 5 — determinism (re-call → identical)
+checks_total = checks_total + 1
+if gpu_select(eff_tp) == gpu_select(eff_tp) &&
+   gpu_select(eff_dp) == gpu_select(eff_dp) &&
+   scaling_efficiency_x100(8, 480) == scaling_efficiency_x100(8, 480) {
+    print("  [PASS] deterministic (re-call same decision + same efficiency)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+// check 6 — source-finding consistency: HW-VARIANCE/N1 efficiency ledger 100·95·85·60·65
+checks_total = checks_total + 1
+let eff_single = scaling_efficiency_x100(CFG_N_GPUS[0], CFG_SPEEDUP_x100[0])  // 10000 (100%)
+if eff_single == 10000 && eff_dp == 9500 && eff_fsdp == 8500 && eff_tp == 6000 && eff_mn == 6500 {
+    print("  [PASS] HW-VARIANCE/N1 consumed: efficiency = speedup × 100 / N reproduces ledger " +
+          "single=100% · dp=95% · fsdp=85% · tp=60% · multinode=65% (wire ↔ finding consistent)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] HW-VARIANCE/N1 ledger mismatch (single=" + to_string(eff_single) + " dp=" + to_string(eff_dp) +
+          " fsdp=" + to_string(eff_fsdp) + " tp=" + to_string(eff_tp) + " mn=" + to_string(eff_mn) + ")")
+}
+
+// check 7 — decision ∈ {scale_out, stop_scaling} for every config (valid output domain)
+checks_total = checks_total + 1
+let mut domain_ok = true
+let mut k = 0
+while k < CFG_NAMES.len() {
+    let eff = scaling_efficiency_x100(CFG_N_GPUS[k], CFG_SPEEDUP_x100[k])
+    let d = gpu_select(eff)
+    if d != "scale_out" && d != "stop_scaling" { domain_ok = false }
+    k = k + 1
+}
+if domain_ok {
+    print("  [PASS] decision ∈ {scale_out, stop_scaling} for all " + to_string(CFG_NAMES.len()) + " configs (valid output domain)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] a decision escaped {scale_out, stop_scaling}")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (HW-VARIANCE/N1 finding consume · Megatron-LM / ZeRO / FSDP / Narayanan 2021 / Amdahl) — gpu_select wires distributed-scaling efficiency into a scale_out-vs-stop_scaling GPU-count placement choice · 70% Amdahl threshold"
+} else {
+    verdict_tier = "🔴 FALSIFIED — decision rule contradicts HW-VARIANCE/N1 finding (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("ENGINE S1 finding (closed-form decision rule · cycle-10):")
+print("  - gpu_select(efficiency_x100) → {scale_out, stop_scaling}; efficiency≥70%→scale_out · <70%→stop_scaling")
+print("  - HW-VARIANCE/N1 ledger: single 100% · dp_8gpu 95% · fsdp_8gpu 85% → scale_out · tp_comm_bound 60% · multinode_16 65% → stop_scaling")
+print("  - < 70% = 통신 오버헤드 dominant (Amdahl ceiling) · 더 많은 GPU 추가해도 < 0.7×/chip · wasted spend")
+print("  - falsifier wire (finding-ignorant scale_out-always) detected — proves the rule actually honors the Amdahl ceiling")
+print("  - honest residual: live multi-GPU serving GPU-count selector (lm_foundry · SANDBOX · vast.ai A100×8 / multinode wall-clock sweep) DEFERRED to cycle-11+ T4 (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_ENGINE_S1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/ENGINE/verdicts/s1_gpu_count_selector_verdict.txt"
+
+let mut content = "# hexa-codex ENGINE S1 — GPU-count selector verifier (cycle-10)\n"
+content = content + "# axis=ENGINE/ENGINE.md::S1 (HW-VARIANCE/N1 DISTRIBUTED-SCALING finding → serving/training GPU-count selector decision rule)\n"
+content = content + "# wire=ENGINE/wires/wire_s1_gpu_count_selector.hexa\n"
+content = content + "# verifier=ENGINE/verify/numerics_engine_s1_gpu_count_selector.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# rule=gpu_select(efficiency_x100): efficiency>=7000 (70%) -> scale_out (GPU 추가 효율적); efficiency<7000 -> stop_scaling (통신 오버헤드 dominant · Amdahl)\n"
+content = content + "# source_finding=HW-VARIANCE/N1 scaling_efficiency_x100 = speedup_x100 x 100 / n_gpus = (speedup/N) percent x 100 ledger\n"
+content = content + "# cases=single(1gpu·100%)->scale_out · dp_8gpu_good(8gpu·95%)->scale_out · fsdp_8gpu(8gpu·85%)->scale_out · tp_comm_bound(8gpu·60%)->stop_scaling · multinode_16(16gpu·65%)->stop_scaling\n"
+content = content + "# falsifier=finding-ignorant rule (scale_out-always for efficiency<70% · Amdahl ceiling ignored) detected as WRONG vs gpu_select stop_scaling (check 4)\n"
+content = content + "# external_anchor=Shoeybi 2019 Megatron-LM (arXiv:1909.08053) · Rajbhandari 2020 ZeRO (arXiv:1910.02054) · Zhao 2023 PyTorch FSDP (arXiv:2304.11277) · Narayanan 2021 (arXiv:2104.04473) · Amdahl's law (consumed via HW-VARIANCE/N1)\n"
+content = content + "# amdahl_ceiling=efficiency < 70% → comm-overhead dominant · adding GPUs buys < 0.7x linear/chip · stop scaling (serving/training GPU-count placement)\n"
+content = content + "# honest_residual=live multi-GPU serving GPU-count selector wiring (lm_foundry · SANDBOX local llama-server · vast.ai A100x8 / multinode wall-clock sweep) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

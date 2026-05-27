@@ -1,0 +1,116 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_s1_gpu_count_selector.hexa
+// ENGINE axis S1 — HW-VARIANCE/N1 DISTRIBUTED-SCALING finding → serving/training
+//   GPU-count selector decision rule.
+//
+// SOURCE FINDING (HW-VARIANCE/N1 ⭐ · distributed-scaling efficiency).
+//   scaling_efficiency_x100 = speedup_x100 × 100 / n_gpus = (speedup/N) percent
+//   × 100 ledger. Bidirectional discrimination over 5 configs:
+//     single        (1 GPU · 100→100%)  — linear baseline.
+//     dp_8gpu_good   (8 GPU · 760→95%)  — ≥ 70% silent.
+//     fsdp_8gpu      (8 GPU · 680→85%)  — ≥ 70% silent.
+//     tp_comm_bound  (8 GPU · 480→60%)  — < 70% FIRES (통신 dominant · Amdahl).
+//     multinode_16   (16 GPU · 1040→65%) — < 70% FIRES (통신 dominant · Amdahl).
+//   The < 70% configs are communication-overhead bound: adding GPUs past that
+//   point buys < 0.7× of a linear speedup per chip (Amdahl's law · the serial /
+//   collective-comm fraction dominates). Source: Shoeybi 2019 Megatron-LM ·
+//   Rajbhandari 2020 ZeRO · Zhao 2023 PyTorch FSDP · Narayanan 2021 · Amdahl.
+//
+// DECISION RULE (closed-form · this wire).  gpu_select(efficiency_x100) turns
+//   that measured per-config scaling efficiency into an actual serving/training
+//   GPU-count placement choice between scaling OUT and STOPPING:
+//     (1) efficiency ≥ 70% (7000)  → "scale_out"     — each added GPU still pays
+//                                                       (≥ 0.7× linear/chip); the
+//                                                       parallelism strategy
+//                                                       scales, add GPUs.
+//     (2) efficiency  < 70% (7000) → "stop_scaling"  — 통신 오버헤드 dominant ·
+//                                                       Amdahl ceiling reached;
+//                                                       more GPUs buy < 0.7×/chip,
+//                                                       wasted spend. Hold the
+//                                                       current GPU count.
+//
+// The rule consumes the SAME HW-VARIANCE/N1 datum (the per-config efficiency
+// ledger: 100·95·85·60·65) — wire ↔ finding consistency is asserted by check (6)
+// of the verifier.
+//
+// FALSIFIER (paired verifier · check 4). A wire that IGNORED the finding —
+// selecting "scale_out" for an efficiency < 70% input (e.g. tp_comm_bound 60%,
+// ignoring the Amdahl ceiling) — is constructed explicitly and MUST be detected
+// as wrong against gpu_select's "stop_scaling".
+//
+// HONESTY. Closed-form decision rule only. Connecting this rule to a live
+// multi-GPU serving GPU-count selector (lm_foundry · SANDBOX local llama-server ·
+// vast.ai A100×8 / multinode wall-clock sweep) is a cost-bearing T4 contact
+// DEFERRED to cycle-11+ (cx_lab_sandbox · per feedback_closure_is_physical_limit —
+// rule close ≠ measured close).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Finding constants (HW-VARIANCE/N1 · integer × 100 percent ledger · libm-free)
+// ────────────────────────────────────────────────────────────────────────
+
+let EFFICIENCY_THRESHOLD_x100 = 7000   // 70% scale-out / stop boundary (Amdahl)
+
+// HW-VARIANCE/N1 5-config ledger: scaling_efficiency_x100 = speedup_x100 × 100 / n_gpus
+let CFG_N_GPUS       = [   1,           8,             8,            8,              16     ]
+let CFG_SPEEDUP_x100 = [ 100,         760,           680,          480,           1040     ]
+
+fn scaling_efficiency_x100(n_gpus: int, speedup_x100: int) -> int {
+    if n_gpus <= 0 { return 0 }
+    return speedup_x100 * 100 / n_gpus
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — gpu_select(efficiency_x100) → {scale_out, stop_scaling}
+// ────────────────────────────────────────────────────────────────────────
+
+fn gpu_select(efficiency_x100: int) -> str {
+    // (1) ≥ 70% efficiency → each added GPU still pays (≥ 0.7×/chip), scale out.
+    if efficiency_x100 >= EFFICIENCY_THRESHOLD_x100 {
+        return "scale_out"
+    }
+    // (2) < 70% efficiency → 통신 오버헤드 dominant (Amdahl ceiling), stop scaling.
+    return "stop_scaling"
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Test cases — HW-VARIANCE/N1-consistent (5 configs · 100·95·85·60·65 ledger)
+// ────────────────────────────────────────────────────────────────────────
+
+let CASE_NAME = [
+    "single",          // 1 GPU · 100% · linear baseline → scale_out
+    "dp_8gpu_good",    // 8 GPU · 95% ≥ 70% → scale_out
+    "fsdp_8gpu",       // 8 GPU · 85% ≥ 70% → scale_out
+    "tp_comm_bound",   // 8 GPU · 60% < 70% → stop_scaling (통신 dominant · Amdahl)
+    "multinode_16",    // 16 GPU · 65% < 70% → stop_scaling (통신 dominant · Amdahl)
+]
+let CASE_EXPECT = [
+    "scale_out",       // 100% ≥ 70%
+    "scale_out",       // 95% ≥ 70%
+    "scale_out",       // 85% ≥ 70%
+    "stop_scaling",    // 60% < 70%
+    "stop_scaling",    // 65% < 70%
+]
+
+print("hexa-codex ENGINE S1 — HW-VARIANCE/N1 DISTRIBUTED-SCALING → GPU-count selector decision rule (cycle-10)")
+print("=========================================================================================================")
+print("")
+print("source finding: HW-VARIANCE/N1 scaling_efficiency_x100 = speedup_x100 × 100 / n_gpus (speedup/N percent ledger)")
+print("decision rule:  gpu_select(efficiency_x100) → {scale_out, stop_scaling} · threshold = 70% (Amdahl · 통신 ceiling)")
+print("")
+
+let mut i = 0
+while i < CASE_NAME.len() {
+    let eff = scaling_efficiency_x100(CFG_N_GPUS[i], CFG_SPEEDUP_x100[i])
+    let got = gpu_select(eff)
+    let mut mark = "ok"
+    if got != CASE_EXPECT[i] { mark = "MISMATCH" }
+    print("  " + CASE_NAME[i] + " (" + to_string(CFG_N_GPUS[i]) + "gpu · speedup=" +
+          to_string(CFG_SPEEDUP_x100[i]) + "/100 · eff=" + to_string(eff) + "/100) → gpu_select=" + got +
+          " [expect " + CASE_EXPECT[i] + " · " + mark + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_S1_GPU_COUNT_SELECTOR__ DONE")

@@ -47,8 +47,8 @@ CODEX (mature 22) ↔ FRONTIER (incubation 6+) — sibling meta-domain 쌍:
 
 ### F1~F6 — 2026 frontier 6 차원 (cycle-10 round-2 시작)
 
-- [ ] F1 SPARSE-MOE — MoE 모델의 active-param efficiency · expert routing quality · domain specialization. 반증자: same-active-param dense 보다 MoE 가 ≥ 1.2× outperform 못함 → "MoE free lunch" 신화 (Gemma 4 26B/A4B vs E4B 데이터로 이미 fires 후보).
-- [ ] F2 MULTIMODAL — text · image · audio · video native 처리 균형. 반증자: 모달리티 간 acc gap > 30pp (예: image→text < text→text × 0.7).
+- [x] F1 SPARSE-MOE — MoE 모델의 active-param efficiency · expert routing quality · domain specialization. 반증자: same-active-param dense 보다 MoE 가 ≥ 1.2× outperform 못함 → "MoE free lunch" 신화. **CYCLE-10 round-2 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `FRONTIER/verify/numerics_frontier_f1_sparse_moe_active_premium.hexa` · **active_premium = 982/1000 (Gemma 4 E4B 675 vs 26B/A4B 663) → 🔴 myth FALSIFIED in Gemma 4 family · synthetic strong-MoE silent (task-class dependent)**.
+- [x] F2 MULTIMODAL — text · image · audio · video native 처리 균형. 반증자: 모달리티 간 acc gap > 30pp (예: image→text < text→text × 0.7). **CYCLE-10 round-2 (2026-05-28 · bg agent)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `FRONTIER/verify/numerics_frontier_f2_multimodal_balance.hexa` · **gemma4_31B=7pp silent · qwen3.6_72B=19pp silent · legacy_vlm_4B=75pp fires (2-tower control)**.
 - [ ] F3 AGENTIC-TRAJECTORY — multi-step 도구 사용 · GAIA · ATBench 안전성 · 5-step 작업 성공률. 반증자: 5-step 성공률 < single-step × 0.3.
 - [ ] F4 REASONING-DEPTH — AIME · GPQA · scratch-pad 효용 · CoT 의존도. 반증자: scratch-pad 없이 풀린 비율 > 0.8 → 단순 패턴 매칭.
 - [ ] F5 COST-PERFORMANCE — $ / correct answer · tokens/$ · 같은 acc 50× cost variation. 반증자: cheapest 가 most-expensive 의 1/10 이하 못 도달.

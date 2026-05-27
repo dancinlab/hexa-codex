@@ -1,0 +1,115 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_q1_context_budget.hexa
+// ENGINE axis Q1 — MULTILINGUAL/N1 TOKENIZER finding → serving per-language
+//   context-budget allocator decision rule.
+//
+// SOURCE FINDING (MULTILINGUAL/N1 · cycle-10).
+//   efficiency_ratio_x100(lang) = bytes_per_token(lang) × 100 / bytes_per_token(english).
+//   English-anchored tokenizer fertility ledger (Gemma 4 / Qwen · × 100 integer):
+//     english 100 · spanish 90 · chinese 59 · korean 47 · hindi 35 · burmese 21.
+//   A low-fertility language (efficiency < 100 = MORE tokens consumed per byte
+//   of real text than English) gets fewer real characters into the SAME token
+//   window. korean text packs ~2.1× fewer bytes per token than English; burmese
+//   ~4.8× fewer. Flat per-token context windows therefore systematically
+//   shortchange low-resource languages (Ahia 2023 · Petrov 2023).
+//
+// DECISION RULE (closed-form · this wire).  adjusted_budget(efficiency_ratio_x100,
+//   base_budget) turns that fertility datum into an actual serving context-budget
+//   allocation that equalizes the REAL text volume each language can fit:
+//     adjusted_budget = base_budget × 100 / efficiency_ratio_x100
+//   so a language that spends 100/eff× more tokens per byte gets a proportionally
+//   LARGER token budget — the real-text capacity (bytes of source) is held equal.
+//     english (eff=100) → base × 100/100 = base       (1.00× · baseline unchanged)
+//     spanish (eff=90)  → base × 100/90               (1.11×)
+//     chinese (eff=59)  → base × 100/59               (1.69×)
+//     korean  (eff=47)  → base × 100/47               (2.13× · ~2.1× as briefed)
+//     hindi   (eff=35)  → base × 100/35               (2.86×)
+//     burmese (eff=21)  → base × 100/21               (4.76×)
+//   Monotone: the lower the tokenizer efficiency, the larger the token budget,
+//   so every language carries the same real-text payload (fair context).
+//
+// The rule consumes the SAME MULTILINGUAL/N1 datum (efficiency_ratio_x100 per
+// language) — wire ↔ finding consistency is asserted by check (6) of the verifier.
+//
+// FALSIFIER (paired verifier · check 4). A wire that IGNORED the finding —
+// applying the English (base) budget to burmese (eff=21) so its real-text
+// capacity is ~4.8× smaller (unfair · fertility-blind) — is constructed
+// explicitly and MUST be detected as wrong against adjusted_budget.
+//
+// HONESTY. Closed-form decision rule only. Connecting this rule to a live
+// multilingual serving budget allocator (lm_foundry · SANDBOX local
+// llama-server · FLORES-200 per-tokenizer bytes/token) is a cost-bearing T4
+// contact DEFERRED to cycle-11+ (cx_lab_sandbox · per
+// feedback_closure_is_physical_limit — rule close ≠ measured close).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Finding constants (MULTILINGUAL/N1 · integer × 100 efficiency ledger · libm-free)
+// ────────────────────────────────────────────────────────────────────────
+
+let LANG_NAMES = ["english", "spanish", "chinese", "korean", "hindi", "burmese"]
+// efficiency_ratio_x100 = bytes_per_token(lang) × 100 / bytes_per_token(english)
+//   derived from MULTILINGUAL/N1 BYTES_PER_TOK_x100 = [420,380,250,200,150,90]
+//   (420→100 · 380→90 · 250→59 · 200→47 · 150→35 · 90→21)
+let EFFICIENCY_RATIO_x100 = [100, 90, 59, 47, 35, 21]
+let ENGLISH_BASELINE_x100 = 100   // English-anchored fertility frame (ratio 1.0)
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — adjusted_budget(efficiency_ratio_x100, base_budget) → tokens
+// ────────────────────────────────────────────────────────────────────────
+
+fn adjusted_budget(efficiency_ratio_x100: int, base_budget: int) -> int {
+    // Guard: a non-positive efficiency is meaningless — return base unchanged.
+    if efficiency_ratio_x100 <= 0 { return base_budget }
+    // Increase the token budget so the real-text payload (bytes) is held equal:
+    //   base × (english_baseline / efficiency_ratio).
+    return (base_budget * ENGLISH_BASELINE_x100) / efficiency_ratio_x100
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Test cases — MULTILINGUAL/N1-consistent (base_budget = 1000 tokens)
+// ────────────────────────────────────────────────────────────────────────
+
+let BASE_BUDGET = 1000
+
+let CASE_LANG = [
+    "english",   // eff 100 → base unchanged
+    "spanish",   // eff 90  → 1.11×
+    "chinese",   // eff 59  → 1.69×
+    "korean",    // eff 47  → 2.13× (~2.1× as briefed)
+    "hindi",     // eff 35  → 2.86×
+    "burmese",   // eff 21  → 4.76×
+]
+let CASE_EFF = [100, 90, 59, 47, 35, 21]
+let CASE_EXPECT = [
+    1000,   // 1000 × 100 / 100  = 1000
+    1111,   // 1000 × 100 / 90   = 1111
+    1694,   // 1000 × 100 / 59   = 1694
+    2127,   // 1000 × 100 / 47   = 2127
+    2857,   // 1000 × 100 / 35   = 2857
+    4761,   // 1000 × 100 / 21   = 4761
+]
+
+print("hexa-codex ENGINE Q1 — MULTILINGUAL/N1 TOKENIZER → serving context-budget allocator (cycle-10)")
+print("================================================================================================")
+print("")
+print("source finding: MULTILINGUAL/N1 efficiency_ratio_x100 (English-anchored bytes/token fertility)")
+print("                english 100 · spanish 90 · chinese 59 · korean 47 · hindi 35 · burmese 21")
+print("decision rule:  adjusted_budget(efficiency_ratio_x100, base_budget) = base × 100 / efficiency_ratio")
+print("                → low-fertility lang gets a LARGER token budget · fair real-text capacity")
+print("")
+
+let mut i = 0
+while i < CASE_LANG.len() {
+    let got = adjusted_budget(CASE_EFF[i], BASE_BUDGET)
+    let mut mark = "ok"
+    if got != CASE_EXPECT[i] { mark = "MISMATCH" }
+    print("  " + CASE_LANG[i] + " (eff=" + to_string(CASE_EFF[i]) +
+          "% · base=" + to_string(BASE_BUDGET) + ") → adjusted_budget=" + to_string(got) +
+          " tok [expect " + to_string(CASE_EXPECT[i]) + " · " + mark + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_Q1_CONTEXT_BUDGET__ DONE")

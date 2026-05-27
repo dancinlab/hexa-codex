@@ -1,0 +1,13 @@
+# hexa-codex ENGINE Q1 — fertility-aware context-budget allocator verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::Q1 (MULTILINGUAL/N1 TOKENIZER finding → serving context-budget allocator decision rule)
+# wire=ENGINE/wires/wire_q1_context_budget.hexa
+# verifier=ENGINE/verify/numerics_engine_q1_context_budget.hexa
+# tier=🔵 STRUCTURAL (budget allocator decision rule 7/7) + 🟡 BY-CITATION (MULTILINGUAL/N1 finding consume · Ahia 2023 / Petrov 2023 low-resource tokenizer inequality) — adjusted_budget wires tokenizer fertility into a fair per-language serving context-budget allocation
+# checks=7/7
+# rule=adjusted_budget(efficiency_ratio_x100, base_budget) = base_budget * 100 / efficiency_ratio_x100 (low-fertility lang -> larger token budget · fair real-text capacity; english eff=100 -> base unchanged)
+# source_finding=MULTILINGUAL/N1 efficiency_ratio_x100 = bytes/token(lang) * 100 / bytes/token(english) = english 100 · spanish 90 · chinese 59 · korean 47 · hindi 35 · burmese 21
+# cases(base=1000)=english[100]->1000 · spanish[90]->1111 · chinese[59]->1694 · korean[47]->2127 (~2.1x) · hindi[35]->2857 · burmese[21]->4761 (~4.8x)
+# falsifier=finding-ignorant allocator (English/base budget applied to burmese eff=21 · unfair · fertility-blind) detected as WRONG vs adjusted_budget 4761 (check 4)
+# monotone=lower efficiency => strictly larger budget (1000 < 1111 < 1694 < 2127 < 2857 < 4761) — fairness ordering (check 7)
+# external_anchor=Ahia 2023 (arXiv:2305.13707) · Petrov 2023 (arXiv:2305.15425) low-resource tokenizer inequality (consumed via MULTILINGUAL/N1)
+# honest_residual=live multilingual serving budget allocator (lm_foundry · SANDBOX local llama-server · FLORES-200 per-tokenizer bytes/token) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)

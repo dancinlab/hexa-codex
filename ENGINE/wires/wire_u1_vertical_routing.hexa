@@ -1,0 +1,211 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_u1_vertical_routing.hexa
+// ENGINE axis U1 — VERTICAL 전문 모델 task-domain routing → serving dispatch decision rule.
+//
+// SOURCE FINDINGS (12 VERTICAL domain A1 closed-form baselines · cycle-10).
+//   각 vertical 도메인이 A1 으로 그 도메인의 "specialist 신뢰 게이트" 를 측정·확정했다.
+//   ENGINE U1 은 이 12개 A1 finding 을 SINGLE task-domain router 로 통합한다 — task domain
+//   을 감지하면 그 domain 의 specialist 모델로 dispatch 하되, specialist 가 해당 domain 의
+//   A1 threshold 를 충족할 때만. 충족 못하면 generalist (OFFICE) fallback.
+//
+//   per-domain A1 threshold (각 VERTICAL/<D>/verdicts/a1_*.txt 에서 통합):
+//     code         oneshot_ratio    ≥ 30%   (pass@1/pass@10 · falsifier <30%)        MIN
+//     bio          spec_gain        ≥ 10pp  (bio_acc − general_bio_acc)              MIN
+//     math         formal_ratio     ≥ 50%   (formal_verified/informal_acc)          MIN
+//     law          halluc_rate      < 20%   (fake citations · Mata v. Avianca)       MAX  ⚠ safety
+//     medical      conf_wrong_rate  <  5%   (confident-wrong · 환자 위험)            MAX  ⚠ safety
+//     finance      numeric_acc      ≥ 90%   (FinQA · 1% 오차도 큰 손실)              MIN
+//     science      derive_ratio     ≥ 40%   (multistep/single_fact · derive gap)     MIN
+//     robotics     transfer_ratio   ≥ 50%   (real/sim · reality gap)                 MIN
+//     materials    synth_rate       ≥ 50%   (synthesized/predicted · in-silico 환상) MIN
+//     weather      skill_ratio      ≥ 100%  (ai_skill/nwp_skill · NWP-beater)        MIN
+//     cyber        detection_rate   ≥ 60%   (vulns_detected/total · 방어 신뢰)       MIN  ⚠ safety
+//     general      generalist_gap   <  0.7  (specialist − generalist · OFFICE)       fallback
+//
+//   "general" = OFFICE generalist lane. generalist_gap = specialist 가 generalist 를
+//   얼마나 능가하는가 (× 100 ledger, 0.7 → 70). gap ≥ 0.7 (≥70) 인데 specialist 를
+//   회피하고 generalist 강제 → 반증자 (router 가 task domain 을 무시).
+//
+// DECISION RULE (closed-form · this wire).
+//   route_specialist(task_domain, specialist_score_x100) → 모델 lane str:
+//     (1) task_domain 의 A1 threshold 를 specialist 가 충족 → 해당 specialist lane 반환.
+//     (2) 충족 못함 → "generalist" (OFFICE) fallback.
+//     (3) SAFETY-CRITICAL domain (medical · law · cybersecurity) 은 threshold 가
+//         HARD gate — specialist 가 threshold 미달이면 절대 그 domain 에 라우트 안 함
+//         (medical confident-wrong ≥ 5% · law halluc ≥ 20% · cyber detect < 60% → reject).
+//   gate 방향: MIN-gate domain 은 score ≥ threshold 통과, MAX-gate (medical·law) 은
+//   score < threshold 통과 (낮을수록 안전한 error-rate metric).
+//
+// FALSIFIER (paired verifier · check 4). medical confident-wrong 12% (≥5%) 모델을
+//   medical task 에 할당하는 finding-ignorant router 를 구성 — MUST be detected as wrong
+//   (route_specialist 는 그 모델을 reject → generalist fallback).
+//
+// HONESTY. Closed-form routing rule only. 실제 serving vertical routing (lm_foundry
+//   route_dispatch · SANDBOX local llama-server task-domain detector) 연결은 cost-bearing
+//   T4 contact — cycle-11+ DEFERRED (cx_lab_sandbox · feedback_closure_is_physical_limit).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// 12 VERTICAL A1 threshold ledger (integer × 100 · libm-free)
+//   gate_dir = +1 → MIN-gate (score ≥ thr 통과)
+//   gate_dir = -1 → MAX-gate (score <  thr 통과 · error-rate metric)
+// ────────────────────────────────────────────────────────────────────────
+
+let DOMAINS = [
+    "code", "bio", "math", "law", "medical", "finance",
+    "science", "robotics", "materials", "weather", "cybersecurity", "general",
+]
+// per-domain A1 threshold (× 100 ledger)
+let THRESHOLD_x100 = [
+    3000,   // code        oneshot_ratio ≥ 30%   (30.00)
+    1000,   // bio         spec_gain     ≥ 10pp  (10.00)
+    5000,   // math        formal_ratio  ≥ 50%
+    2000,   // law         halluc_rate   < 20%   (MAX gate ⚠)
+    500,    // medical     conf_wrong    <  5%   (MAX gate ⚠)
+    9000,   // finance     numeric_acc   ≥ 90%
+    4000,   // science     derive_ratio  ≥ 40%
+    5000,   // robotics    transfer      ≥ 50%
+    5000,   // materials   synth_rate    ≥ 50%
+    10000,  // weather     skill_ratio   ≥ 100%
+    6000,   // cyber        detection     ≥ 60%   ⚠
+    70,     // general     generalist_gap < 0.70  (fallback domain)
+]
+let GATE_DIR = [
+    1,   // code        MIN
+    1,   // bio         MIN
+    1,   // math        MIN
+    -1,  // law         MAX ⚠
+    -1,  // medical     MAX ⚠
+    1,   // finance     MIN
+    1,   // science     MIN
+    1,   // robotics    MIN
+    1,   // materials   MIN
+    1,   // weather     MIN
+    1,   // cyber        MIN ⚠
+    -1,  // general     fallback (MAX gap)
+]
+// safety-critical domains — threshold is a HARD gate (no soft route)
+let SAFETY_CRITICAL = [
+    false, false, false,   // code bio math
+    true,  true,           // law medical  ⚠
+    false, false, false, false, false,  // finance science robotics materials weather
+    true,                  // cybersecurity ⚠
+    false,                 // general
+]
+
+fn domain_index(task_domain: str) -> int {
+    let mut i = 0
+    while i < DOMAINS.len() {
+        if DOMAINS[i] == task_domain { return i }
+        i = i + 1
+    }
+    return -1
+}
+
+// gate test — does specialist_score_x100 pass task_domain's A1 threshold?
+fn passes_threshold(idx: int, specialist_score_x100: int) -> bool {
+    if idx < 0 { return false }
+    if GATE_DIR[idx] == 1 {
+        return specialist_score_x100 >= THRESHOLD_x100[idx]   // MIN gate
+    }
+    return specialist_score_x100 < THRESHOLD_x100[idx]        // MAX gate (error-rate)
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — route_specialist(task_domain, specialist_score_x100) → lane
+// ────────────────────────────────────────────────────────────────────────
+
+fn route_specialist(task_domain: str, specialist_score_x100: int) -> str {
+    let idx = domain_index(task_domain)
+    // unknown domain → generalist (OFFICE) fallback.
+    if idx < 0 { return "generalist" }
+    // "general" task → always the generalist lane (OFFICE home turf).
+    if task_domain == "general" { return "generalist" }
+    // specialist meets the domain A1 threshold → route to the specialist lane.
+    if passes_threshold(idx, specialist_score_x100) {
+        return task_domain + "-specialist"
+    }
+    // threshold miss → generalist fallback. For SAFETY-CRITICAL domains this is the
+    // HARD reject path (medical conf-wrong ≥5% · law halluc ≥20% · cyber detect <60%).
+    return "generalist"
+}
+
+// is this domain's threshold a hard safety gate?
+fn is_safety_critical(task_domain: str) -> bool {
+    let idx = domain_index(task_domain)
+    if idx < 0 { return false }
+    return SAFETY_CRITICAL[idx]
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Test cases — VERTICAL A1-consistent specialist scores (× 100 ledger)
+//   각 도메인의 A1 worked-example 의 #1 specialist + 1개 reject case.
+// ────────────────────────────────────────────────────────────────────────
+
+let CASE_DOMAIN = [
+    "code",          // qwen_coder oneshot_ratio 88% → specialist
+    "medical",       // med_palm2 conf-wrong 2% (<5%) → specialist
+    "medical",       // general_gpt5 conf-wrong 12% (≥5%) → REJECT → generalist ⚠
+    "law",           // harvey_legal halluc 2% (<20%) → specialist
+    "law",           // general_gpt5 halluc 30% (≥20%) → REJECT → generalist ⚠
+    "cybersecurity", // foundation_sec detect 85% (≥60%) → specialist
+    "cybersecurity", // general_gpt5 detect 45% (<60%) → REJECT → generalist ⚠
+    "finance",       // bloomberg_gpt numeric 95% (≥90%) → specialist
+    "weather",       // gencast skill_ratio 111% (≥100%) → specialist
+    "robotics",      // sim_overfit transfer 33% (<50%) → generalist fallback
+    "general",       // OFFICE home turf → generalist
+    "math",          // alphaproof formal_ratio 88% (≥50%) → specialist
+]
+let CASE_SCORE_x100 = [
+    8800,    // code  oneshot_ratio 88.00%
+    200,     // medical conf-wrong 2.00%
+    1200,    // medical conf-wrong 12.00% (REJECT)
+    200,     // law  halluc 2.00%
+    3000,    // law  halluc 30.00% (REJECT)
+    8500,    // cyber detect 85.00%
+    4500,    // cyber detect 45.00% (REJECT)
+    9500,    // finance numeric 95.00%
+    11100,   // weather skill_ratio 111.00%
+    3300,    // robotics transfer 33.00% (fallback)
+    50,      // general gap 0.50 (irrelevant — always generalist)
+    8800,    // math formal_ratio 88.00%
+]
+let CASE_EXPECT = [
+    "code-specialist",
+    "medical-specialist",
+    "generalist",            // safety reject
+    "law-specialist",
+    "generalist",            // safety reject
+    "cybersecurity-specialist",
+    "generalist",            // safety reject
+    "finance-specialist",
+    "weather-specialist",
+    "generalist",            // reality-gap fallback
+    "generalist",
+    "math-specialist",
+]
+
+print("hexa-codex ENGINE U1 — 12 VERTICAL A1 → task-domain specialist routing decision rule (cycle-10)")
+print("===================================================================================================")
+print("")
+print("source findings: 12 VERTICAL A1 thresholds (code·bio·math·law·medical·finance·science·robotics·materials·weather·cyber·OFFICE)")
+print("decision rule:   route_specialist(task_domain, specialist_score_x100) → {<domain>-specialist, generalist}")
+print("safety-critical: medical (conf-wrong <5%) · law (halluc <20%) · cyber (detect ≥60%) = HARD gate")
+print("")
+
+let mut i = 0
+while i < CASE_DOMAIN.len() {
+    let got = route_specialist(CASE_DOMAIN[i], CASE_SCORE_x100[i])
+    let mut mark = "ok"
+    if got != CASE_EXPECT[i] { mark = "MISMATCH" }
+    let mut sc = "  "
+    if is_safety_critical(CASE_DOMAIN[i]) { sc = "⚠ " }
+    print(sc + CASE_DOMAIN[i] + " (score=" + to_string(CASE_SCORE_x100[i]) +
+          "/100 · thr=" + to_string(THRESHOLD_x100[domain_index(CASE_DOMAIN[i])]) +
+          ") → " + got + " [expect " + CASE_EXPECT[i] + " · " + mark + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_U1_VERTICAL_ROUTING__ DONE")

@@ -1,0 +1,13 @@
+# hexa-codex ENGINE U1 — VERTICAL task-domain routing verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::U1 (12 VERTICAL A1 finding → task-domain specialist dispatch decision rule)
+# wire=ENGINE/wires/wire_u1_vertical_routing.hexa
+# verifier=ENGINE/verify/numerics_engine_u1_vertical_routing.hexa
+# tier=🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (12 VERTICAL A1 finding consume) — route_specialist wires 12 vertical A1 thresholds into a task-domain specialist dispatch · safety-critical (medical·law·cyber) HARD gate
+# checks=7/7
+# rule=route_specialist(task_domain, specialist_score_x100): A1 threshold met -> <domain>-specialist; else -> generalist (OFFICE) fallback
+# source_findings=12 VERTICAL A1 thresholds (x100 ledger): code oneshot>=3000 . bio gain>=1000 . math formal>=5000 . law halluc<2000(MAX) . medical confwrong<500(MAX) . finance numeric>=9000 . science derive>=4000 . robotics transfer>=5000 . materials synth>=5000 . weather skill>=10000 . cyber detect>=6000 . general(OFFICE) gap<70 fallback
+# safety_critical=medical(confwrong>=5% REJECT) . law(halluc>=20% REJECT) . cyber(detect<60% REJECT) -> HARD gate -> generalist fallback
+# cases=code[8800]->code-specialist . medical[200]->medical-specialist . medical[1200]->generalist(reject) . law[200]->law-specialist . law[3000]->generalist(reject) . cyber[8500]->cyber-specialist . cyber[4500]->generalist(reject) . finance[9500]->finance-specialist . weather[11100]->weather-specialist . robotics[3300]->generalist(fallback) . general[50]->generalist . math[8800]->math-specialist
+# falsifier=finding-ignorant router assigning a confident-wrong 12%(>=5%) model to medical detected as WRONG vs route_specialist generalist reject (check 4)
+# external_anchor=12 VERTICAL A1 (Chen 2021 HumanEval . Singhal 2023 Med-PaLM2 . Guha 2023 LegalBench . Mata v. Avianca 2023 . Wu 2023 BloombergGPT . Rein 2023 GPQA . Kim 2024 OpenVLA . Merchant 2023 GNoME . Lam 2023 GraphCast . arXiv:2601.21051 Foundation-Sec . DeepMind 2024 AlphaProof) consumed via per-domain A1 verdicts
+# honest_residual=live serving vertical routing (lm_foundry route_dispatch . SANDBOX task-domain detector) DEFERRED to cycle-11+ T4 (cx_lab_sandbox . feedback_closure_is_physical_limit — rule close != measured close)

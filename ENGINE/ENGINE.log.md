@@ -3,6 +3,16 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-28 — cycle-10 wire: 축 U VERTICAL routing 등재 (12 vertical A1 통합 → task-domain specialist dispatch · 7/7)
+
+ENGINE intake matrix 에 **축 U — VERTICAL 전문 모델 task-domain routing** 신규 등재. axis letter 고갈 (A~T 19 사용 · N=NOVEL) 대응 — 12 vertical 도메인 (CODE·BIO·MATH·LAW·MEDICAL·FINANCE·SCIENCE·ROBOTICS·MATERIALS·WEATHER·CYBERSECURITY + OFFICE generalist) 의 A1 finding 을 single-letter 12개로 낭비하지 않고 **통합 축 U 1개** 로 묶음.
+
+- [x] U1 — `ENGINE/wires/wire_u1_vertical_routing.hexa` + `ENGINE/verify/numerics_engine_u1_vertical_routing.hexa` ✅ **7/7 PASS** · 🔵 STRUCTURAL + 🟡 BY-CITATION. `route_specialist(task_domain, specialist_score_x100) → {<domain>-specialist, generalist}`: domain A1 threshold 충족 시 specialist · 미달 시 OFFICE generalist fallback.
+- [x] 12 vertical A1 threshold 통합 (× 100 ledger · libm-free): code oneshot≥30% · bio spec-gain≥10pp · math formal≥50% · law halluc<20%(MAX) · medical conf-wrong<5%(MAX) · finance numeric≥90% · science derive≥40% · robotics transfer≥50% · materials synth≥50% · weather skill≥100% · cyber detect≥60% · general(OFFICE) gap<0.7.
+- [x] **safety-critical HARD gate** — medical(conf-wrong ≥5%) · law(halluc ≥20%) · cyber(detect <60%) 미달 specialist 는 REJECT → generalist fallback. falsifier (check 4): confident-wrong 12% 모델을 medical task 에 할당하는 finding-ignorant router 검출 → route_specialist 는 generalist reject (consistency 증명).
+- [x] verdict `ENGINE/verdicts/u1_vertical_routing_verdict.txt` (env-driven `_root()`). intake matrix 에 VERTICAL 행 + dispatch surface 에 U1 (route_dispatch + task-domain detector) 추가.
+- [ ] 실제 serving vertical routing (lm_foundry `route_dispatch` task-domain 감지 → specialist dispatch · SANDBOX local llama-server) — cost-bearing T4 contact, **cycle-11+ deferred** (`cx_lab_sandbox` · `feedback_closure_is_physical_limit` — rule close ≠ measured close).
+
 ## 2026-05-28 — cycle-10 wire: H~T 12 axis 전부 wire `.hexa` 완료 (driving lane 19-axis · 4 batch)
 
 ENGINE intake matrix 의 흡수 12 axis (H~T) wire `.hexa` (finding → 실제 LLM behavior decision rule) 전부 7/7 PASS. 4 batch (cap=3) 순차 · race-guard (explicit pathspec) 무사고.

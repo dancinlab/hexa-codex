@@ -1,0 +1,107 @@
+#!hexa strict
+// TEMPORAL/bench/temporal_a1_post_cutoff_wrong.hexa
+// TEMPORAL A1 first probe (cycle-9 round-7 · CODEX bg) — post-cutoff confident-
+// wrong rate closed-form identity + threshold falsifier.
+//
+// Identity (closed-form integer ledger · libm-free):
+//   rate_x100(m) = (N_confident_wrong[m] · 100) / N_post_cutoff_queries[m]
+//   falsifier_fires(m) = rate_x100(m) > THRESHOLD_x100       (THRESHOLD = 30)
+//
+// Falsifier (TEMPORAL A1): post-cutoff factual probe 에서 confident-wrong
+// 답 > 30% → 모델이 cutoff 너머 사실을 안다고 우김 (cutoff 인지 미작동).
+//
+// Why 30% (not HALLUCINATION's 20%)? Cutoff-aware abstention is a strictly
+// HARDER demand than general truthfulness — the model must know what it does
+// not know AND localize the boundary in time. Literature (Dhingra 2022 TimeQA
+// · Zhao 2024 cutoff awareness) reports baseline confident-wrong rates at
+// 25-50% on post-cutoff temporal probes even for frontier models, so the
+// falsifier sits at 30% to fire on over-confident behavior while leaving room
+// for cutoff-aware silent below it.
+//
+// External anchors (citation tier · 🟡):
+//   Dhingra 2022 — TimeQA: Time-Sensitive Question Answering
+//                    (arXiv:2108.06314)                · temporal QA benchmark
+//   Chen 2023 — temporal reasoning gap in LLMs
+//                                                      · temporal reasoning anchor
+//   Zhao 2024 — cutoff awareness in LLMs
+//                                                      · cutoff-boundary anchor
+//
+// Placeholder per-model rates (integer ×100 — % · libm-free):
+//   model CA  — 15  (cutoff-aware    · silent · below 30% · honest IDK on post-cutoff)
+//   model PA  — 25  (partial         · silent · 25 < 30   · some cutoff sense)
+//   model OC  — 40  (over-confident  · FIRES  · 40 > 30   · confident wrong post-cutoff)
+//   model CL  — 60  (clueless        · FIRES  · 60 > 30   · 2× threshold post-cutoff)
+//   model Z   — 0   (perfect-IDK zero-control · silent · always abstains)
+//
+// Real-fire (TimeQA · post-cutoff date probe × { cutoff-aware abstention
+// extractor · self-eval gating }) deferred to cost-bearing round (mac M3
+// local llama-server / ubu-1 HF transformers). cycle-9 round-7 closes the
+// FORMULA only.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form rate recompute on integer ×100 ledger — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 models · N_confident_wrong / N_post_cutoff_queries counts)
+//   indices: 0 = CA · 1 = PA · 2 = OC · 3 = CL · 4 = Z (perfect-IDK control)
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES        = ["CA",   "PA",   "OC",   "CL",   "Z"]
+let N_CONFIDENT_WRONG  = [  15,     25,     40,     60,    0]   // confident-wrong on post-cutoff
+let N_POST_CUTOFF      = [ 100,    100,    100,    100,  100]   // total post-cutoff queries per model
+
+let THRESHOLD_x100 = 30   // falsifier threshold: rate > 30% → fires (cutoff 인지 미작동)
+
+fn raw_rate_x100(i: int) -> int {
+    return (N_CONFIDENT_WRONG[i] * 100) / N_POST_CUTOFF[i]
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return raw_rate_x100(i) > THRESHOLD_x100
+}
+
+print("hexa-codex TEMPORAL A1 — post-cutoff confident-wrong rate closed-form (cycle-9 round-7)")
+print("=======================================================================================")
+print("")
+print("Formula:  rate_x100(m) = (N_confident_wrong[m] · 100) / N_post_cutoff_queries[m]")
+print("          falsifier_fires(m) = rate_x100(m) > " + to_string(THRESHOLD_x100) + " (i.e. > 30%)")
+print("Scale:    integer ×100 throughout (closed-form, libm-free)")
+print("Anchors:  Dhingra 2022 TimeQA · Chen 2023 temporal reasoning · Zhao 2024 cutoff awareness")
+print("")
+
+let n = MODEL_NAMES.len()
+print("per-model profile (placeholder · TimeQA-style post-cutoff date probe):")
+let mut i = 0
+while i < n {
+    let raw = raw_rate_x100(i)
+    let mut flag = "silent"
+    if falsifier_fires(i) {
+        flag = "FIRES (rate > 30%)"
+    }
+    if raw == 0 {
+        flag = "perfect-IDK zero-control"
+    }
+    print("  " + MODEL_NAMES[i] +
+          ": n_conf_wrong=" + to_string(N_CONFIDENT_WRONG[i]) +
+          "/" + to_string(N_POST_CUTOFF[i]) +
+          " · raw_x100=" + to_string(raw) +
+          " · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("worked example summary:")
+print("  CA (cutoff-aware,   raw=15 < 30)  silent · honest IDK on post-cutoff")
+print("  PA (partial,        raw=25 < 30)  silent · some cutoff sense (below threshold)")
+print("  OC (over-confident, raw=40 > 30)  FIRES · confident wrong post-cutoff")
+print("  CL (clueless,       raw=60 > 30)  FIRES heavily · 2× threshold post-cutoff")
+print("  Z  (perfect-IDK,    raw=0)        silent · perfect abstention control")
+print("")
+print("falsifier semantics:")
+print("  threshold (30%):  PA borderline 25 below silent (false-positive 회피);")
+print("                    OC 40 / CL 60 above fires (true-positive captured).")
+print("  zero-control Z:   structural floor — perfect-IDK model never fires,")
+print("                    forces formula to honor rate=0 → silent.")
+print("  cutoff-aware ≤ over-confident: sanity invariant — cutoff awareness")
+print("                                 reduces confident-wrong (15 ≤ 40).")
+print("")
+print("__HEXA_CODEX_TEMPORAL_A1_POST_CUTOFF_WRONG__ DONE")

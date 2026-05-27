@@ -1,0 +1,13 @@
+# hexa-codex CONTAMINATION A1 — n-gram contamination ratio (cycle-9 round-1 first probe)
+# axis=CONTAMINATION/CONTAMINATION.md::A1 (n-gram contamination ratio · 13-gram match)
+# bench=CONTAMINATION/bench/contamination_a1_ngram_ratio.hexa
+# verifier=CONTAMINATION/verify/numerics_contamination_a1_ngram_ratio.hexa
+# tier=🔵 STRUCTURAL (combinatorial ratio identity 6/6) + 🟡 BY-CITATION (13-gram + 30% threshold = Dodge 2021 / Sainz 2023)
+# checks=6/6
+# formula=contamination_rate(eval,corpus,n=13) = |matched_n-grams|/|total_n-grams| ∈ [0,1]
+# threshold_pct=30 (Dodge 2021 C4 / Sainz 2023 ChatGPT-eval convention)
+# n_gram_window=13 (Dodge 2021 C4 convention)
+# worked_example_n=6 (PLACEHOLDER counts · no real corpus scan in this probe)
+# external_anchor=Dodge2021_arXiv2104.08758 (C4 contamination · 13-gram) · Sainz2023_arXiv2310.18018 (ChatGPT eval contamination) · Magar2022_arXiv2203.08242 (memorization→exploitation)
+# next_probe=cycle-10+ T4 real scan (C4/Pile/RedPajama × MMLU/HellaSwag/GSM8K · Dodge-style 13-gram bloom-filter on ubu-1, cost-bearing)
+# honesty=closed-form close ≠ measured close · A1 frontier OPEN (feedback_closure_is_physical_limit)

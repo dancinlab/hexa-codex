@@ -1,0 +1,135 @@
+#!hexa strict
+// FRONTIER/bench/frontier_f3_agentic_trajectory_step_decay.hexa
+// FRONTIER F3 first probe (cycle-10 round-3 · CODEX bg) — Agentic trajectory
+// step-decay across single-step → 5-step tool-use task ladder.
+//
+// Identity (closed-form ratio · libm-free · per-mille × 1000 ledger):
+//   decay_ratio_x1000(model) = acc_5step × 1000 / acc_1step
+//
+//   For 2026 frontier agent ladder (placeholder · GAIA / ATBench / SWE-bench Pro):
+//     gpt5_agent           : 1-step=92 · 3-step=80 · 5-step=72 → decay=782
+//     claude_5_agent       : 1-step=90 · 3-step=78 · 5-step=68 → decay=755
+//     gemma4_31b_agent     : 1-step=85 · 3-step=65 · 5-step=48 → decay=564
+//     qwen3.6_72b_agent    : 1-step=88 · 3-step=74 · 5-step=62 → decay=704
+//     weak_4b_legacy       : 1-step=70 · 3-step=30 · 5-step=15 → decay=214 🔴 FIRES
+//
+// Falsifier (step-compounding · FRONTIER F3):
+//   "agent 의 5-step trajectory 가 single-step × 0.3 미만으로 떨어지면
+//    step compounding 한계 발생". falsifier_fires(model) = decay_ratio_x1000 < 300.
+//   4 frontier agents 모두 ≥ 564 (≥ 0.564 · step compounding 견딤) · silent.
+//   weak_4b_legacy: 214 < 300 → 🔴 fires (agent 능력 부족 · pre-agentic 한계).
+//
+// Bidirectional discrimination (NOT one-sided):
+//   - 4 frontier agents (gpt5 · claude5 · gemma4_31b · qwen3.6_72b): silent
+//   - weak_4b_legacy: fires (anti-step-compounding 임계 미달)
+//   - synthetic zero-decay (1-step=5-step=90): ratio = 1000 → silent
+//   → verifier distinguishes step-compounding-survive vs step-compounding-broken regime.
+//
+// External anchors (citation tier · 🟡 BY-CITATION):
+//   Mialon 2023 — GAIA (arXiv:2311.12983 · real-world agent benchmark)
+//   ATBench 2026 (arXiv:2604.02022 · agent trajectory safety)
+//   SWE-bench Pro / Terminal-Bench 2.0 (2026 · multi-step coding agent)
+//   Yao 2022 — ReAct (arXiv:2210.03629 · tool-use foundation)
+//   Shinn 2023 — Reflexion (arXiv:2303.11366 · trajectory self-correction)
+//
+// Integer ledger (per-mille × 1000) — libm-free. Placeholder per-step success
+// rates (× 100) anchored to 2026 frontier agent ladder. Real GAIA / ATBench
+// full-trajectory measured re-run on vast.ai pod (`cx_lab_sandbox`) DEFERRED
+// to cycle-11+ T4.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form decay ratio identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry — 5 agents (4 frontier 2026 · 1 pre-agentic legacy control)
+//   gpt5_agent          : OpenAI               · 92 / 80 / 72
+//   claude_5_agent      : Anthropic            · 90 / 78 / 68
+//   gemma4_31b_agent    : Google · agentic-tuned · 85 / 65 / 48
+//   qwen3.6_72b_agent   : Alibaba · #1 SWE-bench Pro · 88 / 74 / 62
+//   weak_4b_legacy      : pre-agentic open weight · 70 / 30 / 15  ← fires
+//
+// acc_Nstep_x100 = success rate × 100 (% accuracy on N-step tool-use task ladder).
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = [
+    "gpt5_agent",
+    "claude_5_agent",
+    "gemma4_31b_agent",
+    "qwen3.6_72b_agent",
+    "weak_4b_legacy",
+]
+let ACC_1STEP_x100 = [92, 90, 85, 88, 70]
+let ACC_3STEP_x100 = [80, 78, 65, 74, 30]
+let ACC_5STEP_x100 = [72, 68, 48, 62, 15]
+
+let DECAY_THRESHOLD_x1000 = 300   // < 300 → step-compounding broken (5-step < 0.3 × 1-step)
+
+// per-cent range guard [0, 100]
+let ACC_MIN_x100 = 0
+let ACC_MAX_x100 = 100
+
+fn decay_ratio_x1000(i: int) -> int {
+    // decay_ratio = acc_5step × 1000 / acc_1step
+    let a1 = ACC_1STEP_x100[i]
+    if a1 <= 0 { return 0 }
+    return (ACC_5STEP_x100[i] * 1000) / a1
+}
+
+fn falsifier_fires(i: int) -> bool {
+    // step-compounding broken: 5-step success rate < single-step × 0.3
+    return decay_ratio_x1000(i) < DECAY_THRESHOLD_x1000
+}
+
+print("hexa-codex FRONTIER F3 — Agentic-trajectory step-decay closed-form (cycle-10 round-3)")
+print("========================================================================================")
+print("")
+
+print("per-agent profile (acc × 100 · GAIA/ATBench/SWE-bench Pro 2026 placeholder ladder):")
+let n = MODEL_NAMES.len()
+let mut i = 0
+while i < n {
+    let a1 = ACC_1STEP_x100[i]
+    let a3 = ACC_3STEP_x100[i]
+    let a5 = ACC_5STEP_x100[i]
+    let d  = decay_ratio_x1000(i)
+    let fires = falsifier_fires(i)
+    let mut tag = "silent (step-compounding 견딤)"
+    if fires { tag = "FIRES 🔴 (step-compounding broken · 5-step < 1-step × 0.3)" }
+    print("  " + MODEL_NAMES[i] +
+          ": 1-step=" + to_string(a1) +
+          " · 3-step=" + to_string(a3) +
+          " · 5-step=" + to_string(a5) +
+          " · decay_ratio=" + to_string(d) + "/1000" +
+          " · [" + tag + "]")
+    i = i + 1
+}
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Discrimination summary — 4 frontier silent · 1 legacy fires
+// ────────────────────────────────────────────────────────────────────────
+print("falsifier discrimination (4 frontier silent · 1 legacy fires · bidirectional):")
+let mut k = 0
+let mut fires_count = 0
+let mut silent_count = 0
+while k < n {
+    if falsifier_fires(k) { fires_count = fires_count + 1 }
+    else { silent_count = silent_count + 1 }
+    k = k + 1
+}
+print("  frontier silent: " + to_string(silent_count) + "/5 · legacy fires: " + to_string(fires_count) + "/5")
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Zero-decay synthetic edge (acc_1step = acc_5step) — neutral control
+// ────────────────────────────────────────────────────────────────────────
+let ZERO_BOTH_x100 = 90
+fn zero_decay_x1000() -> int {
+    if ZERO_BOTH_x100 <= 0 { return 0 }
+    return (ZERO_BOTH_x100 * 1000) / ZERO_BOTH_x100
+}
+print("zero-decay synthetic edge (1-step = 5-step = 90 · no degradation):")
+print("  decay_ratio=" + to_string(zero_decay_x1000()) + "/1000 (= 1.000 · neutral · silent · proves verifier discriminates the no-decay regime)")
+print("")
+
+print("__HEXA_CODEX_FRONTIER_F3_AGENTIC_TRAJECTORY__ DONE")

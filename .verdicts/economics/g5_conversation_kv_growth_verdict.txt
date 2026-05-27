@@ -1,0 +1,17 @@
+# hexa-codex ECONOMICS G5 — conversation KV-bytes growth law (cycle-50 first probe)
+# axis=ECONOMICS.md::G5 (NOVEL · cycle-45 spawn · G = agentic amortization)
+# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g5_conversation_kv_growth_law
+# verifier=verify/numerics_economics_g5_conversation_kv_growth.hexa
+# tier=🔵 SUPPORTED-FORMAL — KV growth + K_opt sqrt + MLA ratio closed-form (9/9)
+# checks=9/9
+# kv_per_turn_500tok_bytes=65536000 (64 MB · F2 Llama3-8B GQA formula)
+# naive_growth_N30_bytes=1966080000 (1.83 GiB, linear in N)
+# sliding_K20_cap_at_N30=1310720000 (StreamingLLM cap)
+# K_opt_typical_op_point=18 turns (c_s=$0.10 · ctx=500tok · rate≈$0.01/GB-hr)
+# K_opt_scaling_double_cs_x1000=1444 (sqrt(2)≈1414)
+# K_opt_scaling_double_ctx_x1000=722 (1/sqrt(2)≈707)
+# MLA_vs_MHA_ratio_x1000=62 (0.06× · DeepSeek-V2 architecture)
+# external_anchor=StreamingLLM_arXiv2309.17453 · H2O_arXiv2306.14048 · Scissorhands_arXiv2305.17118 · MLA_arXiv2405.04434
+# next_probe=cycle-51+ T4 SANDBOX KV growth measurement on Qwen2.5-1.5B-Q4 over 30 turns
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc`

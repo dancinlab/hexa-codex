@@ -1,0 +1,107 @@
+#!hexa strict
+// PROMPT-SENSITIVITY/bench/prompt_sensitivity_a1_5prompt_agreement.hexa
+// PROMPT-SENSITIVITY A1 first probe (cycle-9 round-4 · CODEX) — 5-prompt
+// agreement rate (same factual question, 5 paraphrase variants → 5 answers).
+//
+// Identity (closed-form combinatorial · libm-free):
+//   pairs(n)           = n * (n-1) / 2                       (= 10 for n=5)
+//   matching_pairs(A)  = Σ_{i<j} 1[A[i] == A[j]]             (integer count)
+//   agreement_x100(A)  = matching_pairs(A) * 100 / pairs(n)  (∈ [0, 100])
+//   falsifier_fires(A) = agreement_x100(A) < 80              (CODEX A1 threshold)
+//
+// Falsifier (CODEX A1): factual prompt 일관성 < 80% → 표면 단서 의존
+// (진짜 앎 아님). 5 paraphrase 변형 (formal/casual/L1/L2/CoT) 의 답이
+// pairwise 80% 미만으로 일치하면 모델이 의미보다 prompt 표면에 의존.
+//
+// External anchors (citation tier · 🟡):
+//   Sclar 2023 — quantifying language models' sensitivity to spurious
+//                features in prompt design (arXiv:2310.11324)
+//   Razavi 2022 — paraphrase robustness for NLI/QA
+//   Wei 2022 — chain-of-thought prompting (arXiv:2201.11903)
+//
+// Placeholder per-model 5-answer arrays — 실측 5-prompt run deferred
+// (cycle-10+ SANDBOX substrate · mac M3 / ubu-1 local).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form pairwise-agreement identity — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry — 4 placeholder models × 5 paraphrase variants
+// answer encoded as int (integer-coded categorical · same int == same answer)
+// variants: [formal, casual, L1, L2, CoT]
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["consistent", "mostly", "mixed", "surface-prone"]
+
+// per-model 5-answer arrays — integer-coded categorical answers
+// "consistent"     all 5 answers agree         → 10/10 pairs match → 100%
+// "mostly"         4 agree · 1 dissents        →  6/10 pairs match →  60%
+//                  (4*3/2 = 6 matching pairs among the 4 agreeing)
+// "mixed"          3 agree · 2 dissent (same)  →  3+1 = 4/10        →  40%
+//                  (C(3,2)=3 among 3 + C(2,2)=1 among 2)
+// "surface-prone"  all 5 answers differ        →  0/10 pairs match  →   0%
+let ANS_CONSISTENT    = [7, 7, 7, 7, 7]
+let ANS_MOSTLY        = [7, 7, 7, 7, 3]
+let ANS_MIXED         = [7, 7, 7, 3, 3]
+let ANS_SURFACE_PRONE = [1, 2, 3, 4, 5]
+
+let AGREEMENT_THRESHOLD_x100 = 80      // < 80% → falsifier fires (CODEX A1)
+
+fn n_pairs(n: int) -> int {
+    return (n * (n - 1)) / 2
+}
+
+fn matching_pairs(ans: [int]) -> int {
+    let n = ans.len()
+    let mut m = 0
+    let mut i = 0
+    while i < n {
+        let mut j = i + 1
+        while j < n {
+            if ans[i] == ans[j] { m = m + 1 }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    return m
+}
+
+fn agreement_x100(ans: [int]) -> int {
+    let p = n_pairs(ans.len())
+    let m = matching_pairs(ans)
+    return (m * 100) / p
+}
+
+fn falsifier_fires(ans: [int]) -> bool {
+    return agreement_x100(ans) < AGREEMENT_THRESHOLD_x100
+}
+
+print("hexa-codex PROMPT-SENSITIVITY A1 — 5-prompt agreement closed-form (cycle-9 round-4)")
+print("====================================================================================")
+print("")
+print("variants: [formal, casual, L1, L2, CoT] — same factual question, 5 paraphrase")
+print("pairs(5) = 5*4/2 = " + to_string(n_pairs(5)))
+print("threshold: agreement < 80% → falsifier fires (surface-prone)")
+print("")
+
+let n = MODEL_NAMES.len()
+let mut k = 0
+while k < n {
+    let mut a = ANS_CONSISTENT
+    if k == 1 { a = ANS_MOSTLY }
+    if k == 2 { a = ANS_MIXED }
+    if k == 3 { a = ANS_SURFACE_PRONE }
+
+    let m = matching_pairs(a)
+    let p = n_pairs(a.len())
+    let ag = agreement_x100(a)
+    let fires = falsifier_fires(a)
+    let mut flag = "ok"
+    if fires { flag = "FALSIFIER FIRES (< 80% · surface-prone)" }
+    print("  model " + MODEL_NAMES[k] +
+          ": matching=" + to_string(m) + "/" + to_string(p) +
+          " · agreement=" + to_string(ag) + "/100 · [" + flag + "]")
+    k = k + 1
+}
+print("")
+print("__HEXA_CODEX_PROMPT_SENSITIVITY_A1_5PROMPT_AGREEMENT__ DONE")

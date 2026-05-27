@@ -1,0 +1,12 @@
+# hexa-codex CARBON A1 — region saving verifier (cycle-9 round-7)
+# axis=CARBON/CARBON.md::A1 (per-region gCO2/token + saving ratio vs dirtiest baseline)
+# bench=CARBON/bench/carbon_a1_region_saving.hexa
+# verifier=CARBON/verify/numerics_carbon_a1_region_saving.hexa
+# tier=🔵 STRUCTURAL (gCO2/tok ratio + saving identity 7/7) + 🟡 BY-CITATION (Patterson 2022 lifecycle · Luccioni 2022 BLOOM · Schwartz 2020 Green AI)
+# checks=7/7
+# formula=carbon_per_token = grid_intensity × (1/tokens_per_J); saving = (baseline − carbon_r) × 100 / baseline
+# placeholder_data=nuclear-fr/solar-ca/mixed-de/coal-pl with gCO2/tok × 100 integer ledger
+# falsifier=saving < 20% → routing 무의미 (grid mix 균질화 가설)
+# external_anchors=Patterson 2022 (arXiv:2204.05149) · Luccioni 2022 BLOOM · Schwartz 2020 Green AI
+# substrate_fire=DEFERRED (cycle-10+ · mac M3 / ubu-1 / vast.ai · per-region × per-model carbon)
+# frontier_open=feedback_closure_is_physical_limit — formula close ≠ measured close

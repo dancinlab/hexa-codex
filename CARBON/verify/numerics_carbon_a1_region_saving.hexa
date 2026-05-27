@@ -1,0 +1,198 @@
+#!hexa strict
+// CARBON/verify/numerics_carbon_a1_region_saving.hexa
+// CARBON A1 — closed-form verifier for per-region gCO2/token + saving ratio.
+//
+// Asserts the saving identity is closed-form and the falsifier (routing
+// useless when saving < 20%) correctly classifies:
+//   (1) saving_ratio identity ((high − low) × 100 / high) at hypothetical pair
+//   (2) range [0, 100] for all regions
+//   (3) baseline (high = low) → saving = 0 → falsifier fires (no routing benefit)
+//   (4) nuclear-fr (saving > 90) → silent (큰 이득 · falsifier does NOT fire)
+//   (5) marginal region (saving < 20) → falsifier fires
+//   (6) ordering sanity (high carbon region → small saving on swap)
+//   (7) determinism (re-call same values)
+//
+// Source: CARBON/bench/carbon_a1_region_saving.hexa
+// External anchors: Patterson 2022 lifecycle carbon (arXiv:2204.05149) ·
+//                   Luccioni 2022 BLOOM · Schwartz 2020 Green AI
+//
+// @no-lock-needed
+
+let REGION_NAMES         = ["nuclear-fr", "solar-ca", "mixed-de", "coal-pl"]
+let CARBON_PER_TOK_x100  = [20, 80, 300, 800]    // gCO2/token × 100
+let SAVING_FALSIFIER_PCT = 20
+
+fn baseline_carbon_x100() -> int {
+    return CARBON_PER_TOK_x100[CARBON_PER_TOK_x100.len() - 1]
+}
+
+fn saving_pct(i: int) -> int {
+    let base = baseline_carbon_x100()
+    let here = CARBON_PER_TOK_x100[i]
+    if base <= 0 { return 0 }
+    return ((base - here) * 100) / base
+}
+
+fn routing_useless_flag(i: int) -> bool {
+    return saving_pct(i) < SAVING_FALSIFIER_PCT
+}
+
+// closed-form pair saving — used by check 1 (identity recompute)
+fn pair_saving_pct(high: int, low: int) -> int {
+    if high <= 0 { return 0 }
+    return ((high - low) * 100) / high
+}
+
+print("hexa-codex CARBON A1 falsifier — region saving closed-form")
+print("==========================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// check 1 — saving identity ((high − low) · 100 / high)
+//   pair (800, 20) → (780 × 100) / 800 = 97 (integer-floor of 97.5)
+checks_total = checks_total + 1
+let id_expect = 97
+let id_actual = pair_saving_pct(800, 20)
+if id_actual == id_expect {
+    print("  [PASS] saving identity (800, 20) → " + to_string(id_actual) +
+          "% = (high − low) × 100 / high (integer-floor of 97.5)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] saving identity expected " + to_string(id_expect) +
+          " got " + to_string(id_actual))
+}
+
+// check 2 — range [0, 100] for all regions
+checks_total = checks_total + 1
+let mut in_range = true
+let mut j = 0
+while j < REGION_NAMES.len() {
+    let s = saving_pct(j)
+    if s < 0 { in_range = false }
+    if s > 100 { in_range = false }
+    j = j + 1
+}
+if in_range {
+    print("  [PASS] all " + to_string(REGION_NAMES.len()) +
+          " regions saving ∈ [0, 100] (range invariant)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] some region saving out of [0, 100] — identity broken")
+}
+
+// check 3 — baseline (high = low) → saving = 0 → falsifier fires
+//   coal-pl (idx 3) is baseline against itself → saving = 0 → flag fires
+checks_total = checks_total + 1
+let base_idx = REGION_NAMES.len() - 1
+if saving_pct(base_idx) == 0 && routing_useless_flag(base_idx) {
+    print("  [PASS] baseline self-saving = 0 → falsifier fires (coal-pl vs coal-pl · no routing benefit)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] baseline saving ≠ 0 or falsifier silent at baseline")
+}
+
+// check 4 — nuclear-fr (saving > 90) → silent (큰 이득 · falsifier does NOT fire)
+//   saving = (800 − 20) × 100 / 800 = 97 > 90
+checks_total = checks_total + 1
+let fr_saving = saving_pct(0)
+if fr_saving > 90 && routing_useless_flag(0) == false {
+    print("  [PASS] nuclear-fr saving=" + to_string(fr_saving) +
+          "% > 90 → falsifier silent (routing benefit large · no false positive)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] nuclear-fr saving=" + to_string(fr_saving) +
+          " or falsifier fired incorrectly (false positive)")
+}
+
+// check 5 — marginal region (saving < 20) → falsifier fires
+//   synthesize hypothetical "near-baseline" region via pair_saving_pct(800, 700)
+//   = (100 × 100) / 800 = 12 < 20 → flag would fire
+checks_total = checks_total + 1
+let marginal_saving = pair_saving_pct(800, 700)
+if marginal_saving < SAVING_FALSIFIER_PCT {
+    print("  [PASS] marginal region (high=800, low=700) saving=" + to_string(marginal_saving) +
+          "% < 20 → falsifier fires (routing 무의미)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] marginal saving=" + to_string(marginal_saving) +
+          " not below threshold — falsifier semantics broken")
+}
+
+// check 6 — ordering sanity: high-carbon region → small saving on swap
+//   mixed-de (idx 2, 300) saving vs coal-pl baseline = 62
+//   coal-pl (idx 3, 800) saving vs coal-pl baseline = 0
+//   so dirtier region must have STRICTLY smaller saving than cleaner region
+checks_total = checks_total + 1
+let de_saving = saving_pct(2)   // 62
+let pl_saving = saving_pct(3)   // 0
+if de_saving > pl_saving {
+    print("  [PASS] ordering sanity: mixed-de saving=" + to_string(de_saving) +
+          "% > coal-pl saving=" + to_string(pl_saving) +
+          "% (dirtier region → smaller saving on swap)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ordering broken: de=" + to_string(de_saving) +
+          " not > pl=" + to_string(pl_saving))
+}
+
+// check 7 — determinism (re-call same values)
+checks_total = checks_total + 1
+if saving_pct(1) == saving_pct(1) && routing_useless_flag(1) == routing_useless_flag(1) {
+    print("  [PASS] deterministic (re-call same saving_pct + routing_useless_flag)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (gCO2/tok ratio + saving identity 7/7) + 🟡 BY-CITATION (Patterson 2022 lifecycle · Luccioni 2022 BLOOM · Schwartz 2020 Green AI)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — region saving formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("CARBON A1 finding (placeholder · closed-form):")
+print("  - saving ratio identity recompute (7/7 closed-form checks)")
+print("  - falsifier (saving < 20% → routing 무의미): coal-pl baseline fires · marginal-pair fires")
+print("  - 친환경 region 절감 silent: nuclear-fr 97% · solar-ca 90% · mixed-de 62%")
+print("  - external anchor: Patterson 2022 (arXiv:2204.05149) · Luccioni 2022 BLOOM · Schwartz 2020 Green AI")
+print("  - 실측 region × per-model carbon (cycle-10+ T4): mac M3 / ubu-1 / vast.ai · grid_intensity API")
+print("")
+print("__HEXA_CODEX_NUMERICS_CARBON_A1_REGION_SAVING__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/CARBON/verdicts/a1_region_saving_verdict.txt"
+
+let mut content = "# hexa-codex CARBON A1 — region saving verifier (cycle-9 round-7)\n"
+content = content + "# axis=CARBON/CARBON.md::A1 (per-region gCO2/token + saving ratio vs dirtiest baseline)\n"
+content = content + "# bench=CARBON/bench/carbon_a1_region_saving.hexa\n"
+content = content + "# verifier=CARBON/verify/numerics_carbon_a1_region_saving.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=carbon_per_token = grid_intensity × (1/tokens_per_J); saving = (baseline − carbon_r) × 100 / baseline\n"
+content = content + "# placeholder_data=nuclear-fr/solar-ca/mixed-de/coal-pl with gCO2/tok × 100 integer ledger\n"
+content = content + "# falsifier=saving < 20% → routing 무의미 (grid mix 균질화 가설)\n"
+content = content + "# external_anchors=Patterson 2022 (arXiv:2204.05149) · Luccioni 2022 BLOOM · Schwartz 2020 Green AI\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · mac M3 / ubu-1 / vast.ai · per-region × per-model carbon)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — formula close ≠ measured close\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

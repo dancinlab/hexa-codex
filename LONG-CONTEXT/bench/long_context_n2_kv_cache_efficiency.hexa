@@ -1,0 +1,84 @@
+#!hexa strict
+// LONG-CONTEXT/bench/long_context_n2_kv_cache_efficiency.hexa
+// LONG-CONTEXT N2 (cycle-10 reorg Batch C · 마지막 7축 · train/infer/serve stack) —
+// KV-cache 메모리 효율: paged attention utilization vs over-allocation fragmentation.
+//
+// Premise (serving stack · long-context inference):
+//   긴 컨텍스트는 KV-cache 가 곧 메모리 병목. paged attention (vLLM) 은 block 단위
+//   할당으로 fragmentation 을 최소화한다. contiguous / static-max-len 할당은 시퀀스
+//   max_len 만큼 통째로 예약 → over-allocation 으로 메모리 절반 이상이 낭비될 수 있다.
+//
+// Identity (closed-form ratio · libm-free · integer ledger):
+//   utilization_x100(s) = used_blocks[s] × 10000 / allocated_blocks[s]  (실제 쓰는 비율 ·×100)
+//   waste_x100(s)       = 10000 − utilization_x100(s)                   (단순화 낭비율 = 100 − util)
+//   falsifier_fires(s)  = utilization_x100(s) < 5000  (== util < 50% · 메모리 절반 이상 낭비)
+//                         (x100 ledger: 50% == 5000)
+//
+// Falsifier (CODEX N2): KV-cache utilization < 50% → 메모리 절반 이상이 over-allocation
+// fragmentation 으로 낭비 → effective long-context 용량이 alloc 대비 좁음.
+//
+// External anchors (citation tier · 🟡):
+//   Kwon 2023 — vLLM PagedAttention (arXiv:2309.06180)
+//   Sheng 2023 — FlexGen (arXiv:2303.06865)
+//   Hooper 2024 — KVQuant: KV cache quantization (arXiv:2401.18079)
+//   Pope 2022 — efficiently scaling transformer inference (arXiv:2211.05102)
+//
+// Worked example (5 cache 전략 · used_blocks = 100 고정 · allocated_blocks 가변):
+//   paged_vllm        alloc 105 · used 100 → 95.2% util  (block-granular · silent)
+//   paged_conservative alloc 115 · used 100 → 86.9% util (block + headroom · silent)
+//   dynamic_good      alloc 110 · used 100 → 90.9% util  (dynamic grow · silent)
+//   contiguous_padded alloc 220 · used 100 → 45.4% util  (pad to next power-of-2 · over-alloc) FIRES
+//   static_maxlen     alloc 250 · used 100 → 40.0% util  (max_len 통째 예약 · over-alloc) FIRES
+//
+//   bidirectional discrimination: paged_vllm/paged_conservative/dynamic_good silent (util ≥ 50%) ·
+//   contiguous_padded/static_maxlen fire (util < 50% · over-allocation 낭비).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure integer ratio identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Cache 전략 registry (5 전략 · used_blocks 고정 100 · allocated_blocks 가변)
+// ────────────────────────────────────────────────────────────────────────
+
+let STRATEGY_NAMES = ["paged_vllm", "paged_conservative", "dynamic_good", "contiguous_padded", "static_maxlen"]
+let ALLOCATED_BLOCKS = [105, 115, 110, 220, 250]
+let USED_BLOCKS      = [100, 100, 100, 100, 100]
+
+let UTIL_THRESHOLD_x100 = 5000    // utilization < 50% (== 5000 in x100 ledger) → falsifier fires
+
+fn utilization_x100(s: int) -> int {
+    // used_blocks / allocated_blocks · scaled ×10000 for 2-decimal integer precision
+    // → (used × 10000) / allocated
+    return (USED_BLOCKS[s] * 10000) / ALLOCATED_BLOCKS[s]
+}
+
+fn waste_x100(s: int) -> int {
+    // simplified waste = 100% − utilization (x100 ledger: 10000 − util_x100)
+    return 10000 - utilization_x100(s)
+}
+
+fn falsifier_fires(s: int) -> bool {
+    return utilization_x100(s) < UTIL_THRESHOLD_x100
+}
+
+print("hexa-codex LONG-CONTEXT N2 — KV-cache utilization closed-form (cycle-10 reorg Batch C)")
+print("========================================================================================")
+print("")
+print("per-strategy KV-cache utilization (used_blocks=100 fixed · Kwon 2023 vLLM PagedAttention):")
+let n = STRATEGY_NAMES.len()
+let mut s = 0
+while s < n {
+    let u = utilization_x100(s)
+    let w = waste_x100(s)
+    let mut flag = "silent (util ≥ 50%)"
+    if falsifier_fires(s) {
+        flag = "MEMORY HALF WASTED (util < 50% · over-allocation fragmentation · falsifier fires)"
+    }
+    print("  " + STRATEGY_NAMES[s] + ": alloc=" + to_string(ALLOCATED_BLOCKS[s]) +
+          " · used=" + to_string(USED_BLOCKS[s]) +
+          " · util=" + to_string(u) + "/10000 · waste=" + to_string(w) +
+          "/10000 · [" + flag + "]")
+    s = s + 1
+}
+print("")
+print("__HEXA_CODEX_LONG_CONTEXT_N2_KV_CACHE__ DONE")

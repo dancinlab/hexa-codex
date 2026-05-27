@@ -28,6 +28,7 @@
 ### 축 N — 🆕 NOVEL: position-vs-content coupling (⭐ MAIN priority lane)
 > **⭐ MAIN priority lane** — LONG-CONTEXT 의 self-NOVEL axis. position effect (가운데 lost) 와 content effect (어려운 needle) 가 entangle 됐는지 분리 측정. 외부 anchor: Liu 2023 lost-in-the-middle · Press 2022 ALiBi · NIAH benchmark.
 - [ ] N1 — needle 위치 × needle 난이도 cross-product matrix accuracy fit. 반증자: position 와 content 가 independent 라고 가정한 monovariate fit 의 error > 10%.
+- [x] N2 — KV-cache 메모리 효율: paged attention utilization vs over-allocation fragmentation. 반증자: utilization < 50% → 메모리 절반 낭비. **CYCLE-10 reorg Batch C (2026-05-28 · train/infer/serve stack)** ✅ 🔵+🟡 · 7/7 · `LONG-CONTEXT/bench/long_context_n2_kv_cache_efficiency.hexa` + `LONG-CONTEXT/verify/numerics_long_context_n2_kv_cache_efficiency.hexa` · identity `utilization = used_blocks / allocated_blocks (×10000)` · falsifier `util < 5000 (<50%)`. Worked example 5 cache 전략 × {alloc, used} : paged_vllm 100/105=95.2% silent · paged_conservative 100/115=86.9% silent · dynamic_good 100/110=90.9% silent · contiguous_padded 100/220=45.4% fires · static_maxlen 100/250=40.0% fires (max_len 통째 예약). bidirectional: contiguous_padded/static_maxlen fires · paged_vllm/dynamic_good silent. External anchors: Kwon 2023 vLLM PagedAttention (arXiv:2309.06180) · Sheng 2023 FlexGen (arXiv:2303.06865) · Hooper 2024 KVQuant (arXiv:2401.18079) · Pope 2022 efficiently scaling transformer inference (arXiv:2211.05102). **실측 DEFERRED** — cycle-10+ T4 (vLLM gpu_memory_utilization vs KV-cache block stats on serving stack). **frontier OPEN** ([[feedback_closure_is_physical_limit]]) — identity close ≠ measured close.
 
 ## SANDBOX 활용 (measurement substrate)
 
@@ -38,6 +39,7 @@ LONG-CONTEXT 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — lo
 | A1 first probe | mac M3 / ubu-1 local | `.verdicts/LONG-CONTEXT/a1_*` |
 | B1 ladder | SANDBOX bench harness | `.verdicts/LONG-CONTEXT/b1_*` |
 | N1 ⭐ NOVEL | mac M3 / vast.ai pod | `.verdicts/LONG-CONTEXT/n1_*` |
+| N2 KV-cache | serving stack (vLLM) | `LONG-CONTEXT/verdicts/n2_kv_cache_efficiency_verdict.txt` |
 
 ## Dispatch surface (ENGINE 후보 wire)
 

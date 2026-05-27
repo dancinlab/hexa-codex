@@ -1,0 +1,12 @@
+# hexa-codex LONG-CONTEXT N2 — KV-cache utilization verifier (cycle-10 reorg Batch C)
+# axis=LONG-CONTEXT/LONG-CONTEXT.md::N2 (KV-cache 메모리 효율 · paged attention utilization vs over-allocation fragmentation)
+# bench=LONG-CONTEXT/bench/long_context_n2_kv_cache_efficiency.hexa
+# verifier=LONG-CONTEXT/verify/numerics_long_context_n2_kv_cache_efficiency.hexa
+# tier=🔵 STRUCTURAL (utilization identity + over-allocation sanity 7/7) + 🟡 BY-CITATION (50% util threshold = vLLM PagedAttention / Pope 2022 inference-scaling convention)
+# checks=7/7
+# formula=utilization = used_blocks / allocated_blocks (× 10000); waste = 100 − util; falsifier_fires = util < 50%
+# placeholder_data=5 cache strategies · used=100 fixed · paged_vllm/paged_conservative/dynamic_good silent (≥50%) · contiguous_padded/static_maxlen fire (<50%)
+# over_allocation_sanity=allocated ≥ used → util ≤ 100% (under-allocation 불가; paged block-granular vs max_len 통째 예약)
+# external_anchors=Kwon 2023 vLLM PagedAttention (arXiv:2309.06180) · Sheng 2023 FlexGen (arXiv:2303.06865) · Hooper 2024 KVQuant (arXiv:2401.18079) · Pope 2022 efficiently scaling transformer inference (arXiv:2211.05102)
+# substrate_fire=DEFERRED (cycle-10+ · vLLM gpu_memory_utilization vs KV-cache block stats on serving stack)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close

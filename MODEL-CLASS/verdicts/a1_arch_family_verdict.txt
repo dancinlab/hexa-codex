@@ -1,0 +1,13 @@
+# hexa-codex MODEL-CLASS A1 — architecture-family scaling verifier (LLM 종류 분류학 · cycle-10)
+# axis=MODEL-CLASS/MODEL-CLASS.md::A1 (architecture family scaling · quality ratio · decoder-only transformer = 100% baseline)
+# bench=MODEL-CLASS/bench/model_class_a1_arch_family.hexa
+# verifier=MODEL-CLASS/verify/numerics_model_class_a1_arch_family.hexa
+# tier=🔵 STRUCTURAL (architecture-family ratio identity + 90%-of-decoder threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · decoder-normalized family-ratio convention · cite Vaswani 2017 decoder transformer + Gu 2023 Mamba + Lieber 2024 Jamba + Peng 2023 RWKV + Li 2022 Diffusion-LM)
+# checks=7/7
+# formula=family_ratio_x100 = quality_f × 100 / quality_decoder (decoder-only transformer 대비 % · same param tier); falsifier_fires = family_ratio < 90 (< 90% of decoder baseline · architecture diversity 무의미 · 못 따라잡음)
+# placeholder_data=5 architecture families × {param_b_x100, quality_x100} @ same 7B tier · decoder_transformer (7B/q100 · 100% baseline silent) · mamba_ssm (7B/q96 · 96% silent) · jamba_hybrid (7B/q98 · 98% silent) · rwkv (7B/q92 · 92% silent) · early_diffusion_lm (7B/q78 · 78% FIRES not-yet-competitive control)
+# bidirectional_discrimination=4 silent (decoder baseline · mamba_ssm · jamba_hybrid · rwkv) + 1 fires (early_diffusion_lm) — falsifier 정확 발화 only on not-yet-competitive control
+# micro_vs_macro=ARCHITECTURE measures micro 부품 (attention/norm/activation/positional) · MODEL-CLASS measures macro 품종 (architecture-family/specialization/scale-class) — 별 dimension, × 100 ledger 공유
+# external_anchors=Vaswani 2017 decoder transformer (arXiv:1706.03762) · Gu 2023 Mamba SSM (arXiv:2312.00752) · Lieber 2024 Jamba hybrid (arXiv:2403.19887) · Peng 2023 RWKV (arXiv:2305.13048) · Li 2022 Diffusion-LM (arXiv:2205.14217)
+# substrate_fire=DEFERRED (cycle-11+ · same-tier downstream quality on mac M3 llama-server + vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — family-ratio identity close ≠ measured same-tier quality close · 새 architecture family 마다 frontier 재오픈

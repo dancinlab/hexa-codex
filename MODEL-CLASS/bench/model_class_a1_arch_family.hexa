@@ -1,0 +1,123 @@
+#!hexa strict
+// MODEL-CLASS/bench/model_class_a1_arch_family.hexa
+// 신규 단독 도메인 MODEL-CLASS ("LLM 종류 분류학" · cycle-10).
+// 축 A — A1 architecture-family scaling closed-form first probe.
+//
+// "모델 분류학자" — 2026 frontier 에 등장한 비-transformer architecture family
+// (Mamba SSM · Jamba hybrid · RWKV · diffusion-LM) 가 같은 param tier 에서
+// decoder-only transformer baseline 대비 quality 경쟁력이 실재하는지 측정한다.
+// 경쟁력 없는 family (ratio < 90% of decoder baseline) 는 falsifier 가 발화한다.
+//
+// ─ ARCHITECTURE 와의 구분 (micro vs macro) ─
+//   ARCHITECTURE  = micro 부품 측정 (attention impl · norm · activation · positional)
+//   MODEL-CLASS   = macro 품종 측정 (architecture-family · specialization · scale-class)
+// 같은 transformer 안의 attention 변형은 ARCHITECTURE A1, transformer-vs-Mamba 처럼
+// 품종 자체를 가르는 것은 MODEL-CLASS A1. 둘은 별 dimension (× 100 ledger 공유).
+//
+// Identity (closed-form · libm-free · × 100 ledger, decoder-only transformer = 100% baseline):
+//   family_ratio_x100(f) = quality_x100[f] × 100 / quality_x100[decoder]   (decoder 대비 %)
+//   competitive(f)       = family_ratio_x100(f) >= 90    (≥ 90% of decoder baseline)
+//   falsifier_fires(f)   = family_ratio_x100(f) <  90    (< 90% · 못 따라잡음)
+//
+// "quality(family) × 100 / quality(decoder)" 를 decoder-only baseline 으로 정규화한 형태.
+// decoder-only transformer 는 정의상 ratio = 100% (100 ledger).
+//
+// Falsifier (MODEL-CLASS A1): non-transformer family 가 transformer 대비 < 90% (900)
+//   → architecture diversity 무의미 (decoder-only 만이 답). Mamba/Jamba/hybrid 처럼
+//   같은 param tier 에서 ≥ 90% 인 family 는 silent (경쟁력 있음), early diffusion-LM
+//   처럼 아직 못 따라잡은 family 는 fires (< 90%). bidirectional discrimination.
+//
+// External anchors (citation tier · 🟡):
+//   Vaswani 2017  — Attention Is All You Need · decoder-only transformer baseline (arXiv:1706.03762)
+//   Gu 2023       — Mamba · selective state-space model (arXiv:2312.00752)
+//   Lieber 2024   — Jamba · Transformer-Mamba hybrid (arXiv:2403.19887)
+//   Peng 2023     — RWKV · RNN-with-transformer-level-LM (arXiv:2305.13048)
+//   Li 2022       — Diffusion-LM · continuous diffusion for controllable text gen (arXiv:2205.14217)
+//
+// Integer ledger (quality × 100 in pp · same 7B param tier) — libm-free closed-form.
+// Placeholder per-family numbers — 실측 same-tier downstream quality (mac M3 llama-server
+// / vast.ai pod) deferred (cycle-11+ T4 · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure architecture-family ratio recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Architecture-family registry (5 families · {param_b_x100, quality_x100})
+//   all sampled at the SAME ~7B param tier (param_b held ≈ fixed → fair quality compare)
+//   index 0 = decoder_transformer (baseline · ratio 정의상 100%)
+//   decoder_transformer : Vaswani 2017 decoder-only — 7B · quality=100pp → ratio 100% silent
+//   mamba_ssm           : Gu 2023 selective SSM     — 7B · quality= 96pp → ratio  96% silent
+//   jamba_hybrid        : Lieber 2024 Transf-Mamba  — 7B · quality= 98pp → ratio  98% silent
+//   rwkv                : Peng 2023 RNN-LM          — 7B · quality= 92pp → ratio  92% silent
+//   early_diffusion_lm  : Li 2022 diffusion-LM      — 7B · quality= 78pp → ratio  78% FIRES
+//
+// Stored × 100 — param_b (700 = 7.0 B) · quality (10000 = 100 pp).
+// libm-free, matches the × 100 ledger convention shared across sibling domains.
+// ────────────────────────────────────────────────────────────────────────
+
+let FAMILY_NAMES = ["decoder_transformer", "mamba_ssm", "jamba_hybrid", "rwkv", "early_diffusion_lm"]
+
+// row-major {param_b_x100, quality_x100} (5 families × 2 fields) flattened to 1-d.
+//   row 0 (decoder_transformer · baseline): [700, 10000]  → 7.0 B · quality 100pp
+//   row 1 (mamba_ssm):                      [700,  9600]  → 7.0 B · quality  96pp
+//   row 2 (jamba_hybrid):                   [700,  9800]  → 7.0 B · quality  98pp
+//   row 3 (rwkv):                           [700,  9200]  → 7.0 B · quality  92pp
+//   row 4 (early_diffusion_lm):             [700,  7800]  → 7.0 B · quality  78pp
+let PROFILE_x100 = [700, 10000,
+                    700,  9600,
+                    700,  9800,
+                    700,  9200,
+                    700,  7800]
+
+let N_FIELDS = 2                    // {param_b_x100, quality_x100}
+let DECODER_IDX = 0                 // decoder-only transformer baseline index
+let COMPETITIVE_x100 = 90           // ≥ 90% of decoder baseline (90 in × 100 ratio ledger)
+let QUALITY_MAX_x100 = 100 * 100    // quality ∈ [0, 100] pp · × 100 ledger ∈ [0, 10000]
+
+fn param_b_x100(f: int) -> int {
+    return PROFILE_x100[f * N_FIELDS + 0]
+}
+
+fn quality_x100(f: int) -> int {
+    return PROFILE_x100[f * N_FIELDS + 1]
+}
+
+fn family_ratio_x100(f: int) -> int {
+    // quality normalized to decoder-only transformer baseline (= 100 in × 100 ratio ledger).
+    //   family_ratio_x100 = quality_x100[f] × 100 / quality_x100[decoder]
+    let q_dec = quality_x100(DECODER_IDX)
+    return (quality_x100(f) * 100) / q_dec
+}
+
+fn competitive(f: int) -> bool {
+    return family_ratio_x100(f) >= COMPETITIVE_x100
+}
+
+fn falsifier_fires(f: int) -> bool {
+    return family_ratio_x100(f) < COMPETITIVE_x100
+}
+
+print("hexa-codex MODEL-CLASS A1 — architecture-family scaling closed-form (LLM 종류 분류학 · cycle-10)")
+print("=================================================================================================")
+print("")
+print("per-family architecture profile (placeholder · same 7B param tier · × 100 ledger · decoder = 100% baseline · libm-free):")
+let n_families = FAMILY_NAMES.len()
+let mut i = 0
+while i < n_families {
+    let p = param_b_x100(i)
+    let q = quality_x100(i)
+    let r = family_ratio_x100(i)
+    let mut flag = "silent (competitive · ≥ 90% of decoder baseline)"
+    if falsifier_fires(i) {
+        flag = "FIRES (< 90% of decoder baseline · 아직 못 따라잡음)"
+    }
+    let mut tag = ""
+    if i == DECODER_IDX { tag = " [baseline]" }
+    print("  " + FAMILY_NAMES[i] + tag + ":")
+    print("    param=" + to_string(p / 100) + "." + to_string(p % 100 / 10) + " B" +
+          " · quality=" + to_string(q) + "/100 (" + to_string(q / 100) + " pp)")
+    print("    → family_ratio=" + to_string(r) + "% of decoder baseline · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_MODEL_CLASS_A1_ARCH_FAMILY__ DONE")

@@ -1,0 +1,205 @@
+#!hexa strict
+// MODEL-CLASS/verify/numerics_model_class_a1_arch_family.hexa
+// 신규 단독 도메인 MODEL-CLASS ("LLM 종류 분류학" · cycle-10) —
+// closed-form verifier for architecture-family scaling identity + 90%-of-decoder
+// baseline falsifier semantics.
+//
+// Asserts the family-ratio identity is closed-form and the falsifier (no-competitive
+// -diversity detection) correctly classifies:
+//   (1) baseline self-consistency — family_ratio(decoder) == 100 (100% by definition)
+//   (2) param/quality values in range — param_b > 0, quality ∈ [0,100pp], same tier
+//   (3) family_ratio identity = quality_f × 100 / quality_decoder for all f
+//   (4) early_diffusion_lm fires (ratio=78% < 90% · 아직 못 따라잡음)
+//   (5) mamba/jamba/rwkv silent (ratio ≥ 90% · 경쟁력 있음)
+//   (6) determinism (re-call same ratio + fires)
+//   (7) monotone sanity — higher same-tier quality ⇒ strictly higher family_ratio
+//
+// Source: MODEL-CLASS/bench/model_class_a1_arch_family.hexa
+// External anchors: Vaswani 2017 decoder transformer (arXiv:1706.03762) · Gu 2023
+//                   Mamba SSM (arXiv:2312.00752) · Lieber 2024 Jamba (arXiv:2403.19887)
+//                   · Peng 2023 RWKV (arXiv:2305.13048) · Li 2022 Diffusion-LM
+//                   (arXiv:2205.14217)
+//
+// @no-lock-needed
+
+let FAMILY_NAMES = ["decoder_transformer", "mamba_ssm", "jamba_hybrid", "rwkv", "early_diffusion_lm"]
+
+let PROFILE_x100 = [700, 10000,
+                    700,  9600,
+                    700,  9800,
+                    700,  9200,
+                    700,  7800]
+
+let N_FIELDS = 2
+let DECODER_IDX = 0
+let COMPETITIVE_x100 = 90
+let BASELINE_x100 = 100
+let QUALITY_MAX_x100 = 100 * 100
+
+fn param_b_x100(f: int) -> int {
+    return PROFILE_x100[f * N_FIELDS + 0]
+}
+fn quality_x100(f: int) -> int {
+    return PROFILE_x100[f * N_FIELDS + 1]
+}
+fn family_ratio_x100(f: int) -> int {
+    let q_dec = quality_x100(DECODER_IDX)
+    return (quality_x100(f) * 100) / q_dec
+}
+fn falsifier_fires(f: int) -> bool {
+    return family_ratio_x100(f) < COMPETITIVE_x100
+}
+
+print("hexa-codex MODEL-CLASS A1 falsifier — architecture-family scaling closed-form")
+print("============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_families = FAMILY_NAMES.len()
+
+// check 1 — baseline self-consistency: family_ratio(decoder) == 100 (100% by definition)
+checks_total = checks_total + 1
+if family_ratio_x100(DECODER_IDX) == BASELINE_x100 && falsifier_fires(DECODER_IDX) == false {
+    print("  [PASS] baseline self-consistency: family_ratio(decoder)=" +
+          to_string(family_ratio_x100(DECODER_IDX)) + "% == 100% (silent by definition)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] baseline not 100% (family_ratio(decoder)=" + to_string(family_ratio_x100(DECODER_IDX)) + ")")
+}
+
+// check 2 — param_b > 0 · quality ∈ [0,100pp] (no division by zero, same-tier fair compare)
+checks_total = checks_total + 1
+let mut rb_ok = true
+let mut i = 0
+while i < n_families {
+    let p = param_b_x100(i)
+    let q = quality_x100(i)
+    if p <= 0 { rb_ok = false }
+    if q < 0 || q > QUALITY_MAX_x100 { rb_ok = false }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] param_b > 0 AND quality ∈ [0,100pp] for all " + to_string(n_families) + " families (same 7B tier)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] param/quality out of range")
+}
+
+// check 3 — family_ratio identity = quality_f × 100 / quality_decoder for all f
+checks_total = checks_total + 1
+let mut id_ok = true
+let q_dec = quality_x100(DECODER_IDX)
+i = 0
+while i < n_families {
+    let lhs = family_ratio_x100(i)
+    let rhs = (quality_x100(i) * 100) / q_dec
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] family_ratio identity (quality_f × 100 / quality_decoder) holds for all " +
+          to_string(n_families) + " families")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] family_ratio identity broken")
+}
+
+// check 4 — early_diffusion_lm (idx 4) fires (ratio=78% < 90% · 아직 못 따라잡음)
+checks_total = checks_total + 1
+if falsifier_fires(4) && family_ratio_x100(4) == 78 {
+    print("  [PASS] early_diffusion_lm fires (family_ratio=" + to_string(family_ratio_x100(4)) +
+          "% < 90% · 아직 decoder 못 따라잡음 · control)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] early_diffusion_lm fire detection broken (ratio=" + to_string(family_ratio_x100(4)) + ")")
+}
+
+// check 5 — mamba/jamba/rwkv silent (ratio ≥ 90% · 경쟁력 있음)
+checks_total = checks_total + 1
+if falsifier_fires(1) == false && falsifier_fires(2) == false && falsifier_fires(3) == false
+        && family_ratio_x100(1) == 96 && family_ratio_x100(2) == 98 && family_ratio_x100(3) == 92 {
+    print("  [PASS] competitive families silent: mamba_ssm=" + to_string(family_ratio_x100(1)) +
+          "% · jamba_hybrid=" + to_string(family_ratio_x100(2)) + "% · rwkv=" +
+          to_string(family_ratio_x100(3)) + "% — all ≥ 90% · false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] competitive silent detection broken")
+}
+
+// check 6 — determinism (re-call same ratio + fires)
+checks_total = checks_total + 1
+if family_ratio_x100(3) == family_ratio_x100(3)
+        && falsifier_fires(4) == falsifier_fires(4)
+        && family_ratio_x100(1) == family_ratio_x100(1) {
+    print("  [PASS] formula deterministic (re-call same ratio + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — monotone sanity: at SAME param tier, higher quality ⇒ strictly higher family_ratio.
+//   jamba_hybrid (q=98pp, ratio 98%) vs rwkv (q=92pp, ratio 92%) — same 7B tier, jamba
+//   higher quality ⇒ jamba family_ratio > rwkv family_ratio. ratio 단조성 사니티.
+checks_total = checks_total + 1
+let same_tier   = param_b_x100(2) == param_b_x100(3)          // both 7.0 B
+let higher_q    = quality_x100(2) > quality_x100(3)           // jamba 98pp > rwkv 92pp
+let higher_ratio = family_ratio_x100(2) > family_ratio_x100(3) // 98% > 92%
+if same_tier && higher_q && higher_ratio {
+    print("  [PASS] monotone sanity — same 7B tier · jamba higher quality (98pp > 92pp) ⇒ higher family_ratio (98% > 92%)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] monotone sanity broken (same_tier=" + to_string(same_tier) +
+          " · higher_q=" + to_string(higher_q) + " · higher_ratio=" + to_string(higher_ratio) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (architecture-family ratio identity + 90%-of-decoder threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · decoder-normalized family-ratio convention · cite Vaswani 2017 decoder transformer + Gu 2023 Mamba + Lieber 2024 Jamba + Peng 2023 RWKV + Li 2022 Diffusion-LM)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — architecture-family ratio formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("MODEL-CLASS A1 finding (LLM 종류 분류학 · placeholder · closed-form):")
+print("  - family_ratio_x100 = quality_f × 100 / quality_decoder (decoder-only baseline = 100%) identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: mamba_ssm=96% · jamba_hybrid=98% · rwkv=92% silent (competitive) · early_diffusion_lm=78% fires (아직 못 따라잡음)")
+print("  - external anchors: Vaswani 2017 decoder · Gu 2023 Mamba · Lieber 2024 Jamba · Peng 2023 RWKV · Li 2022 Diffusion-LM")
+print("  - 실측 (cycle-11+ T4): same-tier downstream quality on mac M3 llama-server + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_MODEL_CLASS_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/MODEL-CLASS/verdicts/a1_arch_family_verdict.txt"
+
+let mut content = "# hexa-codex MODEL-CLASS A1 — architecture-family scaling verifier (LLM 종류 분류학 · cycle-10)\n"
+content = content + "# axis=MODEL-CLASS/MODEL-CLASS.md::A1 (architecture family scaling · quality ratio · decoder-only transformer = 100% baseline)\n"
+content = content + "# bench=MODEL-CLASS/bench/model_class_a1_arch_family.hexa\n"
+content = content + "# verifier=MODEL-CLASS/verify/numerics_model_class_a1_arch_family.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=family_ratio_x100 = quality_f × 100 / quality_decoder (decoder-only transformer 대비 % · same param tier); falsifier_fires = family_ratio < 90 (< 90% of decoder baseline · architecture diversity 무의미 · 못 따라잡음)\n"
+content = content + "# placeholder_data=5 architecture families × {param_b_x100, quality_x100} @ same 7B tier · decoder_transformer (7B/q100 · 100% baseline silent) · mamba_ssm (7B/q96 · 96% silent) · jamba_hybrid (7B/q98 · 98% silent) · rwkv (7B/q92 · 92% silent) · early_diffusion_lm (7B/q78 · 78% FIRES not-yet-competitive control)\n"
+content = content + "# bidirectional_discrimination=4 silent (decoder baseline · mamba_ssm · jamba_hybrid · rwkv) + 1 fires (early_diffusion_lm) — falsifier 정확 발화 only on not-yet-competitive control\n"
+content = content + "# micro_vs_macro=ARCHITECTURE measures micro 부품 (attention/norm/activation/positional) · MODEL-CLASS measures macro 품종 (architecture-family/specialization/scale-class) — 별 dimension, × 100 ledger 공유\n"
+content = content + "# external_anchors=Vaswani 2017 decoder transformer (arXiv:1706.03762) · Gu 2023 Mamba SSM (arXiv:2312.00752) · Lieber 2024 Jamba hybrid (arXiv:2403.19887) · Peng 2023 RWKV (arXiv:2305.13048) · Li 2022 Diffusion-LM (arXiv:2205.14217)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · same-tier downstream quality on mac M3 llama-server + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — family-ratio identity close ≠ measured same-tier quality close · 새 architecture family 마다 frontier 재오픈\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

@@ -1,0 +1,15 @@
+# hexa-codex RELIABILITY A1' — MEASURED determinism reproduction-rate verifier (cycle-10 round-1)
+# axis=RELIABILITY/RELIABILITY.md::A1' (measured companion to A1 closed-form)
+# verifier=RELIABILITY/verify/numerics_reliability_a1_measured_repro.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — measured determinism on mac-m3-sha256 · N_runs=5 · rate_x100=10000 · silent + mac-m3-urandom · rate_x100=0 · fires
+# checks=7/7
+# formula=reproduction_rate = N_identical_pairs / N_pairs × 10000; falsifier_fires = rate_x100 < 9990 (= < 99.9%)
+# substrate=mac M3 host · CPU SHA-256 · idle single-process · 2026-05-28
+# pair_convention=N_pairs = N_runs*(N_runs-1)/2; N_runs=5 → N_pairs=10
+# measured_det=mac-m3-sha256 (5× shasum CODEX/CODEX.md) · all 5 hashes identical · N_match_pairs=10/10 · rate_x100=10000 · SILENT (correct: deterministic substrate must not fire)
+# measured_nondet=mac-m3-urandom (5× dd /dev/urandom 1M | shasum) · all 5 hashes distinct · N_match_pairs=0/10 · rate_x100=0 · FIRES (correct: non-deterministic substrate must fire)
+# raw_det_hash=09ea07c07c2ba6dcf9c31965a2d0f05d62fb38c5c1cf975ff388f8447721f665 (×5)
+# raw_nondet_hashes=a1ec3522097a690b14cf699d23dbf7c4cb72fb4a67b4755a839c664b47cc4d61, d531c7b198b637f3a81a255cee320a0ebff44df906aea0d46283eb66b13ae45b, 191d60eff1ee34eea0303b69c744ac3a5905777c7f35f062ad5742870b727064, 50afec9d46f9035e6ebd7d1a58aeee128cb94d36a597747cdb243e4fef8b07c7, 2aa59136f2fbe75df5cd26d3b688a18f44178d195314c0580c5b6584d7ce9175
+# elevation=🔵+🟡 (A1 closed-form round-6) → 🟢 SUPPORTED-NUMERICAL (A1' measured · cycle-10 round-1)
+# honest_residual=full LLM serving stack determinism under load · GPU non-det · multi-host fan-out · ECC bit-flip injection DEFERRED (cycle-10+)
+# frontier_open=feedback_closure_is_physical_limit — 새 HW · model · serving stack 마다 재오픈

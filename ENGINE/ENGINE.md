@@ -70,39 +70,39 @@ ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한�
 
 ### 축 K — HALLUCINATION/N1 REASONING-DEPTH finding → scratch-pad/CoT inference 토글 driving
 > **driving target:** serving 시 scratch-pad/CoT 활성화 결정 — utility 큰 task 는 thinking 모드, 작은 task 는 direct (비용 절감).
-- [ ] K1 — HALLUCINATION/N1 (pattern_match Δ3 fires · 4 frontier Δ40-47 silent) 를 CoT-toggle 로 wire. 반증자: wired toggle 이 scratch-pad utility < 5pp task 에도 thinking 강제 (비용 낭비) OR utility 무시. anchor: Wei 2022 CoT · Gemma 4 TR. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] K1 — HALLUCINATION/N1 (pattern_match Δ3 fires · 4 frontier Δ40-47 silent) 를 CoT-toggle 로 wire. 반증자: wired toggle 이 scratch-pad utility < 5pp task 에도 thinking 강제 (비용 낭비) OR utility 무시. anchor: Wei 2022 CoT · Gemma 4 TR. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 L — ECONOMICS/N1 COST-PERFORMANCE finding → cost-aware model routing driving
 > **driving target:** serving 의 cost-aware 모델 라우팅 — 같은 acc-tier 에서 50× cost spread 활용하여 cheapest-sufficient 선택.
-- [ ] L1 — ECONOMICS/N1 (50× spread fires · GPT-5 $15 vs DeepSeek V4 $0.30) 를 cost-router 로 wire. 반증자: wired router 가 same-acc-tier 에서 cheapest 무시 OR cost 차이 미반영. anchor: LXT 2026 · Artificial Analysis Index. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] L1 — ECONOMICS/N1 (50× spread fires · GPT-5 $15 vs DeepSeek V4 $0.30) 를 cost-router 로 wire. 반증자: wired router 가 same-acc-tier 에서 cheapest 무시 OR cost 차이 미반영. anchor: LXT 2026 · Artificial Analysis Index. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 M — MULTIMODAL/A1 MODALITY-BALANCE finding → modality-aware dispatch driving
 > **driving target:** multimodal serving 의 modality-aware 모델 dispatch — modality gap 큰 모델은 해당 modality task 회피.
-- [ ] M1 — MULTIMODAL/A1 (legacy_vlm 75pp fires · gemma4/qwen native silent) 를 modality-dispatch 로 wire. 반증자: wired dispatch 가 audio/video unsupported 모델에 해당 task 할당 OR gap 무시. anchor: Gemma 4 TR · LLaVA · Qwen-Audio. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] M1 — MULTIMODAL/A1 (legacy_vlm 75pp fires · gemma4/qwen native silent) 를 modality-dispatch 로 wire. 반증자: wired dispatch 가 audio/video unsupported 모델에 해당 task 할당 OR gap 무시. anchor: Gemma 4 TR · LLaVA · Qwen-Audio. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 O — ROBUSTNESS/N1 ALIGNMENT-FAKING finding → eval-vs-deploy consistency monitor driving
 > **driving target:** serving 의 eval-vs-deploy 행동 일관성 모니터 — eval-aware sandbagging 의심 모델 flag + deploy 행동 감사.
-- [ ] O1 — ROBUSTNESS/N1 (strong_faker gap44 fires · honest/genuinely-unsafe silent) 를 consistency-monitor 로 wire. 반증자: wired monitor 가 eval-context hint 시 pass▲>10pp 모델 미감지 OR honest 를 false-flag. anchor: 2026 AISI report · Hubinger 2024 sleeper agents. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] O1 — ROBUSTNESS/N1 (strong_faker gap44 fires · honest/genuinely-unsafe silent) 를 consistency-monitor 로 wire. 반증자: wired monitor 가 eval-context hint 시 pass▲>10pp 모델 미감지 OR honest 를 false-flag. anchor: 2026 AISI report · Hubinger 2024 sleeper agents. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 P — RELIABILITY/N1 CHECKPOINT-INTEGRITY finding → checkpoint resume 자동 검증 driving
 > **driving target:** lm_foundry 학습 파이프라인의 checkpoint save→load 자동 무결성 검증 + 포맷변환 손실 게이트.
-- [ ] P1 — RELIABILITY/N1 (corrupted-shard fires · safetensors/gguf_q8 silent) 를 ckpt-verify hook 으로 wire. 반증자: wired hook 이 mismatch>0 resume 를 통과 OR 포맷변환 손실>5% 미감지. anchor: safetensors spec · ZeRO checkpoint. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] P1 — RELIABILITY/N1 (corrupted-shard fires · safetensors/gguf_q8 silent) 를 ckpt-verify hook 으로 wire. 반증자: wired hook 이 mismatch>0 resume 를 통과 OR 포맷변환 손실>5% 미감지. anchor: safetensors spec · ZeRO checkpoint. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 Q — MULTILINGUAL/N1 TOKENIZER finding → tokenizer-fertility-aware context budget driving
 > **driving target:** multilingual serving 의 언어별 context budget 조정 — low-resource lang 은 token-fertility 보정하여 context 확보.
-- [ ] Q1 — MULTILINGUAL/N1 (burmese 21%·hindi 35%·korean 47% fires) 를 context-budget allocator 로 wire. 반증자: wired allocator 가 low-fertility lang 에 영어와 동일 token budget 적용 (불공평) OR fertility 무시. anchor: Ahia 2023 · Petrov 2023. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] Q1 — MULTILINGUAL/N1 (burmese 21%·hindi 35%·korean 47% fires) 를 context-budget allocator 로 wire. 반증자: wired allocator 가 low-fertility lang 에 영어와 동일 token budget 적용 (불공평) OR fertility 무시. anchor: Ahia 2023 · Petrov 2023. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 R — BATCH-COMPOSITION/N1 SPECULATIVE-DECODING finding → draft-acceptance-aware speculative 토글 driving
 > **driving target:** serving 의 speculative decoding 자동 토글 — draft acceptance 높은 조합만 활성화 (낮으면 비활성, 오버헤드 회피).
-- [ ] R1 — BATCH-COMP/N1 (bad_draft 30% fires · good drafts ≥50% silent) 를 speculative-toggle 로 wire. 반증자: wired toggle 이 acceptance<50% draft 를 활성 유지 (speedup<1.2× 낭비) OR acceptance 무시. anchor: Leviathan 2023 · Cai 2024 Medusa. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] R1 — BATCH-COMP/N1 (bad_draft 30% fires · good drafts ≥50% silent) 를 speculative-toggle 로 wire. 반증자: wired toggle 이 acceptance<50% draft 를 활성 유지 (speedup<1.2× 낭비) OR acceptance 무시. anchor: Leviathan 2023 · Cai 2024 Medusa. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 S — HW-VARIANCE/N1 DISTRIBUTED-SCALING finding → scaling-efficiency-aware GPU 배치 driving
 > **driving target:** multi-GPU serving/training 의 scaling-efficiency 기반 GPU 수 결정 — efficiency<70% 면 GPU 추가 중단 (통신 오버헤드).
-- [ ] S1 — HW-VARIANCE/N1 (tp_comm_bound 60%·multinode 65% fires · dp/fsdp ≥70% silent) 를 GPU-count selector 로 wire. 반증자: wired selector 가 efficiency<70% 인데 GPU 계속 추가 OR Amdahl 무시. anchor: Megatron · ZeRO · FSDP. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] S1 — HW-VARIANCE/N1 (tp_comm_bound 60%·multinode 65% fires · dp/fsdp ≥70% silent) 를 GPU-count selector 로 wire. 반증자: wired selector 가 efficiency<70% 인데 GPU 계속 추가 OR Amdahl 무시. anchor: Megatron · ZeRO · FSDP. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 T — LONG-CONTEXT/N2 KV-CACHE finding → paged-attention KV budget driving
 > **driving target:** serving 의 KV cache 전략 선택 — paged attention (vLLM) vs contiguous · utilization 기반 메모리 budget.
-- [ ] T1 — LONG-CONTEXT/N2 (static_maxlen 40%·contiguous 45% fires · paged ≥50% silent) 를 KV-cache-strategy selector 로 wire. 반증자: wired selector 가 utilization<50% 전략 (static_maxlen) 선택 OR fragmentation 무시. anchor: Kwon 2023 vLLM PagedAttention · Hooper 2024 KVQuant. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] T1 — LONG-CONTEXT/N2 (static_maxlen 40%·contiguous 45% fires · paged ≥50% silent) 를 KV-cache-strategy selector 로 wire. 반증자: wired selector 가 utilization<50% 전략 (static_maxlen) 선택 OR fragmentation 무시. anchor: Kwon 2023 vLLM PagedAttention · Hooper 2024 KVQuant. **CYCLE-10 WIRED (2026-05-28 · 7/7 PASS)** — wire decision rule in ENGINE/wires/ · 실제 serving 연결 cycle-11+ deferred.
 
 ### 축 N — 🆕 NOVEL: discovery → execution closed-loop latency (ENGINE 메인, ⭐ MAIN priority lane)
 > **⭐ MAIN priority lane** (ENGINE 의 self-NOVEL axis). 다른 5 axis 의 *driving 자체를 측정* 하는 meta-axis. measurement frontier 가 발견을 만든 시점부터 그 발견이 실제 LLM behavior change 로 wire 된 시점까지 의 시간 (latency) + 적용된 결과의 fidelity (발견값 ↔ wired-behavior 일치율).

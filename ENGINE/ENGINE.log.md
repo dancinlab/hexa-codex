@@ -3,6 +3,37 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-28 — cycle-10 wire: H~T 12 axis 전부 wire `.hexa` 완료 (driving lane 19-axis · 4 batch)
+
+ENGINE intake matrix 의 흡수 12 axis (H~T) wire `.hexa` (finding → 실제 LLM behavior decision rule) 전부 7/7 PASS. 4 batch (cap=3) 순차 · race-guard (explicit pathspec) 무사고.
+
+| batch | axis | wire | commit | decision rule |
+|---|---|---|---|---|
+| 1 | H ENERGY/N1 | MoE model selection | 76ac10f | premium<1000+small-reasoning → dense |
+| 1 | I ENERGY/N2 | quant-level selector | 0271a78 | argmin_size{loss≤budget} |
+| 1 | J AGENT/N1 | trajectory safety gate | d7cbddb | decay<300 → 1-step only |
+| 2 | K HALLUCINATION/N1 | CoT-toggle | 7bc315f | Δ<5pp → direct (비용절감) |
+| 2 | L ECONOMICS/N1 | cost-router | a74279b | cheapest-sufficient (50× 절감) |
+| 2 | M MULTIMODAL/A1 | modality-dispatch | b83ddb4 | gap≥30pp modality 회피 |
+| 3 | O ROBUSTNESS/N1 | alignment-monitor | 924b2b2 | gap≥30 → audit_deploy |
+| 3 | P RELIABILITY/N1 | ckpt-verify | e110307 | mismatch>0 → reject |
+| 3 | Q MULTILINGUAL/N1 | context-budget | 807651f | low-fertility 증액 (burmese 4.8×) |
+| 4 | R BATCH-COMP/N1 | speculative-toggle | 11df96f | accept<50% → disable |
+| 4 | S HW-VARIANCE/N1 | gpu-count selector | fd4469b | efficiency<70% → stop_scaling |
+| 4 | T LONG-CONTEXT/N2 | kv-cache selector | 6243111 | utilization<50% → reject |
+
+### driving lane 완성 — 19 axis
+
+ENGINE intake matrix = 7 sibling (A~G · ECONOMICS·SAFETY·OPS·SUBSTRATE·SANDBOX·NEUROEXP·CALIBRATION) + 12 흡수 (H~T) + N(NOVEL latency) = **19 driving axis**. A~G 는 기존 wire · H~T 12 신규 wire · N 은 self-NOVEL.
+
+각 wire 의 공통 구조: `decision(finding_value) → behavior_action` closed-form + 7-check verifier. **핵심 falsifier (check 4) 패턴**: "finding-ignorant rule" (측정 무시하고 항상 같은 결정) 을 구성해서 실제 rule 과 다름을 검출 → wire 가 measurement 를 honor 함을 증명.
+
+honest residual: 모든 wire 가 closed-form decision rule (🔵+🟡). **실제 LLM serving 연결 (lm_foundry · SANDBOX llama-server · vast.ai) 전부 cycle-11+ T4 deferred** — rule close ≠ measured close ([[feedback_closure_is_physical_limit]]).
+
+- [x] H~T 12 axis wire `.hexa` 7/7 (4 batch)
+- [x] K~T 9 axis ENGINE.md `[ ]`→`[x]` flip (H·I·J 는 batch 1 시 flip)
+- [ ] 실제 serving 연결 (cycle-11+ cost-bearing) — wire decision rule → 실제 lm_foundry/SANDBOX behavior
+
 ## 2026-05-28 — cycle-10 reorg: 12 흡수 N⭐ finding → intake matrix axis H~T 등재 (CODEX archive · ENGINE driving 무게중심)
 
 CODEX archive + FRONTIER retire 후, 흡수된 12 도메인 N⭐ finding 을 ENGINE intake matrix 에 axis letter 부여하여 등재 (N 은 NOVEL 점유 → skip). 사용자 directive: "전부 ENGINE intake matrix 등재하고 순차 wire" + "ENGINE 으로 실제 내꺼 만들어가는 재미".

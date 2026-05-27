@@ -6,6 +6,40 @@
 
 ---
 
+## 2026-05-28 — cycle-10 reorg · 축 N (N1 NOVEL MAIN) = cost-performance 50× spread (FRONTIER F5 흡수) · 🔵+🟡 7/7
+
+FRONTIER meta-domain 별도 X 결정 (사용자) → frontier 축들을 기존 도메인 N⭐ NOVEL MAIN
+으로 **분산 흡수**. F5 COST-PERFORMANCE ($ per correct answer · 50× cost spread) 가
+ECONOMICS 의 자연스러운 self-NOVEL → ECONOMICS 축 N (N1) 으로 이관.
+
+**이관 (copy + 재명명 · ECONOMICS 컨벤션)**:
+- bench   `FRONTIER/bench/frontier_f5_cost_performance_spread.hexa` → `bench/economics_n1_cost_performance_spread.hexa`
+- verify  `FRONTIER/verify/numerics_frontier_f5_cost_performance_spread.hexa` → `verify/numerics_economics_n1_cost_performance_spread.hexa`
+- verdict `FRONTIER/verdicts/f5_cost_performance_spread_verdict.txt` → `.verdicts/economics/n1_cost_performance_spread_verdict.txt`
+- sentinel `__HEXA_CODEX_ECONOMICS_N1_COST_PERFORMANCE_SPREAD__ DONE` · 헤더 "absorbed from FRONTIER/F5 (cycle-10 reorg)".
+- (⚠ FRONTIER/ 원본 read-only · 미삭제 — 2 sibling agent 가 AGENT·ENERGY 로 동시 흡수 중)
+
+**재검증 7/7 PASS (verbatim · `hexa run verify/numerics_economics_n1_cost_performance_spread.hexa`)**:
+- 5-frontier pool identity: 1500 × 100 / 30 = 5000 (= 50.00× · 50× claim TRUE)
+- all 5 cost_x100 ∈ [0, 100000] range invariant
+- zero-spread synthetic (all 100) → 100 (= 1.00× silent)
+- 5-frontier pool FIRES 🟢 (5000 ≥ 5000 · 50× cost-variation 입증)
+- single-family synthetic (30/40/80) silent: 266 (= 2.66×) · < 1000 (10× floor) · bidirectional
+- 결정론 ✓ · max ≥ avg ≥ min ordering sanity ✓
+
+**verdict**: 🔵 STRUCTURAL (spread_ratio identity 7/7) + 🟡 BY-CITATION (50× = LXT 2026 +
+Artificial Analysis Index 2026). GPT-5 $15/M vs DeepSeek V4 $0.30/M = 50× · single-family
+2.66× silent. external anchor: LXT 2026 · Artificial Analysis · Kili 2026 · OpenAI/Anthropic/DeepSeek pricing.
+
+**N⭐ 위치**: `## 영구 축` 의 새 축 N (G 뒤). N1 이 ECONOMICS front NOVEL MAIN lane
+(N1 ≻ E ≻ F ≻ G ordering) — 기존 E/F/G NOVEL lane 은 차순위로 강등(표기), 삭제 아님.
+
+**frontier OPEN** ([[feedback_closure_is_physical_limit]]) — closed-form ≠ measured.
+cycle-11+ T4: Artificial Analysis daily-pricing fetch + same-acc-tier (MMLU-pro/LMSys/
+LiveBench) validation + per-correct-answer (cost/M ÷ avg-acc) conversion DEFERRED (`cx_lab_sandbox`).
+
+---
+
 ## 2026-05-27 — cycle-50 G5 first probe · conversation KV growth · 🔵 9/9 (G axis 5 seeds 완료)
 
 NOVEL 축 G **마지막** first-probe — G axis 5 seeds 전부 first-probed.

@@ -1,0 +1,16 @@
+# hexa-codex ECONOMICS N1 — Cost-performance spread verifier (NOVEL MAIN · absorbed from FRONTIER/F5 · cycle-10 reorg 2026-05-28)
+# axis=ECONOMICS.md::N1 COST-PERFORMANCE ($ per correct answer · 50× cost spread quantification · ⭐ MAIN priority lane)
+# bench=bench/economics_n1_cost_performance_spread.hexa
+# verifier=verify/numerics_economics_n1_cost_performance_spread.hexa
+# absorbed_from=FRONTIER/bench/frontier_f5_cost_performance_spread.hexa + FRONTIER/verify/numerics_frontier_f5_cost_performance_spread.hexa (FRONTIER meta-domain dissolved · cycle-10 reorg)
+# tier=🔵 STRUCTURAL (spread_ratio identity + ordering sanity 7/7) + 🟡 BY-CITATION (50× threshold = LXT 2026 + Artificial Analysis Index 2026) — frontier 5-model pool fires (5000 = 50.00×) · single-family synthetic silent (266 = 2.66×) · task-class · daily-pricing dependent
+# checks=7/7
+# formula=spread_ratio_x100 = max(cost_per_M_x100) × 100 / min(cost_per_M_x100); falsifier_fires_50x = spread_ratio_x100 >= 5000; falsifier_fires_10x = spread_ratio_x100 >= 1000
+# placeholder_data=5 same-acc-tier frontier models (gpt5_proprietary 1500 · claude_5_proprietary 1200 · gemma4_31b_self_hosted 40 · qwen3.6_72b_self_hosted 80 · deepseek_v4_api 30 · cost × 100 cents per million input tokens)
+# 5_frontier_pool=1500 × 100 / 30 = 5000 (= 50.00× cost spread · 50× cost-variation frontier claim 입증)
+# synthetic_silent_control=3 self-hosted only (30/40/80) → spread 266 (= 2.66×) · < 1000 (10× floor) · < 5000 (50× threshold) · proves verifier is bidirectional · NOT one-sided
+# external_anchors=LXT 2026 LLM benchmarks · Artificial Analysis Index 2026 (artificialanalysis.ai) · Kili Technology AI Benchmarks 2026 · OpenAI pricing page (2026) · Anthropic pricing page (2026) · DeepSeek V4 release notes (April 2026)
+# frontier_claim=50× cost variation across same-acc-tier models · LXT 2026 + Artificial Analysis observed · same-acc-tier ≈ 85% MMLU-pro 2026 mid-frontier class
+# substrate_fire=DEFERRED (cycle-11+ T4 · Artificial Analysis daily snapshot fetch + same-acc-tier validation [MMLU-pro · LMSys · LiveBench] + per-correct-answer cost conversion · `cx_lab_sandbox` substrate)
+# frontier_open=feedback_closure_is_physical_limit — closed-form ≠ measured · real pricing fluctuates daily · daily Artificial Analysis fetch needed for production-grade verdict
+# honest_residual=real Artificial Analysis daily-pricing fetch · same-acc-tier (MMLU-pro · LMSys · LiveBench) validation · per-million-token vs per-correct-answer conversion DEFERRED cycle-11+

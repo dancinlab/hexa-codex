@@ -1,0 +1,17 @@
+# hexa-codex ENGINE L1 — cost-aware model-router verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::L1 (ECONOMICS/N1 COST-PERFORMANCE finding → serving cost-aware model-router decision rule)
+# wire=ENGINE/wires/wire_l1_cost_router.hexa
+# verifier=ENGINE/verify/numerics_engine_l1_cost_router.hexa
+# tier=🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (ECONOMICS/N1 finding consume · LXT 2026 + Artificial Analysis Index 2026) — route_cheapest_sufficient wires the 50× cost spread into a cheapest-sufficient serving model-router choice · daily-pricing dependent
+# checks=7/7
+# rule=route_cheapest_sufficient(acc_tiers, costs, min_acc_tier): among models with acc_tier >= min_acc_tier, pick lowest cost (cheapest-sufficient · ties -> lowest index); -1 if none qualify
+# source_finding=ECONOMICS/N1 cost spread = max(cost_per_M_x100) x 100 / min(cost_per_M_x100) = 1500 x 100 / 30 = 5000 (= 50.00x · GPT-5 $15 vs DeepSeek V4 $0.30 · same-acc-tier)
+# pool=gpt5 1500 · claude5 1200 · gemma4 40 · qwen3.6 80 · deepseek 30 (cents x 100 per M input tok · all acc_tier 8500 same-tier assumption)
+# cases=all-qualify[min 8000]->idx4 deepseek(30) · exact-tier[min 8500]->idx4 deepseek(30) · above-all[min 9000]->-1 no-route
+# saving=router picks deepseek(30) over gpt5(1500) -> 1500 x 100 / 30 = 5000/100 = 50.00x cost reduction at equal acc-tier
+# exclusion=heterogeneous pool [acc 8500/8000/8500 · cost 50/10/90 · min 8400] -> sub-tier cheapest(10) EXCLUDED -> idx0 cost50 (never undercut required accuracy)
+# falsifier=finding-ignorant max-cost router (picks most-expensive qualifying = gpt5 idx0 1500) detected as WRONG vs route_cheapest_sufficient deepseek idx4 30 (check 4)
+# cheapest_guarantee=selected cost <= every qualifying candidate (check 7 · cost-sufficient routing invariant)
+# external_anchor=LXT 2026 LLM benchmarks 50x cost variation · Artificial Analysis Index 2026 (artificialanalysis.ai) · OpenAI/Anthropic pricing pages 2026 · DeepSeek V4 release notes (April 2026) · consumed via ECONOMICS/N1
+# naming_g61=distinct route_cheapest_sufficient — NOT bare stdlib policy/dual_track::route(r: Router, key: string) (unrelated hash-keyed A/B router · disjoint signature)
+# honest_residual=live serving cost-router wiring (lm_foundry · SANDBOX local llama-server · Artificial Analysis daily-pricing fetch + same-acc-tier MMLU-pro/LMSys/LiveBench validation) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)

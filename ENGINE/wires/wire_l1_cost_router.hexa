@@ -1,0 +1,131 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_l1_cost_router.hexa
+// ENGINE axis L1 — ECONOMICS/N1 COST-PERFORMANCE finding → serving cost-aware
+// model-router decision rule.
+//
+// SOURCE FINDING (ECONOMICS/N1 · absorbed from FRONTIER/F5 · cycle-10 reorg).
+//   spread_ratio = max(cost_per_M_x100) × 100 / min(cost_per_M_x100).
+//   5-frontier same-acc-tier pool: 1500 × 100 / 30 = 5000 (= 50.00× cost
+//   spread). Identical accuracy tier, 50× price gap (GPT-5 $15 vs DeepSeek
+//   V4 $0.30 per M-tokens · LXT 2026 + Artificial Analysis Index 2026). The
+//   spread is REAL but inert — a measurement, not yet a serving decision.
+//
+// DECISION RULE (closed-form · this wire).  route_cheapest_sufficient(
+//   candidates, min_acc_tier) turns the 50× spread into an actual cost-aware
+//   serving router choice:
+//     among all candidate models whose acc_tier ≥ min_acc_tier (the request's
+//     minimum sufficient accuracy), pick the CHEAPEST (lowest cost_per_M_x100).
+//   This is the cheapest-SUFFICIENT routing rule — never pay for accuracy the
+//   request does not need. On the ECONOMICS/N1 pool, when every model meets a
+//   modest min_acc_tier, the router selects DeepSeek V4 ($0.30 = cost 30) and
+//   AVOIDS GPT-5 ($15 = cost 1500) → realizes the full 50× saving the N1 spread
+//   merely quantified.
+//
+// The rule consumes the SAME ECONOMICS/N1 cost ledger (gpt5 1500 · claude5
+// 1200 · gemma4 40 · qwen3.6 80 · deepseek 30 · cents × 100 per M input tok) —
+// wire ↔ finding consistency is asserted by check (6) of the verifier.
+//
+// FALSIFIER (paired verifier · check 4). A wire that IGNORED the finding —
+// picking an expensive model when a same-acc-tier cheaper one qualifies (the
+// most-expensive-qualifying max-cost router) — is constructed explicitly and
+// MUST be detected as wrong against route_cheapest_sufficient's choice.
+//
+// NAMING (commons g61). Deliberately NOT the bare `route` — the hexa-lang
+// stdlib `policy/dual_track::route(r: Router, key: string)` is an unrelated
+// hash-keyed A/B-track router; this is a cost-aware model selector with a
+// disjoint signature. Distinct name avoids the stdlib pub-fn shadow.
+//
+// HONESTY. Closed-form decision rule only. Connecting this rule to a live
+// serving cost-router (lm_foundry · SANDBOX local llama-server · Artificial
+// Analysis daily-pricing fetch + same-acc-tier MMLU-pro validation) is a
+// cost-bearing T4 contact DEFERRED to cycle-11+ (cx_lab_sandbox · per
+// feedback_closure_is_physical_limit — rule close ≠ measured close).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Finding constants (ECONOMICS/N1 · integer × 100 cents-per-M-token ledger)
+// ────────────────────────────────────────────────────────────────────────
+
+let SENTINEL_NO_ROUTE = -1   // returned index when no candidate meets min_acc_tier
+
+// ECONOMICS/N1 same-acc-tier frontier pool (consumed ledger · cents × 100).
+//   acc_tier ×100 = mid-frontier ≈ 85% MMLU-pro 2026 class (same-tier assumption).
+let MODEL_NAMES = [
+    "gpt5_proprietary",
+    "claude_5_proprietary",
+    "gemma4_31b_self_hosted",
+    "qwen3.6_72b_self_hosted",
+    "deepseek_v4_api",
+]
+let MODEL_ACC_TIER_x100  = [8500, 8500, 8500, 8500, 8500]   // same-acc-tier (ECONOMICS/N1 assumption)
+let MODEL_COST_M_x100    = [1500, 1200,   40,   80,   30]   // GPT-5 $15 … DeepSeek $0.30
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — route_cheapest_sufficient(acc_tiers, costs, min_acc_tier)
+//   → index of chosen model.  among models with acc_tier ≥ min_acc_tier, pick
+//   lowest cost (cheapest-sufficient). Ties broken by lowest index
+//   (deterministic). -1 if none qualify.
+// ────────────────────────────────────────────────────────────────────────
+
+fn route_cheapest_sufficient(acc_tiers: [int], costs: [int], min_acc_tier: int) -> int {
+    let n = acc_tiers.len()
+    let mut best = SENTINEL_NO_ROUTE
+    let mut best_cost = 0
+    let mut i = 0
+    while i < n {
+        if acc_tiers[i] >= min_acc_tier {
+            if best == SENTINEL_NO_ROUTE || costs[i] < best_cost {
+                best = i
+                best_cost = costs[i]
+            }
+        }
+        i = i + 1
+    }
+    return best
+}
+
+// Cost of the routed choice (or -1 if no route) — convenience for benefit calc.
+fn routed_cost(acc_tiers: [int], costs: [int], min_acc_tier: int) -> int {
+    let idx = route_cheapest_sufficient(acc_tiers, costs, min_acc_tier)
+    if idx == SENTINEL_NO_ROUTE { return SENTINEL_NO_ROUTE }
+    return costs[idx]
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Test cases — ECONOMICS/N1-consistent (50× spread · cheapest-sufficient)
+// ────────────────────────────────────────────────────────────────────────
+
+let CASE_DESC = [
+    "all-qualify (min 8000)",   // every model meets tier → cheapest = deepseek (30)
+    "exact-tier (min 8500)",    // all == 8500 → still cheapest = deepseek (30)
+    "above-all (min 9000)",     // no model meets → no route (-1)
+]
+let CASE_MIN_ACC = [8000, 8500, 9000]
+let CASE_EXPECT_IDX = [4, 4, SENTINEL_NO_ROUTE]   // index 4 = deepseek_v4_api · -1 = no route
+
+print("hexa-codex ENGINE L1 — ECONOMICS/N1 COST-PERFORMANCE → serving cost-aware router (cycle-10)")
+print("============================================================================================")
+print("")
+print("source finding: ECONOMICS/N1 cost spread = max×100/min = 1500×100/30 = 5000 (= 50.00× · GPT-5 $15 vs DeepSeek $0.30)")
+print("decision rule:  route_cheapest_sufficient(acc_tiers, costs, min_acc_tier) → cheapest model with acc_tier ≥ min_acc_tier")
+print("")
+
+let mut i = 0
+while i < CASE_DESC.len() {
+    let idx = route_cheapest_sufficient(MODEL_ACC_TIER_x100, MODEL_COST_M_x100, CASE_MIN_ACC[i])
+    let mut mark = "ok"
+    if idx != CASE_EXPECT_IDX[i] { mark = "MISMATCH" }
+    let mut chosen = "(no route)"
+    let mut chosen_cost = "n/a"
+    if idx != SENTINEL_NO_ROUTE {
+        chosen = MODEL_NAMES[idx]
+        chosen_cost = to_string(MODEL_COST_M_x100[idx])
+    }
+    print("  " + CASE_DESC[i] + " → route=" + to_string(idx) + " (" + chosen +
+          " · cost=" + chosen_cost + ") [expect idx " + to_string(CASE_EXPECT_IDX[i]) + " · " + mark + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_L1_COST_ROUTER__ DONE")

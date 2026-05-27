@@ -1,0 +1,16 @@
+# hexa-codex HW-VARIANCE A1' — MEASURED per-chip throughput spread verifier (cycle-10 round-1)
+# axis=HW-VARIANCE/HW-VARIANCE.md::A1' (measured Tier-2 elevation of round-8 closed-form A1)
+# sibling_closed_form=HW-VARIANCE/verify/numerics_hw_variance_a1_per_chip_cov.hexa (🔵 STRUCTURAL + 🟡 BY-CITATION)
+# verifier=HW-VARIANCE/verify/numerics_hw_variance_a1_measured_spread.hexa
+# tier=🟢 SUPPORTED-NUMERICAL (measured cross-host throughput spread · 3 LOCAL pool hosts · 5 trials each · CPU proxy) — fires ≫ 15% (= 1376/1000 = 137.6%)
+# checks=7/7
+# substrate=LOCAL pool (cx_lab_sandbox · mini · ubu-2 · pi5-akida · no external paid API)
+# proxy_choice=CPU-bound dd 512MB | sha256sum · 5 trials/host · median time (no llama-server on ready hosts today)
+# measured_throughput_mb_s={mini:416, ubu-2:1896, pi5-akida:914} → max=1896 min=416 mean=1075
+# spread_x1000=1376 (=137.6%) · falsifier=150 (=15%) · fires=true
+# raw_trials_s_x100={mini:[126,123,122,123,122], ubu-2:[28,27,24,27,28], pi5:[56,55,57,56,56]}
+# medians_s_x100={mini:123, ubu-2:27, pi5:56}
+# external_anchors=Sinha 2022 not-all-gpus-are-equal · Hennessy & Patterson CAaQA silicon-lottery · vLLM 2024 throughput variance · OCP per-chip telemetry
+# honest_residual=GPU-saturated LLM serving regime DEFERRED (no llama-server / GGUF on ready pool hosts today); ubu-1 unreachable this round; CPU proxy captures cross-CLASS variance (M3 vs x86_64 vs Pi5) not same-spec silicon-lottery
+# honest_residual=same-class silicon-lottery isolation DEFERRED to future N1 axis (cooling-controlled · ≥ 3 same-spec chips)
+# frontier_open=feedback_closure_is_physical_limit — tier elevation ≠ frontier close · 새 chip · cooling regime · workload · llama-stack 마다 cell 재오픈

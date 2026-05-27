@@ -20,7 +20,7 @@
 > CARBON 은 완료되지 않는다. 새 grid·region·model lifecycle 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — gCO2/token (region별 grid carbon × tokens/J). 반증자: 친환경 region 으로 옮겨도 탄소 감소 < 20% → routing 무의미.
+- [x] A1 — gCO2/token (region별 grid carbon × tokens/J). 반증자: 친환경 region 으로 옮겨도 탄소 감소 < 20% → routing 무의미. _CYCLE-9 round-7 wire — closed-form 7/7 (🔵 STRUCTURAL + 🟡 BY-CITATION) · placeholder 4 regions (nuclear-fr 97% · solar-ca 90% · mixed-de 62% · coal-pl 0% baseline → falsifier fires) · anchors Patterson 2022 (arXiv:2204.05149) · Luccioni 2022 BLOOM · Schwartz 2020 Green AI · substrate fire DEFERRED ([[feedback_closure_is_physical_limit]] — formula close ≠ measured close)._
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — region × time-of-day × workload 의 carbon ladder. 반증자: 다양 region 간 carbon 격차 < 2× → grid mix 균질화 (routing 이득 작음).

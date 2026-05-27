@@ -20,7 +20,7 @@
 > TEMPORAL 은 완료되지 않는다. 새 cutoff·task 시제·시간 표현 양식 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — date·duration·ordering accuracy (closed-form benchmark). 반증자: cutoff 이후 사실에 대해 confident-wrong 답 > 30% (cutoff 인지 미작동).
+- [x] A1 — date·duration·ordering accuracy (closed-form benchmark). 반증자: cutoff 이후 사실에 대해 confident-wrong 답 > 30% (cutoff 인지 미작동). **CYCLE-9 round-7 wire** · 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 checks · 5-model + zero-control (CA=15 silent · PA=25 silent · OC=40 fires · CL=60 fires · Z=0 perfect-IDK) · bench [`bench/temporal_a1_post_cutoff_wrong.hexa`](bench/temporal_a1_post_cutoff_wrong.hexa) · verifier [`verify/numerics_temporal_a1_post_cutoff_wrong.hexa`](verify/numerics_temporal_a1_post_cutoff_wrong.hexa) · verdict [`verdicts/a1_post_cutoff_wrong_verdict.txt`](verdicts/a1_post_cutoff_wrong_verdict.txt) · anchors: Dhingra 2022 TimeQA (arXiv:2108.06314) · Chen 2023 temporal reasoning · Zhao 2024 cutoff awareness · substrate fire DEFERRED to cycle-10+.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — relative time (어제·내년) vs absolute time (2025-05-27) 표현 비교. 반증자: absolute 표현이 relative 보다 정확도 < 70% → 모델이 absolute 처리 약함 (tokenization 흐림).

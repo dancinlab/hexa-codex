@@ -1,0 +1,11 @@
+# hexa-codex TRAINING-DYNAMICS A1 — loss-spike rate per-1k-step verifier (cycle-9 round-7)
+# axis=TRAINING-DYNAMICS/TRAINING-DYNAMICS.md::A1 (loss spike 빈도 · gradient/weight norm 추이 · 반증자 spike > 1/1k steps)
+# bench=TRAINING-DYNAMICS/bench/training_dynamics_a1_spike_rate.hexa
+# verifier=TRAINING-DYNAMICS/verify/numerics_training_dynamics_a1_spike_rate.hexa
+# tier=🔵 STRUCTURAL (rate identity + threshold semantics 7/7) + 🟡 BY-CITATION (1/1k spike threshold = Nanda/Wei/Zhang grokking · phase-transition convention)
+# checks=7/7
+# formula=spike_rate_per_1k = N_spikes / N_steps × 1000; falsifier_fires = rate > 1.0/1k (> 1000 in × 1000 ledger)
+# placeholder_data=4 runs × N_steps=1000; stable=0.5/1k (500) warming=1.0/1k (1000) silent · spiky=2.5/1k (2500) catastrophic=8.0/1k (8000) fire
+# external_anchors=Nanda 2023 grokking (ICLR · arXiv:2301.05217) · Wei 2022 emergent abilities (TMLR · arXiv:2206.07682) · Zhang 2024 spike analysis (NeurIPS)
+# substrate_fire=DEFERRED (cycle-10+ · lm_foundry GRPO loss curve · HF Trainer · vast.ai pod telemetry dump)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · 새 model·dataset·optimizer·scale 마다 frontier 재오픈

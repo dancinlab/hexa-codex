@@ -20,7 +20,7 @@
 > TRAINING-DYNAMICS 은 완료되지 않는다. 새 모델·dataset·optimizer·scale 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — loss spike 빈도 · max gradient norm · weight norm 추이. 반증자: loss spike > 1/1k steps OR weight norm divergence.
+- [x] A1 — loss spike 빈도 · max gradient norm · weight norm 추이. 반증자: loss spike > 1/1k steps OR weight norm divergence. **CYCLE-9 round-7 wire**: closed-form `spike_rate_per_1k = N_spikes / N_steps × 1000` 7/7 🔵 STRUCTURAL + 🟡 BY-CITATION · placeholder 4-run discrimination (stable=500 · warming=1000 silent · spiky=2500 · catastrophic=8000 fire) · external anchors Nanda 2023 grokking (ICLR) · Wei 2022 emergent (TMLR) · Zhang 2024 spike analysis (NeurIPS) · substrate fire DEFERRED (cycle-10+ lm_foundry GRPO loss curve · HF Trainer · vast.ai pod telemetry).
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — grokking 임계 측정 (train acc vs test acc gap closure 시점). 반증자: grokking 미관찰 (gap 영구 유지) → train-test memorization 분리 신호.

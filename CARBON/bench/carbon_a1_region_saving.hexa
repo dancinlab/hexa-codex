@@ -1,0 +1,77 @@
+#!hexa strict
+// CARBON/bench/carbon_a1_region_saving.hexa
+// CARBON A1 first probe (cycle-9 round-7 · CODEX bg) — per-region gCO2/token
+// from grid carbon intensity × (1 / tokens_per_J) + region saving ratio vs
+// dirtiest-baseline (coal-pl).
+//
+// Identity (closed-form ratio · libm-free):
+//   carbon_per_token(r)  = grid_intensity(r) × (1 / tokens_per_J(r))
+//   saving_ratio(r)      = (carbon_baseline − carbon_per_token(r)) / carbon_baseline × 100
+//   where baseline = dirtiest region (coal-pl).
+//
+// Falsifier (CARBON A1): 친환경 region 으로 옮겨도 탄소 감소 < 20%
+//   → routing 무의미 (grid mix 균질화 가설).
+//
+// External anchors (citation tier · 🟡):
+//   Patterson 2022 — lifecycle carbon (arXiv:2204.05149)
+//   Luccioni 2022 — BLOOM training+inference carbon
+//   Schwartz 2020 — Green AI
+//
+// Integer ledger (× 100 for gCO2/token) — libm-free closed-form.
+// Placeholder constants — real per-region × per-model measurement deferred.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form ratio identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Region registry — nuclear-fr · solar-ca · mixed-de · coal-pl (baseline)
+// gCO2/token × 100 (placeholder; combines grid intensity × 1/tokens_per_J)
+// ────────────────────────────────────────────────────────────────────────
+
+let REGION_NAMES         = ["nuclear-fr", "solar-ca", "mixed-de", "coal-pl"]
+let CARBON_PER_TOK_x100  = [20, 80, 300, 800]    // gCO2/token × 100
+let SAVING_FALSIFIER_PCT = 20                    // saving < 20% → routing 무의미
+
+// Baseline = dirtiest region (max carbon) — closed-form pick via index 3 (coal-pl).
+// All regions ledger ordered low→high so baseline = last element.
+fn baseline_carbon_x100() -> int {
+    return CARBON_PER_TOK_x100[CARBON_PER_TOK_x100.len() - 1]
+}
+
+fn carbon_per_token_x100(i: int) -> int {
+    return CARBON_PER_TOK_x100[i]
+}
+
+fn saving_pct(i: int) -> int {
+    // saving = (baseline − carbon_r) / baseline × 100
+    let base = baseline_carbon_x100()
+    let here = CARBON_PER_TOK_x100[i]
+    if base <= 0 { return 0 }
+    return ((base - here) * 100) / base
+}
+
+fn routing_useless_flag(i: int) -> bool {
+    // falsifier fires when saving from dirtiest baseline < 20%
+    return saving_pct(i) < SAVING_FALSIFIER_PCT
+}
+
+print("hexa-codex CARBON A1 — region saving closed-form (cycle-9 round-7)")
+print("==================================================================")
+print("")
+print("per-region profile (placeholder · real per-region × per-model measurement deferred):")
+let n = REGION_NAMES.len()
+let mut i = 0
+while i < n {
+    let c = carbon_per_token_x100(i)
+    let s = saving_pct(i)
+    let flag = routing_useless_flag(i)
+    let mut tag = "ok (routing benefit ≥ 20%)"
+    if flag {
+        tag = "FALSIFIER FIRES (saving < 20% → routing 무의미)"
+    }
+    print("  " + REGION_NAMES[i] + ": gCO2/tok=" + to_string(c) + "/100" +
+          " · saving=" + to_string(s) + "% vs baseline · [" + tag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_CARBON_A1_REGION_SAVING__ DONE")

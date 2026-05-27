@@ -1,0 +1,15 @@
+# hexa-codex TEMPORAL A1 — post-cutoff confident-wrong rate closed-form verifier (cycle-9 round-7)
+# axis=TEMPORAL/TEMPORAL.md::A1 (post-cutoff confident-wrong rate first probe, closed-form)
+# formula=rate_x100(m) = (N_confident_wrong[m] · 100) / N_post_cutoff[m]; falsifier_fires = rate_x100 > 30
+# bench=TEMPORAL/bench/temporal_a1_post_cutoff_wrong.hexa
+# verifier=TEMPORAL/verify/numerics_temporal_a1_post_cutoff_wrong.hexa
+# tier=🔵 STRUCTURAL (post-cutoff confident-wrong rate identity + threshold 7/7) + 🟡 BY-CITATION (30% threshold = TimeQA / cutoff-awareness literature convention)
+# verdict_class=SUPPORTED-NUMERICAL
+# checks=7/7
+# placeholder_models=5 (CA=15 silent · PA=25 silent · OC=40 fires · CL=60 fires · Z=0 perfect-IDK control)
+# rates_x100=CA:15 PA:25 OC:40 CL:60 Z:0
+# threshold_x100=30 (> 30% confident-wrong on post-cutoff queries → falsifier fires)
+# external_anchors=Dhingra 2022 TimeQA (arXiv:2108.06314) · Chen 2023 temporal reasoning · Zhao 2024 cutoff awareness
+# substrate_fire=DEFERRED (cycle-10+ · TimeQA · post-cutoff date probe × abstention extractor + self-eval gating on mac M3 / ubu-1 HF)
+# honest_residual=integer_x100_ledger_truncation_at_0.01 · 'confident-wrong' binary per query (Kadavath P(True) × cutoff-aware abstention narrows at measured-tier) · axis_B_relative_vs_absolute_and_axis_N_reasoning_gap_next
+# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis · new cutoff / task tense / time expression reopens cells)

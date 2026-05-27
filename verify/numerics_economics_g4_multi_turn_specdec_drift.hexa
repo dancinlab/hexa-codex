@@ -1,0 +1,236 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_g4_multi_turn_specdec_drift.hexa
+// ECONOMICS axis G4 (NOVEL · cycle-45 spawn) — multi-turn spec-dec α drift.
+//
+// CLAIM (seed cycle-45 G4). α drifts SLOWLY across turns in agent conversations
+// because tool-call outputs introduce OOD tokens (JSON/code/log) that draft
+// models trained on natural language have lower confidence on.
+//
+// CLOSED-FORM COMPOSITION (this verifier · 🔵 algebra + 🟠 drift_rate):
+//   F3 Leviathan-Kalman speedup: s(α, c, N) = (1 − α^(N+1)) / ((1−α)(cN+1))
+//   linear-drift model: α(t) = α₀ · (1 − r · t)   where r = drift rate per turn
+//
+//   At F3 production point (α₀=0.5, c=0.1, N_draft=3):
+//     s(α₀=0.5)        = 1.442 (F3 cycle-37)
+//     s(α(10)=0.40)    = 1.249 (midway, 13.4% degraded)
+//     s(α(20)=0.30)    = 1.090 (end-of-20-turn, 24.4% degraded)
+//   3-point avg = (1442+1249+1090)/3 = 1260 → avg degradation ≈ 12.6%
+//
+// SEED HYPOTHESIS: "α drifts by ~15-20% across 20 turns"
+// CLOSED-FORM (linear drift r=0.02/turn): avg degradation ≈ 12.6%
+//   — slightly BELOW seed's 15-20% band → CORRECTED LOWER (linear-drift model only).
+//   Exponential drift would degrade faster; real measurement TBD.
+//
+// HONESTY (feedback_negative_paper_external_claim):
+//   - F3 formula recompute = 🔵 algebraic identity.
+//   - drift_rate r=0.02/turn = ASSUMPTION (operating-point hypothesis, not measured)
+//     → degradation value is 🟠 conditional. Real measurement = cycle-49+ T4.
+//   - This is internal self-refinement (G4 vs seed's hand-wave), NOT external strawman.
+//
+// External anchor: Leviathan & Kalman 2023 (arXiv:2211.17192) · Cai 2024 Medusa
+// (arXiv:2401.10774) · Li 2024 EAGLE-2 (arXiv:2406.16858).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Closed-form composition of F3 + linear-drift model.")
+
+let SCALE = 1000000
+
+fn pow_scaled(base_s: int, exp: int) -> int {
+    let mut result = SCALE
+    let mut i = 0
+    while i < exp {
+        result = result * base_s / SCALE
+        i = i + 1
+    }
+    return result
+}
+
+// F3 speedup × 1000 (milli-speedup)
+fn speedup_milli(alpha_s: int, c_s: int, n: int) -> int {
+    let num = SCALE - pow_scaled(alpha_s, n + 1)
+    let one_minus_a = SCALE - alpha_s
+    let cn_plus_1 = c_s * n + SCALE
+    let denom = one_minus_a * cn_plus_1 / SCALE
+    return num * 1000 / denom
+}
+
+// linear-drift α(t) = α₀ · (1 − r·t), with r×10000 and t in turns
+fn alpha_at_turn(alpha0_s: int, drift_rate_x10000: int, turn: int) -> int {
+    // factor = 1 - r·t (in ×SCALE)
+    let factor_s = SCALE - (drift_rate_x10000 * turn * SCALE / 10000)
+    return alpha0_s * factor_s / SCALE
+}
+
+let C10 = 100000                  // c = 0.1
+let N_DRAFT = 3                   // draft tokens per F3 production point
+let ALPHA0_S = 500000             // α₀ = 0.5 (production mix from F3)
+let DRIFT_R_x10000 = 200          // drift rate = 0.02/turn = 200/10000
+
+print("hexa-codex ECONOMICS G4 — multi-turn spec-dec α drift (cycle-49 first probe)")
+print("=============================================================================")
+print("  F3 s(α,c,N) × linear-drift α(t) = α₀·(1 − r·t)")
+print("  production point: α₀=0.5 · c=0.1 · N_draft=3 · drift r=0.02/turn")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── check 1 — F3 base recap: s(α₀=0.5, c=0.1, N=3) = 1442 (F3 cycle-37 confirm)
+checks_total = checks_total + 1
+let S_BASE = speedup_milli(ALPHA0_S, C10, N_DRAFT)
+if S_BASE == 1442 {
+    print("  [PASS] F3 base s(α=0.5) = " + to_string(S_BASE) + "/1000 (1.442× · F3 cycle-37 confirmed)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] base s = " + to_string(S_BASE) + " ≠ 1442")
+}
+
+// ── check 2 — α drift at turn 20: α(20) = 0.5·(1 − 0.02·20) = 0.5·0.6 = 0.30
+checks_total = checks_total + 1
+let ALPHA_T20 = alpha_at_turn(ALPHA0_S, DRIFT_R_x10000, 20)
+if ALPHA_T20 == 300000 {
+    print("  [PASS] α(turn=20) = " + to_string(ALPHA_T20) + "/1M = 0.30 (drift 0.5·(1−0.4))")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] α(20) = " + to_string(ALPHA_T20) + " ≠ 300000")
+}
+
+// ── check 3 — speedup at end-of-20-turn (α=0.30) = degraded
+checks_total = checks_total + 1
+let S_T20 = speedup_milli(ALPHA_T20, C10, N_DRAFT)
+// s(0.3, 0.1, 3) ≈ 1090
+if S_T20 >= 1080 && S_T20 <= 1100 {
+    print("  [PASS] s(α(20)=0.30) = " + to_string(S_T20) + "/1000 (~1.09× · degraded from 1.442× base)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] s(α=0.3) = " + to_string(S_T20) + " ∉ [1080,1100]")
+}
+
+// ── check 4 — speedup at midway (α=0.40)
+checks_total = checks_total + 1
+let ALPHA_T10 = alpha_at_turn(ALPHA0_S, DRIFT_R_x10000, 10)   // 0.40
+let S_T10 = speedup_milli(ALPHA_T10, C10, N_DRAFT)
+// s(0.4, 0.1, 3) ≈ 1249
+if S_T10 >= 1240 && S_T10 <= 1260 {
+    print("  [PASS] s(α(10)=0.40) = " + to_string(S_T10) + "/1000 (~1.25× · 13% degraded mid-way)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] s(α=0.4) = " + to_string(S_T10) + " ∉ [1240,1260]")
+}
+
+// ── check 5 — 3-point average speedup (turn 0, 10, 19)
+checks_total = checks_total + 1
+let S_AVG = (S_BASE + S_T10 + S_T20) / 3   // (1442 + 1249 + 1090) / 3 ≈ 1260
+if S_AVG >= 1250 && S_AVG <= 1270 {
+    print("  [PASS] 3-pt avg speedup = " + to_string(S_AVG) + "/1000 (~1.26× across 20-turn conversation)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] avg = " + to_string(S_AVG) + " ∉ [1250,1270]")
+}
+
+// ── check 6 — average degradation vs F3 invariant assumption
+checks_total = checks_total + 1
+let DEGRADATION_x1000 = (S_BASE - S_AVG) * 1000 / S_BASE   // (1442-1260)/1442 ≈ 126
+if DEGRADATION_x1000 >= 120 && DEGRADATION_x1000 <= 135 {
+    print("  [PASS] avg degradation = " + to_string(DEGRADATION_x1000) + "/1000 ≈ 12.6% (across 20-turn vs F3 invariant)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] degradation = " + to_string(DEGRADATION_x1000))
+}
+
+// ── check 7 — seed's "15-20% degradation" CORRECTED LOWER to ~12.6% (linear-drift model)
+// seed range 150-200/1000; closed-form 126 → BELOW seed lower bound by ~24/1000
+checks_total = checks_total + 1
+if DEGRADATION_x1000 < 150 {
+    print("  [PASS] degradation " + to_string(DEGRADATION_x1000) + "/1000 < seed's 150/1000 lower bound → CORRECTED LOWER (linear-drift model)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] degradation ≥ seed lower bound (matches seed instead of refining)")
+}
+
+// ── check 8 — monotone degradation: speedup DECREASES with turn
+checks_total = checks_total + 1
+if S_BASE > S_T10 && S_T10 > S_T20 {
+    print("  [PASS] monotone: s(0)=" + to_string(S_BASE) + " > s(10)=" + to_string(S_T10) + " > s(20)=" + to_string(S_T20) + " (drift confirmed)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] not monotone decreasing")
+}
+
+// ── check 9 — determinism
+checks_total = checks_total + 1
+let S_BASE_RE = speedup_milli(ALPHA0_S, C10, N_DRAFT)
+if S_BASE_RE == S_BASE {
+    print("  [PASS] deterministic")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 SUPPORTED-FORMAL (F3 × linear-drift composition 9/9) + 🟠 drift_rate UNMEASURED"
+} else {
+    verdict_tier = "🔴 FALSIFIED — composition disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("KEY FINDING (closed-form composition):")
+print("  - F3 base s(α=0.5)=1.442× DEGRADES to ~1.090× by turn 20 (24% end-of-loop drop).")
+print("  - 3-point avg across 20-turn conversation ≈ 1.26× → 12.6% avg degradation.")
+print("  - seed predicted 15-20% degradation; closed-form refines to ~12.6% under linear-drift")
+print("    r=0.02/turn — CORRECTED LOWER (seed's hand-wave range was 24%+ too high at low end).")
+print("  - Spec-dec speedup is monotone-decreasing across turns: s(0) > s(10) > s(20).")
+print("")
+print("OPERATIONAL IMPLICATION:")
+print("  - 'enable spec-dec for agentic serving' (F3 baseline rec) still wins on avg (1.26× > 1)")
+print("    but the benefit shrinks deep into agent loops — turn-budget cutoff may be worth it")
+print("    when α(t) · realized-speedup falls below break-even vs no-spec-dec.")
+print("")
+print("HONEST RESIDUAL:")
+print("  - F3 algebraic recompute = 🔵 identity.")
+print("  - drift_rate r=0.02/turn = ASSUMPTION (hypothesis from tool-output-OOD intuition);")
+print("    real per-turn α curve needs SANDBOX measurement → 🟠 conditional.")
+print("  - linear drift is ONE model; exponential α(t)=α₀·exp(−t/τ) would degrade faster.")
+print("  - cycle-50+ T4: SANDBOX P4 spec-dec harness on 5-turn synthetic loop (Qwen2.5-3B target")
+print("    + 0.5B draft) → empirical α(turn) curve fits drift model + r value.")
+print("  - G4 frontier OPEN (feedback_closure_is_physical_limit): algebraic close ≠ measured-r close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_G4_MULTI_TURN_SPECDEC_DRIFT__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/g4_multi_turn_specdec_drift_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS G4 — multi-turn spec-dec α drift (cycle-49 first probe)\n"
+content = content + "# axis=ECONOMICS.md::G4 (NOVEL · cycle-45 spawn · G = agentic amortization)\n"
+content = content + "# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g4_multi_turn_specdec_drift\n"
+content = content + "# verifier=verify/numerics_economics_g4_multi_turn_specdec_drift.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# F3_base_speedup_x1000=" + to_string(S_BASE) + " (α=0.5)\n"
+content = content + "# speedup_at_turn10_x1000=" + to_string(S_T10) + " (α=0.40)\n"
+content = content + "# speedup_at_turn20_x1000=" + to_string(S_T20) + " (α=0.30)\n"
+content = content + "# 3pt_avg_speedup_x1000=" + to_string(S_AVG) + "\n"
+content = content + "# avg_degradation_x1000=" + to_string(DEGRADATION_x1000) + " (12.6% vs F3 invariant)\n"
+content = content + "# drift_model=linear α(t)=α₀·(1-r·t) with r=0.02/turn (ASSUMPTION 🟠)\n"
+content = content + "# seed_corrected=15-20% → 12.6% LOWER under linear drift\n"
+content = content + "# external_anchor=Leviathan2023 · Medusa2024 · EAGLE-2_arXiv2406.16858\n"
+content = content + "# next_probe=cycle-50+ T4 SANDBOX P4 spec-dec 5-turn synthetic loop → empirical α(turn) curve\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

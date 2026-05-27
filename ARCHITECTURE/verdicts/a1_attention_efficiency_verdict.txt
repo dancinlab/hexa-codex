@@ -1,0 +1,13 @@
+# hexa-codex ARCHITECTURE A1 — attention quality-per-FLOP verifier (orchestra Model Architecture 흡수 · cycle-10)
+# axis=ARCHITECTURE/ARCHITECTURE.md::A1 (attention 효율 · quality-per-FLOP · baseline MHA = 1.0×)
+# bench=ARCHITECTURE/bench/architecture_a1_attention_efficiency.hexa
+# verifier=ARCHITECTURE/verify/numerics_architecture_a1_attention_efficiency.hexa
+# tier=🔵 STRUCTURAL (quality-per-FLOP identity + baseline-1.0× threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · baseline-normalized efficiency convention · cite Vaswani 2017 MHA + Dao 2022 FlashAttention + Ainslie 2023 GQA + DeepSeek 2024 MLA)
+# checks=7/7
+# formula=efficiency_x100 = quality_v × 100 / flops_v (baseline MHA 대비 · = (quality_v × flops_mha × 100)/(quality_mha × flops_v)); falsifier_fires = efficiency < 100 (< 1.0× baseline · 설계 이득 없음)
+# placeholder_data=5 attention variants × {quality_x100, flops_x100} · mha (q80/f100% · 1.00× baseline silent) · flash_attn (q80/f60% · 1.66× silent) · gqa (q79/f70% · 1.41× silent) · mla (q81/f55% · 1.84× silent) · naive_variant (q78/f130% · 0.75× FIRES more-FLOP-no-Δquality control)
+# bidirectional_discrimination=4 silent (mha baseline · flash_attn · gqa · mla) + 1 fires (naive_variant) — falsifier 정확 발화 only on no-design-gain control
+# external_anchors=Vaswani 2017 MHA (arXiv:1706.03762) · Dao 2022 FlashAttention (arXiv:2205.14135) · Ainslie 2023 GQA (arXiv:2305.13245) · DeepSeek 2024 MLA (arXiv:2405.04434)
+# substrate_fire=DEFERRED (cycle-11+ · attention FLOP profiling + downstream quality on mac M3 llama-server + vast.ai pod · cx_lab_sandbox)
+# absorbed_from=orchestra-research 20-skill 'Model Architecture' lane (cycle-10 누락 흡수 · 신규 단독 도메인 ARCHITECTURE)
+# frontier_open=feedback_closure_is_physical_limit — efficiency identity close ≠ measured quality-per-FLOP close · 새 attention impl 마다 frontier 재오픈

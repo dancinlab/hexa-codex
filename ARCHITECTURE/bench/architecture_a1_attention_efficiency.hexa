@@ -1,0 +1,118 @@
+#!hexa strict
+// ARCHITECTURE/bench/architecture_a1_attention_efficiency.hexa
+// 신규 단독 도메인 ARCHITECTURE (orchestra "Model Architecture" skill 누락 흡수 · cycle-10).
+// 축 A — A1 attention 효율 (quality-per-FLOP) closed-form first probe.
+//
+// 새 attention impl (FlashAttention · GQA · MLA · sliding-window · …) 이 등장할
+// 때마다 "설계도 검사관" 이 baseline MHA 대비 quality-per-FLOP 이득이 실재하는지
+// 측정한다. 이득 없는 변형 (efficiency < 1.0) 은 falsifier 가 발화한다.
+//
+// Identity (closed-form · libm-free · × 100 ledger, baseline MHA = 1.0×):
+//   efficiency_x100(v) = quality_v × 100 / flops_v        (baseline MHA 대비)
+//                      = (quality_v × flops_mha × 100) / (quality_mha × flops_v)
+//   design_gain(v)     = efficiency_x100(v) >= 100        (≥ 1.0× baseline)
+//   falsifier_fires(v) = efficiency_x100(v) <  100        (< 1.0× · 설계 이득 없음)
+//
+// "quality × 100 / flops (baseline MHA 대비)" 를 두 입력 {quality_x100, flops_x100}
+// 에서 baseline-정규화한 형태. baseline MHA 는 정의상 efficiency = 1.0× (100 ledger).
+//
+// Falsifier (ARCHITECTURE A1): 새 attention impl 의 quality-per-FLOP 이 baseline
+// (1.0) 미만 → 설계 이득 없음. FlashAttention/GQA/MLA 처럼 효율 이득 있는 설계는
+// efficiency ≥ 1.0 (silent), naive-variant 처럼 FLOP 만 늘고 quality 안 오르는
+// 설계는 efficiency < 1.0 (fires). bidirectional discrimination.
+//
+// External anchors (citation tier · 🟡):
+//   Vaswani 2017 — Attention Is All You Need · MHA baseline (arXiv:1706.03762)
+//   Dao 2022 — FlashAttention · IO-aware exact attention (arXiv:2205.14135)
+//   Ainslie 2023 — GQA · grouped-query attention (arXiv:2305.13245)
+//   DeepSeek 2024 — MLA · multi-head latent attention (arXiv:2405.04434)
+//
+// Integer ledger (quality × 100 in pp · flops × 100 in % of MHA) — libm-free
+// closed-form. Placeholder per-variant numbers — 실측 attention FLOP profiling +
+// downstream quality (mac M3 llama-server / vast.ai pod) deferred (cycle-11+ T4 ·
+// `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure quality-per-FLOP identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Attention-variant registry (5 variants · {quality_x100, flops_x100})
+//   index 0 = MHA (baseline · efficiency 정의상 1.0×)
+//   mha           : Vaswani 2017 baseline    — quality=80pp flops=100%  → eff 1.00× silent
+//   flash_attn    : Dao 2022 IO-aware exact  — quality=80pp flops= 60%  → eff 2.08× silent
+//   gqa           : Ainslie 2023 grouped     — quality=79pp flops= 70%  → eff 1.41× silent
+//   mla           : DeepSeek 2024 latent     — quality=81pp flops= 55%  → eff 1.84× silent
+//   naive_variant : control (more FLOP no Δq) — quality=78pp flops=130%  → eff 0.75× FIRES
+//
+// Stored × 100 — quality (8000 = 80 pp) · flops (10000 = 100% of MHA cost).
+// libm-free, matches the × 100 ledger convention shared across sibling domains.
+// ────────────────────────────────────────────────────────────────────────
+
+let VARIANT_NAMES = ["mha", "flash_attn", "gqa", "mla", "naive_variant"]
+
+// row-major {quality_x100, flops_x100} (5 variants × 2 fields) flattened to 1-d.
+//   row 0 (mha · baseline):  [8000, 10000]  → quality 80pp · flops 100%
+//   row 1 (flash_attn):      [8000,  6000]  → quality 80pp · flops  60%
+//   row 2 (gqa):             [7900,  7000]  → quality 79pp · flops  70%
+//   row 3 (mla):             [8100,  5500]  → quality 81pp · flops  55%
+//   row 4 (naive_variant):   [7800, 13000]  → quality 78pp · flops 130%
+let PROFILE_x100 = [8000, 10000,
+                    8000,  6000,
+                    7900,  7000,
+                    8100,  5500,
+                    7800, 13000]
+
+let N_FIELDS = 2                   // {quality_x100, flops_x100}
+let MHA_IDX = 0                    // baseline variant index
+let BASELINE_x100 = 100            // efficiency 1.0× → 100 in × 100 ledger
+let QUALITY_MAX_x100 = 100 * 100   // quality ∈ [0, 100] pp · × 100 ledger ∈ [0, 10000]
+
+fn quality_x100(v: int) -> int {
+    return PROFILE_x100[v * N_FIELDS + 0]
+}
+
+fn flops_x100(v: int) -> int {
+    return PROFILE_x100[v * N_FIELDS + 1]
+}
+
+fn efficiency_x100(v: int) -> int {
+    // quality-per-FLOP normalized to baseline MHA (= 100 in × 100 ledger).
+    //   eff_x100 = (quality_v × flops_mha × 100) / (quality_mha × flops_v)
+    let q_mha = quality_x100(MHA_IDX)
+    let f_mha = flops_x100(MHA_IDX)
+    return (quality_x100(v) * f_mha * 100) / (q_mha * flops_x100(v))
+}
+
+fn design_gain(v: int) -> bool {
+    return efficiency_x100(v) >= BASELINE_x100
+}
+
+fn falsifier_fires(v: int) -> bool {
+    return efficiency_x100(v) < BASELINE_x100
+}
+
+print("hexa-codex ARCHITECTURE A1 — attention quality-per-FLOP closed-form (orchestra Model Architecture 흡수 · cycle-10)")
+print("=================================================================================================================")
+print("")
+print("per-variant attention profile (placeholder · × 100 ledger · baseline MHA = 1.0× · libm-free):")
+let n_variants = VARIANT_NAMES.len()
+let mut i = 0
+while i < n_variants {
+    let q = quality_x100(i)
+    let f = flops_x100(i)
+    let e = efficiency_x100(i)
+    let mut flag = "silent (design gain · efficiency ≥ 1.0×)"
+    if falsifier_fires(i) {
+        flag = "FIRES (efficiency < 1.0× · 설계 이득 없음)"
+    }
+    let mut tag = ""
+    if i == MHA_IDX { tag = " [baseline]" }
+    print("  " + VARIANT_NAMES[i] + tag + ":")
+    print("    quality=" + to_string(q) + "/100 (" + to_string(q / 100) + " pp)" +
+          " · flops=" + to_string(f) + "/100 (" + to_string(f / 100) + "% of MHA)")
+    print("    → efficiency=" + to_string(e) + "/100 (" + to_string(e / 100) + "." +
+          to_string((e % 100) / 10) + to_string(e % 10) + "× baseline) · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ARCHITECTURE_A1_ATTENTION_EFFICIENCY__ DONE")

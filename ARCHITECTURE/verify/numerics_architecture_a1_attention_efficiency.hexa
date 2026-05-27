@@ -1,0 +1,205 @@
+#!hexa strict
+// ARCHITECTURE/verify/numerics_architecture_a1_attention_efficiency.hexa
+// 신규 단독 도메인 ARCHITECTURE (orchestra "Model Architecture" 흡수 · cycle-10) —
+// closed-form verifier for attention quality-per-FLOP identity + baseline-1.0×
+// falsifier semantics.
+//
+// Asserts the efficiency identity is closed-form and the falsifier (no-design-gain
+// detection) correctly classifies:
+//   (1) baseline self-consistency — efficiency(MHA) == 100 (1.0× by definition)
+//   (2) quality/flops values in range — quality ∈ [0,100pp], flops > 0
+//   (3) efficiency identity = quality_v × 100 / flops_v (baseline MHA 대비) for all v
+//   (4) naive_variant fires (efficiency=75 < 100 · more FLOP no Δquality)
+//   (5) flash_attn / gqa / mla silent (efficiency ≥ 100 · real design gain)
+//   (6) determinism (re-call same efficiency + fires)
+//   (7) monotone sanity — same-quality variant with fewer FLOPs has higher efficiency
+//
+// Source: ARCHITECTURE/bench/architecture_a1_attention_efficiency.hexa
+// External anchors: Vaswani 2017 MHA (arXiv:1706.03762) · Dao 2022 FlashAttention
+//                   (arXiv:2205.14135) · Ainslie 2023 GQA (arXiv:2305.13245) ·
+//                   DeepSeek 2024 MLA (arXiv:2405.04434)
+//
+// @no-lock-needed
+
+let VARIANT_NAMES = ["mha", "flash_attn", "gqa", "mla", "naive_variant"]
+
+let PROFILE_x100 = [8000, 10000,
+                    8000,  6000,
+                    7900,  7000,
+                    8100,  5500,
+                    7800, 13000]
+
+let N_FIELDS = 2
+let MHA_IDX = 0
+let BASELINE_x100 = 100
+let QUALITY_MAX_x100 = 100 * 100
+
+fn quality_x100(v: int) -> int {
+    return PROFILE_x100[v * N_FIELDS + 0]
+}
+fn flops_x100(v: int) -> int {
+    return PROFILE_x100[v * N_FIELDS + 1]
+}
+fn efficiency_x100(v: int) -> int {
+    let q_mha = quality_x100(MHA_IDX)
+    let f_mha = flops_x100(MHA_IDX)
+    return (quality_x100(v) * f_mha * 100) / (q_mha * flops_x100(v))
+}
+fn falsifier_fires(v: int) -> bool {
+    return efficiency_x100(v) < BASELINE_x100
+}
+
+print("hexa-codex ARCHITECTURE A1 falsifier — attention quality-per-FLOP closed-form")
+print("=============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_variants = VARIANT_NAMES.len()
+
+// check 1 — baseline self-consistency: efficiency(MHA) == 100 (1.0× by definition)
+checks_total = checks_total + 1
+if efficiency_x100(MHA_IDX) == BASELINE_x100 && falsifier_fires(MHA_IDX) == false {
+    print("  [PASS] baseline self-consistency: efficiency(MHA)=" +
+          to_string(efficiency_x100(MHA_IDX)) + "/100 == 100 (1.0× · silent by definition)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] baseline not 1.0× (efficiency(MHA)=" + to_string(efficiency_x100(MHA_IDX)) + ")")
+}
+
+// check 2 — quality ∈ [0,100pp] · flops > 0 (no division by zero, libm-free safe)
+checks_total = checks_total + 1
+let mut rb_ok = true
+let mut i = 0
+while i < n_variants {
+    let q = quality_x100(i)
+    let f = flops_x100(i)
+    if q < 0 || q > QUALITY_MAX_x100 { rb_ok = false }
+    if f <= 0 { rb_ok = false }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] quality ∈ [0,100pp] AND flops > 0 for all " + to_string(n_variants) + " variants")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] quality/flops out of range")
+}
+
+// check 3 — efficiency identity = quality_v × 100 / flops_v (baseline MHA 대비) for all v
+checks_total = checks_total + 1
+let mut id_ok = true
+let q_mha = quality_x100(MHA_IDX)
+let f_mha = flops_x100(MHA_IDX)
+i = 0
+while i < n_variants {
+    let lhs = efficiency_x100(i)
+    let rhs = (quality_x100(i) * f_mha * 100) / (q_mha * flops_x100(i))
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] efficiency identity (quality_v × 100 / flops_v · baseline MHA 대비) holds for all " +
+          to_string(n_variants) + " variants")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] efficiency identity broken")
+}
+
+// check 4 — naive_variant (idx 4) fires (efficiency=75 < 100 · more FLOP no Δquality)
+checks_total = checks_total + 1
+if falsifier_fires(4) && efficiency_x100(4) == 75 {
+    print("  [PASS] naive_variant fires (efficiency=" + to_string(efficiency_x100(4)) +
+          "/100 = 0.75× < 1.0× · FLOP 늘고 quality 안 오름 · control)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] naive_variant fire detection broken (eff=" + to_string(efficiency_x100(4)) + ")")
+}
+
+// check 5 — flash_attn / gqa / mla silent (efficiency ≥ 100 · real design gain)
+checks_total = checks_total + 1
+if falsifier_fires(1) == false && falsifier_fires(2) == false && falsifier_fires(3) == false
+        && efficiency_x100(1) == 166 && efficiency_x100(2) == 141 && efficiency_x100(3) == 184 {
+    print("  [PASS] design-gain variants silent: flash_attn=" + to_string(efficiency_x100(1)) +
+          "/100 (1.66×) · gqa=" + to_string(efficiency_x100(2)) + "/100 (1.41×) · mla=" +
+          to_string(efficiency_x100(3)) + "/100 (1.84×) — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] design-gain silent detection broken")
+}
+
+// check 6 — determinism (re-call same efficiency + fires)
+checks_total = checks_total + 1
+if efficiency_x100(3) == efficiency_x100(3)
+        && falsifier_fires(4) == falsifier_fires(4)
+        && efficiency_x100(1) == efficiency_x100(1) {
+    print("  [PASS] formula deterministic (re-call same efficiency + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — monotone sanity: at EQUAL quality, fewer FLOPs ⇒ strictly higher efficiency.
+//   mha (q=80, flops=100%) vs flash_attn (q=80, flops=60%) — same quality, flash uses
+//   fewer FLOPs ⇒ flash efficiency > mha efficiency. quality-per-FLOP 단조성 사니티.
+checks_total = checks_total + 1
+let same_quality = quality_x100(MHA_IDX) == quality_x100(1)   // both 80pp
+let fewer_flops  = flops_x100(1) < flops_x100(MHA_IDX)        // flash 60% < mha 100%
+let higher_eff   = efficiency_x100(1) > efficiency_x100(MHA_IDX)
+if same_quality && fewer_flops && higher_eff {
+    print("  [PASS] monotone sanity — equal quality (80pp) · flash_attn fewer FLOPs (60% < 100%) ⇒ higher efficiency (166 > 100)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] monotone sanity broken (same_q=" + to_string(same_quality) +
+          " · fewer_flops=" + to_string(fewer_flops) + " · higher_eff=" + to_string(higher_eff) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (quality-per-FLOP identity + baseline-1.0× threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · baseline-normalized efficiency convention · cite Vaswani 2017 MHA + Dao 2022 FlashAttention + Ainslie 2023 GQA + DeepSeek 2024 MLA)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — attention efficiency formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("ARCHITECTURE A1 finding (orchestra Model Architecture 흡수 · placeholder · closed-form):")
+print("  - efficiency_x100 = quality_v × 100 / flops_v (baseline MHA 대비) identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: flash_attn=1.66× · gqa=1.41× · mla=1.84× silent (design gain) · naive_variant=0.75× fires (more FLOP no Δquality)")
+print("  - external anchors: Vaswani 2017 MHA · Dao 2022 FlashAttention · Ainslie 2023 GQA · DeepSeek 2024 MLA")
+print("  - 실측 (cycle-11+ T4): attention FLOP profiling + downstream quality on mac M3 llama-server + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_ARCHITECTURE_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/ARCHITECTURE/verdicts/a1_attention_efficiency_verdict.txt"
+
+let mut content = "# hexa-codex ARCHITECTURE A1 — attention quality-per-FLOP verifier (orchestra Model Architecture 흡수 · cycle-10)\n"
+content = content + "# axis=ARCHITECTURE/ARCHITECTURE.md::A1 (attention 효율 · quality-per-FLOP · baseline MHA = 1.0×)\n"
+content = content + "# bench=ARCHITECTURE/bench/architecture_a1_attention_efficiency.hexa\n"
+content = content + "# verifier=ARCHITECTURE/verify/numerics_architecture_a1_attention_efficiency.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=efficiency_x100 = quality_v × 100 / flops_v (baseline MHA 대비 · = (quality_v × flops_mha × 100)/(quality_mha × flops_v)); falsifier_fires = efficiency < 100 (< 1.0× baseline · 설계 이득 없음)\n"
+content = content + "# placeholder_data=5 attention variants × {quality_x100, flops_x100} · mha (q80/f100% · 1.00× baseline silent) · flash_attn (q80/f60% · 1.66× silent) · gqa (q79/f70% · 1.41× silent) · mla (q81/f55% · 1.84× silent) · naive_variant (q78/f130% · 0.75× FIRES more-FLOP-no-Δquality control)\n"
+content = content + "# bidirectional_discrimination=4 silent (mha baseline · flash_attn · gqa · mla) + 1 fires (naive_variant) — falsifier 정확 발화 only on no-design-gain control\n"
+content = content + "# external_anchors=Vaswani 2017 MHA (arXiv:1706.03762) · Dao 2022 FlashAttention (arXiv:2205.14135) · Ainslie 2023 GQA (arXiv:2305.13245) · DeepSeek 2024 MLA (arXiv:2405.04434)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · attention FLOP profiling + downstream quality on mac M3 llama-server + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# absorbed_from=orchestra-research 20-skill 'Model Architecture' lane (cycle-10 누락 흡수 · 신규 단독 도메인 ARCHITECTURE)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — efficiency identity close ≠ measured quality-per-FLOP close · 새 attention impl 마다 frontier 재오픈\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

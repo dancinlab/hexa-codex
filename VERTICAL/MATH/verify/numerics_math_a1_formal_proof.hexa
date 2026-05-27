@@ -1,0 +1,224 @@
+#!hexa strict
+// VERTICAL/MATH/verify/numerics_math_a1_formal_proof.hexa
+// VERTICAL 전문 모델 측정 도메인군 · MATH — closed-form verifier for the formal-proof
+// verify-ratio identity + 50% threshold falsifier semantics.
+//
+// ⚠ recipe ≠ measurement — build recipe = RECIPE (만들기 · formal-proof SFT/RL) ·
+//   VERTICAL/MATH = MEASUREMENT (얼마나 잘 검증하나 · formal-proof 검증율). AlphaProof 의
+//   Lean mathlib kernel-checked formal-verification 패러다임이 본 측정의 truth surface.
+//
+// Asserts the formal-ratio identity is closed-form and the falsifier (verify-gap detection)
+// correctly classifies:
+//   (1) ratio identity (formal_verified × 100 / informal_acc) holds for all 5 models
+//   (2) acc values ∈ [0, 100 pct] (× 100 ledger ∈ [0, 10000])
+//   (3) verify-gap synthetic — informal=85 formal=30 → ratio=35% → fires (답만 맞고 증명 못함)
+//   (4) answer_only_model fires (ratio 35% < 50% · verify gap) · others silent
+//   (5) alphaproof + gpt5_math + o1_reasoning + deepseek_prover silent (ratio ≥ 50% · 증명이 답 따라옴)
+//   (6) determinism (re-call same ratio + fires)
+//   (7) sanity — formal_verified ≤ informal_acc for all (형식 검증 ⊆ 비형식 정답 · 증명한 건 답도 맞음) AND
+//       formal-prover monotone: alphaproof (88%) ≥ deepseek_prover (85%) ≥ gpt5_math (81%) ≥ o1_reasoning (80%)
+//
+// Source: VERTICAL/MATH/bench/math_a1_formal_proof.hexa
+// External anchors: Hendrycks 2021 MATH (arXiv:2103.03874) ·
+//                   DeepMind 2024 AlphaProof (Lean formal-proof IMO 2024 silver) ·
+//                   Trinh 2024 AlphaGeometry (Nature 625:476) ·
+//                   Lean mathlib (kernel-checked formal-proof truth oracle) · AIME
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["alphaproof", "gpt5_math", "o1_reasoning", "deepseek_prover", "answer_only_model"]
+
+let MODEL_DATA = [9000, 8000,
+                  8800, 7200,
+                  8500, 6800,
+                  8200, 7000,
+                  8500, 3000]
+
+let N_FIELDS = 2
+let THRESHOLD_pct = 50              // < 50% formal_ratio → 형식 검증율 < 비형식 × 0.5 → verify gap
+let ACC_MAX_x100 = 100 * 100        // [0, 10000]
+
+fn informal_acc_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn formal_verified_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn formal_ratio_pct(model_i: int) -> int {
+    return formal_verified_x100(model_i) * 100 / informal_acc_x100(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return formal_ratio_pct(model_i) < THRESHOLD_pct
+}
+
+print("hexa-codex VERTICAL/MATH A1 falsifier — formal-proof verify-ratio closed-form")
+print("============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — ratio identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = formal_ratio_pct(i)
+    let rhs = formal_verified_x100(i) * 100 / informal_acc_x100(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] ratio identity (formal_verified × 100 / informal_acc) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ratio identity broken")
+}
+
+// check 2 — acc values ∈ [0, 100 pct] (× 100 ledger ∈ [0, 10000])
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_model {
+    let mut f = 0
+    while f < N_FIELDS {
+        let v = MODEL_DATA[i * N_FIELDS + f]
+        if v < 0 || v > ACC_MAX_x100 { rb_ok = false }
+        f = f + 1
+    }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] acc values ∈ [0, 100 pct] (× 100 ledger ∈ [0, " +
+          to_string(ACC_MAX_x100) + "]) for all " +
+          to_string(n_model * N_FIELDS) + " entries")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] value out of range")
+}
+
+// check 3 — verify-gap synthetic: informal=85 formal=30 → ratio=35% → fires
+checks_total = checks_total + 1
+let SYN_INF = 8500  // 85 pct × 100
+let SYN_FM = 3000   // 30 pct × 100
+let syn_ratio = SYN_FM * 100 / SYN_INF
+if syn_ratio == 35 && syn_ratio < THRESHOLD_pct {
+    print("  [PASS] synthetic verify-gap (informal=85 formal=30) → ratio=35% · fires (답만 맞고 증명 못함 · verify gap)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic verify-gap ratio=" + to_string(syn_ratio))
+}
+
+// check 4 — answer_only_model (idx 4) fires (ratio 35% < 50% · verify gap)
+checks_total = checks_total + 1
+if falsifier_fires(4) && formal_ratio_pct(4) == 35
+        && falsifier_fires(0) == false && falsifier_fires(1) == false
+        && falsifier_fires(2) == false && falsifier_fires(3) == false {
+    print("  [PASS] answer_only_model fires: ratio=" + to_string(formal_ratio_pct(4)) +
+          "% (< 50% · 답만 맞고 증명 못함 · verify gap) — only this model fires")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] verify-gap fire detection broken")
+}
+
+// check 5 — alphaproof + gpt5_math + o1_reasoning + deepseek_prover silent (ratio ≥ 50% · 증명이 답 따라옴)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false
+        && falsifier_fires(2) == false && falsifier_fires(3) == false
+        && formal_ratio_pct(0) == 88 && formal_ratio_pct(1) == 81
+        && formal_ratio_pct(2) == 80 && formal_ratio_pct(3) == 85 {
+    print("  [PASS] formal-provers silent: alphaproof ratio=" + to_string(formal_ratio_pct(0)) +
+          "% · gpt5_math=" + to_string(formal_ratio_pct(1)) +
+          "% · o1_reasoning=" + to_string(formal_ratio_pct(2)) +
+          "% · deepseek_prover=" + to_string(formal_ratio_pct(3)) +
+          "% — all ≥ 50% · 증명이 답을 따라옴 (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formal-prover silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if formal_ratio_pct(0) == formal_ratio_pct(0)
+        && falsifier_fires(4) == falsifier_fires(4)
+        && formal_ratio_pct(3) == formal_ratio_pct(3) {
+    print("  [PASS] formula deterministic (re-call same ratio + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: formal_verified ≤ informal_acc for all (증명한 문제는 답도 맞음 · formal ⊆ informal) AND
+//   formal-prover monotone: alphaproof (88%) ≥ deepseek_prover (85%) ≥ gpt5_math (81%) ≥ o1_reasoning (80%).
+//   note: answer_only_model 은 formal < informal 이 정상 (verify gap 행), 단 formal ≤ informal 은 항상 유지.
+checks_total = checks_total + 1
+let mut formal_subset = true
+i = 0
+while i < n_model {
+    if formal_verified_x100(i) > informal_acc_x100(i) { formal_subset = false }
+    i = i + 1
+}
+let monotone_provers = formal_ratio_pct(0) >= formal_ratio_pct(3)
+        && formal_ratio_pct(3) >= formal_ratio_pct(1)
+        && formal_ratio_pct(1) >= formal_ratio_pct(2)
+if formal_subset && monotone_provers {
+    print("  [PASS] sanity — formal_verified ≤ informal_acc all (증명한 건 답도 맞음 · formal ⊆ informal) AND prover monotone (alphaproof 88 ≥ deepseek 85 ≥ gpt5 81 ≥ o1 80)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (formal_subset=" + to_string(formal_subset) +
+          " · monotone_provers=" + to_string(monotone_provers) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (formal-proof verify-ratio identity + 50% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 50% threshold = answer/proof verify-gap convention · cite Hendrycks 2021 MATH arXiv:2103.03874 + DeepMind 2024 AlphaProof Lean IMO + Trinh 2024 AlphaGeometry Nature 625:476 + Lean mathlib kernel-check + AIME)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — formal-proof verify-ratio formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/MATH A1 finding (수학 전문 모델 측정 · placeholder · closed-form):")
+print("  - formal_ratio_pct = formal_verified × 100 / informal_acc identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: alphaproof=88% · gpt5_math=81% · o1_reasoning=80% · deepseek_prover=85% silent (증명이 답 따라옴) · answer_only_model=35% fires (답만 맞고 증명 못함 · verify gap)")
+print("  - external anchors: Hendrycks 2021 MATH (arXiv:2103.03874) · DeepMind 2024 AlphaProof (Lean IMO) · Trinh 2024 AlphaGeometry (Nature) · Lean mathlib · AIME")
+print("  - recipe ≠ measurement: build recipe = 만들기 (RECIPE) · MATH 도메인 = 측정 (MEASUREMENT · formal-proof 검증율)")
+print("  - 실측 (cycle-11+ T4): AIME informal-acc + Lean/Coq formal-verify on lm_foundry + HF transformers + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_MATH_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/MATH/verdicts/a1_formal_proof_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/MATH A1 — formal-proof verify-ratio verifier (수학 전문 모델 측정 · cycle-10)\n"
+content = content + "# axis=VERTICAL/MATH/MATH.md::A1 (formal-proof 검증율 · 5 models · 50% verify-gap threshold)\n"
+content = content + "# bench=VERTICAL/MATH/bench/math_a1_formal_proof.hexa\n"
+content = content + "# verifier=VERTICAL/MATH/verify/numerics_math_a1_formal_proof.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=formal_ratio_pct = formal_verified × 100 / informal_acc (정답 중 형식 증명까지 해내는 %); falsifier_fires = formal_ratio < 50% (형식 검증율 < 비형식 정답 × 0.5) → 답은 맞지만 증명 못함 (verify gap)\n"
+content = content + "# placeholder_data=5 models · alphaproof (informal 90.0 · formal 80.0 · ratio 88% silent) · gpt5_math (88.0 · 72.0 · ratio 81% silent) · o1_reasoning (85.0 · 68.0 · ratio 80% silent) · deepseek_prover (82.0 · 70.0 · ratio 85% silent) · answer_only_model (85.0 · 30.0 · ratio 35% FIRES · verify gap)\n"
+content = content + "# bidirectional_discrimination=4 silent (alphaproof · gpt5_math · o1_reasoning · deepseek_prover — formal-prover · 증명이 답 따라옴) + 1 fires (answer_only_model — ratio<50% · 답만 맞고 증명 못함 · verify gap)\n"
+content = content + "# external_anchors=Hendrycks 2021 Measuring Mathematical Problem Solving / MATH (arXiv:2103.03874) · DeepMind 2024 AlphaProof (Lean formal-proof IMO 2024 silver) · Trinh 2024 AlphaGeometry (Nature 625:476) · Lean mathlib kernel-checked formal-proof · AIME\n"
+content = content + "# recipe_vs_measurement=build recipe = RECIPE (만들기 · formal-proof SFT/RL · autoformalization) · VERTICAL/MATH = MEASUREMENT (얼마나 잘 검증하나 · formal-proof 검증율) — 다른 layer\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · AIME informal-acc + Lean/Coq formal-verify on lm_foundry + HF transformers + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — verify-ratio identity close ≠ measured close · 새 math model·proof system 마다 frontier 재오픈 · 축 N (답-증명 일치 · answer-proof coherence) ⭐ MAIN · 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

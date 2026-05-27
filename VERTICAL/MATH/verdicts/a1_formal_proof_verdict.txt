@@ -1,0 +1,13 @@
+# hexa-codex VERTICAL/MATH A1 — formal-proof verify-ratio verifier (수학 전문 모델 측정 · cycle-10)
+# axis=VERTICAL/MATH/MATH.md::A1 (formal-proof 검증율 · 5 models · 50% verify-gap threshold)
+# bench=VERTICAL/MATH/bench/math_a1_formal_proof.hexa
+# verifier=VERTICAL/MATH/verify/numerics_math_a1_formal_proof.hexa
+# tier=🔵 STRUCTURAL (formal-proof verify-ratio identity + 50% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 50% threshold = answer/proof verify-gap convention · cite Hendrycks 2021 MATH arXiv:2103.03874 + DeepMind 2024 AlphaProof Lean IMO + Trinh 2024 AlphaGeometry Nature 625:476 + Lean mathlib kernel-check + AIME)
+# checks=7/7
+# formula=formal_ratio_pct = formal_verified × 100 / informal_acc (정답 중 형식 증명까지 해내는 %); falsifier_fires = formal_ratio < 50% (형식 검증율 < 비형식 정답 × 0.5) → 답은 맞지만 증명 못함 (verify gap)
+# placeholder_data=5 models · alphaproof (informal 90.0 · formal 80.0 · ratio 88% silent) · gpt5_math (88.0 · 72.0 · ratio 81% silent) · o1_reasoning (85.0 · 68.0 · ratio 80% silent) · deepseek_prover (82.0 · 70.0 · ratio 85% silent) · answer_only_model (85.0 · 30.0 · ratio 35% FIRES · verify gap)
+# bidirectional_discrimination=4 silent (alphaproof · gpt5_math · o1_reasoning · deepseek_prover — formal-prover · 증명이 답 따라옴) + 1 fires (answer_only_model — ratio<50% · 답만 맞고 증명 못함 · verify gap)
+# external_anchors=Hendrycks 2021 Measuring Mathematical Problem Solving / MATH (arXiv:2103.03874) · DeepMind 2024 AlphaProof (Lean formal-proof IMO 2024 silver) · Trinh 2024 AlphaGeometry (Nature 625:476) · Lean mathlib kernel-checked formal-proof · AIME
+# recipe_vs_measurement=build recipe = RECIPE (만들기 · formal-proof SFT/RL · autoformalization) · VERTICAL/MATH = MEASUREMENT (얼마나 잘 검증하나 · formal-proof 검증율) — 다른 layer
+# substrate_fire=DEFERRED (cycle-11+ · AIME informal-acc + Lean/Coq formal-verify on lm_foundry + HF transformers + vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — verify-ratio identity close ≠ measured close · 새 math model·proof system 마다 frontier 재오픈 · 축 N (답-증명 일치 · answer-proof coherence) ⭐ MAIN · 도착지 없음

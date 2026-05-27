@@ -1,0 +1,117 @@
+#!hexa strict
+// VERTICAL/MATH/bench/math_a1_formal_proof.hexa
+// VERTICAL 전문 모델 측정 도메인군 · MATH (수학 전문 모델) — closed-form first probe.
+// "수학 모델이 비형식 답(AIME 정답)을 맞히는 것과, 그 답을 Lean/Coq 형식 증명으로
+//  실제 검증해내는 것 사이의 gap (verify gap)" 의 측정.
+//
+// ⚠ recipe ≠ measurement — 다른 layer:
+//   (build recipe) = 어떻게 수학 모델을 만드나 (formal-proof SFT/RL · autoformalization corpus)
+//   VERTICAL/MATH 도메인 = MEASUREMENT (얼마나 잘 검증하나 · formal-proof 검증율)
+// AlphaProof 의 formal-verification 패러다임 (Lean mathlib kernel-checked proof) 가 본 측정의 truth surface.
+//
+// Identity (closed-form · libm-free · percentage ledger):
+//   formal_ratio_pct(model) = formal_verified_x100 × 100 / informal_acc_x100
+//                           = (형식 검증율) / (비형식 정답률) × 100
+//                           → "맞힌 답 중 몇 % 를 형식 증명까지 해내는가"
+//   verify_gap_ok(model)    = formal_ratio_pct ≥ THRESHOLD_pct (50%)
+//   falsifier_fires(model)  = formal_ratio_pct <  THRESHOLD_pct
+//                             → 형식 검증율 < 비형식 정답 × 0.5
+//                             → 답은 맞지만 증명 못함 (verify gap · answer ≠ proof)
+//
+// Falsifier (MATH A1): 형식 검증율이 비형식 정답률의 절반 미만이면 (formal_ratio < 50%)
+// 그 모델은 "답만 맞고 증명은 못하는" verify gap 을 가짐. 진짜 formal-prover 는 silent
+// (검증율이 정답률 따라옴) · answer-only 모델은 fires (답은 맞지만 형식 증명 붕괴).
+//
+// External anchors (citation tier · 🟡):
+//   Hendrycks 2021 — Measuring Mathematical Problem Solving (MATH dataset · arXiv:2103.03874)
+//   DeepMind 2024  — AlphaProof: Lean formal-proof silver-medal IMO 2024
+//   Trinh 2024     — AlphaGeometry: Olympiad geometry without human demonstrations (Nature 625:476)
+//   Lean mathlib   — kernel-checked formal-proof library (the formal-verification truth oracle)
+//   AIME           — American Invitational Mathematics Examination (비형식 정답 surface)
+//
+// Integer ledger (pct × 100) — libm-free closed-form. Placeholder per-model
+// {informal_acc, formal_verified} — 실측 AIME + Lean/Coq formal-verify eval deferred
+// (cycle-11+ T4 · HF transformers infer + Lean mathlib kernel check · vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure formal-proof verify-ratio identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 models · {informal_acc_x100, formal_verified_x100} · pct × 100)
+//   alphaproof        : informal 90.0 · formal 80.0 (ratio 88% · Lean formal SOTA · silent)
+//   gpt5_math         : informal 88.0 · formal 72.0 (ratio 81% · strong reasoner · silent)
+//   o1_reasoning      : informal 85.0 · formal 68.0 (ratio 80% · CoT reasoner · silent)
+//   deepseek_prover   : informal 82.0 · formal 70.0 (ratio 85% · formal-proof tune · silent)
+//   answer_only_model : informal 85.0 · formal 30.0 (ratio 35% · 답만 맞음 · FIRES · verify gap)
+//
+// informal_acc      = AIME-style 비형식 답 정답률 (답만 맞으면 됨) of THIS model.
+// formal_verified   = 그 문제를 Lean/Coq 형식 증명으로 kernel-check 통과시킨 비율 of THIS model.
+//   formal_ratio = formal/informal × 100 → "정답 중 형식 증명까지 해내는 비율".
+//   answer_only_model 은 verify-gap 행 (informal 높지만 formal 붕괴 → ratio 35% → fires by design).
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["alphaproof", "gpt5_math", "o1_reasoning", "deepseek_prover", "answer_only_model"]
+
+// row-major {informal_acc_x100, formal_verified_x100} (5 models × 2 fields)
+//   alphaproof        : [9000, 8000]  → informal 90.0 · formal 80.0 · ratio 88% silent
+//   gpt5_math         : [8800, 7200]  → informal 88.0 · formal 72.0 · ratio 81% silent
+//   o1_reasoning      : [8500, 6800]  → informal 85.0 · formal 68.0 · ratio 80% silent
+//   deepseek_prover   : [8200, 7000]  → informal 82.0 · formal 70.0 · ratio 85% silent
+//   answer_only_model : [8500, 3000]  → informal 85.0 · formal 30.0 · ratio 35% FIRES (verify gap)
+let MODEL_DATA = [9000, 8000,
+                  8800, 7200,
+                  8500, 6800,
+                  8200, 7000,
+                  8500, 3000]
+
+let N_FIELDS = 2
+let THRESHOLD_pct = 50              // formal_ratio < 50% → 형식 검증율 < 비형식 × 0.5 → verify gap
+let ACC_MAX_x100 = 100 * 100        // acc ∈ [0, 100] pct · × 100 ledger ∈ [0, 10000]
+
+fn informal_acc_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn formal_verified_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn formal_ratio_pct(model_i: int) -> int {
+    // formal-proof verify ratio (%) = formal_verified / informal_acc × 100.
+    //   x100 ledger cancels (both × 100) so multiply formal by 100 then divide by informal.
+    //   "정답 중 형식 증명까지 해내는 비율" — answer correctness 와 proof verification 의 gap.
+    return formal_verified_x100(model_i) * 100 / informal_acc_x100(model_i)
+}
+
+fn verify_gap_ok(model_i: int) -> bool {
+    return formal_ratio_pct(model_i) >= THRESHOLD_pct
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // 형식 검증율 < 비형식 정답 × 0.5 → 답은 맞지만 증명 못함 (verify gap)
+    return formal_ratio_pct(model_i) < THRESHOLD_pct
+}
+
+print("hexa-codex VERTICAL/MATH A1 — formal-proof verify-ratio closed-form (수학 전문 모델 측정 · cycle-10)")
+print("=========================================================================================================")
+print("")
+print("⚠ recipe ≠ measurement — build recipe = 만들기 · MATH 도메인 = 측정 (formal-proof 검증율)")
+print("")
+print("per-model formal-proof verify profile (placeholder · pct × 100 ledger · libm-free):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let informal = informal_acc_x100(i)
+    let fm = formal_verified_x100(i)
+    let r = formal_ratio_pct(i)
+    let mut flag = "silent (formal_ratio ≥ 50% · 증명이 답을 따라옴)"
+    if falsifier_fires(i) {
+        flag = "FIRES (formal_ratio < 50% · 답만 맞고 증명 못함 · verify gap)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    informal_acc=" + to_string(informal / 100) + "pct · formal_verified=" +
+          to_string(fm / 100) + "pct")
+    print("    → formal_ratio=" + to_string(r) + "% · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_MATH_A1_FORMAL_PROOF__ DONE")

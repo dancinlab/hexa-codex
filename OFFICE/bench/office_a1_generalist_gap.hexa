@@ -1,0 +1,116 @@
+#!hexa strict
+// OFFICE/bench/office_a1_generalist_gap.hexa
+// OFFICE 신규 도메인 (cycle-10) — 범용 사무 generalist 의 multi-task 평균이 각 분야
+// 전문 모델(specialist) 평균을 얼마나 따라가는가 closed-form first probe. OFFICE 는
+// VERTICAL/* (CODE·BIO·MATH... 12 전문 모델 = "한 분야 깊게") 의 horizontal 짝 —
+// 범용 사무 업무 (이메일·요약·번역·문서·표·일정 6-task) generalist 능력 측정.
+//
+// North-star: 만능 비서(generalist) 한 명이 6가지 사무 task 를 평균적으로 처리하는
+// 능력 vs 각 task 의 전문 모델(specialist) 평균. generalist 가 specialist 의 70%
+// 미만이면 "넓게 얕게" 가 "깊게" 를 못 따라간다 — DSLM "Small is the New Big"
+// (전문 분산 모델 군) 정당화 · generalist 대체론(통합 1개로 다 한다) 반증.
+//
+// Identity (closed-form · libm-free · score stored × 100 ledger, ratio in plain %):
+//   generalist_ratio_pct(model) = office_multitask_x100 × 100 / specialist_avg_x100
+//                                 (× 100 factors cancel → result is plain percent)
+//   strong_generalist(model)    = generalist_ratio_pct ≥ THRESHOLD_PCT (70%)
+//   falsifier_fires(model)      = generalist_ratio_pct <  THRESHOLD_PCT
+//                                 → office 평균 < specialist 평균 × 0.7 → 전문 못 따라감
+//
+// Falsifier (OFFICE A1): generalist 의 6-task 사무 평균이 각 분야 전문 모델 평균의
+// 70% 미만이면 generalist 가 전문 모델을 대체하지 못한다 (전문 깊이 우위) — VERTICAL
+// 군 전체의 메타-검증 (전문 모델이 존재할 이유). strong generalist 는 silent
+// (거의 대등 · 통합 이점) · weak/tiny generalist 는 fires (전문 못 따라감).
+//
+// External anchors (citation tier · 🟡):
+//   Liang 2022  — Holistic Evaluation of Language Models / HELM (arXiv:2211.09110)
+//   Hendrycks 2020 — Measuring Massive Multitask Language Understanding / MMLU (arXiv:2009.03300)
+//   Srivastava 2022 — Beyond the Imitation Game / BIG-bench (arXiv:2206.04615)
+//   "Small is the New Big" — DSLM(domain-specialized LM) trend 2026 (specialist swarm > generalist on home turf)
+//
+// Integer ledger (% × 100) — libm-free closed-form. Placeholder per-model
+// {office_multitask_avg, specialist_avg} from HELM/MMLU-class holistic scores —
+// 실측 6-task 사무 harness (이메일·요약·번역·문서·표·일정) vs 분야별 전문 모델
+// deferred (cycle-11+ T4 · SANDBOX bench harness + vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure generalist-vs-specialist ratio identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 models · {office_multitask_avg, specialist_avg} · % × 100 ledger)
+//   gpt5_office     : office 88.0 · spec 92.0 → ratio 95.6% (강 generalist · silent · 거의 대등)
+//   claude_office   : office 86.0 · spec 91.0 → ratio 94.5% (강 generalist · silent)
+//   gemini_office   : office 84.0 · spec 90.0 → ratio 93.3% (강 generalist · silent)
+//   weak_generalist : office 55.0 · spec 92.0 → ratio 59.7% (FIRES · 전문 못 따라감)
+//   tiny_general    : office 40.0 · spec 92.0 → ratio 43.4% (FIRES · 전문 한참 못 따라감)
+//
+// office_multitask_avg = 6-task 사무 평균 (이메일·요약·번역·문서·표·일정) (%).
+// specialist_avg = 각 task 의 전문 모델 평균 (분야별 깊이) (%).
+// stored × 100 (88.0% → 8800 ledger) — libm-free, matches CODE/MULTIMODAL × 100.
+// note: strong generalist (gpt5/claude/gemini) 는 통합 1개로 거의 대등 (silent · 통합 이점)
+//       weak/tiny generalist 는 전문 모델 못 따라감 (fires · DSLM specialist swarm 정당화).
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["gpt5_office", "claude_office", "gemini_office", "weak_generalist", "tiny_general"]
+
+// row-major {office_multitask_avg_x100, specialist_avg_x100} (5 models × 2 fields)
+//   gpt5_office     : [8800, 9200]  → 88.0 / 92.0 · ratio 95% silent
+//   claude_office   : [8600, 9100]  → 86.0 / 91.0 · ratio 94% silent
+//   gemini_office   : [8400, 9000]  → 84.0 / 90.0 · ratio 93% silent
+//   weak_generalist : [5500, 9200]  → 55.0 / 92.0 · ratio 59% FIRES (전문 못 따라감)
+//   tiny_general    : [4000, 9200]  → 40.0 / 92.0 · ratio 43% FIRES (전문 한참 못 따라감)
+let MODEL_DATA = [8800, 9200,
+                  8600, 9100,
+                  8400, 9000,
+                  5500, 9200,
+                  4000, 9200]
+
+let N_FIELDS = 2
+let THRESHOLD_PCT = 70               // generalist_ratio < 70% → 전문 못 따라감 (specialist 우위)
+let SCORE_MAX_x100 = 100 * 100       // score ∈ [0, 100] % · × 100 ledger ∈ [0, 10000]
+
+fn office_multitask_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn specialist_avg_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn generalist_ratio_pct(model_i: int) -> int {
+    // generalist 6-task 사무 평균 as % of specialist 분야별 깊이 평균. Both operands
+    // share the × 100 ledger so the × 100 factors cancel → result is plain percent.
+    //   ratio% = office_multitask_x100 × 100 / specialist_avg_x100
+    return (office_multitask_x100(model_i) * 100) / specialist_avg_x100(model_i)
+}
+
+fn strong_generalist(model_i: int) -> bool {
+    return generalist_ratio_pct(model_i) >= THRESHOLD_PCT
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // office 평균 < specialist 평균 × 0.7 → generalist 전문 못 따라감 (specialist 우위)
+    return generalist_ratio_pct(model_i) < THRESHOLD_PCT
+}
+
+print("hexa-codex OFFICE A1 — generalist-vs-specialist gap closed-form (cycle-10 · VERTICAL 메타검증)")
+print("================================================================================================")
+print("")
+print("per-model generalist gap profile (placeholder · × 100 ledger · libm-free):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let off = office_multitask_x100(i)
+    let spec = specialist_avg_x100(i)
+    let r = generalist_ratio_pct(i)
+    let mut flag = "silent (강 generalist · ratio ≥ 70% · 거의 대등 · 통합 이점)"
+    if falsifier_fires(i) {
+        flag = "FIRES (ratio < 70% · 전문 모델 못 따라감 · DSLM specialist swarm 정당화)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    office_multitask=" + to_string(off / 100) + "." + to_string((off % 100) / 10) +
+          "% · specialist_avg=" + to_string(spec / 100) + "." + to_string((spec % 100) / 10) + "%")
+    print("    → generalist_ratio=" + to_string(r) + "% · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_OFFICE_A1_GENERALIST_GAP__ DONE")

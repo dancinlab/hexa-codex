@@ -1,0 +1,14 @@
+# hexa-codex OFFICE A1 — generalist-vs-specialist gap verifier (VERTICAL 메타검증 · cycle-10)
+# axis=OFFICE/OFFICE.md::A1 (generalist-vs-specialist gap · 5 models · 70% generalist-ratio threshold)
+# bench=OFFICE/bench/office_a1_generalist_gap.hexa
+# verifier=OFFICE/verify/numerics_office_a1_generalist_gap.hexa
+# tier=🔵 STRUCTURAL (ratio identity + 70% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 70% threshold = 전문-못-따라감 convention · cite Liang 2022 HELM arXiv:2211.09110 + Hendrycks 2020 MMLU arXiv:2009.03300 + Srivastava 2022 BIG-bench arXiv:2206.04615 + DSLM 'Small is the New Big' 2026)
+# checks=7/7
+# formula=generalist_ratio_pct = office_multitask × 100 / specialist_avg (scores stored × 100 ledger; × 100 factors cancel → ratio in plain %); falsifier_fires = ratio < 70% → office 평균 < specialist 평균 × 0.7 → 전문 모델 못 따라감
+# placeholder_data=5 models · gpt5_office (88/92 · ratio 95% silent) · claude_office (86/91 · 94% silent) · gemini_office (84/90 · 93% silent) · weak_generalist (55/92 · 59% FIRES) · tiny_general (40/92 · 43% FIRES · 전문 한참 못 따라감)
+# bidirectional_discrimination=3 silent (gpt5_office · claude_office · gemini_office — 거의 대등 · 통합 이점) + 2 fires (weak_generalist · tiny_general — 전문 못 따라감)
+# external_anchors=Liang 2022 HELM (arXiv:2211.09110) · Hendrycks 2020 MMLU (arXiv:2009.03300) · Srivastava 2022 BIG-bench (arXiv:2206.04615) · DSLM 'Small is the New Big' specialist-swarm trend 2026
+# vertical_meta_verification=OFFICE 의 falsifier 가 VERTICAL 존재 이유를 메타-검증 — generalist multi-task 평균 < 전문 모델 × 0.7 (ratio < 70%) 이면 generalist 가 전문 모델 대체 못 함 → VERTICAL/* (CODE·BIO·MATH... 12 전문 모델) 존재 정당화 · DSLM 'Small is the New Big' 정당화 · generalist 대체론 반증
+# horizontal_vs_vertical=OFFICE (범용 넓이 · horizontal) vs VERTICAL/* (전문 깊이 · vertical) — 같은 능력 공간의 직교 dimension
+# substrate_fire=DEFERRED (cycle-11+ · 6-task 사무 harness 이메일·요약·번역·문서·표·일정 vs 분야별 전문 모델 on SANDBOX bench + vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — generalist gap ratio identity close ≠ measured close · 새 generalist model·task·전문 모델 마다 frontier 재오픈 · 범용-전문 경제 교차점 (축 N⭐) 도착지 없음

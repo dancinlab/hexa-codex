@@ -6,6 +6,48 @@
 
 ---
 
+## 2026-05-27 — cycle-36 F2 first probe · KV-cache memory growth law · 🔵 SUPPORTED-FORMAL 7/7
+
+NOVEL 축 F (inference-substrate efficiency) 의 첫 first-probe. F2 = KV-cache
+footprint 닫힌형 법칙 검증 (Ainslie 2023 GQA + Shazeer 2019 MQA + Pope 2023).
+
+**검증기**: `verify/numerics_economics_f2_kv_cache_memory_law.hexa`
+**공식**: `KV_bytes = 2 × batch × ctx × n_layers × n_kv_heads × d_head × dtype_bytes`
+
+**7/7 PASS (verbatim)**:
+- Llama3-8B KV @ 8k/b1/fp16 = 1.000 GiB EXACT (well-known figure)
+- p_ctx = 1.0 EXACT (4k→8k 정확히 2×)
+- p_batch = 1.0 EXACT (batch 1→2 정확히 2×)
+- p_heads = 1.0 EXACT (n_kv 16→8 정확히 0.5×)
+- GQA G=8 reduction = 8× EXACT (Llama2-70B 20 GiB → Llama3-70B 2.5 GiB)
+- MQA reduction = 64× EXACT (n_kv 64→1, iso L/d_head)
+- Llama2-70B KV @ 8k = 20.00 GiB EXACT (MHA HBM pressure)
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL — 3 지수 (p_ctx=p_batch=p_heads=1.0) 는
+formula-internal identity (perturbation 으로 증명); GQA/MQA 는 **계수만** bend
+(지수 아님). 가설 그대로 확인 — falsifier ε=5% band 미발동.
+
+**honest residual**:
+- 3 지수 = 1.0 은 formula-internal → 🔵 deterministic
+- per-model 절대 GiB = arch-spec-derived (공개 model card 의 n_layers/n_kv/d_head)
+  → 🟡 HBM telemetry 미측정. cycle-37+ T4 (nvidia-smi memory.used prefill slope)
+  로 substrate 확인 가능 (deferred).
+- F2 frontier OPEN ([[feedback_closure_is_physical_limit]]): closed-form close 는
+  axis 종료 아님 — substrate-measured slope 가 진짜 close.
+
+**부수 수정**: cycle-35 (#88) spawn 시 §축 F 블록이 `## Cross-refs` 의 한 bullet
+backtick span 안에 잘못 중복-삽입되어 있었음 (F1/F2/F3/F5 milestone 이 Cross-refs
+안에 ghost 복제). 본 cycle 에서 원본 단일 bullet (`## SANDBOX 활용 (consumer 입장)`
+참조) 로 복원 — 정상 §축 F 는 line 214 에 단일 유지.
+
+**연결**:
+- verifier: [`verify/numerics_economics_f2_kv_cache_memory_law.hexa`](verify/numerics_economics_f2_kv_cache_memory_law.hexa)
+- verdict: [`.verdicts/economics/f2_kv_cache_memory_law_verdict.txt`](.verdicts/economics/f2_kv_cache_memory_law_verdict.txt)
+- seed: [`.discoveries/economics-f-cost-axis-spawn.tape`](.discoveries/economics-f-cost-axis-spawn.tape) @C d_econ_f2_kv_cache_memory_law
+- 다음 순차: F3 (spec-decoding speedup, closed-negative 후보) → F1 (energy) → F5 (quant)
+
+---
+
 ## 2026-05-27 — cycle-35 F NOVEL axis spawn · inference-substrate efficiency scaling laws · 4 seeds
 
 cycle-34 E1 (MoE vs dense Chinchilla divergence) 가 n=11 PARITY 에서

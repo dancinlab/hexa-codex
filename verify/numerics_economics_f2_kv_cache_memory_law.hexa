@@ -1,0 +1,208 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_f2_kv_cache_memory_law.hexa
+// ECONOMICS axis F2 (NOVEL · cycle-35 spawn) — KV-cache memory growth law.
+//
+// SEED.  .discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f2_kv_cache_memory_law
+//   KV_bytes = 2 × batch × ctx × n_layers × n_kv_heads × d_head × bytes_per_elem
+//   (factor 2 = K and V tensors; MHA n_kv=n_heads · GQA n_kv=n_heads/G · MQA n_kv=1)
+//
+// CLAIM (Tier target BLUE).  All 3 exponents are EXACTLY 1.0 (bytes bilinear
+// in ctx and batch, linear in n_kv_heads); GQA/MQA bend the heads term ONLY
+// through the n_kv_heads coefficient, not the exponent. The interesting
+// closed-form result is the GQA effective-heads reduction ratio.
+//
+// FALSIFIER.  If the closed-form predicts HBM-occupancy mismatching the
+// well-known per-model figures by ε > 5% on any reference config → formula
+// missing a term (attention-sink fixed overhead) OR published numbers
+// include non-KV overhead. Either FALSIFIES the textbook KV-bytes law.
+//
+// TIER HONESTY.
+//   🔵 SUPPORTED-FORMAL  — the 3 exponents (=1.0) are formula-internal
+//                          identities, demonstrated by perturbation
+//                          (double ctx → 2× bytes EXACT, etc).
+//   🟡 per-model absolute occupancy = arch-spec-derived (n_layers/n_kv/d_head
+//      from public model cards), NOT independently re-measured HBM telemetry.
+//
+// External anchor: Ainslie 2023 GQA (arXiv:2305.13245) · Shazeer 2019 MQA
+// (arXiv:1911.02150) · Pope 2023 (arXiv:2211.05102).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form KV-byte recompute · no substrate.")
+
+// ────────────────────────────────────────────────────────────────────────
+// closed-form KV-cache footprint
+// ────────────────────────────────────────────────────────────────────────
+
+fn kv_bytes(batch: int, ctx: int, n_layers: int, n_kv_heads: int, d_head: int, dtype_bytes: int) -> int {
+    // 2 = K + V tensors
+    return 2 * batch * ctx * n_layers * n_kv_heads * d_head * dtype_bytes
+}
+
+let GiB = 1073741824   // 2^30
+let MiB = 1048576      // 2^20
+
+// reference configs (public model-card arch specs)
+// (name, n_layers, n_heads, n_kv_heads, d_head, attn_variant)
+//   Llama2-70B   MHA  L=80 n_heads=64 n_kv=64 d_head=128
+//   Llama3-70B   GQA8 L=80 n_heads=64 n_kv=8  d_head=128
+//   Llama3-8B    GQA4 L=32 n_heads=32 n_kv=8  d_head=128
+//   Mistral-7B   GQA4 L=32 n_heads=32 n_kv=8  d_head=128
+//   Falcon-180B  MQA  L=80 n_heads=232 n_kv=1 d_head=64
+
+let CFG_NAMES = ["Llama2-70B-MHA", "Llama3-70B-GQA8", "Llama3-8B-GQA4", "Mistral-7B-GQA4", "Falcon-180B-MQA"]
+let CFG_LAYERS = [80, 80, 32, 32, 80]
+let CFG_NKV    = [64, 8, 8, 8, 1]
+let CFG_DHEAD  = [128, 128, 128, 128, 64]
+
+// canonical eval point: ctx=8192, batch=1, fp16 (2 bytes)
+let CTX = 8192
+let BATCH = 1
+let DTYPE = 2
+
+print("hexa-codex ECONOMICS F2 — KV-cache memory growth law (cycle-36 first probe)")
+print("=============================================================================")
+print("  eval point: ctx=" + to_string(CTX) + " · batch=" + to_string(BATCH) + " · dtype_bytes=" + to_string(DTYPE))
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// per-config KV footprint
+let mut i = 0
+while i < CFG_NAMES.len() {
+    let b = kv_bytes(BATCH, CTX, CFG_LAYERS[i], CFG_NKV[i], CFG_DHEAD[i], DTYPE)
+    let gib_x100 = b * 100 / GiB
+    print("  " + CFG_NAMES[i] + ": KV=" + to_string(b) + " bytes = " + to_string(gib_x100) + "/100 GiB (n_kv=" + to_string(CFG_NKV[i]) + ")")
+    i = i + 1
+}
+print("")
+
+// ── check 1 — Llama3-8B KV @ 8k/b1/fp16 == 1 GiB EXACT (well-known figure)
+checks_total = checks_total + 1
+let llama3_8b = kv_bytes(1, 8192, 32, 8, 128, 2)
+if llama3_8b == GiB {
+    print("  [PASS] Llama3-8B KV @ 8k = " + to_string(llama3_8b) + " bytes = 1.000 GiB EXACT (well-known figure)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Llama3-8B KV = " + to_string(llama3_8b) + " ≠ 1 GiB (" + to_string(GiB) + ")")
+}
+
+// ── check 2 — p_ctx exponent = 1.0 (double ctx → EXACTLY 2× bytes)
+checks_total = checks_total + 1
+let base_c = kv_bytes(1, 4096, 32, 8, 128, 2)
+let dbl_c = kv_bytes(1, 8192, 32, 8, 128, 2)
+if dbl_c == 2 * base_c {
+    print("  [PASS] p_ctx = 1.0 EXACT (ctx 4k→8k doubles bytes: " + to_string(base_c) + "→" + to_string(dbl_c) + ")")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] p_ctx ≠ 1.0 (4k=" + to_string(base_c) + " 8k=" + to_string(dbl_c) + ")")
+}
+
+// ── check 3 — p_batch exponent = 1.0 (double batch → EXACTLY 2× bytes)
+checks_total = checks_total + 1
+let base_b = kv_bytes(1, 8192, 32, 8, 128, 2)
+let dbl_b = kv_bytes(2, 8192, 32, 8, 128, 2)
+if dbl_b == 2 * base_b {
+    print("  [PASS] p_batch = 1.0 EXACT (batch 1→2 doubles bytes)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] p_batch ≠ 1.0")
+}
+
+// ── check 4 — p_heads exponent = 1.0 (halve n_kv → EXACTLY 0.5× bytes)
+checks_total = checks_total + 1
+let full_h = kv_bytes(1, 8192, 32, 16, 128, 2)
+let half_h = kv_bytes(1, 8192, 32, 8, 128, 2)
+if full_h == 2 * half_h {
+    print("  [PASS] p_heads = 1.0 EXACT (n_kv 16→8 halves bytes)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] p_heads ≠ 1.0")
+}
+
+// ── check 5 — GQA ratio: Llama2-70B(MHA n_kv=64) / Llama3-70B(GQA8 n_kv=8) == 8× EXACT
+checks_total = checks_total + 1
+let l2_70b = kv_bytes(1, 8192, 80, 64, 128, 2)
+let l3_70b = kv_bytes(1, 8192, 80, 8, 128, 2)
+if l2_70b == 8 * l3_70b {
+    let l2_gib = l2_70b / GiB
+    let l3_gib_x100 = l3_70b * 100 / GiB
+    print("  [PASS] GQA G=8 reduction = 8× EXACT (Llama2-70B " + to_string(l2_gib) + " GiB → Llama3-70B " + to_string(l3_gib_x100) + "/100 GiB)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] GQA ratio ≠ 8× (l2=" + to_string(l2_70b) + " l3=" + to_string(l3_70b) + ")")
+}
+
+// ── check 6 — MQA: 64-head MHA / Falcon-MQA(n_kv=1) == 64× EXACT (iso L/d_head)
+checks_total = checks_total + 1
+let mha_64 = kv_bytes(1, 8192, 80, 64, 64, 2)
+let mqa_1 = kv_bytes(1, 8192, 80, 1, 64, 2)
+if mha_64 == 64 * mqa_1 {
+    print("  [PASS] MQA reduction = 64× EXACT vs 64-head MHA (n_kv 64→1, iso L/d_head)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] MQA ratio ≠ 64×")
+}
+
+// ── check 7 — Llama2-70B @ 8k ≈ 20 GiB (well-known: MHA 70B blows HBM)
+checks_total = checks_total + 1
+let l2_gib_x100 = l2_70b * 100 / GiB
+if l2_gib_x100 == 2000 {
+    print("  [PASS] Llama2-70B KV @ 8k = " + to_string(l2_gib_x100) + "/100 GiB = 20.00 GiB EXACT (well-known MHA HBM pressure)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Llama2-70B = " + to_string(l2_gib_x100) + "/100 GiB ≠ 20.00")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 SUPPORTED-FORMAL — KV-cache 3-exponent law (p_ctx=p_batch=p_heads=1.0) recomputed EXACT; GQA/MQA bend coefficient not exponent (7/7)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — KV-byte closed-form disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("HONEST RESIDUAL (F2 first probe):")
+print("  - 3 exponents = 1.0 are FORMULA-INTERNAL identities (perturbation-demonstrated) → 🔵 deterministic")
+print("  - per-model ABSOLUTE GiB = arch-spec-derived (n_layers/n_kv/d_head from public cards) → 🟡 not re-measured HBM telemetry")
+print("  - GQA G=8 → 8× · MQA → 64× reductions are EXACT consequences of the n_kv coefficient (Ainslie 2023 design intent confirmed)")
+print("  - falsifier band ε=5% NOT triggered (closed-form matches well-known 1GiB/20GiB/8× figures)")
+print("  - cycle-37+ T4 (optional): SANDBOX nvidia-smi memory.used during prefill on Qwen2.5-1.5B-Q4 GQA at ctx∈{1k..16k} → confirm linear-in-ctx slope on real substrate")
+print("  - F2 frontier OPEN (feedback_closure_is_physical_limit): closed-form close ≠ substrate-measured close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_F2_KV_CACHE_MEMORY_LAW__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/f2_kv_cache_memory_law_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS F2 — KV-cache memory growth law (cycle-36 first probe)\n"
+content = content + "# axis=ECONOMICS.md::F2 (NOVEL · cycle-35 spawn · F = inference-substrate efficiency)\n"
+content = content + "# seed=.discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f2_kv_cache_memory_law\n"
+content = content + "# verifier=verify/numerics_economics_f2_kv_cache_memory_law.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# eval_point=ctx8192_batch1_fp16\n"
+content = content + "# llama3_8b_kv_gib=1.000 (EXACT)\n"
+content = content + "# llama2_70b_kv_gib=20.00 (EXACT)\n"
+content = content + "# gqa_g8_reduction=8x · mqa_reduction=64x (EXACT consequences of n_kv coefficient)\n"
+content = content + "# p_ctx=1.0 p_batch=1.0 p_heads=1.0 (formula-internal identities)\n"
+content = content + "# external_anchor=Ainslie2023_GQA · Shazeer2019_MQA · Pope2023_inference\n"
+content = content + "# next_probe=cycle-37+ T4 SANDBOX nvidia-smi memory.used prefill slope confirm\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

@@ -1,0 +1,13 @@
+# hexa-codex ECONOMICS F2 — KV-cache memory growth law (cycle-36 first probe)
+# axis=ECONOMICS.md::F2 (NOVEL · cycle-35 spawn · F = inference-substrate efficiency)
+# seed=.discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f2_kv_cache_memory_law
+# verifier=verify/numerics_economics_f2_kv_cache_memory_law.hexa
+# tier=🔵 SUPPORTED-FORMAL — KV-cache 3-exponent law (p_ctx=p_batch=p_heads=1.0) recomputed EXACT; GQA/MQA bend coefficient not exponent (7/7)
+# checks=7/7
+# eval_point=ctx8192_batch1_fp16
+# llama3_8b_kv_gib=1.000 (EXACT)
+# llama2_70b_kv_gib=20.00 (EXACT)
+# gqa_g8_reduction=8x · mqa_reduction=64x (EXACT consequences of n_kv coefficient)
+# p_ctx=1.0 p_batch=1.0 p_heads=1.0 (formula-internal identities)
+# external_anchor=Ainslie2023_GQA · Shazeer2019_MQA · Pope2023_inference
+# next_probe=cycle-37+ T4 SANDBOX nvidia-smi memory.used prefill slope confirm

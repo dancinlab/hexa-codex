@@ -1,0 +1,15 @@
+# hexa-codex FRONTIER F1 — Sparse-MoE active-premium verifier (cycle-10 round-2)
+# axis=FRONTIER/FRONTIER.md::F1 SPARSE-MOE (active-param efficiency premium vs same-active dense)
+# bench=FRONTIER/bench/frontier_f1_sparse_moe_active_premium.hexa
+# verifier=FRONTIER/verify/numerics_frontier_f1_sparse_moe_active_premium.hexa
+# tier=🔵 STRUCTURAL (active_premium identity 7/7) + 🟡 BY-CITATION (Gemma 4 controlled data from arXiv:2604.07035) — myth refuted in Gemma 4 family · myth survives in synthetic strong-MoE regime · task-class dependent
+# checks=7/7
+# formula=active_premium_x1000 = perf(moe) × 1000 / perf(dense_same_active_size); falsifier_fires = premium < 1000 (anti-myth · MoE 가 same-active dense 보다 못함)
+# placeholder_data=5 models (gemma4_E4B 675 · gemma4_26B_A4B 663 · phi4_mini_reasoning 600 · qwen3_8B 640 · qwen3_30B_A3B 650 · weighted_acc × 1000 per-mille)
+# gemma4_controlled_pair=663 × 1000 / 675 = 982 (per-mille · = 0.982 · MoE 26B-A4B 1.8pp 낮음 vs dense E4B · 🔴 myth FALSIFIED)
+# synthetic_silent_control=strong-MoE 800 vs weak-dense 600 → premium 1333 ≥ 1000 (myth survives in that regime · proves verifier is bidirectional · NOT one-sided)
+# external_anchors=Fedus 2022 Switch (arXiv:2101.03961) · Lepikhin 2020 GShard (arXiv:2006.16668) · Du 2022 GLaM (arXiv:2112.06905) · arXiv:2604.07035 Gemma4/Phi4/Qwen3 controlled paper
+# anti_myth=MoE > same-active-param dense by ≥ 1.2× 신화 — Gemma 4 family controlled benchmark 에서 FALSIFIED (premium 982 < 1000); task-class · family · scale 마다 frontier 재오픈
+# substrate_fire=DEFERRED (cycle-11+ T4 · SANDBOX mac M3 llama-server + local Gemma 4 GGUF · 7-task weighted real measured re-run)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · placeholder weighted_acc × 1000 from arXiv:2604.07035 (Gemma 4 pair cited · Phi-4/Qwen 3 placeholder)
+# honest_residual=real measured 7-task weighted re-run on local Gemma 4 mac M3 GGUF DEFERRED to cycle-11+ T4 (cx_lab_sandbox · cx_empirical_contact)

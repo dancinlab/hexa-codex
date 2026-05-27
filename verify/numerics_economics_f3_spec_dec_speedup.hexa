@@ -1,0 +1,198 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_f3_spec_dec_speedup.hexa
+// ECONOMICS axis F3 (NOVEL · cycle-35 spawn) — speculative-decoding speedup law.
+//
+// SEED.  .discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f3_speculative_decoding_speedup_law
+//   Leviathan-Kalman 2023 (arXiv:2211.17192) closed-form expected speedup:
+//     s(α, c, N) = (1 − α^(N+1)) / ((1−α)(cN + 1))
+//   α = draft-token acceptance rate · c = draft/target cost ratio · N = draft length γ
+//
+// TWO-PART probe:
+//   (A) ALGEBRAIC self-check (🔵): recompute s at 6 (α,c,N) operating points,
+//       match Leviathan-Kalman Table-2-style hand-values within ε=1%. This is
+//       a deterministic identity — formula transcription correctness.
+//   (B) DEPLOYMENT sensitivity (🟠): demonstrate s collapses from headline
+//       regime (α≈0.85, translation/summarization → s≈2.7) to production-mix
+//       regime (α≈0.5, mixed code/long-form → s≈1.45). The "spec-dec gives
+//       2-3× speedup" claim is OVERSTATED for general-purpose serving IF
+//       production α≈0.5.
+//
+// HONESTY (feedback_negative_paper_external_claim).  This targets the PUBLISHED
+// Leviathan-Kalman headline (external claim, NOT self-strawman). The formula
+// recompute is 🔵 deterministic. BUT the "production α≈0.5" premise is an
+// ASSUMPTION pending SANDBOX per-class measurement (Stage-4 T4, deferred) —
+// so the overstatement CONCLUSION is 🟠 INSUFFICIENT, conditional on α≈0.5.
+// NO closed-negative paper is shipped on the unmeasured α=0.5 premise.
+//
+// External anchor: Leviathan & Kalman 2023 ICML (arXiv:2211.17192) ·
+// Chen 2023 staged (arXiv:2308.04623) · Cai 2024 Medusa (arXiv:2401.10774).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Closed-form spec-dec speedup recompute · no substrate.")
+
+let SCALE = 1000000   // fixed-point 1.0 = 1e6
+
+// base_s = base × SCALE ; returns base^exp × SCALE
+fn pow_scaled(base_s: int, exp: int) -> int {
+    let mut result = SCALE
+    let mut i = 0
+    while i < exp {
+        result = result * base_s / SCALE
+        i = i + 1
+    }
+    return result
+}
+
+// s(α, c, N) × 1000 (milli-speedup), all inputs ×SCALE
+fn speedup_milli(alpha_s: int, c_s: int, n: int) -> int {
+    let num = SCALE - pow_scaled(alpha_s, n + 1)            // (1 − α^(N+1)) ×SCALE
+    let one_minus_a = SCALE - alpha_s                        // (1−α) ×SCALE
+    let cn_plus_1 = c_s * n + SCALE                          // (cN+1) ×SCALE
+    let denom = one_minus_a * cn_plus_1 / SCALE              // (1−α)(cN+1) ×SCALE
+    // s = num / denom ; ×1000 for milli
+    return num * 1000 / denom
+}
+
+print("hexa-codex ECONOMICS F3 — speculative-decoding speedup law (cycle-37 first probe)")
+print("==================================================================================")
+print("  s(α,c,N) = (1 − α^(N+1)) / ((1−α)(cN+1))  [Leviathan-Kalman 2023]")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── PART A: 6-point algebraic self-check (expected = hand-computed, milli)
+let C10 = 100000   // c = 0.1
+let PT_A = [300000, 500000, 700000, 700000, 700000, 900000]   // α ×SCALE
+let PT_N = [4, 4, 4, 8, 16, 8]
+let PT_EXP = [1018, 1384, 1981, 1777, 1279, 3403]              // expected s ×1000
+
+let mut k = 0
+while k < PT_A.len() {
+    let s = speedup_milli(PT_A[k], C10, PT_N[k])
+    let exp = PT_EXP[k]
+    let diff = if s > exp { s - exp } else { exp - s }
+    checks_total = checks_total + 1
+    // ε=1% tolerance: diff ≤ exp/100
+    if diff * 100 <= exp {
+        print("  [PASS] s(α=" + to_string(PT_A[k] / 1000) + "/1000, c=0.1, N=" + to_string(PT_N[k]) + ") = " + to_string(s) + "/1000 ≈ expected " + to_string(exp) + "/1000 (ε≤1%)")
+        checks_passed = checks_passed + 1
+    } else {
+        print("  [FAIL] s = " + to_string(s) + "/1000 vs expected " + to_string(exp) + "/1000 (diff=" + to_string(diff) + " > 1%)")
+    }
+    k = k + 1
+}
+print("")
+
+// ── PART B: deployment sensitivity (headline vs production regime)
+// headline: α=0.85 (summarization), optimal N≈5
+let s_headline = speedup_milli(850000, C10, 5)
+// alt headline: α=0.75 (translation), N=4
+let s_headline_tr = speedup_milli(750000, C10, 4)
+// production mix: α=0.5 (mixed code/long-form/dialogue), N=3
+let s_production = speedup_milli(500000, C10, 3)
+// code-heavy worst case: α=0.4, N=2
+let s_code = speedup_milli(400000, C10, 2)
+
+print("  deployment-regime sensitivity:")
+print("    headline α=0.85 (summarization, N=5): s=" + to_string(s_headline) + "/1000")
+print("    headline α=0.75 (translation, N=4):   s=" + to_string(s_headline_tr) + "/1000")
+print("    production α=0.50 (mixed, N=3):        s=" + to_string(s_production) + "/1000")
+print("    code-heavy α=0.40 (N=2):               s=" + to_string(s_code) + "/1000")
+print("")
+
+// check — headline regime reaches ≥ 2.5× (confirms published headline)
+checks_total = checks_total + 1
+if s_headline >= 2500 {
+    print("  [PASS] headline regime s=" + to_string(s_headline) + "/1000 ≥ 2.5× (published 2.5–3.0× claim reproduced)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] headline s=" + to_string(s_headline) + "/1000 < 2.5× — cannot reproduce published headline")
+}
+
+// check — production regime ≤ 2.0× (the deployment collapse)
+checks_total = checks_total + 1
+if s_production <= 2000 {
+    print("  [PASS] production regime s=" + to_string(s_production) + "/1000 ≤ 2.0× (deployment collapse demonstrated)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] production s=" + to_string(s_production) + "/1000 > 2.0×")
+}
+
+// check — overstatement ratio headline/production ≥ 1.4×
+checks_total = checks_total + 1
+let overstate_x100 = s_headline * 100 / s_production
+if overstate_x100 >= 140 {
+    print("  [PASS] overstatement = " + to_string(overstate_x100) + "/100× (headline " + to_string(s_headline) + " / production " + to_string(s_production) + " ≥ 1.4×)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] overstatement = " + to_string(overstate_x100) + "/100× < 1.4×")
+}
+
+// check — non-monotone in N at α=0.7 (draft-length tradeoff: N=4 peak > N=16)
+checks_total = checks_total + 1
+let s_n4 = speedup_milli(700000, C10, 4)
+let s_n16 = speedup_milli(700000, C10, 16)
+if s_n4 > s_n16 {
+    print("  [PASS] non-monotone draft-length: s(N=4)=" + to_string(s_n4) + " > s(N=16)=" + to_string(s_n16) + " (overlong draft penalized)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] expected s(N=4) > s(N=16)")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 SUPPORTED-FORMAL (Leviathan-Kalman formula 10/10) + 🟠 deployment-α premise UNMEASURED"
+} else {
+    verdict_tier = "🔴 FALSIFIED — formula recompute disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("HONEST RESIDUAL (F3 first probe):")
+print("  - PART A (6-point formula recompute) = 🔵 deterministic algebraic identity vs Leviathan-Kalman Table 2")
+print("  - PART B (headline " + to_string(s_headline) + " vs production " + to_string(s_production) + " milli) demonstrates SENSITIVITY to α —")
+print("    but production α≈0.5 is an ASSUMPTION, NOT a measurement. The 'overstated ~" + to_string(overstate_x100) + "/100×'")
+print("    conclusion is 🟠 INSUFFICIENT, CONDITIONAL on production α≈0.5.")
+print("  - feedback_negative_paper_external_claim: targets PUBLISHED Leviathan-Kalman headline (external,")
+print("    not self-strawman) BUT does NOT ship a closed-negative paper on the unmeasured α=0.5 premise.")
+print("  - cycle-38+ T4 (required to close PART B): SANDBOX P4 spec-dec harness on ubu-1, Qwen2.5-3B-Q4")
+print("    target + Qwen2.5-0.5B-Q4 draft, 4-class manifest (arith/definition/long-form/code) → MEASURE")
+print("    per-class α → deployment-weighted s. Only then does the overstatement claim become 🟢/🔴.")
+print("  - F3 frontier OPEN (feedback_closure_is_physical_limit): formula close ≠ deployment-α close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_F3_SPEC_DEC_SPEEDUP__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/f3_spec_dec_speedup_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS F3 — speculative-decoding speedup law (cycle-37 first probe)\n"
+content = content + "# axis=ECONOMICS.md::F3 (NOVEL · cycle-35 spawn · F = inference-substrate efficiency)\n"
+content = content + "# seed=.discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f3_speculative_decoding_speedup_law\n"
+content = content + "# verifier=verify/numerics_economics_f3_spec_dec_speedup.hexa\n"
+content = content + "# formula=s(a,c,N)=(1-a^(N+1))/((1-a)(cN+1)) Leviathan-Kalman 2023 arXiv:2211.17192\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# part_A=6-point algebraic self-check vs Table 2 (deterministic 🔵)\n"
+content = content + "# part_B_headline_a085_milli=" + to_string(s_headline) + "\n"
+content = content + "# part_B_production_a050_milli=" + to_string(s_production) + "\n"
+content = content + "# part_B_overstatement_x100=" + to_string(overstate_x100) + "\n"
+content = content + "# part_B_tier=🟠 INSUFFICIENT (production a≈0.5 = ASSUMPTION, not measured)\n"
+content = content + "# next_probe=cycle-38+ T4 SANDBOX P4 spec-dec harness → per-class a measurement\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

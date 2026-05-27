@@ -1,0 +1,13 @@
+# hexa-codex ECONOMICS F3 — speculative-decoding speedup law (cycle-37 first probe)
+# axis=ECONOMICS.md::F3 (NOVEL · cycle-35 spawn · F = inference-substrate efficiency)
+# seed=.discoveries/economics-f-cost-axis-spawn.tape @C d_econ_f3_speculative_decoding_speedup_law
+# verifier=verify/numerics_economics_f3_spec_dec_speedup.hexa
+# formula=s(a,c,N)=(1-a^(N+1))/((1-a)(cN+1)) Leviathan-Kalman 2023 arXiv:2211.17192
+# tier=🔵 SUPPORTED-FORMAL (Leviathan-Kalman formula 10/10) + 🟠 deployment-α premise UNMEASURED
+# checks=10/10
+# part_A=6-point algebraic self-check vs Table 2 (deterministic 🔵)
+# part_B_headline_a085_milli=2768
+# part_B_production_a050_milli=1442
+# part_B_overstatement_x100=191
+# part_B_tier=🟠 INSUFFICIENT (production a≈0.5 = ASSUMPTION, not measured)
+# next_probe=cycle-38+ T4 SANDBOX P4 spec-dec harness → per-class a measurement

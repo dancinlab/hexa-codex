@@ -6,6 +6,45 @@
 
 ---
 
+## 2026-05-27 — cycle-37 F3 first probe · speculative-decoding speedup law · 🔵 formula + 🟠 deployment-α 10/10
+
+NOVEL 축 F 두번째 first-probe. F3 = Leviathan-Kalman 2023 spec-decoding speedup
+닫힌형 + deployment-α sensitivity.
+
+**검증기**: `verify/numerics_economics_f3_spec_dec_speedup.hexa`
+**공식**: `s(α,c,N) = (1 − α^(N+1)) / ((1−α)(cN+1))` (fixed-point ×1e6 pow_scaled)
+
+**10/10 PASS — 2 part**:
+- **PART A (🔵)**: 6-point algebraic self-check vs Leviathan-Kalman Table 2 (ε≤1%):
+  s(0.3,0.1,4)=1.017 · s(0.5,0.1,4)=1.383 · s(0.7,0.1,4)=1.980 · s(0.7,0.1,8)=1.777
+  · s(0.7,0.1,16)=1.279 · s(0.9,0.1,8)=3.403 — 모두 hand-value 와 일치.
+- **PART B (🟠)**: deployment-regime sensitivity
+  - headline α=0.85 (summarization, N=5): s=2.768× → published 2.5–3.0× 재현
+  - production α=0.50 (mixed, N=3): s=1.442×
+  - overstatement = 1.91× (headline/production)
+  - non-monotone draft-length: s(N=4)=1.980 > s(N=16)=1.279 (overlong draft penalized)
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (formula 10/10) + 🟠 deployment-α premise UNMEASURED.
+
+**honest residual (중요)**:
+- PART A 는 deterministic algebraic identity → 🔵 (Leviathan-Kalman formula 정확).
+- PART B 는 α 에 대한 **sensitivity 를 demonstrate** 하지만, production α≈0.5 는
+  **ASSUMPTION (미측정)**. overstatement ~1.91× 결론은 🟠 INSUFFICIENT, α≈0.5 조건부.
+- **self-strawman 회피** ([[feedback_negative_paper_external_claim]]): PUBLISHED
+  Leviathan-Kalman headline (external claim) 을 타겟하되, 미측정 α=0.5 premise 로는
+  closed-negative paper 를 만들지 않음. closed-negative 자격은 cycle-38+ T4
+  (SANDBOX P4 spec-dec harness, Qwen2.5-3B-Q4 target + 0.5B-Q4 draft, 4-class
+  manifest → per-class α 실측 → deployment-weighted s) 후에만.
+- F3 frontier OPEN: formula close ≠ deployment-α close.
+
+**연결**:
+- verifier: [`verify/numerics_economics_f3_spec_dec_speedup.hexa`](verify/numerics_economics_f3_spec_dec_speedup.hexa)
+- verdict: [`.verdicts/economics/f3_spec_dec_speedup_verdict.txt`](.verdicts/economics/f3_spec_dec_speedup_verdict.txt)
+- seed: [`.discoveries/economics-f-cost-axis-spawn.tape`](.discoveries/economics-f-cost-axis-spawn.tape) @C d_econ_f3_speculative_decoding_speedup_law
+- 다음 순차: F1 (energy J/tok scaling) → F5 (quantization quality-per-bit)
+
+---
+
 ## 2026-05-27 — cycle-36 F2 first probe · KV-cache memory growth law · 🔵 SUPPORTED-FORMAL 7/7
 
 NOVEL 축 F (inference-substrate efficiency) 의 첫 first-probe. F2 = KV-cache

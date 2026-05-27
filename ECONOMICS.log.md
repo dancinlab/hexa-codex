@@ -6,6 +6,59 @@
 
 ---
 
+## 2026-05-27 — cycle-39 F5 first probe · quantization quality-per-bit law · 🟢 numerical + 🟠 Dettmers-scope 6/6
+
+NOVEL 축 F **마지막** first-probe (F-axis 4 seeds 모두 first-probe 완료). F5 =
+quantization quality-per-bit. **real measured 데이터** 사용 (P4 ladder) → 가장 강한
+F probe (🟢 numerical, fabrication 없음).
+
+**검증기**: `verify/numerics_economics_f5_quantization_tax.hexa`
+**데이터**: `.verdicts/sandbox/p4_quant_band_pilot_summary.txt` (Qwen2.5-1.5B k-quants, n=200, byte_exact_subset, mac-mini-M3 $0)
+
+**6/6 PASS**:
+- 3 measured bands: Q3_K_M(3.5bpw) 44.0% · Q4_K_M(4.5) 43.0% · Q8_0(8.5) 42.5%
+- accuracy Q3≥Q4≥Q8 (88≥86≥85/200) — NO Q3 cliff, saturation-rise 의 OPPOSITE
+- binomial SE_count = 7 (isqrt, pooled p̄=259/600≈0.432, var=49)
+- max pairwise Δ = 3 counts < 2·SE = 14 → 3 bands STATISTICALLY INDISTINGUISHABLE
+- b_cliff < 3.5 observed (Q3_K_M 이미 plateau)
+- saturation-rise 부재 → γ fit under-determined (정직한 negative-capability)
+
+**KEY FINDING (measured)**: Qwen2.5-1.5B k-quants 가 arithmetic task 에서
+**quant-invariant** (Q3→Q8 accuracy 차이가 binomial noise 안) → bit 늘려도 quality
+안 오름, Q3 cliff 없음. seed 의 saturation-rise 가설 미관측.
+
+**verdict tier**: 🟢 SUPPORTED-NUMERICAL (measured P4 ladder binomial indistinguishability)
++ 🟠 Dettmers 비교 scope-limited.
+
+**honest residual**:
+- binomial SE + indistinguishability = 🟢 numerical on REAL measured data (no fabrication).
+- Dettmers 2023 "b_cliff=3 / 4-bit Pareto" 비교는 SCOPE-LIMITED → 🟠: single 1.5B
+  model · single arithmetic task · n=200 · k-quants (NOT GPTQ) · exact-match accuracy
+  (NOT perplexity). Dettmers 는 LLaMA/OPT/BLOOM perplexity/zero-shot with GPTQ — 다른 regime.
+- **clean closed-negative 아님** ([[feedback_negative_paper_external_claim]]): "no Q3
+  cliff HERE" directional observation, method+model+metric mismatched — Dettmers 의
+  cross-model GPTQ-perplexity 주장을 깨끗하게 반증한 게 아님.
+- cycle-40+ extend: Q2/Q5/Q6 bands + harder task (quant 이 실제로 bite 하는) + larger
+  model → curve 가 non-flat 인 곳에서 γ fit. F5 frontier OPEN.
+
+**F-axis 종합 (cycle-36→39, 4 seeds first-probe 완료)**:
+| seed | tier | 핵심 |
+|------|------|------|
+| F2 KV-cache | 🔵 7/7 | 3 지수 = 1.0 EXACT · GQA 8× / MQA 64× coefficient |
+| F3 spec-dec | 🔵+🟠 10/10 | Leviathan formula 정확 · production-α 미측정 |
+| F1 energy | 🔵+🟠 6/6 | roofline k=1.0 · bandwidth-wall = latency NOT exponent |
+| F5 quant | 🟢+🟠 6/6 | measured quant-invariant · no Q3 cliff (scope-limited) |
+
+모든 F seed frontier OPEN — closed-form/measured first-probe 닫힘은 substrate-T4 close 의 시작.
+
+**연결**:
+- verifier: [`verify/numerics_economics_f5_quantization_tax.hexa`](verify/numerics_economics_f5_quantization_tax.hexa)
+- verdict: [`.verdicts/economics/f5_quantization_tax_verdict.txt`](.verdicts/economics/f5_quantization_tax_verdict.txt)
+- 측정 데이터: [`.verdicts/sandbox/p4_quant_band_pilot_summary.txt`](.verdicts/sandbox/p4_quant_band_pilot_summary.txt)
+- seed: [`.discoveries/economics-f-cost-axis-spawn.tape`](.discoveries/economics-f-cost-axis-spawn.tape) @C d_econ_f5_quantization_tax_law
+
+---
+
 ## 2026-05-27 — cycle-38 F1 first probe · per-token energy scaling law · 🔵 roofline + 🟠 empirical-k 6/6
 
 NOVEL 축 F 세번째 first-probe. F1 = 토큰당 에너지 (J/tok) scaling. 정직한 범위:

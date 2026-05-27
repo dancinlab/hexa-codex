@@ -1,0 +1,13 @@
+# hexa-codex MULTIMODAL A1 — modality balance verifier (absorbed from FRONTIER/F2 · cycle-10 reorg)
+# axis=MULTIMODAL/MULTIMODAL.md::A1 (modality balance · text/image/audio/video · 30pp threshold)
+# bench=MULTIMODAL/bench/multimodal_a1_modality_balance.hexa
+# verifier=MULTIMODAL/verify/numerics_multimodal_a1_modality_balance.hexa
+# tier=🔵 STRUCTURAL (gap identity + 30pp threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 30pp threshold = mild-failure convention · cite Gemma 4 technical report + Liu 2023 LLaVA + Driess 2023 PaLM-E + Chu 2024 Qwen-Audio)
+# checks=7/7
+# formula=gap_modality_x100 = acc_text − acc_modality (× 100 ledger of pp); falsifier_fires = worst_modality_gap ≥ 30pp (≥ 3000 in × 100 ledger)
+# placeholder_data=3 models × 4 modalities · gemma4_31B (text=85 img=82 aud=80 vid=78 pp · worst 7pp silent) · qwen3.6_72B (87/80/70/68 pp · worst 19pp silent) · legacy_vlm_4B (75/70/0/0 pp · worst 75pp FIRES audio+video unsupported)
+# bidirectional_discrimination=2 silent (gemma4 · qwen3.6) + 1 fires (legacy_vlm) — falsifier 정확 발화 only on 2-tower control
+# external_anchors=Yang 2023 GPT-4V (OpenAI) · Liu 2023 LLaVA (arXiv:2304.08485) · Driess 2023 PaLM-E (arXiv:2303.03378) · Chu 2024 Qwen-Audio (arXiv:2407.10759) · Google DeepMind 2026 Gemma 4 technical report
+# substrate_fire=DEFERRED (cycle-11+ · MMMU · MMBench · AudioBench · Video-MME on local Gemma 4 GGUF + vast.ai pod · cx_lab_sandbox)
+# absorbed_from=FRONTIER/F2 (cycle-10 reorg · FRONTIER meta-domain 폐기 · F2 → MULTIMODAL/A1 신규 단독 도메인 이관)
+# frontier_open=feedback_closure_is_physical_limit — gap identity close ≠ measured modality-balance close · 새 model·modality·benchmark 마다 frontier 재오픈

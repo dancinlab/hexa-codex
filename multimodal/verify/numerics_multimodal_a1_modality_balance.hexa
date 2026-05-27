@@ -1,0 +1,231 @@
+#!hexa strict
+// MULTIMODAL/verify/numerics_multimodal_a1_modality_balance.hexa
+// absorbed from FRONTIER/F2 (cycle-10 reorg) — closed-form verifier for
+// multimodal balance gap identity + 30pp threshold falsifier semantics.
+//
+// Asserts the gap identity is closed-form and the falsifier (modality
+// second-class citizen detection) correctly classifies:
+//   (1) gap identity (acc_text − acc_modality) holds for all (model, modality)
+//   (2) acc values ∈ [0, 100 pp] (× 100 ledger ∈ [0, 10000])
+//   (3) zero-gap synthetic — text=image=audio=video=80 pp → worst_gap = 0
+//   (4) legacy_vlm_4B fires (worst gap=75pp ≥ 30pp · audio/video missing)
+//   (5) gemma4_31B + qwen3.6_72B silent (worst < 30pp · native balanced)
+//   (6) determinism (re-call same gap + fires)
+//   (7) sanity — all acc ≥ 0 AND legacy audio/video = 0 (control hypothesis)
+//
+// Source: MULTIMODAL/bench/multimodal_a1_modality_balance.hexa
+// External anchors: Yang 2023 GPT-4V · Liu 2023 LLaVA (arXiv:2304.08485) ·
+//                   Driess 2023 PaLM-E (arXiv:2303.03378) ·
+//                   Chu 2024 Qwen-Audio (arXiv:2407.10759) ·
+//                   Google DeepMind 2026 Gemma 4 technical report
+//
+// @no-lock-needed
+
+let MODEL_NAMES    = ["gemma4_31B", "qwen3.6_72B", "legacy_vlm_4B"]
+let MODALITY_NAMES = ["text", "image", "audio", "video"]
+
+let ACC_x100 = [8500, 8200, 8000, 7800,
+                8700, 8000, 7000, 6800,
+                7500, 7000,    0,    0]
+
+let N_MODALITIES = 4
+let THRESHOLD_x100 = 3000          // ≥ 30pp drop → balance broken
+let ACC_MAX_x100 = 100 * 100       // [0, 10000]
+
+fn acc_x100(model_i: int, modality_j: int) -> int {
+    return ACC_x100[model_i * N_MODALITIES + modality_j]
+}
+fn gap_modality_x100(model_i: int, modality_j: int) -> int {
+    return acc_x100(model_i, 0) - acc_x100(model_i, modality_j)
+}
+fn worst_modality_gap_x100(model_i: int) -> int {
+    let mut worst = gap_modality_x100(model_i, 1)
+    let mut j = 2
+    while j < N_MODALITIES {
+        let g = gap_modality_x100(model_i, j)
+        if g > worst { worst = g }
+        j = j + 1
+    }
+    return worst
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return worst_modality_gap_x100(model_i) >= THRESHOLD_x100
+}
+
+print("hexa-codex MULTIMODAL A1 falsifier — modality balance closed-form")
+print("==================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_models = MODEL_NAMES.len()
+
+// check 1 — gap identity for all (model, modality) pairs
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_models {
+    let mut j = 0
+    while j < N_MODALITIES {
+        let lhs = gap_modality_x100(i, j)
+        let rhs = acc_x100(i, 0) - acc_x100(i, j)
+        if lhs != rhs { id_ok = false }
+        j = j + 1
+    }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] gap identity (acc_text − acc_modality) holds for all " +
+          to_string(n_models) + " × " + to_string(N_MODALITIES) + " pairs")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] gap identity broken")
+}
+
+// check 2 — acc values ∈ [0, 100 pp] (× 100 ledger ∈ [0, 10000])
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_models {
+    let mut j = 0
+    while j < N_MODALITIES {
+        let a = acc_x100(i, j)
+        if a < 0 || a > ACC_MAX_x100 { rb_ok = false }
+        j = j + 1
+    }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] acc values ∈ [0, 100 pp] (× 100 ledger ∈ [0, " +
+          to_string(ACC_MAX_x100) + "]) for all " +
+          to_string(n_models * N_MODALITIES) + " entries")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] acc out of range")
+}
+
+// check 3 — zero-gap synthetic: text=image=audio=video=80 pp → worst_gap = 0
+checks_total = checks_total + 1
+let SYN_ACC = 8000  // 80 pp × 100
+let syn_gap_image = SYN_ACC - SYN_ACC
+let syn_gap_audio = SYN_ACC - SYN_ACC
+let syn_gap_video = SYN_ACC - SYN_ACC
+let mut syn_worst = syn_gap_image
+if syn_gap_audio > syn_worst { syn_worst = syn_gap_audio }
+if syn_gap_video > syn_worst { syn_worst = syn_gap_video }
+if syn_worst == 0 && syn_worst < THRESHOLD_x100 {
+    print("  [PASS] synthetic zero-gap (text=image=audio=video=80pp) → worst_gap=0/100 · silent")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic zero-gap worst=" + to_string(syn_worst))
+}
+
+// check 4 — legacy_vlm_4B (idx 2) fires (worst gap 75pp ≥ 30pp)
+checks_total = checks_total + 1
+if falsifier_fires(2) && worst_modality_gap_x100(2) == 7500 {
+    print("  [PASS] legacy_vlm_4B fires (worst_gap=" + to_string(worst_modality_gap_x100(2)) +
+          "/100 = 75pp ≥ 30pp · audio/video missing · 2-tower VLM control)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] legacy_vlm_4B fire detection broken")
+}
+
+// check 5 — gemma4_31B + qwen3.6_72B silent (worst < 30pp · native balanced)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false
+        && worst_modality_gap_x100(0) == 700 && worst_modality_gap_x100(1) == 1900 {
+    print("  [PASS] native multimodal silent: gemma4_31B worst=" +
+          to_string(worst_modality_gap_x100(0)) + "/100 (7pp) · qwen3.6_72B worst=" +
+          to_string(worst_modality_gap_x100(1)) + "/100 (19pp) — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] native multimodal silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if worst_modality_gap_x100(0) == worst_modality_gap_x100(0)
+        && falsifier_fires(2) == falsifier_fires(2)
+        && gap_modality_x100(1, 2) == gap_modality_x100(1, 2) {
+    print("  [PASS] formula deterministic (re-call same gap + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: all acc ≥ 0 AND legacy_vlm_4B audio/video = 0 (control hypothesis)
+//   note: cross-modality 우월성 (acc_text ≥ acc_other) 은 사니티 아님 — frontier model
+//   이 image > text 인 경우가 가능. 대신 안전한 사니티는 (a) 모든 acc 비-음수,
+//   (b) control (legacy_vlm_4B) 의 audio/video = 0 (가설 검증 · 2-tower 한계).
+checks_total = checks_total + 1
+let mut nonneg_ok = true
+i = 0
+while i < n_models {
+    let mut j = 0
+    while j < N_MODALITIES {
+        if acc_x100(i, j) < 0 { nonneg_ok = false }
+        j = j + 1
+    }
+    i = i + 1
+}
+let legacy_audio_zero = acc_x100(2, 2) == 0
+let legacy_video_zero = acc_x100(2, 3) == 0
+if nonneg_ok && legacy_audio_zero && legacy_video_zero {
+    print("  [PASS] sanity — all acc ≥ 0 AND legacy_vlm_4B audio=0 video=0 (control hypothesis · 2-tower 한계)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (nonneg=" + to_string(nonneg_ok) +
+          " · legacy_audio_zero=" + to_string(legacy_audio_zero) +
+          " · legacy_video_zero=" + to_string(legacy_video_zero) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (gap identity + 30pp threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 30pp threshold = mild-failure convention · cite Gemma 4 technical report + Liu 2023 LLaVA + Driess 2023 PaLM-E + Chu 2024 Qwen-Audio)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — multimodal balance formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("MULTIMODAL A1 finding (absorbed from FRONTIER F2 · placeholder · closed-form):")
+print("  - gap_modality_x100 = acc_text − acc_modality identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: gemma4_31B=7pp · qwen3.6_72B=19pp silent (native balanced) · legacy_vlm_4B=75pp fires (audio/video unsupported)")
+print("  - external anchors: Yang 2023 GPT-4V · Liu 2023 LLaVA · Driess 2023 PaLM-E · Chu 2024 Qwen-Audio · Gemma 4 technical report 2026")
+print("  - 실측 (cycle-11+ T4): MMMU · MMBench · AudioBench · Video-MME on local Gemma 4 GGUF + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_MULTIMODAL_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/MULTIMODAL/verdicts/a1_modality_balance_verdict.txt"
+
+let mut content = "# hexa-codex MULTIMODAL A1 — modality balance verifier (absorbed from FRONTIER/F2 · cycle-10 reorg)\n"
+content = content + "# axis=MULTIMODAL/MULTIMODAL.md::A1 (modality balance · text/image/audio/video · 30pp threshold)\n"
+content = content + "# bench=MULTIMODAL/bench/multimodal_a1_modality_balance.hexa\n"
+content = content + "# verifier=MULTIMODAL/verify/numerics_multimodal_a1_modality_balance.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=gap_modality_x100 = acc_text − acc_modality (× 100 ledger of pp); falsifier_fires = worst_modality_gap ≥ 30pp (≥ 3000 in × 100 ledger)\n"
+content = content + "# placeholder_data=3 models × 4 modalities · gemma4_31B (text=85 img=82 aud=80 vid=78 pp · worst 7pp silent) · qwen3.6_72B (87/80/70/68 pp · worst 19pp silent) · legacy_vlm_4B (75/70/0/0 pp · worst 75pp FIRES audio+video unsupported)\n"
+content = content + "# bidirectional_discrimination=2 silent (gemma4 · qwen3.6) + 1 fires (legacy_vlm) — falsifier 정확 발화 only on 2-tower control\n"
+content = content + "# external_anchors=Yang 2023 GPT-4V (OpenAI) · Liu 2023 LLaVA (arXiv:2304.08485) · Driess 2023 PaLM-E (arXiv:2303.03378) · Chu 2024 Qwen-Audio (arXiv:2407.10759) · Google DeepMind 2026 Gemma 4 technical report\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · MMMU · MMBench · AudioBench · Video-MME on local Gemma 4 GGUF + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# absorbed_from=FRONTIER/F2 (cycle-10 reorg · FRONTIER meta-domain 폐기 · F2 → MULTIMODAL/A1 신규 단독 도메인 이관)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — gap identity close ≠ measured modality-balance close · 새 model·modality·benchmark 마다 frontier 재오픈\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

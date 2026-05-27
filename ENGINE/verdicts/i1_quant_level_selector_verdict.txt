@@ -1,0 +1,19 @@
+# hexa-codex ENGINE I1 — wire verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::I1 (ENERGY/N2 QUANTIZATION finding → serving quant-level selector driving)
+# source_finding=ENERGY/ENERGY.md::N2 QUANTIZATION (per-level quality-size trade · gguf_q2 15% fires · fp16~q4 silent · 손실 ≤ 5% safe)
+# wire=ENGINE/wires/wire_i1_quant_level_selector.hexa
+# verifier=ENGINE/verify/numerics_engine_i1_quant_level_selector.hexa
+# source_verifier=ENERGY/verify/numerics_energy_n2_quantization_quality_size.hexa
+# tier=🔵 STRUCTURAL (budget-bounded max-compression selection identity 7/7) + 🟡 BY-CITATION (ENERGY/N2 · Frantar 2023 GPTQ arXiv:2210.17323 · Lin 2023 AWQ arXiv:2306.00978) — selector returns argmin-size among loss ≤ budget · constraint loss ≤ budget always holds · over-budget pick detected
+# checks=7/7
+# decision_rule=select_quant(budget_x100) = argmin size { level : loss_pct_x100 ≤ budget_x100 } (max compression in quality budget)
+# levels=fp16(1400·0) int8(700·50) gguf_q8(715·50) gguf_q4(350·300) gguf_q2(175·1500) — (size_gb×100 · loss_pct×100 · from ENERGY/N2)
+# example_budget500=gguf_q4 (loss 300 ≤ 500 · size 350 · 4.00× compression)
+# example_budget50=int8 (loss 50 ≤ 50 · size 700 · conservative)
+# example_budget2000=gguf_q2 (loss 1500 ≤ 2000 · size 175 · 8.00× max compression)
+# constraint_invariant=selected loss_pct_x100 ≤ budget_x100 always holds (fp16 loss=0 floor guarantees a fit)
+# falsifier=selector returning a budget-EXCEEDING level (budget 100 → gguf_q2 loss 1500) detected as constraint VIOLATION → FAIL
+# external_anchors=ENERGY/N2 · Frantar 2023 GPTQ (arXiv:2210.17323) · Lin 2023 AWQ (arXiv:2306.00978)
+# cycle=CYCLE-10 (2026-05-28 · ENGINE wire batch 1 · ENERGY/N2 → serving quant budget selector)
+# cost_bearing_serving_fire=DEFERRED (cycle-11+ · real per-level MMLU/GSM8K re-eval driving live model load · cx_lab_sandbox · cx_empirical_contact)
+# honest_residual=closed-form decision rule over ENERGY/N2 placeholder tiers; actual serving quant connection (live model load per chosen level) cost-bearing DEFERRED to cycle-11+ (feedback_closure_is_physical_limit)

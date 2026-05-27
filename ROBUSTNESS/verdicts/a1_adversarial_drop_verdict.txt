@@ -1,0 +1,12 @@
+# hexa-codex ROBUSTNESS A1 — adversarial drop verifier (cycle-9 round-6)
+# axis=ROBUSTNESS/ROBUSTNESS.md::A1 (adversarial attack success rate · clean accuracy)
+# bench=ROBUSTNESS/bench/robustness_a1_adversarial_drop.hexa
+# verifier=ROBUSTNESS/verify/numerics_robustness_a1_adversarial_drop.hexa
+# tier=🔵 STRUCTURAL (drop identity + threshold semantics + sanity 7/7) + 🟡 BY-CITATION (30pp threshold = Madry 2018 / TextAttack convention)
+# checks=7/7
+# formula=drop = clean_acc − adv_acc (× 100); falsifier_fires = drop > 30
+# placeholder_data=4 models × {clean, adv}; robust=88/82 drop=6 · standard=85/55 drop=30 silent · weak=80/40 drop=40 · brittle=78/22 drop=56 fire
+# sanity=clean_acc ≥ adv_acc (reasonable attack doesn't exceed clean)
+# external_anchors=Madry 2018 adversarial (arXiv:1706.06083) · Goodfellow 2015 FGSM (arXiv:1412.6572) · Hendrycks 2021 OOD (arXiv:2006.16241) · Morris 2020 TextAttack (arXiv:2005.05909)
+# substrate_fire=DEFERRED (cycle-10+ · TextAttack · AdvGLUE · ANLI · ubu-1 HF)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close

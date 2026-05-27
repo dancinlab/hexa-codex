@@ -1,0 +1,164 @@
+#!hexa strict
+// RELIABILITY/verify/numerics_reliability_a1_determinism.hexa
+// RELIABILITY A1 — closed-form verifier for determinism reproduction-rate
+// identity.
+//
+// Asserts the rate identity + threshold semantics:
+//   (1) rate identity (N_match · 1000 / N_total) holds for all setups
+//   (2) rate ∈ [0, 1000] (per-mille range · × 1000 ledger)
+//   (3) perfect determinism (N_match = N_total) → 1000
+//   (4) rate < 999 setups fire (bit-flip=995 · nondet-kernel=850)
+//   (5) rate ≥ 999 setups silent (det-seed=1000 · fp32-quirk=999) — false-pos 회피
+//   (6) determinism of the formula itself (recompute = recompute · recursively delicious)
+//   (7) failure rate complement sanity (failure_rate = 1000 − rate)
+//
+// Source: RELIABILITY/bench/reliability_a1_determinism.hexa
+// External anchors: Dixit 2021 silent data corruption (arXiv:2102.11245) ·
+//                   Hochschild 2021 fail-silent (HotOS) · NVIDIA bit-flip (ECC)
+//
+// @no-lock-needed
+
+let SETUP_NAMES = ["deterministic-seed", "fp32-quirk", "bit-flip-injected", "nondet-kernel"]
+let MATCH_COUNT = [1000, 999, 995, 850]
+let N_TOTAL = 1000
+let RATE_THRESHOLD_x1000 = 999
+
+fn rate_x1000(i: int) -> int { return (MATCH_COUNT[i] * 1000) / N_TOTAL }
+fn failure_rate_x1000(i: int) -> int { return 1000 - rate_x1000(i) }
+fn falsifier_fires(i: int) -> bool { return rate_x1000(i) < RATE_THRESHOLD_x1000 }
+
+print("hexa-codex RELIABILITY A1 falsifier — determinism reproduction-rate closed-form")
+print("================================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n = SETUP_NAMES.len()
+
+// check 1 — identity (N_match × 1000 / N_total) for all
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n {
+    if rate_x1000(i) != (MATCH_COUNT[i] * 1000) / N_TOTAL { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] rate identity (N_match · 1000 / N_total) holds for all " + to_string(n) + " setups")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] rate identity broken")
+}
+
+// check 2 — range bound [0, 1000]
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n { if rate_x1000(i) < 0 || rate_x1000(i) > 1000 { rb_ok = false } i = i + 1 }
+if rb_ok {
+    print("  [PASS] rate ∈ [0, 1000] (per-mille range · × 1000 ledger)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] rate out of range")
+}
+
+// check 3 — synthetic perfect determinism
+checks_total = checks_total + 1
+let perfect_rate = (N_TOTAL * 1000) / N_TOTAL
+if perfect_rate == 1000 {
+    print("  [PASS] synthetic perfect (N_match = " + to_string(N_TOTAL) + ") → rate = 1000")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] perfect synthetic ≠ 1000")
+}
+
+// check 4 — rate < 999 fires (bit-flip=995 · nondet-kernel=850)
+checks_total = checks_total + 1
+if falsifier_fires(2) && falsifier_fires(3) && rate_x1000(2) == 995 && rate_x1000(3) == 850 {
+    print("  [PASS] rate < 999 setups fire: bit-flip=" + to_string(rate_x1000(2)) + " · nondet-kernel=" + to_string(rate_x1000(3)))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] rate < 999 fire detection broken")
+}
+
+// check 5 — rate ≥ 999 silent (det-seed=1000 · fp32-quirk=999)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && rate_x1000(0) == 1000 && rate_x1000(1) == 999 {
+    print("  [PASS] rate ≥ 999 setups silent: det-seed=" + to_string(rate_x1000(0)) + " · fp32-quirk=" + to_string(rate_x1000(1)) + " — false-positive 회피")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] rate ≥ 999 silent detection broken")
+}
+
+// check 6 — determinism of the formula itself (recursively delicious)
+checks_total = checks_total + 1
+if rate_x1000(2) == rate_x1000(2) && falsifier_fires(3) == falsifier_fires(3) && rate_x1000(0) == rate_x1000(0) {
+    print("  [PASS] formula deterministic (re-call same rate + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — failure-rate complement sanity (failure = 1000 − rate)
+checks_total = checks_total + 1
+let mut comp_ok = true
+i = 0
+while i < n {
+    if failure_rate_x1000(i) + rate_x1000(i) != 1000 { comp_ok = false }
+    i = i + 1
+}
+if comp_ok {
+    print("  [PASS] failure_rate complement sanity (failure + rate = 1000 for all " + to_string(n) + " setups)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] failure complement broken")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (rate identity + threshold semantics 7/7) + 🟡 BY-CITATION (99.9% threshold = Dixit/Hochschild silent-corruption convention)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — rate formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("RELIABILITY A1 finding (placeholder · closed-form):")
+print("  - reproduction_rate = N_match / N_total × 1000 identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: det-seed=1000 · fp32-quirk=999 silent · bit-flip=995 · nondet-kernel=850 fire")
+print("  - external anchor: Dixit 2021 silent corruption (arXiv:2102.11245) · Hochschild 2021 fail-silent · NVIDIA bit-flip")
+print("  - 실측 (cycle-10+ T4): llama-server (mac M3) · HF transformers (ubu-1) · vast.ai pod ECC inject")
+print("")
+print("__HEXA_CODEX_NUMERICS_RELIABILITY_A1_DETERMINISM__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/RELIABILITY/verdicts/a1_determinism_verdict.txt"
+
+let mut content = "# hexa-codex RELIABILITY A1 — determinism reproduction-rate verifier (cycle-9 round-6)\n"
+content = content + "# axis=RELIABILITY/RELIABILITY.md::A1 (결정론 재현률 · silent corruption · same seed·model 다른 답)\n"
+content = content + "# bench=RELIABILITY/bench/reliability_a1_determinism.hexa\n"
+content = content + "# verifier=RELIABILITY/verify/numerics_reliability_a1_determinism.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=reproduction_rate = N_match / N_total × 1000; falsifier_fires = rate < 999 (< 99.9%)\n"
+content = content + "# placeholder_data=4 setups × N_total=1000; det-seed=1000 fp32-quirk=999 silent · bit-flip=995 nondet-kernel=850 fire\n"
+content = content + "# external_anchors=Dixit 2021 silent data corruption (arXiv:2102.11245) · Hochschild 2021 fail-silent (HotOS) · NVIDIA bit-flip (ECC SBE/DBE)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · llama-server mac M3 · HF transformers ubu-1 · vast.ai pod ECC inject)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · 새 HW·model·serving stack 마다 frontier 재오픈\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

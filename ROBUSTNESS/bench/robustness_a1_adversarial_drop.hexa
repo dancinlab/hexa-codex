@@ -1,0 +1,61 @@
+#!hexa strict
+// ROBUSTNESS/bench/robustness_a1_adversarial_drop.hexa
+// ROBUSTNESS A1 first probe (cycle-9 round-6 · CODEX bg) — adversarial attack
+// drop vs clean accuracy on text-classification / QA tasks.
+//
+// Identity (closed-form difference · libm-free):
+//   drop(model)     = clean_acc − adv_acc      (× 100 ledger)
+//   falsifier_fires = drop > 30                (CODEX A1 반증자: adversarial 약함)
+//
+// Falsifier (CODEX A1): adversarial 입력 (TextAttack · PGD · word-substitution
+// 등) 에서 정확도가 clean 대비 30pp 초과 drop → 적대적 약함.
+//
+// External anchors (citation tier · 🟡):
+//   Madry 2018 — towards deep learning models resistant to adversarial attacks (arXiv:1706.06083)
+//   Goodfellow 2015 — FGSM · explaining and harnessing adversarial examples (arXiv:1412.6572)
+//   Hendrycks 2021 — many faces of robustness · OOD benchmark suite (arXiv:2006.16241)
+//   Morris 2020 — TextAttack framework (arXiv:2005.05909)
+//
+// Integer ledger (acc × 100) — libm-free. Placeholder per-model accuracies —
+// 실측 (TextAttack · AdvGLUE · ANLI 등) deferred.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure drop identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (4 models · clean accuracy + adversarial accuracy × 100)
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES     = ["robust",  "standard", "weak", "brittle"]
+let CLEAN_ACC_x100  = [88,         85,         80,     78]
+let ADV_ACC_x100    = [82,         55,         40,     22]
+
+let DROP_THRESHOLD_x100 = 30    // drop > 30 → falsifier fires
+
+fn drop_x100(i: int) -> int {
+    return CLEAN_ACC_x100[i] - ADV_ACC_x100[i]
+}
+
+fn falsifier_fires(i: int) -> bool {
+    return drop_x100(i) > DROP_THRESHOLD_x100
+}
+
+print("hexa-codex ROBUSTNESS A1 — adversarial drop closed-form (cycle-9 round-6)")
+print("==========================================================================")
+print("")
+print("per-model adversarial drop (placeholder · TextAttack / AdvGLUE style):")
+let n = MODEL_NAMES.len()
+let mut i = 0
+while i < n {
+    let d = drop_x100(i)
+    let mut flag = "ok"
+    if falsifier_fires(i) {
+        flag = "DROP > 30pp (falsifier fires · adversarial weak)"
+    }
+    print("  " + MODEL_NAMES[i] + ": clean=" + to_string(CLEAN_ACC_x100[i]) +
+          " · adv=" + to_string(ADV_ACC_x100[i]) +
+          " · drop=" + to_string(d) + "/100 · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ROBUSTNESS_A1_ADVERSARIAL_DROP__ DONE")

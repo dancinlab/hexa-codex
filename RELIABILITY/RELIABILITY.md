@@ -20,7 +20,7 @@
 > RELIABILITY 은 완료되지 않는다. 새 HW·model·serving stack 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — 결정론 재현률 (same seed·model → same output) · silent corruption 빈도. 반증자: 결정론 재현률 < 99.9% (같은 seed·model 다른 답).
+- [x] A1 — 결정론 재현률 (same seed·model → same output) · silent corruption 빈도. 반증자: 결정론 재현률 < 99.9% (같은 seed·model 다른 답). **CYCLE-9 round-6 wire** — closed-form rate identity (`reproduction_rate = N_match / N_total × 1000`) 7/7 🔵+🟡; bench=`RELIABILITY/bench/reliability_a1_determinism.hexa` · verifier=`RELIABILITY/verify/numerics_reliability_a1_determinism.hexa` · verdict=`RELIABILITY/verdicts/a1_determinism_verdict.txt`. External anchors: Dixit 2021 silent data corruption (arXiv:2102.11245) · Hochschild 2021 fail-silent · NVIDIA bit-flip. Substrate fire DEFERRED (cycle-10+ T4 · llama-server / HF transformers / vast.ai pod ECC inject).
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — long-running 학습/추론 의 silent error rate · ECC failure injection. 반증자: ECC injection 후 모델 응답 변동 > 10% → 학습 중 silent corruption 가능.

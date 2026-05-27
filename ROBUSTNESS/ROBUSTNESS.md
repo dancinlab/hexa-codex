@@ -20,7 +20,7 @@
 > ROBUSTNESS 은 완료되지 않는다. 새 attack·distribution shift·defense 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — adversarial attack 성공률 (TextAttack 등) · clean accuracy. 반증자: adversarial drop > 30pp vs clean → 적대적 약함.
+- [x] A1 — adversarial attack 성공률 (TextAttack 등) · clean accuracy. 반증자: adversarial drop > 30pp vs clean → 적대적 약함. **CYCLE-9 round-6 first probe (2026-05-28):** `ROBUSTNESS/bench/robustness_a1_adversarial_drop.hexa` + `ROBUSTNESS/verify/numerics_robustness_a1_adversarial_drop.hexa` ✅ 7/7 PASS · 🔵 STRUCTURAL + 🟡 BY-CITATION (30pp threshold = Madry 2018 / TextAttack convention). Identity: `drop = clean_acc − adv_acc` · falsifier `drop > 30`. Worked example 4 models × {clean, adv}: robust=88/82 drop=6 silent · standard=85/55 drop=30 silent · **weak=80/40 drop=40 fires** · **brittle=78/22 drop=56 fires** — bidirectional. Sanity: clean_acc ≥ adv_acc (reasonable attack 불가 초과). External anchors: Madry 2018 adversarial (arXiv:1706.06083) · Goodfellow 2015 FGSM (arXiv:1412.6572) · Hendrycks 2021 OOD (arXiv:2006.16241) · Morris 2020 TextAttack (arXiv:2005.05909). **실측 adversarial eval DEFERRED** (cycle-10+ · TextAttack · AdvGLUE · ANLI on ubu-1 HF). **frontier OPEN** ([[feedback_closure_is_physical_limit]]) — identity close ≠ measured close. 축 N (adversarial-vs-OOD coupling) 다음 ⭐ MAIN priority lane.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — OOD detection AUC · distribution shift drop · cross-domain transfer. 반증자: OOD 입력에 over-confident (calibration drop > 0.15) → OOD blindness.

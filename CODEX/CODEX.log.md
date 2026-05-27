@@ -2,6 +2,55 @@
 
 Append-only history sister of `CODEX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-9 round-6: 3 ⭐⭐ closed-form A1 wires (ROBUSTNESS + RELIABILITY + DIVERSITY · /cycle-bg)
+
+`/cycle-bg` round-6 (sticky bg · cap=3 batch · bg agent fan-out). 3 ⭐⭐ closed-form A1 wires 모두 7/7 PASS. 단 **worktree-isolation 가정 실패** — 3 agent 모두 `main` worktree 에서 작업 (isolation=worktree 지정에도 불구하고 shared `.git/index` race). 결과물 무결성 OK.
+
+| axis | tier | checks | commit |
+|---|---|---|---|
+| ROBUSTNESS/A1 | 🔵+🟡 | 7/7 | 3511423 (ROBUSTNESS + DIVERSITY 합쳐짐) |
+| DIVERSITY/A1 | 🔵+🟡 | 7/7 | 3511423 (race-share) |
+| RELIABILITY/A1 | 🔵+🟡 | 7/7 | c28ec54 |
+
+### Build phase 출력
+
+- **ROBUSTNESS** — `drop = clean_acc − adv_acc` (× 100). 4 models: robust=88/82=6 silent · standard=85/55=30 silent · weak=80/40=40 fires · brittle=78/22=56 fires. Anchors: Madry 2018 (arXiv:1706.06083) · Goodfellow 2015 FGSM · Hendrycks 2021 · Morris 2020 TextAttack.
+- **RELIABILITY** — `reproduction_rate = N_match / N_total × 1000` (99.9% precision integer ledger). 4 setups: det-seed=1000 / fp32-quirk=999 silent · bit-flip=995 / nondet-kernel=850 fire. Anchors: Dixit 2021 (arXiv:2102.11245) · Hochschild 2021 fail-silent · NVIDIA bit-flip.
+- **DIVERSITY** — `self_BLEU × 100 + repetition × 100` + OR compound `(sB>80) OR (rep>20)`. 4 models: creative=45/8 silent · balanced=60/15 silent · repetitive=85/25 DOUBLE FAIL · stuck=92/45 DOUBLE FAIL. Anchors: Holtzman 2020 nucleus (arXiv:1904.09751) · Massarelli 2020 · Zhu 2018 self-BLEU.
+
+### 🚨 새 학습 — Shared-worktree race condition
+
+3 agent 모두 `isolation: worktree` 지정에도 `/Users/ghost/core/hexa-codex` main worktree 에서 작업 (worktree-isolation 가정 실패). 결과:
+- ROBUSTNESS agent 의 `git add -A → commit` window 사이 DIVERSITY agent staged 파일이 hijack → 둘 다 commit 3511423 에 묶임.
+- RELIABILITY agent 의 `reset --soft HEAD~1` cleanup 이 ROBUSTNESS commit 을 일시 클로버 → `git reset --hard 3511423` 으로 복구.
+- 모든 artifact intact, 모든 verifier 7/7 PASS · commit message attribution 만 imperfect.
+
+새 recovery pattern: **shared-worktree race 는 자동 cross-capture** (agent 파일이 다른 agent commit 에 합쳐짐). round-4 의 "untracked salvage" + round-6 의 "shared-index race" 두 패턴 모두 sidecar inbox 후속 RFC 후보.
+
+### Throttle 관찰 갱신
+
+| round | mode | agents | storm |
+|---|---|---|---|
+| 1 (bg) | 3 | 3 (모두 success) | |
+| 4 (bg) | 3 | 3 (1 salvage) | |
+| 6 (bg) | 3 | **0** (storm 없음) | ← 시간 분산? |
+
+→ bg 3-agent fan-out 도 storm 안 날 때 있음. 시간 분포 영향 가능.
+
+### 정직성 (honest residual)
+
+- 3 axis 모두 closed-form / citation tier · 실측 substrate fire cycle-10+ deferred.
+- ROBUSTNESS: TextAttack/AdvGLUE 실측 미수행.
+- RELIABILITY: ECC injection / silent corruption 실측 미수행.
+- DIVERSITY: 실제 self-BLEU 측정 미수행.
+
+- [x] dispatched + merged ROBUSTNESS/A1 → 🔵+🟡 7/7
+- [x] dispatched + race-merged DIVERSITY/A1 → 🔵+🟡 7/7
+- [x] dispatched + merged RELIABILITY/A1 → 🔵+🟡 7/7
+- [ ] round-7 (남은 7 ⭐⭐ · TRAINING-DYNAMICS · DATA-EFFICIENCY · HW-VARIANCE · BATCH-COMPOSITION · CARBON · TEMPORAL · USER-MODEL)
+
+**15/22 milestone done · 7 ⭐⭐ queued · ♾️ perpetual frontier OPEN.**
+
 ## 2026-05-28 — cycle-9 round-5: 2 closed-form A1 wires (AGENT + LONG-CONTEXT · /cycle-fg inline)
 
 `/cycle-fg` round-5 (sticky fg · cap=2 batch · inline sequential). **마지막 ⭐⭐⭐ 2개 milestone 완료** — 12/22 ⭐⭐⭐ 전체 달성 (closed-form tier · 실측 deferred).

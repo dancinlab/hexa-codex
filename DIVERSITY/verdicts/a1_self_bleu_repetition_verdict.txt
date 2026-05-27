@@ -1,0 +1,11 @@
+# hexa-codex DIVERSITY A1 — self-BLEU + repetition closed-form verifier (cycle-9 round-6)
+# axis=DIVERSITY/DIVERSITY.md::A1 (output diversity self-BLEU + n-gram repetition compound OR)
+# bench=DIVERSITY/bench/diversity_a1_self_bleu_repetition.hexa
+# verifier=DIVERSITY/verify/numerics_diversity_a1_self_bleu_repetition.hexa
+# tier=🔵 STRUCTURAL (self-BLEU + repetition score-band + OR compound 7/7) + 🟡 BY-CITATION (80%/20% thresholds = Holtzman/Zhu convention)
+# checks=7/7
+# formula=self_BLEU = mean BLEU(s_i,s_{!=i}); repetition = |repeated n-grams|/|total|; falsifier = (self_BLEU>80) OR (repetition>20)
+# placeholder_data=4 models (creative 45/8 silent · balanced 60/15 silent · repetitive 85/25 DOUBLE · stuck 92/45 DOUBLE × 100)
+# external_anchors=Holtzman 2020 nucleus sampling (arXiv:1904.09751) · Massarelli 2020 decoding (arXiv:1911.03587) · Zhu 2018 self-BLEU Texygen (arXiv:1802.01886)
+# substrate_fire=DEFERRED (cycle-10+ · creative/factual/QA × decoder × T × top-p on SANDBOX mac M3 / ubu-1)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close

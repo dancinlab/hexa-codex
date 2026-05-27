@@ -3,6 +3,77 @@
 Append-only history sister of `NEUROEXP.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-11 L2 first probe · layer-wise logit-lens depth · 🟢 SUPPORTED-NUMERICAL 8/8 (첫 T4 MEASURED · readout = final 6-layer block · non-monotonic peak@27)
+
+NEUROEXP cycle-11. 사용자 "1,2" 의 두 번째 (T4 cost-bearing). **NEUROEXP 의 첫 measured
+(🟢) cycle** — cycle-4~10 은 모두 🔵 closed-form 이었으나 L2 는 실제 Qwen2.5-1.5B
+activation 측정. hexa-only 룰 예외 (capture-only .py) user 승인 후 진행.
+
+**준비 (T4 substrate)**:
+- ubu-1 RTX 5070 (12GB Blackwell) · clean venv `~/venvs/nex-capture`:
+  torch 2.12.0+cu130 · transformers 4.51.3 · numpy 1.26.4 · CUDA True
+- capture: `ubu-1:/tmp/nex_l2_logit_lens.py` (repo-external — hexa-only repo 룰 유지;
+  hook 이 repo 내 .py hard-block 하므로 /tmp work dir. 재현은 prompt set + venv pin 으로).
+- verifier: `NEUROEXP/verify/numerics_neuroexp_l2_layer_probe.hexa` (measured 값 검증, .hexa).
+
+**측정 (logit lens, nostalgebraist 2020)**:
+각 layer hidden state → model 자체 final RMSNorm + lm_head → next-token argmax accuracy.
+Qwen2.5-1.5B-Instruct · 28 layers · 8 mixed English+code prompts · 98 next-token positions.
+
+**8/8 PASS (verbatim)**:
+- last-layer(28) logit-lens acc = 35.7% (sane for 1.5B mixed-prompt)
+- mid-layer(14) acc = 8.2% < last (mid NOT readout-ready)
+- mid-vs-last gap = 27.6pp > 5pp
+- readout-ready depth begins at layer 23 (82%) → final ~6-layer block, NOT single layer
+- NON-MONOTONIC: peak layer 27 (50.0%) > final layer 28 (35.7%)
+- L2 falsifier: mid NOT within 5pp → late-stack 집중 HOLDS · strict last-single-layer-only REFUTED
+- late-stack monotone rise 22→27 (27.6%→50.0%) then final drop
+- 결정론 (greedy argmax · 98 positions · 28 layers)
+
+**verdict tier**: 🟢 SUPPORTED-NUMERICAL (real Qwen2.5-1.5B logit-lens, 8/8).
+
+**핵심 측정 발견**:
+1. **readout 은 single last layer 가 아닌 final ~6-layer block (23-28, depth 82-100%)** — middle
+   layer (14) 는 8.2% 로 readout-ready 와 거리 멈 (27.6pp).
+2. **NON-MONOTONIC**: penultimate layer 27 (50.0%) 이 final layer 28 (35.7%) 보다 logit-lens
+   accuracy 높음 — final RMSNorm+transform 이 raw next-token logit lens 를 약간 de-optimize
+   (calibration / distribution shaping 으로 추정).
+3. **per-layer 곡선** (x1000): [0,0,0,10,0,0,0,20,41,41,61,61,82,82,82,102,82,102,133,133,184,
+   194,276,327,367,398,439,500,357] — layer 22 부터 가파른 상승, 27 peak, 28 drop.
+
+**운영 measured 결론**:
+- early-exit / layer-skip inference: layers 0-22 는 next-token-readout-ready 아님 (mid 8.2%);
+  안전한 early-exit 은 ~layer 23 부터 (within 5pp of final).
+- logit-lens peak 가 penultimate layer → final layer 가 raw next-token 너머 specialize
+  (readout ≠ final layer 정확히).
+
+**cross-axis (cycle-4~11)**: L2 는 NEUROEXP 첫 🟢. method-transfer class 에 위치
+(logit-lens probe = bio recording 기법). 기법이 cleanly transfer → L1/C1 의 MATCH 패턴과
+일관 (intervention/probe 방법론 전이는 항상 성공). 이로써 method-transfer class 가
+🔵 closed-form 4개 (N1·Φ1·L1·C1) + 🟢 measured 1개 (L2) = 5/5 일관.
+
+**honest residual**:
+- 🟢 single model (Qwen2.5-1.5B), single task (next-token logit lens), 8 prompts / 98 positions.
+- logit lens ≠ trained probe: model 자체 unembed (decodability lower bound); 학습된 linear
+  probe 는 더 일찍 read out 가능 — cycle-12+ trained-probe sweep.
+- scaling law (Qwen2.5-{0.5B,1.5B,3B,7B} × layer) 미측정 (single point).
+- non-monotonic final drop 은 prompt-set specific 가능 — larger corpus 확인 필요.
+- capture 는 repo-external (.py, ubu-1 /tmp) · hexa-only 룰 유지; verdict + prompt set + venv
+  pin 으로 재현.
+- L2 frontier OPEN ([[feedback_closure_is_physical_limit]]): single-point, model/task/probe-type
+  sweep 이 open ladder.
+- external anchor: nostalgebraist 2020 (logit lens) · Geva 2021 (arXiv:2012.14913 FFN as KV
+  memory) · Qwen2.5 tech report.
+
+**연결**:
+- verifier: [`NEUROEXP/verify/numerics_neuroexp_l2_layer_probe.hexa`](verify/numerics_neuroexp_l2_layer_probe.hexa)
+- verdict: [`NEUROEXP/verdicts/l2_layer_probe_verdict.txt`](verdicts/l2_layer_probe_verdict.txt)
+- capture (repo-external): `ubu-1:/tmp/nex_l2_logit_lens.py` · result `ubu-1:/tmp/l2_logit_lens_result.json`
+- method-transfer class 5/5 일관: N1·Φ1·L1·C1 (🔵) + L2 (🟢)
+- 다음 순차 (사용자 "1,2" 의 T4 진행 중): **C2** (ROME/MEMIT locality 실측) · **S2** (spiking spectral 실측)
+
+---
+
 ## 2026-05-27 — cycle-10 C1 first probe · induction-head causal ↔ ICL gain · 🔵 SUPPORTED-FORMAL 10/10 (induction=ICL 통념 강화 · ⭐ 핵심 발견 결정화)
 
 NEUROEXP cycle-10. 사용자 "all NEUROEXP 순차" ("go") — closed-form 5개 마지막. C축

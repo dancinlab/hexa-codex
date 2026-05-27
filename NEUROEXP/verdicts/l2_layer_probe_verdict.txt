@@ -1,0 +1,18 @@
+# hexa-codex NEUROEXP L2 — layer-wise logit-lens depth (cycle-11 first probe · 🟢 MEASURED)
+# axis=NEUROEXP.md::L2 (cycle-11 first probe · L = Lesion/Ablation · T4 cost-bearing)
+# verifier=NEUROEXP/verify/numerics_neuroexp_l2_layer_probe.hexa
+# capture=ubu-1 /tmp/nex_l2_logit_lens.py (repo-external · hexa-only rule · user-approved capture-only .py)
+# tier=🟢 SUPPORTED-NUMERICAL — Qwen2.5-1.5B logit-lens: readout = final 6-layer block, mid 27.6pp away, non-monotonic peak@27 (8/8)
+# checks=8/8
+# model=Qwen2.5-1.5B-Instruct · n_layers=28 · total_positions=98 · logit-lens (final norm + lm_head)
+# env=RTX5070 · torch2.12.0+cu130 · transformers4.51.3 · numpy1.26.4 (clean venv ubu-1)
+# last_layer_acc=0.357 · mid_layer(14)_acc=0.082 · gap=0.276 (27.6pp)
+# first_layer_within_5pp=23 (82% depth) → readout = final ~6-layer block
+# non_monotonic=peak layer 27 (0.500) > final layer 28 (0.357) — final transform de-optimizes raw logit lens
+# per_layer_acc_x1000=[0,0,0,10,0,0,0,20,41,41,61,61,82,82,82,102,82,102,133,133,184,194,276,327,367,398,439,500,357]
+# L2_falsifier=mid NOT within 5pp → late-stack concentration HOLDS · STRICT last-single-layer-only REFUTED (6-layer block)
+# operational=early-exit safe only from ~layer 23 · readout ≠ final layer exactly (peak@27)
+# class=method-transfer (logit-lens probe technique transfers cleanly · consistent w/ L1/C1 MATCH)
+# external_anchor=nostalgebraist2020_logit_lens · Geva2021_arXiv2012.14913 · Qwen2.5_tech_report
+# next_probe=cycle-12+ Qwen2.5-{0.5B,1.5B,3B,7B} × layer scaling + trained-probe (not just logit lens)
+# RUN-HOST: capture on ubu-1 RTX5070 (clean venv) · verifier compiled+executed on ubu-1 (hexa build native)

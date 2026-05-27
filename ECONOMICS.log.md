@@ -6,6 +6,52 @@
 
 ---
 
+## 2026-05-27 — cycle-48 G3 first probe · cache-hit decay vs divergence · 🔵 9/9 + headline 2× overstated
+
+NOVEL 축 G 세번째 first-probe. G3 = vendor cache-block step-function + multi-turn aggregate hit decay.
+
+**검증기**: `verify/numerics_economics_g3_cache_hit_decay.hexa`
+**RUN**: pool ubu-1 native compile (cycle-44/46/47 검증 `hexa cc` 패턴).
+
+**9/9 PASS**:
+- Anthropic 1024-block step: div=500 ⇒ 0 cached (< first block, USELESS) · div=2048 ⇒ 2048 (2 blocks) · div=10000 ⇒ 9216 (9 blocks, 784 remainder lost)
+- OpenAI 128-block: div=500 ⇒ 384 cached (3 blocks) — Anthropic 보다 8× 더 div-tolerant
+- monotone step-function ✓
+- aggregate hit_rate(N=20) = 5128/10000 ≈ 0.51 (system 10k / total 19.5k)
+- Anthropic effective at hit=0.5: 0.55× → 45% saving (vs 90% headline · 45pp gap)
+- OpenAI effective at hit=0.5: 0.75× → 25% saving (vs 50% headline · 25pp gap)
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL.
+
+**핵심 발견 (operational correction)**:
+- vendor "90% discount" (Anthropic) 헤드라인은 **PER-CACHED-TOKEN** 기준.
+- 현실 20-turn agent loop (system=10k/delta=500) 에서 **aggregate hit ≈ 0.51** (deltas
+  accumulate, system만 cache).
+- 결과 **per-task realistic saving**:
+  - Anthropic: 45% (vs 90% headline → **45pp gap**)
+  - OpenAI: 25% (vs 50% headline → 25pp gap)
+- 약 **2× overstated** at typical multi-turn operating point. "Cache 가 inference 를 90%
+  싸게 만든다" = cache-hit token 만 그렇고, agent 작업 단위로는 절반 정도.
+- Anthropic 1024-block 의 작은 div=500 USELESS 케이스 = 짧은 user 메시지 한 줄만 바뀌어도
+  cache 가 전체 prefix 를 못 살리는 fragility (block boundary 미만 변화 → fallback to 0).
+
+**honest residual**:
+- vendor block-granularity + hit-decay 산수 = 🔵 closed-form identity.
+- aggregate-hit decay 모델은 system-only cache 가정; Anthropic `cache_control` 로 assistant
+  messages 까지 cache 하면 hit_rate 더 높아짐.
+- 실제 substrate hit-rate 는 vendor 문서와 다를 수 있음 (cycle-49+ T4 substrate test).
+- prefix_len=10000, delta=500, N=20 = one operating point.
+- self-refinement (vendor 주장 자체 확인하되 per-task 해석 정정) — [[feedback_negative_paper_external_claim]] 준수.
+- G3 frontier OPEN.
+
+**연결**:
+- verifier: [`verify/numerics_economics_g3_cache_hit_decay.hexa`](verify/numerics_economics_g3_cache_hit_decay.hexa)
+- verdict: [`.verdicts/economics/g3_cache_hit_decay_verdict.txt`](.verdicts/economics/g3_cache_hit_decay_verdict.txt)
+- 다음 순차: G4 (multi-turn spec-dec α drift) · G5 (conversation KV growth)
+
+---
+
 ## 2026-05-27 — cycle-47 G2 first probe · agent trajectory cost · 🔵 8/8 + operating-point refined
 
 NOVEL 축 G 두번째 first-probe. G2 = agent loop 의 N_calls^k_agent power law.

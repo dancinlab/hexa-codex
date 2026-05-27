@@ -31,8 +31,13 @@
 @domain USER-MODEL := "./USER-MODEL/USER-MODEL.md"
 @domain MULTIMODAL := "./MULTIMODAL/MULTIMODAL.md"
 
-# ─── meta-domain (cross-domain orchestrator) ───
-@domain CODEX := "./CODEX/CODEX.md"
+# ─── driving lane (실제 wire 구현) — ENGINE 은 line 6 core sibling 으로 등록됨 (active) ───
+# CODEX archived 2026-05-28 (cycle-10 reorg) — 22 candidate first-probe orchestrator 역할 종료.
+#   각 candidate 가 독립 도메인 (A1·B·N⭐ 자체 보유 · 위 roster 등록) → meta-orchestration 중복.
+#   8-round retrospective history 는 CODEX/CODEX.log.md 에 보존 (archive · active roster 제외).
+#   무게중심 이동: CODEX (측정 카탈로그 meta) → ENGINE (driving lane · mature finding → 실제 LLM behavior wire).
 # FRONTIER retired 2026-05-28 (cycle-10 reorg) — 6 frontier sub-axis 를 기존 도메인 N⭐ NOVEL MAIN 으로 분산 흡수:
 #   F1 SPARSE-MOE→ENERGY/N1 · F2 MULTIMODAL→MULTIMODAL/ 신규 · F3 AGENTIC-TRAJ→AGENT/N1
-#   F4 REASONING-DEPTH→HALLUCINATION/N1 · F5 COST-PERF→ECONOMICS/N1 · F6 ALIGNMENT-FAKING→ROBUSTNESS/N⭐ (Phase 3)
+#   F4 REASONING-DEPTH→HALLUCINATION/N1 · F5 COST-PERF→ECONOMICS/N1 · F6 ALIGNMENT-FAKING→ROBUSTNESS/N1
+#   train/infer/serve stack 빈칸 (Phase 3): CHECKPOINT→RELIABILITY/N1 · QUANT→ENERGY/N2 · TOKENIZER→MULTILINGUAL/N1
+#   SPECULATIVE→BATCH-COMPOSITION/N1 · DISTRIBUTED→HW-VARIANCE/N1 · KV-CACHE→LONG-CONTEXT/N2

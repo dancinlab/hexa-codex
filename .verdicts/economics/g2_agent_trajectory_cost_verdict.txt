@@ -1,0 +1,17 @@
+# hexa-codex ECONOMICS G2 — agent trajectory cost scaling law (cycle-47 first probe)
+# axis=ECONOMICS.md::G2 (NOVEL · cycle-45 spawn · G = agentic amortization)
+# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g2_agent_trajectory_cost_law
+# verifier=verify/numerics_economics_g2_agent_trajectory_cost.hexa
+# tier=🔵 SUPPORTED-FORMAL — agent trajectory cost super-linear closed-form (8/8)
+# checks=8/8
+# operating_point=base10000_s500_ratio20:1
+# nocache_cost_N5=16500000 (15M linear + 1.5M quad)
+# nocache_cost_N50=333750000 (150M linear + 183.75M quad)
+# nocache_ratio_N50_N5_x1000=20227 (20.2x super-linear, k≈1.3)
+# cache_ratio_N50_N5_x1000=7652 (flattened vs nocache)
+# quadratic_dominates_linear_at_N50=true (183.75M > 150M)
+# seed_k_band_1.5-2.0=refined_to_1.3_at_typical_base_s_20:1 (operating-point dependent)
+# external_anchor=ReAct_arXiv2210.03629 · Reflexion_arXiv2303.11366 · SWE-Agent_arXiv2405.15793
+# next_probe=cycle-48+ T4 SANDBOX agentic loop on Qwen2.5-1.5B-Q4 → measured k_agent
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native binary)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (cycle-44/46 proven recipe)

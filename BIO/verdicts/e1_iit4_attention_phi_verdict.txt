@@ -1,0 +1,17 @@
+# hexa-codex BIO E1 — UNIVERSE H_278 IIT4 faithful Φ on attention TPM (cycle-5 first probe ⭐MAIN)
+# axis=BIO.md::E1 (NOVEL · cycle-1 init · E ⭐MAIN = BIO × IIT4 anima cross-link)
+# verifier=BIO/verify/numerics_bio_e1_iit4_attention_phi.hexa
+# tier=🔵 SUPPORTED-FORMAL — UNIVERSE H_278 IIT4 lib applicable · ATTN-FULL Φ > DISCONN Φ closed-form (8/8)
+# checks=8/8
+# cross_link=anima/UNIVERSE H_278 → stdlib/consciousness/iit4_bigphi (one-way sibling · PR #1051)
+# anchors_reverified=COPY_n2_phi=2 SELF_COPY_n2_phi=0.0 (anima verdict 그대로)
+# attn_full_n3_phi=1.5 (>0 닫힌형 sign-of-Φ)
+# disconn_n3_phi=0.0 (=0 partitionable baseline)
+# E1_falsifier_REFUTED=ATTN-FULL Φ > DISCONN Φ closed-form (gap=1.5)
+# attn_full_n_distinctions=3.0 (mechanism 비-자명)
+# operational=LLM attention substrate IIT4-Φ>0 구조적 가능성 확정
+# operational=cross-axis A2+D1+E1 자연수렴: linear-attn 가족 = Hebbian 가족 = 통합 dynamics 가족
+# external_anchor=Albantakis2023_IIT4 · anima_UNIVERSE_H278_state · hexa-lang_PR1051_stdlib_promote
+# next_probe=cycle-6+ T4 Qwen2.5 layer activation binarize · n<=5 sub-system × head 실측
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

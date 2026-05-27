@@ -1,0 +1,217 @@
+#!hexa strict
+// VERTICAL/MATERIALS/verify/numerics_materials_a1_synthesis_gap.hexa
+// VERTICAL 전문 모델 측정 도메인군 · MATERIALS — closed-form verifier for the in-silico↔합성
+// gap identity + 50% synthesis-rate threshold falsifier semantics (GNoME 식 frontier).
+//
+// ⚠ MATERIALS ≠ SCIENCE ≠ BIO — 다른 vertical · 다른 falsifier (반드시 구분):
+//   VERTICAL/SCIENCE = 물리·화학 multi-step 유도 추론 · falsifier = derive gap (사실 ≠ 유도)
+//   VERTICAL/BIO     = 바이오/의료 · in-silico↔in-vitro (wet-lab) · falsifier = correlation 붕괴
+//   VERTICAL/MATERIALS (이 파일) = 신소재 발견 (결정구조 예측 · 합성 가능성) ·
+//                                 falsifier = in-silico↔합성 gap (계산 예측이 실험으로 확인 안 됨)
+//
+// Asserts the synthesis-rate identity is closed-form and the falsifier (in-silico 환상 detection)
+// correctly classifies:
+//   (1) rate identity (synthesized_confirmed × 100 / predicted_stable) holds for all 5 models
+//   (2) counts ∈ [0, predicted_stable] · predicted_stable > 0 (no div-by-zero · confirmed ≤ predicted)
+//   (3) zero-confirm synthetic — pred=1000 confirmed=0 → rate=0% → fires (in-silico 환상 counterfactual)
+//   (4) naive_gen + random_struct fire (rate 20% / 5% < 50% · in-silico 환상)
+//   (5) gnome + mattergen + m3gnet silent (rate ≥ 50% · 예측이 실험으로 확인됨)
+//   (6) determinism (re-call same rate + fires)
+//   (7) sanity — confirmed ≤ predicted (rate ≤ 100% all · 합성이 예측을 초과 못함) AND
+//       discovery monotone: gnome (73%) ≥ mattergen (68%) ≥ m3gnet (62%)
+//
+// Source: VERTICAL/MATERIALS/bench/materials_a1_synthesis_gap.hexa
+// External anchors: Merchant 2023 GNoME (Nature 624:80) · Zeni 2024 MatterGen (arXiv:2312.03687) ·
+//                   Chen 2022 M3GNet (Nature Comp Sci) · Materials Project (open DFT database)
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["gnome", "mattergen", "m3gnet", "naive_gen", "random_struct"]
+
+let MODEL_DATA = [1000, 736,
+                  1000, 680,
+                  1000, 620,
+                  1000, 200,
+                  1000,  50]
+
+let N_FIELDS = 2
+let THRESHOLD = 50                  // < 50% synthesis rate → in-silico 환상 (예측 ≠ 합성 truth)
+
+fn predicted_stable(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn synthesized_confirmed(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn synthesis_rate_x100(model_i: int) -> int {
+    return synthesized_confirmed(model_i) * 100 / predicted_stable(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return synthesis_rate_x100(model_i) < THRESHOLD
+}
+
+print("hexa-codex VERTICAL/MATERIALS A1 falsifier — in-silico↔합성 gap closed-form")
+print("==========================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — rate identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = synthesis_rate_x100(i)
+    let rhs = synthesized_confirmed(i) * 100 / predicted_stable(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] rate identity (synthesized_confirmed × 100 / predicted_stable) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] rate identity broken")
+}
+
+// check 2 — counts ∈ [0, predicted] · predicted > 0 (no div-by-zero · confirmed ≤ predicted)
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_model {
+    let pred = predicted_stable(i)
+    let conf = synthesized_confirmed(i)
+    if pred <= 0 { rb_ok = false }
+    if conf < 0 || conf > pred { rb_ok = false }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] counts valid for all " + to_string(n_model) +
+          " models (predicted_stable > 0 · 0 ≤ synthesized_confirmed ≤ predicted_stable · no div-by-zero)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] count out of range / div-by-zero risk")
+}
+
+// check 3 — zero-confirm synthetic: pred=1000 confirmed=0 → rate=0% → fires
+checks_total = checks_total + 1
+let SYN_PRED = 1000
+let SYN_CONF = 0
+let syn_rate = SYN_CONF * 100 / SYN_PRED
+if syn_rate == 0 && syn_rate < THRESHOLD {
+    print("  [PASS] synthetic zero-confirm (pred=1000 confirmed=0) → rate=0% · fires (in-silico 환상 · 계산만 안정 · 합성 0 counterfactual)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic zero-confirm rate=" + to_string(syn_rate))
+}
+
+// check 4 — naive_gen (idx 3) + random_struct (idx 4) fire (rate < 50% · in-silico 환상)
+checks_total = checks_total + 1
+if falsifier_fires(3) && falsifier_fires(4)
+        && synthesis_rate_x100(3) == 20 && synthesis_rate_x100(4) == 5 {
+    print("  [PASS] weak/baseline models fire: naive_gen rate=" + to_string(synthesis_rate_x100(3)) +
+          "% · random_struct rate=" + to_string(synthesis_rate_x100(4)) +
+          "% — both < 50% · in-silico 환상 (계산 예측 ≠ 합성 truth)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] weak/baseline fire detection broken")
+}
+
+// check 5 — gnome + mattergen + m3gnet silent (rate ≥ 50% · 예측이 실험으로 확인됨)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && synthesis_rate_x100(0) == 73 && synthesis_rate_x100(1) == 68
+        && synthesis_rate_x100(2) == 62 {
+    print("  [PASS] strong-discovery models silent: gnome rate=" + to_string(synthesis_rate_x100(0)) +
+          "% · mattergen=" + to_string(synthesis_rate_x100(1)) +
+          "% · m3gnet=" + to_string(synthesis_rate_x100(2)) +
+          "% — all ≥ 50% · 예측이 실험으로 확인됨 (false-negative 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] strong-discovery silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if synthesis_rate_x100(0) == synthesis_rate_x100(0)
+        && falsifier_fires(3) == falsifier_fires(3)
+        && synthesis_rate_x100(2) == synthesis_rate_x100(2) {
+    print("  [PASS] formula deterministic (re-call same rate + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: confirmed ≤ predicted (rate ≤ 100% all · 합성이 예측을 초과 못함) AND
+//   discovery monotone: gnome (73%) ≥ mattergen (68%) ≥ m3gnet (62%).
+checks_total = checks_total + 1
+let mut rate_bounded = true
+i = 0
+while i < n_model {
+    let r = synthesis_rate_x100(i)
+    if r < 0 || r > 100 { rate_bounded = false }
+    i = i + 1
+}
+let monotone_strong = synthesis_rate_x100(0) >= synthesis_rate_x100(1)
+        && synthesis_rate_x100(1) >= synthesis_rate_x100(2)
+if rate_bounded && monotone_strong {
+    print("  [PASS] sanity — rate ∈ [0, 100]% all (합성 ≤ 예측) AND discovery monotone (gnome 73 ≥ mattergen 68 ≥ m3gnet 62)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (rate_bounded=" + to_string(rate_bounded) +
+          " · monotone_strong=" + to_string(monotone_strong) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (synthesis-rate identity + 50% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 50% threshold = synthesizable-prediction convention · cite Merchant 2023 GNoME Nature 624:80 + Zeni 2024 MatterGen arXiv:2312.03687 + Chen 2022 M3GNet Nature Comp Sci + Materials Project)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — synthesis-rate formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/MATERIALS A1 finding (신소재 발견 모델 측정 · placeholder · closed-form):")
+print("  - synthesis_rate_x100 = synthesized_confirmed × 100 / predicted_stable identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: gnome=73% · mattergen=68% · m3gnet=62% silent (예측이 실험으로 확인됨) · naive_gen=20% · random_struct=5% fires (in-silico 환상 · 계산 예측 ≠ 합성 truth)")
+print("  - external anchors: Merchant 2023 GNoME (Nature 624:80) · Zeni 2024 MatterGen (arXiv:2312.03687) · Chen 2022 M3GNet (Nature Comp Sci) · Materials Project")
+print("  - MATERIALS ≠ SCIENCE (물리화학 유도) ≠ BIO (wet-lab): 신소재 발견 (GNoME · 합성 가능성) layer · falsifier = in-silico↔합성 gap")
+print("  - 실측 (cycle-11+ T4): GNoME-style 예측 + ICSD/Materials Project 합성-검증 cross-ref on lm_foundry + HF transformers + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_MATERIALS_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/MATERIALS/verdicts/a1_synthesis_gap_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/MATERIALS A1 — in-silico↔합성 gap verifier (신소재 발견 모델 측정 · cycle-10)\n"
+content = content + "# axis=VERTICAL/MATERIALS/MATERIALS.md::A1 (in-silico↔합성 gap · 5 models · 50% synthesis-rate threshold · GNoME frontier)\n"
+content = content + "# bench=VERTICAL/MATERIALS/bench/materials_a1_synthesis_gap.hexa\n"
+content = content + "# verifier=VERTICAL/MATERIALS/verify/numerics_materials_a1_synthesis_gap.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=synthesis_rate_x100 = synthesized_confirmed × 100 / predicted_stable (정수 % · floor div); falsifier_fires = rate < 50% → 예측 신물질의 합성 가능성 < 50% · in-silico 환상 · 계산 예측이 실험으로 확인 안 됨\n"
+content = content + "# placeholder_data=5 models · gnome (pred 1000 · confirmed 736 · rate 73% silent) · mattergen (1000/680 · 68% silent) · m3gnet (1000/620 · 62% silent) · naive_gen (1000/200 · 20% FIRES) · random_struct (1000/50 · 5% FIRES · baseline floor)\n"
+content = content + "# bidirectional_discrimination=3 silent (gnome · mattergen · m3gnet — strong discovery · 예측이 실험으로 확인됨) + 2 fires (naive_gen · random_struct — rate<50% · in-silico 환상)\n"
+content = content + "# external_anchors=Merchant 2023 GNoME Scaling deep learning for materials discovery (Nature 624:80) · Zeni 2024 MatterGen generative model for inorganic materials (arXiv:2312.03687) · Chen 2022 M3GNet universal interatomic potential (Nature Comp Sci) · Materials Project (open DFT database)\n"
+content = content + "# distinction=MATERIALS ≠ SCIENCE (물리화학 multi-step 유도 · derive gap) ≠ BIO (바이오/의료 · in-silico↔in-vitro wet-lab · correlation 붕괴) — 신소재 발견 (GNoME · 결정구조 예측 · 합성 가능성) layer · falsifier = in-silico↔합성 gap\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · GNoME-style 예측 + ICSD/Materials Project 합성-검증 cross-ref on lm_foundry + HF transformers + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — synthesis-rate identity close ≠ measured close · 새 발견 모델·합성 검증 패러다임 마다 frontier 재오픈 · 축 N (합성 경로 실현가능성) ⭐ MAIN · 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

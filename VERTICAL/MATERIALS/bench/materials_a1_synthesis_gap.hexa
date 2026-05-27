@@ -1,0 +1,115 @@
+#!hexa strict
+// VERTICAL/MATERIALS/bench/materials_a1_synthesis_gap.hexa
+// VERTICAL 전문 모델 측정 도메인군 · MATERIALS (신소재 발견 전문 모델) — closed-form first probe.
+// "in-silico 로 안정하다 예측된 신물질이 실제로 합성·검증되는가" 의 측정 (GNoME 식 frontier).
+//
+// ⚠ MATERIALS ≠ SCIENCE ≠ BIO — 다른 vertical · 다른 falsifier (반드시 구분):
+//   VERTICAL/SCIENCE = 물리·화학 multi-step 유도 추론 (GPQA) · falsifier = derive gap (사실 ≠ 유도)
+//   VERTICAL/BIO     = 바이오/의료 specialization · in-silico↔in-vitro (wet-lab) · falsifier = correlation 붕괴
+//   VERTICAL/MATERIALS (이 파일) = 신소재 발견 (GNoME · 결정구조 예측 · 합성 가능성) ·
+//                                 falsifier = in-silico↔합성 gap (계산 예측이 실험으로 확인 안 됨 · in-silico 환상)
+//
+// Identity (closed-form · libm-free · integer % via × 100 / predicted):
+//   synthesis_rate_x100(model) = synthesized_confirmed × 100 / predicted_stable
+//     (= 예측된 안정 신물질 중 실제 합성·검증된 비율 · 정수 % · floor div)
+//   synthesizable(model)       = synthesis_rate_x100 ≥ THRESHOLD (50%)
+//   falsifier_fires(model)     = synthesis_rate_x100 < THRESHOLD (50%)
+//                                → 예측 신물질의 합성 가능성 < 50% · in-silico 환상
+//                                → 계산 예측이 실험으로 확인 안 됨
+//
+// Falsifier (MATERIALS A1): in-silico 로 안정하다 예측된 신물질의 실제 합성률 < 50% 이면
+// 그 예측은 in-silico 환상 (계산은 안정하다 했으나 실험에서 확인 안 됨). 강한 발견 모델은
+// silent (합성률 높음 · 예측이 실험으로 확인됨) · naive generation / random 구조는 fires
+// (합성률 낮음 · 계산 예측 ≠ 실험 truth).
+//
+// External anchors (citation tier · 🟡):
+//   Merchant 2023 — GNoME: Scaling deep learning for materials discovery (Nature 624:80)
+//   Zeni 2024    — MatterGen: a generative model for inorganic materials design (arXiv:2312.03687)
+//   Chen 2022    — M3GNet: universal interatomic potential for materials (Nature Comp Sci)
+//   Materials Project — open DFT database of computed material properties
+//
+// Integer ledger (count + % × 100) — libm-free closed-form. Placeholder per-model
+// {predicted_stable, synthesized_confirmed} — 실측 합성-검증 harness deferred
+// (cycle-11+ T4 · GNoME-style 예측 + ICSD/Materials Project 합성-검증 cross-ref ·
+//  HF transformers eval + lm_foundry · vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure synthesis-rate identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 models · {predicted_stable, synthesized_confirmed} · counts)
+//   gnome         : pred 1000 · confirmed 736 (rate 73% · GNoME SOTA discovery · silent)
+//   mattergen     : pred 1000 · confirmed 680 (rate 68% · generative inorganic · silent)
+//   m3gnet        : pred 1000 · confirmed 620 (rate 62% · universal potential · silent)
+//   naive_gen     : pred 1000 · confirmed 200 (rate 20% · naive generation · FIRES)
+//   random_struct : pred 1000 · confirmed  50 (rate  5% · random structures · FIRES)
+//
+// predicted_stable      = in-silico 로 (DFT / ML potential) 안정하다 예측된 신물질 후보 수.
+// synthesized_confirmed = 그 중 실제 합성·실험 검증된 (ICSD / Materials Project 등록) 수.
+//   rate = confirmed × 100 / predicted → 예측의 실험-확인율 (in-silico → 합성 gap 의 inverse).
+//   random_struct 는 BASELINE floor row (계산 무의미 random → 합성률 극저 → fires by design).
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["gnome", "mattergen", "m3gnet", "naive_gen", "random_struct"]
+
+// row-major {predicted_stable, synthesized_confirmed} (5 models × 2 fields · counts)
+//   gnome         : [1000, 736]  → rate 73% silent (736 × 100 / 1000 = 73 · floor)
+//   mattergen     : [1000, 680]  → rate 68% silent
+//   m3gnet        : [1000, 620]  → rate 62% silent
+//   naive_gen     : [1000, 200]  → rate 20% FIRES (< 50%)
+//   random_struct : [1000,  50]  → rate  5% FIRES (baseline floor)
+let MODEL_DATA = [1000, 736,
+                  1000, 680,
+                  1000, 620,
+                  1000, 200,
+                  1000,  50]
+
+let N_FIELDS = 2
+let THRESHOLD = 50                  // < 50% synthesis rate → in-silico 환상 (예측 ≠ 합성 truth)
+
+fn predicted_stable(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn synthesized_confirmed(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn synthesis_rate_x100(model_i: int) -> int {
+    // 예측된 안정 신물질 중 실제 합성·검증 비율 (정수 % · floor div).
+    //   rate = synthesized_confirmed × 100 / predicted_stable
+    return synthesized_confirmed(model_i) * 100 / predicted_stable(model_i)
+}
+
+fn synthesizable(model_i: int) -> bool {
+    return synthesis_rate_x100(model_i) >= THRESHOLD
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // 예측 신물질의 합성 가능성 < 50% → in-silico 환상 (계산 ≠ 실험 truth)
+    return synthesis_rate_x100(model_i) < THRESHOLD
+}
+
+print("hexa-codex VERTICAL/MATERIALS A1 — in-silico↔합성 gap closed-form (신소재 발견 모델 측정 · cycle-10)")
+print("=========================================================================================================")
+print("")
+print("⚠ MATERIALS ≠ SCIENCE (물리화학 유도) ≠ BIO (wet-lab) — 신소재 발견 (GNoME · 합성 가능성) layer")
+print("")
+print("per-model 신소재 발견 profile (placeholder · in-silico 예측 → 합성 검증 · libm-free):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let pred = predicted_stable(i)
+    let conf = synthesized_confirmed(i)
+    let r = synthesis_rate_x100(i)
+    let mut flag = "silent (합성률 ≥ 50% · 예측이 실험으로 확인됨)"
+    if falsifier_fires(i) {
+        flag = "FIRES (합성률 < 50% · in-silico 환상 · 계산 예측 ≠ 합성 truth)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    predicted_stable=" + to_string(pred) + " · synthesized_confirmed=" +
+          to_string(conf))
+    print("    → synthesis_rate=" + to_string(r) + "% · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_MATERIALS_A1_SYNTHESIS_GAP__ DONE")

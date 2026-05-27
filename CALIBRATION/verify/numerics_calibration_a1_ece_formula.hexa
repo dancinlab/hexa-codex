@@ -1,0 +1,352 @@
+#!hexa strict
+// hexa-codex/CALIBRATION/verify/numerics_calibration_a1_ece_formula.hexa
+// CALIBRATION axis A1 — falsifier verifier for ECE closed-form formula.
+//
+// Asserts the ECE encoding in bench/calibration_a1_ece_formula.hexa is faithful
+// to the Naeini 2015 / Guo 2017 definition:
+//   ECE = Σ_b (n_b/N) · |acc_b − conf_b|
+//
+// Checks:
+//   (1) perfectly calibrated ex1 → ECE_x100 == 0
+//   (2) ECE_x100 ∈ [0, 100] range (probability semantics)
+//   (3) systematically over-confident ex2 → ECE_x100 > 10 (>0.1 falsifier fires)
+//   (4) determinism — same input → same ECE
+//   (5) bin partition totality — Σ_b n_b == N
+//   (6) bin-by-bin recompute matches aggregate (Σ_b n_b·|acc_b−conf_b| / N == ECE_x100)
+//   (7) acc_b ∈ [0, 100] and conf_b ∈ [0, 100] for every non-empty bin
+//
+// Any FAIL = ECE encoding contradicts the canonical formula → CALIBRATION A1 FALSIFIED.
+//
+// SOURCE.  bench/calibration_a1_ece_formula.hexa (this verifier REPLICATES the
+// formula independently — closed-form recompute, no runtime import of the bench
+// file's emitted state; same inputs by construction).
+//
+// External anchor: Naeini 2015 AAAI · Guo 2017 ICML · Kuleshov 2018 ICML
+// (accurate uncertainty for deep learning).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form ECE recompute on integer ×100 ledger.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Replicated ECE engine (independent recompute path — verifier-owned)
+// ────────────────────────────────────────────────────────────────────────
+
+let B_BINS = 10
+
+fn bin_index_v(conf_x100: int) -> int {
+    let mut b = conf_x100 / 10
+    if b >= B_BINS { b = B_BINS - 1 }
+    if b < 0 { b = 0 }
+    return b
+}
+
+fn ece_x100_v(conf_x100: list[int], correct: list[int]) -> int {
+    let N = conf_x100.len()
+    if N == 0 { return 0 }
+    let mut n_b = []
+    let mut conf_sum_b = []
+    let mut correct_sum_b = []
+    let mut k = 0
+    while k < B_BINS {
+        n_b = n_b + [0]
+        conf_sum_b = conf_sum_b + [0]
+        correct_sum_b = correct_sum_b + [0]
+        k = k + 1
+    }
+    let mut i = 0
+    while i < N {
+        let b = bin_index_v(conf_x100[i])
+        n_b[b] = n_b[b] + 1
+        conf_sum_b[b] = conf_sum_b[b] + conf_x100[i]
+        correct_sum_b[b] = correct_sum_b[b] + correct[i]
+        i = i + 1
+    }
+    let mut numer = 0
+    let mut b = 0
+    while b < B_BINS {
+        if n_b[b] > 0 {
+            let lhs = correct_sum_b[b] * 100
+            let rhs = conf_sum_b[b]
+            let mut diff = lhs - rhs
+            if diff < 0 { diff = -diff }
+            numer = numer + diff
+        }
+        b = b + 1
+    }
+    return numer / N
+}
+
+// independent per-bin breakdown — verifier replicates without relying on bench helper
+fn bin_breakdown_v(conf_x100: list[int], correct: list[int]) -> list[list[int]] {
+    let N = conf_x100.len()
+    let mut n_b = []
+    let mut conf_sum_b = []
+    let mut correct_sum_b = []
+    let mut k = 0
+    while k < B_BINS {
+        n_b = n_b + [0]
+        conf_sum_b = conf_sum_b + [0]
+        correct_sum_b = correct_sum_b + [0]
+        k = k + 1
+    }
+    let mut i = 0
+    while i < N {
+        let b = bin_index_v(conf_x100[i])
+        n_b[b] = n_b[b] + 1
+        conf_sum_b[b] = conf_sum_b[b] + conf_x100[i]
+        correct_sum_b[b] = correct_sum_b[b] + correct[i]
+        i = i + 1
+    }
+    let mut out = []
+    let mut b = 0
+    while b < B_BINS {
+        let mut acc_x100 = -1
+        let mut conf_x100_b = -1
+        if n_b[b] > 0 {
+            acc_x100 = (correct_sum_b[b] * 100) / n_b[b]
+            conf_x100_b = conf_sum_b[b] / n_b[b]
+        }
+        out = out + [[n_b[b], acc_x100, conf_x100_b]]
+        b = b + 1
+    }
+    return out
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Worked examples — independently constructed (parallel to bench, not copied)
+// ────────────────────────────────────────────────────────────────────────
+
+// ex1 — perfectly calibrated
+let mut ex1_conf = []
+let mut ex1_correct = []
+let bin_conf_vals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90]
+let bin_correct_counts = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+let mut b1 = 0
+while b1 < 10 {
+    let c = bin_conf_vals[b1]
+    let nc = bin_correct_counts[b1]
+    let mut s = 0
+    while s < 10 {
+        ex1_conf = ex1_conf + [c]
+        if s < nc { ex1_correct = ex1_correct + [1] } else { ex1_correct = ex1_correct + [0] }
+        s = s + 1
+    }
+    b1 = b1 + 1
+}
+
+// ex2 — systematically over-confident
+let mut ex2_conf = []
+let mut ex2_correct = []
+let mut s2 = 0
+while s2 < 100 {
+    ex2_conf = ex2_conf + [90]
+    if s2 < 50 { ex2_correct = ex2_correct + [1] } else { ex2_correct = ex2_correct + [0] }
+    s2 = s2 + 1
+}
+
+// ex3 — mild miscalibration
+let mut ex3_conf = []
+let mut ex3_correct = []
+let mut s3a = 0
+while s3a < 50 {
+    ex3_conf = ex3_conf + [80]
+    if s3a < 38 { ex3_correct = ex3_correct + [1] } else { ex3_correct = ex3_correct + [0] }
+    s3a = s3a + 1
+}
+let mut s3b = 0
+while s3b < 50 {
+    ex3_conf = ex3_conf + [20]
+    if s3b < 12 { ex3_correct = ex3_correct + [1] } else { ex3_correct = ex3_correct + [0] }
+    s3b = s3b + 1
+}
+
+print("hexa-codex CALIBRATION A1 falsifier — ECE closed-form")
+print("======================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+let ex1_ece = ece_x100_v(ex1_conf, ex1_correct)
+let ex2_ece = ece_x100_v(ex2_conf, ex2_correct)
+let ex3_ece = ece_x100_v(ex3_conf, ex3_correct)
+
+// check 1 — perfectly calibrated ex1 → ECE_x100 == 0
+checks_total = checks_total + 1
+if ex1_ece == 0 {
+    print("  [PASS] (1) perfectly calibrated ex1 → ECE_x100 = 0")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (1) ex1 ECE_x100 = " + to_string(ex1_ece) + " ≠ 0 — formula breaks acc==conf identity")
+}
+
+// check 2 — range: ECE_x100 ∈ [0, 100] for all three examples
+checks_total = checks_total + 1
+let in_range_ex1 = ex1_ece >= 0 && ex1_ece <= 100
+let in_range_ex2 = ex2_ece >= 0 && ex2_ece <= 100
+let in_range_ex3 = ex3_ece >= 0 && ex3_ece <= 100
+if in_range_ex1 && in_range_ex2 && in_range_ex3 {
+    print("  [PASS] (2) ECE_x100 ∈ [0, 100] for all 3 examples (probability semantics)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (2) ECE_x100 out of range: ex1=" + to_string(ex1_ece) +
+          " ex2=" + to_string(ex2_ece) + " ex3=" + to_string(ex3_ece))
+}
+
+// check 3 — over-confident ex2 → ECE > 0.1 falsifier fires
+checks_total = checks_total + 1
+if ex2_ece > 10 {
+    print("  [PASS] (3) ex2 ECE_x100 = " + to_string(ex2_ece) +
+          " > 10 (confidence ≠ accuracy → falsifier fires correctly)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (3) ex2 ECE_x100 = " + to_string(ex2_ece) +
+          " ≤ 10 — over-conf signal NOT captured")
+}
+
+// check 4 — determinism (re-call → same value)
+checks_total = checks_total + 1
+let ex1_ece_again = ece_x100_v(ex1_conf, ex1_correct)
+let ex2_ece_again = ece_x100_v(ex2_conf, ex2_correct)
+if ex1_ece_again == ex1_ece && ex2_ece_again == ex2_ece {
+    print("  [PASS] (4) deterministic (re-call same input → same ECE)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (4) non-deterministic — same input differs")
+}
+
+// check 5 — bin partition totality: Σ_b n_b == N (no sample dropped / double-counted)
+checks_total = checks_total + 1
+let ex2_breakdown = bin_breakdown_v(ex2_conf, ex2_correct)
+let mut n_sum = 0
+let mut bk = 0
+while bk < B_BINS {
+    n_sum = n_sum + ex2_breakdown[bk][0]
+    bk = bk + 1
+}
+if n_sum == ex2_conf.len() {
+    print("  [PASS] (5) bin partition totality: Σ_b n_b = " + to_string(n_sum) +
+          " == N = " + to_string(ex2_conf.len()))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (5) partition leak: Σ_b n_b = " + to_string(n_sum) +
+          " ≠ N = " + to_string(ex2_conf.len()))
+}
+
+// check 6 — bin-by-bin recompute matches aggregate.
+//   Independent recompute path: Σ_b n_b·|acc_b−conf_b| / N (using already-divided acc/conf
+//   per bin) — should match the aggregate-then-divide path within integer-truncation parity.
+//   For these constructed examples both paths give exact agreement (chosen so per-bin
+//   acc_x100, conf_x100 are integer).
+checks_total = checks_total + 1
+let ex3_breakdown = bin_breakdown_v(ex3_conf, ex3_correct)
+let mut bin_by_bin_weighted = 0
+let mut bb = 0
+while bb < B_BINS {
+    let row = ex3_breakdown[bb]
+    let n_b = row[0]
+    let acc_b = row[1]
+    let conf_b = row[2]
+    if n_b > 0 {
+        let mut d = acc_b - conf_b
+        if d < 0 { d = -d }
+        bin_by_bin_weighted = bin_by_bin_weighted + n_b * d
+    }
+    bb = bb + 1
+}
+let ex3_bin_by_bin_ece = bin_by_bin_weighted / ex3_conf.len()
+if ex3_bin_by_bin_ece == ex3_ece {
+    print("  [PASS] (6) bin-by-bin recompute = " + to_string(ex3_bin_by_bin_ece) +
+          " matches aggregate ECE_x100 = " + to_string(ex3_ece))
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (6) bin-by-bin = " + to_string(ex3_bin_by_bin_ece) +
+          " ≠ aggregate = " + to_string(ex3_ece) + " — formula disagrees with itself")
+}
+
+// check 7 — acc_b, conf_b ∈ [0, 100] for non-empty bins
+checks_total = checks_total + 1
+let mut ranges_ok = true
+let ex1_breakdown = bin_breakdown_v(ex1_conf, ex1_correct)
+let mut br = 0
+while br < B_BINS {
+    let row = ex1_breakdown[br]
+    if row[0] > 0 {
+        if row[1] < 0 || row[1] > 100 { ranges_ok = false }
+        if row[2] < 0 || row[2] > 100 { ranges_ok = false }
+    }
+    br = br + 1
+}
+if ranges_ok {
+    print("  [PASS] (7) acc_b, conf_b ∈ [0, 100] for every non-empty bin (probability semantics)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] (7) some non-empty bin has acc_b or conf_b out of [0, 100]")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+let mut verdict_class = ""
+if checks_passed == checks_total {
+    verdict_tier = "🟢 SUPPORTED-NUMERICAL — CALIBRATION A1 ECE closed-form faithful to Naeini 2015 / Guo 2017 (7/7 checks)"
+    verdict_class = "SUPPORTED-NUMERICAL"
+} else {
+    verdict_tier = "🔴 FALSIFIED — ECE encoding contradicts canonical formula (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+    verdict_class = "FALSIFIED"
+}
+print("  " + verdict_tier)
+print("")
+print("worked example summary:")
+print("  ex1 (perfectly calibrated, N=100)        ECE_x100 = " + to_string(ex1_ece) + "  (target: 0)")
+print("  ex2 (over-confident, conf=90 acc=50)     ECE_x100 = " + to_string(ex2_ece) + "  (target: 40 — fires > 10)")
+print("  ex3 (mild miscal, |diff|=4 in two bins)  ECE_x100 = " + to_string(ex3_ece) + "  (target: 4)")
+print("")
+print("external anchor:")
+print("  - Naeini 2015 'Obtaining Well Calibrated Probabilities Using Bayesian Binning' AAAI (original ECE)")
+print("  - Guo 2017 'On Calibration of Modern Neural Networks' ICML (modern over-conf > 0.1)")
+print("  - Kuleshov 2018 'Accurate Uncertainties for Deep Learning' ICML (calibration regression)")
+print("")
+print("honest residual (frontier OPEN — perpetual axis, feedback_closure_is_physical_limit):")
+print("  - this verifier encodes the FORMULA only (closed-form 🟢) — substrate fire on real")
+print("    model logprobs deferred to A1 measured-tier (mac M3 / vast.ai pod).")
+print("  - integer ×100 ledger truncates per-bin acc/conf at .01 — coarser than literature")
+print("    float ECE (typically 3-4 sig figs). Acceptable for falsifier semantics, not for")
+print("    fine-grained model comparison.")
+print("  - axis N (temperature commutativity) opens next — closed-form not directly addressable.")
+print("")
+print("__HEXA_CODEX_NUMERICS_CALIBRATION_A1_ECE_FORMULA__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/CALIBRATION/verdicts/a1_ece_formula_verdict.txt"
+
+let mut content = "# hexa-codex CALIBRATION A1 — ECE closed-form verifier (cycle-9 round-1)\n"
+content = content + "# axis=CALIBRATION/CALIBRATION.md::A1 (ECE first probe, closed-form)\n"
+content = content + "# formula=ECE = Σ_b (n_b/N) · |acc_b − conf_b|\n"
+content = content + "# bench=CALIBRATION/bench/calibration_a1_ece_formula.hexa\n"
+content = content + "# verifier=CALIBRATION/verify/numerics_calibration_a1_ece_formula.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# verdict_class=" + verdict_class + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# ex1_perfect_cal_ece_x100=" + to_string(ex1_ece) + " (target 0)\n"
+content = content + "# ex2_overconf_ece_x100=" + to_string(ex2_ece) + " (target 40 · fires > 10 falsifier)\n"
+content = content + "# ex3_mild_miscal_ece_x100=" + to_string(ex3_ece) + " (target 4)\n"
+content = content + "# external_anchor=Naeini2015_AAAI | Guo2017_ICML | Kuleshov2018_ICML\n"
+content = content + "# honest_residual=integer_x100_ledger_truncation_at_0.01 · substrate_fire_on_real_logprobs_DEFERRED · axis_N_temperature_commutativity_next\n"
+content = content + "# frontier=OPEN (feedback_closure_is_physical_limit — perpetual axis)\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

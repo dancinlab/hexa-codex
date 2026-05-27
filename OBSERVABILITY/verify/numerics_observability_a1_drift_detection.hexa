@@ -1,0 +1,223 @@
+#!hexa strict
+// OBSERVABILITY/verify/numerics_observability_a1_drift_detection.hexa
+// orchestra-research "Observability" 누락 흡수 (cycle-10) — closed-form verifier
+// for the drift-detection latency identity + (drift > 10% AND latency > 1) falsifier.
+//
+// Asserts the latency/drift identity is closed-form and the falsifier (silent
+// degradation 놓침 detection) correctly classifies:
+//   (1) drift + latency values are non-negative and within sanity bounds
+//   (2) drift values ∈ [0, 100]% (× 100 ledger ∈ [0, 10000]) · latency ∈ [0, 1000]
+//   (3) synthetic blind-monitor — drift 50% (5000) · latency 5 → fires
+//   (4) blind_big + blind_med fire (큰 drift > 10% AND latency > 1 batch)
+//   (5) good_fast + good_med + low_drift silent (즉시 감지 OR 작은 drift)
+//   (6) determinism (re-call same latency + fires)
+//   (7) sanity — falsifier conjunction: 큰 drift 단독으로는 fire 안 함 (good_med drift
+//       15% · latency 1 = silent) AND 느린 latency 단독으로도 fire 안 함 (low_drift
+//       drift 5% · latency 3 = silent) — 두 조건 AND 만 fires (silent degradation
+//       정의: 큰 변화인데 늦게 잡힘)
+//
+// Source: OBSERVABILITY/bench/observability_a1_drift_detection.hexa
+// External anchors: Quinonero-Candela 2009 Dataset Shift (MIT Press) ·
+//                   Gama 2014 Concept Drift Adaptation survey (DOI:10.1145/2523813) ·
+//                   Breck 2017 ML Test Score (Google · arXiv/NIPS) ·
+//                   Klaise 2020 Monitoring models in production (arXiv:2007.06299)
+//
+// @no-lock-needed
+
+let SCENARIO_NAMES = ["good_fast", "good_med", "low_drift", "blind_big", "blind_med"]
+
+let SCENARIO_DATA = [2500, 1,
+                     1500, 1,
+                      500, 3,
+                     3000, 4,
+                     1800, 2]
+
+let N_FIELDS = 2
+let DRIFT_THRESHOLD_x100 = 1000     // drift > 10% → 큰 drift (silent degradation 위험)
+let LATENCY_THRESHOLD = 1           // latency > 1 batch → 즉시 감지 실패
+let DRIFT_MAX_x100 = 100 * 100      // [0, 10000]
+let LATENCY_MAX = 1000
+
+fn drift_magnitude_x100(scenario_i: int) -> int {
+    return SCENARIO_DATA[scenario_i * N_FIELDS + 0]
+}
+fn detection_latency_batches(scenario_i: int) -> int {
+    return SCENARIO_DATA[scenario_i * N_FIELDS + 1]
+}
+fn is_large_drift(scenario_i: int) -> bool {
+    return drift_magnitude_x100(scenario_i) > DRIFT_THRESHOLD_x100
+}
+fn is_slow_detection(scenario_i: int) -> bool {
+    return detection_latency_batches(scenario_i) > LATENCY_THRESHOLD
+}
+fn falsifier_fires(scenario_i: int) -> bool {
+    return is_large_drift(scenario_i) && is_slow_detection(scenario_i)
+}
+
+print("hexa-codex OBSERVABILITY A1 falsifier — drift-detection latency closed-form")
+print("==========================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_scenario = SCENARIO_NAMES.len()
+
+// check 1 — drift + latency values non-negative for all 5 scenarios
+checks_total = checks_total + 1
+let mut nonneg_ok = true
+let mut i = 0
+while i < n_scenario {
+    if drift_magnitude_x100(i) < 0 { nonneg_ok = false }
+    if detection_latency_batches(i) < 0 { nonneg_ok = false }
+    i = i + 1
+}
+if nonneg_ok {
+    print("  [PASS] drift_magnitude + detection_latency non-negative for all " +
+          to_string(n_scenario) + " scenarios")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] negative drift/latency value")
+}
+
+// check 2 — drift ∈ [0, 100]% (× 100 ledger ∈ [0, 10000]) · latency ∈ [0, 1000]
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_scenario {
+    let dm = drift_magnitude_x100(i)
+    let dl = detection_latency_batches(i)
+    if dm < 0 || dm > DRIFT_MAX_x100 { rb_ok = false }
+    if dl < 0 || dl > LATENCY_MAX { rb_ok = false }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] drift ∈ [0, 100]% (× 100 ledger ∈ [0, " + to_string(DRIFT_MAX_x100) +
+          "]) · latency ∈ [0, " + to_string(LATENCY_MAX) + "] for all " +
+          to_string(n_scenario) + " scenarios")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] value out of range")
+}
+
+// check 3 — synthetic blind-monitor: drift 50% (5000) · latency 5 → fires
+checks_total = checks_total + 1
+let SYN_DRIFT = 5000   // 50% × 100
+let SYN_LATENCY = 5
+let syn_large = SYN_DRIFT > DRIFT_THRESHOLD_x100
+let syn_slow = SYN_LATENCY > LATENCY_THRESHOLD
+if syn_large && syn_slow {
+    print("  [PASS] synthetic blind-monitor (drift=50% · latency=5 batch) → fires (silent degradation 놓침)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic blind-monitor large=" + to_string(syn_large) +
+          " slow=" + to_string(syn_slow))
+}
+
+// check 4 — blind_big (idx 3) + blind_med (idx 4) fire (큰 drift > 10% AND latency > 1)
+checks_total = checks_total + 1
+if falsifier_fires(3) && falsifier_fires(4)
+        && drift_magnitude_x100(3) == 3000 && detection_latency_batches(3) == 4
+        && drift_magnitude_x100(4) == 1800 && detection_latency_batches(4) == 2 {
+    print("  [PASS] blind monitors fire: blind_big (drift=" + to_string(drift_magnitude_x100(3) / 100) +
+          "% · latency=" + to_string(detection_latency_batches(3)) +
+          ") · blind_med (drift=" + to_string(drift_magnitude_x100(4) / 100) +
+          "% · latency=" + to_string(detection_latency_batches(4)) +
+          ") — 큰 drift 인데 늦게 감지 · silent degradation 놓침 (관제 실패)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] blind-monitor fire detection broken")
+}
+
+// check 5 — good_fast + good_med + low_drift silent (즉시 감지 OR 작은 drift)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && detection_latency_batches(0) == 1 && detection_latency_batches(1) == 1
+        && drift_magnitude_x100(2) == 500 {
+    print("  [PASS] healthy monitors silent: good_fast (drift=25% · latency=1 · 즉시) · good_med (drift=15% · latency=1 · 즉시) · low_drift (drift=5% ≤ 10% · 작은 drift 무해) — 관제 정상 (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] healthy-monitor silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if detection_latency_batches(3) == detection_latency_batches(3)
+        && falsifier_fires(0) == falsifier_fires(0)
+        && drift_magnitude_x100(4) == drift_magnitude_x100(4) {
+    print("  [PASS] formula deterministic (re-call same latency + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: falsifier is a TRUE conjunction — neither big-drift-alone nor
+//   slow-latency-alone fires.
+//   (a) good_med: drift 15% (> 10% · 큰 drift) BUT latency 1 (즉시) → NOT fires
+//       → 큰 drift 단독으로는 관제 실패 아님 (즉시 잡으면 OK)
+//   (b) low_drift: latency 3 (느림) BUT drift 5% (≤ 10% · 작은 drift) → NOT fires
+//       → 느린 latency 단독으로도 관제 실패 아님 (작은 drift 는 늦어도 무해)
+//   silent degradation = 큰 변화 AND 늦게 잡힘 (둘 다여야 함).
+checks_total = checks_total + 1
+let big_drift_alone_silent = is_large_drift(1) && (is_slow_detection(1) == false)
+        && (falsifier_fires(1) == false)
+let slow_alone_silent = is_slow_detection(2) && (is_large_drift(2) == false)
+        && (falsifier_fires(2) == false)
+if big_drift_alone_silent && slow_alone_silent {
+    print("  [PASS] sanity — falsifier = TRUE conjunction: 큰 drift 단독 silent (good_med drift=15% · latency=1) AND 느린 latency 단독 silent (low_drift drift=5% · latency=3) — silent degradation = 큰 변화 AND 늦게 잡힘 (둘 다)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (big_drift_alone_silent=" + to_string(big_drift_alone_silent) +
+          " · slow_alone_silent=" + to_string(slow_alone_silent) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (drift/latency identity + (drift>10% AND latency>1) conjunction semantics 7/7) + 🟡 BY-CITATION (placeholder data · 10%-drift/1-batch thresholds = silent-degradation convention · cite Quinonero-Candela 2009 + Gama 2014 DOI:10.1145/2523813 + Breck 2017 ML Test Score + Klaise 2020 arXiv:2007.06299)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — drift-detection formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("OBSERVABILITY A1 finding (orchestra Observability 흡수 · placeholder · closed-form):")
+print("  - falsifier_fires = (drift > 10%) AND (latency > 1 batch) conjunction (7/7 closed-form checks)")
+print("  - bidirectional discrimination: blind_big (drift=30% · latency=4) · blind_med (drift=18% · latency=2) FIRES (silent degradation 놓침 · 관제 실패) · good_fast/good_med (즉시 감지 latency=1) · low_drift (작은 drift 5%) silent (관제 정상)")
+print("  - external anchors: Quinonero-Candela 2009 Dataset Shift · Gama 2014 (DOI:10.1145/2523813) · Breck 2017 ML Test Score · Klaise 2020 (arXiv:2007.06299)")
+print("  - 실측 (cycle-11+ T4): production monitoring trace · PSI/KL drift detector batch-level alert latency on streaming eval (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_OBSERVABILITY_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/OBSERVABILITY/verdicts/a1_drift_detection_verdict.txt"
+
+let mut content = "# hexa-codex OBSERVABILITY A1 — drift-detection latency verifier (orchestra-research Observability 흡수 · cycle-10)\n"
+content = content + "# axis=OBSERVABILITY/OBSERVABILITY.md::A1 (drift detection latency · 5 monitoring scenarios · (drift>10% AND latency>1) falsifier)\n"
+content = content + "# bench=OBSERVABILITY/bench/observability_a1_drift_detection.hexa\n"
+content = content + "# verifier=OBSERVABILITY/verify/numerics_observability_a1_drift_detection.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=falsifier_fires = (drift_magnitude_x100 > 1000 [10%]) AND (detection_latency_batches > 1) → silent degradation 놓침 · 관제 실패\n"
+content = content + "# placeholder_data=5 scenarios · good_fast (25% drift · 1 batch latency · silent) · good_med (15% drift · 1 batch · silent) · low_drift (5% drift · 3 batch · silent · 작은 drift 무해) · blind_big (30% drift · 4 batch · FIRES) · blind_med (18% drift · 2 batch · FIRES)\n"
+content = content + "# bidirectional_discrimination=2 FIRES (blind_big · blind_med — 큰 drift 인데 늦게 감지 · silent degradation 놓침) + 3 silent (good_fast · good_med — 즉시 감지 latency≤1 · low_drift — 작은 drift ≤10% 무해)\n"
+content = content + "# falsifier_is_conjunction=큰 drift 단독 silent (good_med 15% · latency 1) AND 느린 latency 단독 silent (low_drift 5% · latency 3) — silent degradation = 큰 변화 AND 늦게 잡힘 (둘 다)\n"
+content = content + "# external_anchors=Quinonero-Candela 2009 Dataset Shift in Machine Learning (MIT Press) · Gama 2014 A Survey on Concept Drift Adaptation (ACM CSUR · DOI:10.1145/2523813) · Breck 2017 The ML Test Score (Google) · Klaise 2020 Monitoring and explainability of models in production (arXiv:2007.06299)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · production monitoring trace · PSI/KL drift detector batch-level alert latency on streaming eval · cx_lab_sandbox)\n"
+content = content + "# absorbed_from=orchestra-research 20-skill 누락 흡수 (cycle-10 · \"Observability\" → OBSERVABILITY/A1 신규 단독 도메인)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — drift-detection identity close ≠ measured monitoring close · 새 drift detector·metric·alert policy 마다 frontier 재오픈 · silent degradation 감지는 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

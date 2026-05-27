@@ -1,0 +1,14 @@
+# hexa-codex OBSERVABILITY A1 — drift-detection latency verifier (orchestra-research Observability 흡수 · cycle-10)
+# axis=OBSERVABILITY/OBSERVABILITY.md::A1 (drift detection latency · 5 monitoring scenarios · (drift>10% AND latency>1) falsifier)
+# bench=OBSERVABILITY/bench/observability_a1_drift_detection.hexa
+# verifier=OBSERVABILITY/verify/numerics_observability_a1_drift_detection.hexa
+# tier=🔵 STRUCTURAL (drift/latency identity + (drift>10% AND latency>1) conjunction semantics 7/7) + 🟡 BY-CITATION (placeholder data · 10%-drift/1-batch thresholds = silent-degradation convention · cite Quinonero-Candela 2009 + Gama 2014 DOI:10.1145/2523813 + Breck 2017 ML Test Score + Klaise 2020 arXiv:2007.06299)
+# checks=7/7
+# formula=falsifier_fires = (drift_magnitude_x100 > 1000 [10%]) AND (detection_latency_batches > 1) → silent degradation 놓침 · 관제 실패
+# placeholder_data=5 scenarios · good_fast (25% drift · 1 batch latency · silent) · good_med (15% drift · 1 batch · silent) · low_drift (5% drift · 3 batch · silent · 작은 drift 무해) · blind_big (30% drift · 4 batch · FIRES) · blind_med (18% drift · 2 batch · FIRES)
+# bidirectional_discrimination=2 FIRES (blind_big · blind_med — 큰 drift 인데 늦게 감지 · silent degradation 놓침) + 3 silent (good_fast · good_med — 즉시 감지 latency≤1 · low_drift — 작은 drift ≤10% 무해)
+# falsifier_is_conjunction=큰 drift 단독 silent (good_med 15% · latency 1) AND 느린 latency 단독 silent (low_drift 5% · latency 3) — silent degradation = 큰 변화 AND 늦게 잡힘 (둘 다)
+# external_anchors=Quinonero-Candela 2009 Dataset Shift in Machine Learning (MIT Press) · Gama 2014 A Survey on Concept Drift Adaptation (ACM CSUR · DOI:10.1145/2523813) · Breck 2017 The ML Test Score (Google) · Klaise 2020 Monitoring and explainability of models in production (arXiv:2007.06299)
+# substrate_fire=DEFERRED (cycle-11+ · production monitoring trace · PSI/KL drift detector batch-level alert latency on streaming eval · cx_lab_sandbox)
+# absorbed_from=orchestra-research 20-skill 누락 흡수 (cycle-10 · "Observability" → OBSERVABILITY/A1 신규 단독 도메인)
+# frontier_open=feedback_closure_is_physical_limit — drift-detection identity close ≠ measured monitoring close · 새 drift detector·metric·alert policy 마다 frontier 재오픈 · silent degradation 감지는 도착지 없음

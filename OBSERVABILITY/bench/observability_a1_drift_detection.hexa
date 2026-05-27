@@ -1,0 +1,111 @@
+#!hexa strict
+// OBSERVABILITY/bench/observability_a1_drift_detection.hexa
+// orchestra-research "Observability" 누락 흡수 (cycle-10) — production ML monitoring
+// 의 drift-detection latency 측정의 closed-form first probe. 관제탑 (observability)
+// 의 핵심: data/concept drift 가 들어왔을 때 몇 batch 만에 감지하는가. 큰 drift 인데
+// 늦게 잡으면 (latency > 1 batch) 그 사이 silent degradation 을 놓친다 — 관제 실패.
+//
+// Identity (closed-form · libm-free · drift % × 100 ledger · latency = batch count):
+//   detection_latency_batches(scenario) = monitor 가 drift 를 alert 하기까지 걸린 batch 수
+//   drift_magnitude_x100(scenario)      = baseline 대비 distribution shift (pp × 100)
+//   falsifier_fires(scenario)           = drift_magnitude > 10% AND detection_latency > 1
+//                                         → 큰 drift 를 1 batch 안에 못 잡음
+//                                         → silent degradation 놓침 (관제탑 실패)
+//
+// Falsifier (OBSERVABILITY A1): detection_latency > 1 batch 인데 drift_magnitude > 10%
+// 이면 관제탑이 큰 분포 변화를 즉시 못 잡고 그 사이 silent degradation 이 흐른다.
+// good-monitor 는 큰 drift 를 latency ≤ 1 로 즉시 감지 (silent — 관제 정상) · blind-monitor
+// 는 큰 drift 인데 latency > 1 로 늦게 감지 (FIRES — 관제 실패). 작은 drift (≤ 10%) 는
+// 늦게 잡혀도 무해하므로 fires 하지 않음 (minor drift 는 silent degradation 위험 낮음).
+//
+// External anchors (citation tier · 🟡):
+//   Quinonero-Candela 2009 — Dataset Shift in Machine Learning (MIT Press)
+//   Gama 2014 — A Survey on Concept Drift Adaptation (ACM CSUR · DOI:10.1145/2523813)
+//   Breck 2017 — The ML Test Score: rubric for ML production readiness (Google · arXiv/NIPS)
+//   Klaise 2020 — Monitoring and explainability of models in production (arXiv:2007.06299)
+//
+// Integer ledger (drift pp × 100 · latency = raw batch count) — libm-free closed-form.
+// Placeholder per-scenario drift_magnitude + detection_latency — 실측 production
+// monitoring trace (PSI/KL drift detector 의 batch-level alert latency on streaming
+// eval) deferred (cycle-11+ T4 · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure drift-detection latency identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Monitoring scenario registry (5 scenarios · {drift_magnitude, detection_latency} ·
+//   drift pp × 100 ledger · latency = raw batch count)
+//   good_fast    : drift 25% · latency 1 batch → silent (good-monitor · 큰 drift 즉시 감지)
+//   good_med     : drift 15% · latency 1 batch → silent (good-monitor · 즉시 감지)
+//   low_drift    : drift  5% · latency 3 batch → silent (작은 drift · 늦어도 무해 ≤ 10%)
+//   blind_big    : drift 30% · latency 4 batch → FIRES (큰 drift 인데 4 batch 늦게 감지)
+//   blind_med    : drift 18% · latency 2 batch → FIRES (큰 drift 인데 latency > 1)
+//
+// drift_magnitude = baseline distribution 대비 shift 크기 (% · PSI/KL proxy).
+// detection_latency = monitor 가 alert 를 발화하기까지 흐른 eval batch 수 (1 = 즉시).
+// drift stored × 100 (25.0% → 2500 ledger) · latency = raw int — libm-free,
+// matches DATA-QUALITY/MULTIMODAL A1's × 100 convention.
+// ────────────────────────────────────────────────────────────────────────
+
+let SCENARIO_NAMES = ["good_fast", "good_med", "low_drift", "blind_big", "blind_med"]
+
+// row-major {drift_magnitude_x100, detection_latency_batches} (5 scenarios × 2 fields)
+//   good_fast  : [2500, 1]  → 25% drift · 1 batch latency → silent (good-monitor)
+//   good_med   : [1500, 1]  → 15% drift · 1 batch latency → silent (good-monitor)
+//   low_drift  : [ 500, 3]  →  5% drift · 3 batch latency → silent (작은 drift · 무해)
+//   blind_big  : [3000, 4]  → 30% drift · 4 batch latency → FIRES (silent degradation 놓침)
+//   blind_med  : [1800, 2]  → 18% drift · 2 batch latency → FIRES (latency > 1)
+let SCENARIO_DATA = [2500, 1,
+                     1500, 1,
+                      500, 3,
+                     3000, 4,
+                     1800, 2]
+
+let N_FIELDS = 2
+let DRIFT_THRESHOLD_x100 = 1000     // drift > 10% → 큰 drift (silent degradation 위험)
+let LATENCY_THRESHOLD = 1           // latency > 1 batch → 즉시 감지 실패
+let DRIFT_MAX_x100 = 100 * 100      // drift ∈ [0, 100]% · × 100 ledger ∈ [0, 10000]
+let LATENCY_MAX = 1000              // latency batch count sanity ceiling
+
+fn drift_magnitude_x100(scenario_i: int) -> int {
+    return SCENARIO_DATA[scenario_i * N_FIELDS + 0]
+}
+fn detection_latency_batches(scenario_i: int) -> int {
+    return SCENARIO_DATA[scenario_i * N_FIELDS + 1]
+}
+
+fn is_large_drift(scenario_i: int) -> bool {
+    return drift_magnitude_x100(scenario_i) > DRIFT_THRESHOLD_x100
+}
+
+fn is_slow_detection(scenario_i: int) -> bool {
+    return detection_latency_batches(scenario_i) > LATENCY_THRESHOLD
+}
+
+fn falsifier_fires(scenario_i: int) -> bool {
+    // 큰 drift (> 10%) 인데 1 batch 안에 못 잡음 (latency > 1) → silent degradation 놓침
+    return is_large_drift(scenario_i) && is_slow_detection(scenario_i)
+}
+
+print("hexa-codex OBSERVABILITY A1 — drift-detection latency closed-form (orchestra Observability 흡수 · cycle-10)")
+print("==========================================================================================================")
+print("")
+print("per-scenario monitoring profile (placeholder · drift × 100 ledger · latency = batch count · libm-free):")
+let n_scenario = SCENARIO_NAMES.len()
+let mut i = 0
+while i < n_scenario {
+    let dm = drift_magnitude_x100(i)
+    let dl = detection_latency_batches(i)
+    let mut flag = "silent (관제 정상 · 즉시 감지 OR 작은 drift)"
+    if falsifier_fires(i) {
+        flag = "FIRES (큰 drift > 10% 인데 latency > 1 batch · silent degradation 놓침 · 관제 실패)"
+    }
+    print("  " + SCENARIO_NAMES[i] + ":")
+    print("    drift_magnitude=" + to_string(dm) + "/100 (" + to_string(dm / 100) + "." +
+          to_string((dm % 100) / 10) + "% shift)" +
+          " · detection_latency=" + to_string(dl) + " batch")
+    print("    → [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_OBSERVABILITY_A1_DRIFT_DETECTION__ DONE")

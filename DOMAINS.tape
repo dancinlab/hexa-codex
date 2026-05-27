@@ -29,3 +29,6 @@
 @domain TEMPORAL := "./TEMPORAL/TEMPORAL.md"
 @domain DIVERSITY := "./DIVERSITY/DIVERSITY.md"
 @domain USER-MODEL := "./USER-MODEL/USER-MODEL.md"
+
+# ─── meta-domain (cross-domain orchestrator) ───
+@domain CODEX := "./CODEX/CODEX.md"

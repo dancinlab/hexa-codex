@@ -1,6 +1,6 @@
-# hexa-codex BIODATA A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe · 구 BIO/A1 이관 by reorg cycle-1)
-# axis=BIODATA.md::A1 (cycle-2 first probe · 구 BIO/A1 이관 by reorg · A = BIO-data LLM training)
-# verifier=BIODATA/verify/numerics_biodata_a1_protein_llm_scaling.hexa
+# hexa-codex lm_foundry bio A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe)
+# axis=lm_foundry/docs/bio-llm.md::FINDING-A1 (absorbed from retired BIODATA domain · cycle-2 first probe)
+# verifier=lm_foundry/verify/numerics_bio_a1_protein_llm_scaling.hexa
 # tier=🔵 STRUCTURAL (Lagrangian shift 9/9) + 🟡 α_protein-by-citation + 🟠 β_protein assumed
 # checks=9/9
 # inputs=alpha_text=0.34 beta_text=0.28 (Hoffmann/C1 cycle-43)
@@ -13,5 +13,3 @@
 # closed_negative=folk 'BIO=text Chinchilla' guideline REFUTED for compute planning
 # external_anchor=Lin2023_ESM2_arXiv2206.13517 · Hoffmann2022_arXiv2203.15556 · hexa-codex_C1_cycle43
 # next_probe=cycle-3+ T4 ESM2 checkpoint loss recompute → independent (α,β) fit
-# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
-#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

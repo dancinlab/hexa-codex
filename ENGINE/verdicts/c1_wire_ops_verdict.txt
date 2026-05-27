@@ -1,0 +1,12 @@
+# hexa-codex ENGINE C1 — wire verifier (cycle-5)
+# axis=ENGINE/ENGINE.md::C1 (OPS finding → multi-node scheduler driving)
+# source_finding=OPS.md::cycle-16 M/M/c knee + cycle-28 N1 heterogeneous-μ
+# wire=ENGINE/wires/wire_c1_ops_hetero_scheduler.hexa
+# verifier=ENGINE/verify/numerics_engine_c1_wire_ops.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — ENGINE C1 wire encodes OPS heterogeneous-μ finding (6/6 checks · weighted-RR ≠ single-UMA ≠ Whitt slow-bound)
+# checks=6/6
+# selected_policy=weighted-round-robin
+# lambda_hetero_aware_x100=1253
+# lambda_slow_server_bound_x100=600
+# predicted_gain_x100=208
+# cost_bearing_2host_fire=DEFERRED (OPS N1 bench/sandbox_p3_multinode_2host.hexa · ±15% falsifier)

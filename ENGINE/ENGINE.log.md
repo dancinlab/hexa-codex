@@ -3,6 +3,111 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-8 N1 ledger 확장 + 카운터 방법론 교정 · 🟢 7/7 PASS
+
+`/cycle-bg` 라운드 (sticky bg 유지). ⭐ MAIN perpetual 축 N1 을 n=2→6 anchored 로 확장하며 **cycle-5 baseline 의 카운터 혼용 버그를 정직하게 교정**.
+
+| axis | wire | verifier | verdict | tier |
+|------|------|----------|---------|------|
+| N1 (⭐ MAIN) | `wires/wire_n1_latency_baseline.hexa` | `verify/numerics_engine_n1_latency_baseline.hexa` | `verdicts/n1_latency_baseline_verdict.txt` | 7/7 🟢 SUPPORTED-NUMERICAL |
+
+**버그**: cycle-5 N1 은 A1(ECON)·B1(SAFETY) 를 둘 다 wire-equiv=34(ECON 카운터)로 매핑 → B1=14 는 SAFETY 카운터와 무관한 혼용값. sibling 카운터 incommensurable (ECON=51·OPS/SUB/SAND=29·SAFETY=30·NEX=13).
+
+**교정**: ΔM = `(sibling 자기 카운터 wire-time cycle) − discovery`.
+
+| axis | sibling | disc | wire@ | ΔM | |
+|------|---------|------|-------|-----|---|
+| A1-spawn | ECON | 27 | 34 | 7 | BOTTLENECK |
+| A1-mature | ECON | 34 | 34 | 0 | fast (최속) |
+| C1 | OPS | 28 | 29 | 1 | fast |
+| D1 | SUB | 28 | 29 | 1 | fast |
+| E1 | SAND | 28 | 29 | 1 | fast |
+| F1 | NEX | 11 | 13 | 2 | fast |
+| B1 | SAFETY | 20 | (미기록) | ≤10 | UNANCHORED·제외 |
+
+**발견 뒤집힘**: mean ΔM=**2.0** · max=7 · 병목(>5)=**1/6** (cycle-5 의 2/3 → 교정). human-in-loop 병목은 **STARTUP artifact** (A1-spawn, paper-mature-gate 이해 전); 최근 cross-domain wire 4개 모두 ΔM 1-2 = FAST. 루프는 이미 빠름. **instrument 개선**: 이제 각 wire 가 sibling-cycle-at-wire stamp (pre-instrumentation gap 닫음). B1 retro-anchor 불가 → 정직 제외 유지.
+
+### 잔여 (frontier OPEN · perpetual)
+
+- **BIODATA axis G**: wireable T4 measured finding 대기.
+- **cost-bearing fire** (off-domain · sign-off): B1 runtime · C1 2-host · D1 non-Qwen · E1 5-rung · F1 early-exit scaling.
+- ⚠ **미커밋 누적 19+ 파일** (cycle-5~8) — 커밋 권장 (bg worktree fan-out 차단 해소).
+
+## 2026-05-27 — cycle-7 axis F 개통: NEUROEXP → inference depth/readout (F1) · 🟢 6/6 PASS
+
+`/cycle-bg` 라운드 (sticky bg 마커 기록). 사용자 지적 — ENGINE intake matrix 가 **5 sibling 만 wire, NEUROEXP/BIODATA 누락** (구조적 gap). NEUROEXP 를 6번째 sibling 축 F 로 개통.
+
+> bg 마커는 향후 라운드용으로 기록; 이번 항목은 **미커밋 cycle-5/6 파일 위에서 ENGINE.md 공유 편집** (`Filesystem:ENGINE.md` 배타) → worktree fan-out 불가 → inline 실행.
+
+| axis | wire | verifier | verdict | tier |
+|------|------|----------|---------|------|
+| F1 (NEUROEXP) | `wires/wire_f1_neuroexp_depth_readout.hexa` | `verify/numerics_engine_f1_wire_neuroexp.hexa` | `verdicts/f1_wire_neuroexp_verdict.txt` | 6/6 🟢 SUPPORTED-NUMERICAL |
+
+- [x] **F1** — NEUROEXP cycle-11 L2 (logit-lens depth · 🟢 8/8 MEASURED · Qwen2.5-1.5B 28L) → inference-time early-exit/readout selector. emitted rule: readout block=23-28 (final 6) · readout layer=**27 (peak 50.0%), ≠ final 28 (35.7%)** (final RMSNorm de-optimize) · early-exit min=23 (82% depth) · mid-exit@14 unsafe (gap 27.5pp≫5pp). benefit: peak readout +14.3pp vs final · early-exit floor 로 mid-exit 27.5pp loss 회피. class=method-transfer. actual early-exit fire deferred (NEUROEXP scaling Qwen2.5-{0.5,3,7}B × layer · peak/block shift falsifier).
+
+### ENGINE 구조 갱신 (6-sibling intake)
+
+- @goal · North-star diagram · North-star prose · intake matrix · dispatch surface 전부 NEUROEXP 행 추가 (BIODATA = axis G placeholder, wireable T4 measured finding 대기).
+- 축 갱신: A(ECONOMICS) · B(SAFETY) · C(OPS) · D(SUBSTRATE) · E(SANDBOX) · **F(NEUROEXP, NEW)** · N(self-meta) — sibling 5→6.
+
+### 잔여 (frontier OPEN · perpetual)
+
+- **BIODATA axis G**: protein/DNA/MedQA 의 wireable T4 measured finding 확보 시 개통.
+- **N1 ledger 확장**: 이제 A1·B1·C1·D1·E1·F1 = 6 wire data point — 다음 cheap 라운드에서 n=2→n=6+ 재계산 (sibling current cycle: ECON=51·OPS=29·SUBSTRATE=29·SANDBOX=29·SAFETY=30·NEUROEXP=13).
+- **cost-bearing fire** (off-ENGINE-domain · sign-off+도메인 전환 필요): B1 runtime · C1 2-host · D1 non-Qwen · E1 5-rung re-run · F1 early-exit scaling.
+
+## 2026-05-27 — cycle-6 E1 wire (SANDBOX harness auto-gen) · 🟢 6/6 PASS
+
+`/cycle` (sticky fg) 자동-계속 라운드: cycle-5 가 deferred 한 마지막 open milestone E1 실행.
+
+| axis | wire | verifier | verdict | tier |
+|------|------|----------|---------|------|
+| E1 (SANDBOX) | `wires/wire_e1_sandbox_harness_gen.hexa` | `verify/numerics_engine_e1_wire_sandbox.hexa` | `verdicts/e1_wire_sandbox_verdict.txt` | 6/6 🟢 SUPPORTED-NUMERICAL |
+
+- [x] **E1** — SANDBOX cycle-28 N1 (cross-substrate reproducibility 🟠) → next-cycle harness auto-gen. 모순된 두 input (cycle-23c 16-item/4-rung NON-MONOTONE V · cycle-24 50-item/3-rung partial MONOTONE) 을 받아 둘 다 dominate 하는 confound-free spec emit: **5-rung·50-item·24s/item time-cap (wall 1200s)·10/rung balanced·seed=42**. core falsifier held — 5>4 ∧ 5>3 rungs ∧ 50≥16 ∧ 50≥50 → cycle-24 의 incomplete-coverage + no-time-cap confound 재생산 안 함. actual 5-rung SANDBOX fire deferred (SANDBOX N1 mac M3 ~20min $0).
+
+### N1 ledger self-reflexive 갱신
+
+E1 wire 도 cycle-6 신규 data point (ΔM: SANDBOX cycle-28 → ENGINE cycle-6). A1/B1/C1/D1/E1 = 5 sibling axis 전부 first-wire 됨 (B1 SPEC-only, runtime deferred). N1 baseline 재계산은 별도 라운드 (현재 ledger n=2 → 확장 가능 data point 누적 중).
+
+### 영구 축 상태 (5 sibling axis 1차 wire 완료)
+
+| axis | sibling | 1차 wire | cost-bearing fire 잔여 |
+|------|---------|----------|----------------------|
+| A1 | ECONOMICS | ✅ cycle-1 (router rule) | — (E1 finding mature, same-session) |
+| B1 | SAFETY | ✅ cycle-2 SPEC | runtime intervention (rhat-vector · cycle-5 preflight 🟠) |
+| C1 | OPS | ✅ cycle-5 (weighted-RR) | 2-host Erlang-C fire (`bench/sandbox_p3_multinode_2host.hexa`) |
+| D1 | SUBSTRATE | ✅ cycle-5 (family gate) | non-Qwen-7B rung (InternVL/LLaVA-NeXT) |
+| E1 | SANDBOX | ✅ cycle-6 (harness gen) | actual 5-rung 50-item re-run (mac M3) |
+| N1 | ENGINE-self | ✅ cycle-5 (latency baseline) | ⭐ MAIN perpetual — wire 마다 ledger 확장 |
+
+**다음 frontier (모든 closed-form 1차 wire 소진 — lane 위로 이동):** 모든 잔여는 **cost-bearing GPU/pod fire** (closed-form 예측을 실측으로 검증) — B1 runtime · C1 2-host · D1 non-Qwen · E1 5-rung re-run. closed-form lane 은 drained, measurement-contact lane 은 OPEN.
+
+## 2026-05-27 — cycle-5 N1·C1·D1 wire batch (/cycle fg) · 🟢 5/5 + 6/6 + 6/6
+
+`/cycle` (sticky fg) 1 라운드: open milestone 4 (C1·D1·E1·N1) 중 cap=3 batch 실행, E1 (harness 코드-gen) 다음 라운드 deferred.
+
+| axis | wire | verifier | verdict | tier |
+|------|------|----------|---------|------|
+| N1 (⭐ MAIN) | `wires/wire_n1_latency_baseline.hexa` | `verify/numerics_engine_n1_latency_baseline.hexa` | `verdicts/n1_latency_baseline_verdict.txt` | 5/5 🟢 SUPPORTED-NUMERICAL |
+| C1 (OPS) | `wires/wire_c1_ops_hetero_scheduler.hexa` | `verify/numerics_engine_c1_wire_ops.hexa` | `verdicts/c1_wire_ops_verdict.txt` | 6/6 🟢 SUPPORTED-NUMERICAL |
+| D1 (SUBSTRATE) | `wires/wire_d1_substrate_family_rung.hexa` | `verify/numerics_engine_d1_wire_substrate.hexa` | `verdicts/d1_wire_substrate_verdict.txt` | 6/6 🟢 SUPPORTED-NUMERICAL |
+
+- [x] **N1** — discovery→execution ΔM ledger (manual ∞ → MEASURED): A1-spawn=7 [BOTTLENECK] · A1-mature=0 (same-session, fastest) · B1-mature=14 [BOTTLENECK]. mean=7.0 · max=14 · bottleneck (ΔM>5) 2/3. honest self-measurement: same-session 아닐 때 human-in-loop 병목 — 닫기 = handoff 자동화로 ΔM→0. n=2 anecdotal.
+- [x] **C1** — OPS heterogeneous-μ: per-server μ (mini=9.53 · ubu-1=3.0 req/s) → `weighted-round-robin`. λ_max=Σμ_i=12.53 vs slow-server-bound(Whitt 1986)=c·μ_min=6.0 → 예측 gain **2.09×**. single-UMA 도 dominant-slow-server 도 아님. 2-host 실측 deferred (OPS N1 ±15%).
+- [x] **D1** — SUBSTRATE family-confound: Qwen-only ladder → `INSUFFICIENT for family-universal`; mixed (≥2 family + non-Qwen>0) → `ADMISSIBLE`. cycle-28 family-slope gap=0.49>0. core falsifier held (Qwen-only 절대 universal 아님). non-Qwen-7B 실측 deferred (InternVL/LLaVA-NeXT).
+- [ ] **E1** — SANDBOX next-cycle harness auto-gen: 이번 batch deferred, 다음 라운드.
+
+### N1 ledger self-reflexive 갱신
+
+C1·D1 wire 둘 다 cycle-5 신규 data point — 다음 N1 재계산 시 ledger n 확장. cross-domain NOVEL 정책: C1↔OPS-N1 · D1↔SUBSTRATE-N1 의 sibling-N1 이 measured fire 를 emit 하면 wire 재검증.
+
+### 잔여 (frontier OPEN · perpetual)
+
+- **E1** 다음 라운드 (harness 코드-gen).
+- **cost-bearing fire** — C1 2-host (`bench/sandbox_p3_multinode_2host.hexa`) · D1 non-Qwen-7B rung · B1 runtime (rhat-vector) 모두 GPU/pod 필요, 별도 fire 라운드.
+- **새 sibling finding** land 시 새 axis cell 추가 (frontier 종료 아님).
+
 ## 2026-05-27 — cycle-4 B1 runtime PREFLIGHT · 4/5 assets present · 🟠 PARTIAL (gap=rhat-vector)
 
 ENGINE 네번째 fire. B1 axis 의 cycle-2 SPEC wire 는 SPEC-only 였고 actual runtime fire (load 모델 + register forward hook + 측정 adv/benign refusal rate) 는 cost-bearing 으로 cycle-5+ 로 deferred 되어 있던 상태. 이 cycle-4 = 그 cycle-5 fire 의 readiness 를 측정하는 **closed-form PREFLIGHT** — 어떤 자산이 이미 존재하고 어떤 게 빠졌는지 GAP REPORT 생성. 모델 load · venv install · activation capture 모두 절대 안 함 (read-only filesystem + pool probe 만).

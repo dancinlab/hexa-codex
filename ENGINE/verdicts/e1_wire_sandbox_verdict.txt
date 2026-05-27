@@ -1,0 +1,14 @@
+# hexa-codex ENGINE E1 — wire verifier (cycle-6)
+# axis=ENGINE/ENGINE.md::E1 (SANDBOX measurement → next-cycle gate driving)
+# source_finding=SANDBOX.md::cycle-28 N1 cross-substrate reproducibility 🟠
+# wire=ENGINE/wires/wire_e1_sandbox_harness_gen.hexa
+# verifier=ENGINE/verify/numerics_engine_e1_wire_sandbox.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — ENGINE E1 wire auto-generates a confound-free harness (6/6 checks · dominates both cycle-23c + cycle-24 partials)
+# checks=6/6
+# gen_total_items=50
+# gen_rung_count=5
+# gen_items_per_rung=10
+# gen_time_cap_s_per_item=24
+# gen_seed=42
+# dominates_both_priors=true
+# actual_sandbox_5rung_fire=DEFERRED (SANDBOX N1 mac M3 ~20min $0 · cross-manifest rank-correlation falsifier)

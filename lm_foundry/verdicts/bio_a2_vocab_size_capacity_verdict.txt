@@ -1,6 +1,6 @@
-# hexa-codex BIODATA A2 — vocab size effect on LLM capacity (cycle-3 first probe · 구 BIO/A2 이관 by reorg cycle-1)
-# axis=BIODATA.md::A2 (cycle-3 first probe · 구 BIO/A2 이관 by reorg · A = BIO-data LLM training)
-# verifier=BIODATA/verify/numerics_biodata_a2_vocab_size_capacity.hexa
+# hexa-codex lm_foundry bio A2 — vocab size effect on LLM capacity (cycle-3 first probe)
+# axis=lm_foundry/docs/bio-llm.md::FINDING-A2 (absorbed from retired BIODATA domain · cycle-3 first probe)
+# verifier=lm_foundry/verify/numerics_bio_a2_vocab_size_capacity.hexa
 # tier=🔵 SUPPORTED-FORMAL — V × d_model embed term + n²·d attention trade-off (8/8)
 # checks=8/8
 # vocab=text50000_BPE · protein20_amino · DNA4_nt
@@ -15,5 +15,3 @@
 # operational=ESM2 V=20 amino is sweet-spot for protein (balanced embed vs seq)
 # external_anchor=Lin2023_ESM2 · DNABERT · Caduceus · Llama3_tokenizer
 # next_probe=cycle-4+ T4 SANDBOX perplexity-per-byte measurement across 3 tokenizations
-# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
-#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

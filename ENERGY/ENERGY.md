@@ -25,9 +25,13 @@
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — model scale · quant tier · batch size × tokens/J fit (Pareto frontier). 반증자: quant int4 의 energy 절감 < 30% vs fp16 → quant 의 energy 이득 marginal.
 
-### 축 N — 🆕 NOVEL: per-layer energy decomposition (⭐ MAIN priority lane)
-> **⭐ MAIN priority lane** — ENERGY 의 self-NOVEL axis. 전체 watt 가 아니라 layer/component 별 watt 가 어디 집중 — attention vs FFN vs embedding. 외부 anchor: Patterson 2021 carbon footprint · Strubell 2019 energy NLP · Schwartz 2020 Green AI.
-- [ ] N1 — RAPL + NVIDIA-smi per-kernel breakdown · layer 별 watt 측정. 반증자: attention/FFN/embed 의 energy 분포가 FLOP 분포와 ε > 20% 불일치 → memory-bound 영역 존재.
+### 축 N — 🆕 NOVEL (⭐ MAIN priority lane)
+
+- [x] N1 — MoE active-param efficiency · "MoE free lunch" 신화 검증 (ENERGY 의 NOVEL — sparse activation 으로 연산 절감). 반증자: same-active-param dense 보다 MoE ≥ 1.2× 못함. **CYCLE-10 reorg (2026-05-28 · FRONTIER F1 흡수)** ✅ 🔵+🟡 · 7/7 PASS · `ENERGY/verify/numerics_energy_n1_sparse_moe_active_premium.hexa` · active_premium=982/1000 (Gemma 4 E4B 675 vs 26B/A4B 663) → 🔴 myth FALSIFIED in family · synthetic strong-MoE silent.
+
+> **⭐ MAIN priority lane** — ENERGY 의 self-NOVEL. dense 전체 활성화 대비 MoE sparse routing 의 연산-효율. Gemma 4 26B/A4B · arXiv:2604.07035 anchor. 도착지 없음 ([[feedback_closure_is_physical_limit]]).
+
+- [ ] N2 — per-layer energy decomposition (이전 N1 · cycle-10 reorg 로 N2 강등). 전체 watt 가 아니라 layer/component 별 watt 가 어디 집중 — attention vs FFN vs embedding. 반증자: attention/FFN/embed 의 energy 분포가 FLOP 분포와 ε > 20% 불일치 → memory-bound 영역 존재. 외부 anchor: Patterson 2021 carbon footprint · Strubell 2019 energy NLP · Schwartz 2020 Green AI.
 
 ## SANDBOX 활용 (measurement substrate)
 
@@ -37,7 +41,8 @@ ENERGY 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — local ll
 |---|---|---|
 | A1 first probe | mac M3 / ubu-1 local | `.verdicts/ENERGY/a1_*` |
 | B1 ladder | SANDBOX bench harness | `.verdicts/ENERGY/b1_*` |
-| N1 ⭐ NOVEL | mac M3 / vast.ai pod | `.verdicts/ENERGY/n1_*` |
+| N1 ⭐ MAIN (MoE active-premium · ex-FRONTIER F1) | mac M3 GGUF Gemma 4 / vast.ai pod | `ENERGY/verdicts/n1_*` |
+| N2 (per-layer energy decomp) | mac M3 / vast.ai pod | `ENERGY/verdicts/n2_*` |
 
 ## Dispatch surface (ENGINE 후보 wire)
 

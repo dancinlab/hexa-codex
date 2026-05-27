@@ -1,0 +1,146 @@
+#!hexa strict
+// ENERGY/bench/energy_n1_sparse_moe_active_premium.hexa
+// ENERGY N1 ⭐ NOVEL MAIN — absorbed from FRONTIER/F1 (cycle-10 reorg · 2026-05-28).
+// Sparse-MoE active-parameter efficiency premium vs same-active dense baseline:
+// MoE 가 적은 활성 연산으로 큰 모델 품질을 내는가 (ENERGY 의 sparse-activation 연산 절감).
+//
+// Identity (closed-form ratio · libm-free · per-mille × 1000 ledger):
+//   active_premium_x1000(moe, dense) = perf(moe) × 1000 / perf(dense_same_active_size)
+//
+//   For the Gemma 4 controlled pair (arXiv:2604.07035):
+//     perf(gemma4_26B_A4B · MoE · 3.8B active) = 663 (weighted_acc × 1000)
+//     perf(gemma4_E4B    · dense 4B)           = 675 (weighted_acc × 1000)
+//     active_premium = 663 × 1000 / 675 = 982 (per-mille · = 0.982 · MoE 1.8pp 낮음)
+//
+// Falsifier (anti-myth · ENERGY N1):
+//   "MoE > same-active-param dense by ≥ 1.2×" 라는 신화가 Gemma 4 controlled
+//   benchmark 에서 깨졌다. falsifier_fires(pair) = active_premium_x1000 < 1000.
+//   Gemma 4 pair: 982 < 1000 → 🔴 myth FALSIFIED (free-lunch-vs-same-active 부정).
+//
+// Bidirectional discrimination (NOT one-sided):
+//   - Same family controlled (Gemma 4 E4B vs 26B-A4B): premium = 982 → FIRES
+//   - Synthetic strong-MoE vs weak-dense (800 vs 600):   premium = 1333 → silent
+//   → verifier distinguishes regime where myth survives from regime where it breaks.
+//
+// External anchors (citation tier · 🟡):
+//   Fedus 2022 — Switch Transformer (arXiv:2101.03961 · MoE foundational)
+//   Lepikhin 2020 — GShard (arXiv:2006.16668 · early MoE scaling)
+//   Du 2022 — GLaM (arXiv:2112.06905 · sparse MoE)
+//   2026 controlled paper — Gemma 4 / Phi-4 / Qwen 3 dense vs MoE (arXiv:2604.07035)
+//     (THIS paper IS the falsifier source · independent external claim)
+//
+// Integer ledger (per-mille × 1000) — libm-free. Placeholder weighted-acc
+// values (ARC-Challenge · GSM8K · Math L1-3 · TruthfulQA MC1 mix) from
+// arXiv:2604.07035 (Gemma 4 pair MEASURED · Phi-4 / Qwen 3 PLACEHOLDER).
+// Real measured 7-task weighted re-run on local Gemma 4 mac M3 GGUF DEFERRED
+// to cycle-11+ T4 (`cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form premium ratio identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry — 5 models (2 controlled Gemma 4 pair + 3 reference)
+//   gemma4_E4B           : dense 4B            · 675 (cited · 2604.07035)
+//   gemma4_26B_A4B       : MoE 26B / 3.8B act  · 663 (cited · 2604.07035 · the myth-breaker)
+//   phi4_mini_reasoning  : dense               · 600 (placeholder · 2604.07035)
+//   qwen3_8B             : dense               · 640 (placeholder · 2604.07035)
+//   qwen3_30B_A3B        : MoE 30B / 3B act    · 650 (placeholder · 2604.07035)
+//
+// weighted_acc_x1000 = (ARC-C · GSM8K · Math L1-3 · TruthfulQA MC1) weighted mix.
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = [
+    "gemma4_E4B",
+    "gemma4_26B_A4B",
+    "phi4_mini_reasoning",
+    "qwen3_8B",
+    "qwen3_30B_A3B",
+]
+let WEIGHTED_ACC_x1000 = [675, 663, 600, 640, 650]
+let IS_MOE             = [false, true, false, false, true]
+let ACTIVE_B_x10       = [40, 38, 40, 80, 30]   // active params × 10 (so 4.0B · 3.8B · 4.0B · 8.0B · 3.0B)
+
+let MYTH_PREMIUM_THRESHOLD_x1000 = 1000   // < 1000 → myth falsified for that pair
+
+// per-mille range guard [0, 1000]
+let ACC_MIN_x1000 = 0
+let ACC_MAX_x1000 = 1000
+
+fn active_premium_x1000(moe_idx: int, dense_idx: int) -> int {
+    // active_premium = perf(moe) × 1000 / perf(dense_same_active_size)
+    let dense_perf = WEIGHTED_ACC_x1000[dense_idx]
+    if dense_perf <= 0 { return 0 }
+    return (WEIGHTED_ACC_x1000[moe_idx] * 1000) / dense_perf
+}
+
+fn falsifier_fires(moe_idx: int, dense_idx: int) -> bool {
+    // myth says MoE > same-active dense (premium ≥ 1000 · ideally ≥ 1200 for 1.2×)
+    // falsifier fires when premium < 1000 (= MoE underperforms same-active dense)
+    return active_premium_x1000(moe_idx, dense_idx) < MYTH_PREMIUM_THRESHOLD_x1000
+}
+
+print("hexa-codex ENERGY N1 — Sparse-MoE active-param premium closed-form (cycle-10 reorg · absorbed from FRONTIER F1)")
+print("==========================================================================================")
+print("")
+print("per-model profile (weighted_acc × 1000 · arXiv:2604.07035 · Gemma 4 pair cited · others placeholder):")
+let n = MODEL_NAMES.len()
+let mut i = 0
+while i < n {
+    let acc = WEIGHTED_ACC_x1000[i]
+    let act_b = ACTIVE_B_x10[i]
+    let mut kind = "dense"
+    if IS_MOE[i] { kind = "MoE  " }
+    print("  " + MODEL_NAMES[i] +
+          ": kind=" + kind +
+          " · active=" + to_string(act_b / 10) + "." + to_string(act_b % 10) + "B" +
+          " · weighted_acc=" + to_string(acc) + "/1000")
+    i = i + 1
+}
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Controlled pair eval — Gemma 4 family (same active-size class · idx 0 vs 1)
+// ────────────────────────────────────────────────────────────────────────
+print("controlled pair (Gemma 4 family · same ~4B active class):")
+let g_premium = active_premium_x1000(1, 0)   // MoE 26B-A4B vs dense E4B
+let g_fires = falsifier_fires(1, 0)
+let mut g_tag = "silent (myth survives in this regime)"
+if g_fires { g_tag = "FIRES 🔴 (myth FALSIFIED · MoE < same-active dense)" }
+print("  " + MODEL_NAMES[1] + " vs " + MODEL_NAMES[0] +
+      " · active_premium=" + to_string(g_premium) + "/1000" +
+      " · [" + g_tag + "]")
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Synthetic discrimination control — strong-MoE (800) vs weak-dense (600)
+// (in-line synthesis · proves verifier is bidirectional · NOT one-sided)
+// ────────────────────────────────────────────────────────────────────────
+let SYN_MOE_PERF_x1000 = 800
+let SYN_DENSE_PERF_x1000 = 600
+fn syn_premium_x1000() -> int {
+    if SYN_DENSE_PERF_x1000 <= 0 { return 0 }
+    return (SYN_MOE_PERF_x1000 * 1000) / SYN_DENSE_PERF_x1000
+}
+fn syn_fires() -> bool { return syn_premium_x1000() < MYTH_PREMIUM_THRESHOLD_x1000 }
+print("synthetic control (strong-MoE 800 vs weak-dense 600 · proves verifier is bidirectional):")
+let s_premium = syn_premium_x1000()
+let mut s_tag = "FIRES (myth falsified)"
+if syn_fires() == false { s_tag = "silent (myth survives · MoE 33% premium ≥ 1000)" }
+print("  syn_moe vs syn_dense" +
+      " · active_premium=" + to_string(s_premium) + "/1000" +
+      " · [" + s_tag + "]")
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Zero-premium synthetic edge (same perf both) — for verifier check
+// ────────────────────────────────────────────────────────────────────────
+let ZERO_BOTH_x1000 = 700
+fn zero_premium_x1000() -> int {
+    if ZERO_BOTH_x1000 <= 0 { return 0 }
+    return (ZERO_BOTH_x1000 * 1000) / ZERO_BOTH_x1000
+}
+print("zero-premium edge (same perf 700 vs 700):")
+print("  active_premium=" + to_string(zero_premium_x1000()) + "/1000 (= 1.000 · neutral · myth neither fires nor strong-supports)")
+print("")
+
+print("__HEXA_CODEX_ENERGY_N1_SPARSE_MOE_ACTIVE_PREMIUM__ DONE")

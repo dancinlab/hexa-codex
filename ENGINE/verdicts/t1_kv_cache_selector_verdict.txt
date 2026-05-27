@@ -1,0 +1,12 @@
+# hexa-codex ENGINE T1 — KV-cache-strategy selector verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::T1 (LONG-CONTEXT/N2 KV-CACHE finding → serving KV-cache-strategy selector decision rule)
+# wire=ENGINE/wires/wire_t1_kv_cache_selector.hexa
+# verifier=ENGINE/verify/numerics_engine_t1_kv_cache_selector.hexa
+# tier=🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (LONG-CONTEXT/N2 finding consume · 50% util threshold = vLLM PagedAttention / Pope 2022 inference-scaling convention) — kv_select wires KV-cache utilization into an adopt-vs-reject serving cache-strategy choice · over-allocation 회피
+# checks=7/7
+# rule=kv_select(utilization_x100): util>=5000 (50%) -> adopt (block-granular · memory efficient); util<5000 -> reject (over-allocation fragmentation · half-or-more wasted)
+# source_finding=LONG-CONTEXT/N2 utilization_x100 = used_blocks x 10000 / allocated_blocks; paged_vllm=9523(95%) paged_conservative=8695(87%) dynamic_good=9090(91%) contiguous_padded=4545(45%) static_maxlen=4000(40%)
+# cases=paged_vllm[9523]->adopt · paged_conservative[8695]->adopt · dynamic_good[9090]->adopt · contiguous_padded[4545]->reject · static_maxlen[4000]->reject · boundary_50pct[5000]->adopt
+# falsifier=finding-ignorant rule (adopt-always for util<50% static_maxlen) detected as WRONG vs kv_select reject (check 4)
+# external_anchor=Kwon 2023 vLLM PagedAttention (arXiv:2309.06180) · Pope 2022 efficiently scaling transformer inference (arXiv:2211.05102) · consumed via LONG-CONTEXT/N2
+# honest_residual=live serving KV-cache strategy wiring (vLLM gpu_memory_utilization vs KV-cache block stats · lm_foundry · SANDBOX local llama-server) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)

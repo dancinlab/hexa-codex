@@ -1,0 +1,118 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_t1_kv_cache_selector.hexa
+// ENGINE axis T1 — LONG-CONTEXT/N2 KV-CACHE finding → serving KV-cache-strategy
+// selector decision rule (paged-attention vs contiguous · over-allocation 회피).
+//
+// SOURCE FINDING (LONG-CONTEXT/N2 · KV-cache utilization).
+//   utilization_x100 = used_blocks × 10000 / allocated_blocks.  The N2 verifier
+//   discriminates 5 strategies bidirectionally against a 50% (5000) threshold:
+//     paged_vllm          util 9523 (≈95%) — silent (≥ 50%)
+//     paged_conservative  util 8695 (≈87%) — silent (≥ 50%)
+//     dynamic_good        util 9090 (≈91%) — silent (≥ 50%)
+//     contiguous_padded   util 4545 (45%)  — fires  (< 50% · over-allocation)
+//     static_maxlen       util 4000 (40%)  — fires  (< 50% · max_len 통째 예약)
+//   The half-or-more-wasted strategies (max_len/contiguous padding) reserve the
+//   full context window up front, fragmenting GPU memory; paged attention
+//   allocates block-granular so allocated tracks used (Kwon 2023 vLLM
+//   PagedAttention arXiv:2309.06180 · Pope 2022 inference-scaling arXiv:2211.05102).
+//
+// DECISION RULE (closed-form · this wire).  kv_select(utilization_x100) turns
+//   that measurement into an actual serving cache-strategy ADOPT/REJECT choice:
+//     (1) utilization ≥ 50% (5000) → "adopt"  — block-granular / well-fit cache;
+//                                                allocated tracks used, memory
+//                                                efficient (paged · dynamic).
+//     (2) utilization < 50%        → "reject"  — over-allocation fragmentation;
+//                                                절반 이상 낭비 (max_len 통째 예약
+//                                                · contiguous padding), KV-cache
+//                                                budget waste rejected.
+//
+// The rule consumes the SAME LONG-CONTEXT/N2 datum (used × 10000 / allocated for
+// each strategy) — wire ↔ finding consistency is asserted by check (6) of the
+// verifier (it recomputes the N2 utilization identity from used/allocated blocks).
+//
+// FALSIFIER (paired verifier · check 4). A wire that IGNORED the finding —
+// adopting a utilization<50% strategy (static_maxlen · 40%) — is constructed
+// explicitly and MUST be detected as wrong against kv_select's "reject".
+//
+// HONESTY. Closed-form decision rule only. Connecting this rule to a live
+// serving KV-cache strategy (vLLM gpu_memory_utilization vs KV-cache block
+// stats on the serving stack · lm_foundry · SANDBOX local llama-server) is a
+// cost-bearing T4 contact DEFERRED to cycle-11+ (cx_lab_sandbox · per
+// feedback_closure_is_physical_limit — rule close ≠ measured close).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Finding constants (LONG-CONTEXT/N2 · integer × 100 utilization ledger · libm-free)
+// ────────────────────────────────────────────────────────────────────────
+
+let UTIL_THRESHOLD_x100 = 5000   // 50% used/allocated boundary (vLLM / Pope 2022 convention)
+
+// LONG-CONTEXT/N2 strategy table (used × 10000 / allocated · consumed datum).
+let STRATEGY_NAMES = ["paged_vllm", "paged_conservative", "dynamic_good", "contiguous_padded", "static_maxlen"]
+let ALLOCATED_BLOCKS = [105, 115, 110, 220, 250]
+let USED_BLOCKS      = [100, 100, 100, 100, 100]
+fn n2_utilization_x100(s: int) -> int { return (USED_BLOCKS[s] * 10000) / ALLOCATED_BLOCKS[s] }
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — kv_select(utilization_x100) → {adopt, reject}
+// ────────────────────────────────────────────────────────────────────────
+
+fn kv_select(utilization_x100: int) -> str {
+    // (1) ≥ 50% utilization → adopt: allocated tracks used, memory efficient.
+    if utilization_x100 >= UTIL_THRESHOLD_x100 {
+        return "adopt"
+    }
+    // (2) < 50% utilization → reject: over-allocation fragmentation · 절반 이상 낭비.
+    return "reject"
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Test cases — LONG-CONTEXT/N2-consistent (paged 95/87/91% adopt · padded 45/40% reject)
+// ────────────────────────────────────────────────────────────────────────
+
+let CASE_NAME = [
+    "paged_vllm",             // util 9523 (≈95%) ≥ 50 → adopt
+    "paged_conservative",     // util 8695 (≈87%) ≥ 50 → adopt
+    "dynamic_good",           // util 9090 (≈91%) ≥ 50 → adopt
+    "contiguous_padded",      // util 4545 (45%)  < 50 → reject
+    "static_maxlen",          // util 4000 (40%)  < 50 → reject
+    "boundary_50pct",         // util 5000 (50%)  boundary inclusive → adopt
+]
+let CASE_UTIL_x100 = [
+    n2_utilization_x100(0),   // paged_vllm
+    n2_utilization_x100(1),   // paged_conservative
+    n2_utilization_x100(2),   // dynamic_good
+    n2_utilization_x100(3),   // contiguous_padded
+    n2_utilization_x100(4),   // static_maxlen
+    5000,                     // boundary
+]
+let CASE_EXPECT = [
+    "adopt",                  // paged_vllm
+    "adopt",                  // paged_conservative
+    "adopt",                  // dynamic_good
+    "reject",                 // contiguous_padded (over-allocation)
+    "reject",                 // static_maxlen (over-allocation)
+    "adopt",                  // boundary inclusive (≥ 50%)
+]
+
+print("hexa-codex ENGINE T1 — LONG-CONTEXT/N2 KV-CACHE → serving KV-cache-strategy selector (cycle-10)")
+print("=================================================================================================")
+print("")
+print("source finding: LONG-CONTEXT/N2 utilization = used · 10000 / allocated (paged ≥50% silent · static_maxlen/contiguous <50% fire)")
+print("decision rule:  kv_select(utilization_x100) → {adopt, reject} · threshold = " + to_string(UTIL_THRESHOLD_x100) + " (50%)")
+print("")
+
+let mut i = 0
+while i < CASE_NAME.len() {
+    let got = kv_select(CASE_UTIL_x100[i])
+    let mut mark = "ok"
+    if got != CASE_EXPECT[i] { mark = "MISMATCH" }
+    print("  " + CASE_NAME[i] + " (util=" + to_string(CASE_UTIL_x100[i]) +
+          "/10000) → kv_select=" + got +
+          " [expect " + CASE_EXPECT[i] + " · " + mark + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_T1_KV_CACHE_SELECTOR__ DONE")

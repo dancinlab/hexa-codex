@@ -1,0 +1,93 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_d1_substrate_family_rung.hexa
+// ENGINE axis D1 first wire — SUBSTRATE finding → model-rung selection rule.
+//
+// SOURCE FINDING (SUBSTRATE cycle-23c POSITIVE + cycle-28 N1 family-vs-scale):
+//   cycle-23c: multimodal 4-rung dip-then-recover (SmolVLM 0.5/2.2B = rung 0+1,
+//   Qwen-VL 3/7B = rung 2+3).  cycle-28 N1 separated per-family slope: SmolVLM
+//   monotone-rise vs Qwen dip-then-recover — a family-vs-scale slope gap of 0.49
+//   (🟢, anecdotal n=2 family pairs).  The confound: a Qwen-DOMINANT ladder
+//   cannot discriminate "capability emerges at scale" from "Qwen-specifically
+//   does X well" (same family-confound pattern as ECONOMICS E1 MoE-vs-dense).
+//
+// RULE.  The bench harness must select rungs FAMILY-CONFOUND-AWARE: a
+// family-UNIVERSAL capability claim is admissible only when the ladder spans
+// ≥2 distinct model families WITH non-zero non-Qwen representation.  A
+// Qwen-ONLY ladder is flagged INSUFFICIENT for a universal claim (it may still
+// support a Qwen-specific claim) — the harness must NOT certify a Qwen-only
+// ladder as evidence of a scaling-law-universal capability.
+//
+// ENGINE N1 (latency).  SUBSTRATE finding cycle-23c (POSITIVE) + cycle-28 (N1
+// family probe) → ENGINE wire cycle-5.  Logged to N1 baseline next round.
+//
+// FALSIFIER (paired verifier).
+//   (1) Qwen-only ladder → "INSUFFICIENT for family-universal" (confound flagged)
+//   (2) mixed ladder (≥2 families, non-Qwen present) → "family-universal ADMISSIBLE"
+//   (3) measured family-slope gap = 0.49 > 0 (families diverge → confound real)
+//   (4) universal claim requires non-Qwen fraction > 0 (proportional inclusion)
+//   (5) deterministic
+//   (6) wire never certifies a Qwen-only ladder universal (ENGINE.md::D1 falsifier)
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure rung-selection rule recompute — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Family codes: 0 = SmolVLM · 1 = Qwen · 2 = other-non-Qwen (Llama/Mistral/Gemma)
+// cycle-28 N1: per-family slope gap (SmolVLM monotone vs Qwen dip-recover) = 0.49
+// ────────────────────────────────────────────────────────────────────────
+
+let FAMILY_SLOPE_GAP_x100 = 49   // cycle-28 N1: |slope_smolvlm - slope_qwen| × 100
+
+// candidate ladders: each is a list of family codes per rung
+let LADDER_QWEN_ONLY = [1, 1, 1, 1]              // text scale ladder Qwen 0.5/1.5/3/7B (current default)
+let LADDER_MIXED     = [0, 0, 1, 1]              // cycle-23c: SmolVLM 0.5/2.2B + Qwen-VL 3/7B
+
+fn distinct_families(ladder: list[int]) -> int {
+    let mut seen0 = false
+    let mut seen1 = false
+    let mut seen2 = false
+    let mut i = 0
+    while i < ladder.len() {
+        if ladder[i] == 0 { seen0 = true }
+        if ladder[i] == 1 { seen1 = true }
+        if ladder[i] == 2 { seen2 = true }
+        i = i + 1
+    }
+    let mut c = 0
+    if seen0 { c = c + 1 }
+    if seen1 { c = c + 1 }
+    if seen2 { c = c + 1 }
+    return c
+}
+
+fn non_qwen_count(ladder: list[int]) -> int {
+    let mut c = 0
+    let mut i = 0
+    while i < ladder.len() {
+        if ladder[i] != 1 { c = c + 1 }
+        i = i + 1
+    }
+    return c
+}
+
+// rung-selection verdict for a family-universal capability claim
+fn admit_universal_claim(ladder: list[int]) -> str {
+    if distinct_families(ladder) >= 2 && non_qwen_count(ladder) > 0 {
+        return "family-universal ADMISSIBLE"
+    }
+    return "INSUFFICIENT for family-universal (Qwen-confound unaddressed)"
+}
+
+print("hexa-codex ENGINE D1 — SUBSTRATE family-confound → rung selection wire (cycle-5)")
+print("================================================================================")
+print("")
+print("cycle-28 N1 family-slope gap = " + to_string(FAMILY_SLOPE_GAP_x100) + "/100 (SmolVLM monotone vs Qwen dip-recover)")
+print("")
+print("ladder QWEN-ONLY  [Qwen×4]:  families=" + to_string(distinct_families(LADDER_QWEN_ONLY)) +
+      " non-Qwen=" + to_string(non_qwen_count(LADDER_QWEN_ONLY)) +
+      " → " + admit_universal_claim(LADDER_QWEN_ONLY))
+print("ladder MIXED [SmolVLM×2+Qwen×2]: families=" + to_string(distinct_families(LADDER_MIXED)) +
+      " non-Qwen=" + to_string(non_qwen_count(LADDER_MIXED)) +
+      " → " + admit_universal_claim(LADDER_MIXED))
+print("")
+print("__HEXA_CODEX_ENGINE_D1_SUBSTRATE_FAMILY_RUNG__ DONE")

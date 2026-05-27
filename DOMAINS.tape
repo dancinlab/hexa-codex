@@ -5,4 +5,4 @@
 @domain ECONOMICS := "./ECONOMICS.md"
 @domain ENGINE := "./ENGINE/ENGINE.md"
 @domain NEUROEXP := "./NEUROEXP/NEUROEXP.md"
-@domain BIODATA := "./BIODATA/BIODATA.md"
+# BIODATA retired 2026-05-27 — A1/A2 findings absorbed into lm_foundry/docs/bio-llm.md (verify+verdicts moved to lm_foundry/{verify,verdicts}/)

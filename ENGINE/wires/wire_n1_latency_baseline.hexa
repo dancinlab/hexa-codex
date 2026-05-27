@@ -1,0 +1,91 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_n1_latency_baseline.hexa
+// ENGINE axis N1 (⭐ MAIN) — discovery→execution latency baseline.
+//
+// N1 is the ENGINE self-NOVEL meta-axis: it measures the OTHER axes' driving
+// latency.  For each wired axis it records ΔM = (sibling's own cycle at wire
+// time) − (sibling's cycle when the finding was discovered).
+//
+// CYCLE-8 METHODOLOGY FIX (per-sibling counter).  The cycle-5 baseline used a
+// SINGLE wire-equiv (34, the ECONOMICS counter) for BOTH A1 and B1 — but B1 is
+// a SAFETY finding and SAFETY's counter ≠ ECONOMICS's.  Sibling counters are
+// incommensurable (ECON=51 · OPS/SUBSTRATE/SANDBOX=29 · SAFETY=30 · NEUROEXP=13).
+// So ΔM is now computed PER-SIBLING: wire-time cycle in that sibling's OWN
+// counter minus its discovery cycle.  This corrects the cycle-5 "B1=14" artifact.
+//
+// WELL-ANCHORED DATA POINTS (sibling cycle at wire is known):
+//   A1-spawn   ECON      disc=27 · wire@ECON=34  → ΔM=7   (paper-mature gate)
+//   A1-mature  ECON      disc=34 · wire@ECON=34  → ΔM=0   (same-session)
+//   C1         OPS       disc=28 · wire@OPS=29   → ΔM=1   (cross-domain c28 → fast)
+//   D1         SUBSTRATE disc=28 · wire@SUB=29   → ΔM=1
+//   E1         SANDBOX   disc=28 · wire@SAND=29  → ΔM=1
+//   F1         NEUROEXP  disc=11 · wire@NEX=13   → ΔM=2
+//
+// B1 (SAFETY) is REPORTED but EXCLUDED from precise stats: it was wired at
+// ENGINE cycle-2 in a PRIOR session and SAFETY's cycle-at-wire was NOT recorded
+// (the pre-instrumentation gap this fix closes).  disc=20, SAFETY now=30 → ΔM ≤ 10
+// (upper bound).  Not silently dropped — flagged as unanchored.
+//
+// FALSIFIER (paired verifier). ENGINE.md::N1 falsifier: ΔM > 5 cycles ⇒
+// human-in-loop bottleneck (automation signal).  The baseline must (a) record
+// the 6 anchored points, (b) compute ΔM per-sibling deterministically, (c)
+// classify against the 5-cycle threshold, (d) report mean/max, (e) honestly
+// flag B1 unanchored + label n=6 anecdotal.
+// External anchor: Snoek 2012 Bayesian optimization · Sutton 1988 TD-learning.
+//
+// HONESTY. Self-measurement (how late is ENGINE), NOT a sibling-truth claim.
+// n=6 anecdotal. The instrument now stamps sibling-cycle-at-wire going forward.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure latency-ledger recompute — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Per-sibling latency ledger — ΔM = wire-time sibling cycle − discovery cycle
+// ────────────────────────────────────────────────────────────────────────
+
+let LEDGER_AXIS       = ["A1-spawn", "A1-mature", "C1", "D1", "E1", "F1"]
+let LEDGER_SIBLING    = ["ECON",     "ECON",      "OPS","SUB","SAND","NEX"]
+let LEDGER_DISCOVERY  = [27,          34,          28,   28,    28,    11]
+let LEDGER_WIRE_CYCLE = [34,          34,          29,   29,    29,    13]   // each in its OWN sibling counter
+
+// B1 (SAFETY) — unanchored, reported separately
+let B1_DISCOVERY = 20
+let B1_SAFETY_NOW = 30          // upper-bound anchor; wire-time cycle unrecorded
+let B1_DELTA_UPPER = B1_SAFETY_NOW - B1_DISCOVERY   // ≤ 10
+
+let BOTTLENECK_THRESHOLD = 5
+
+fn delta_m(i: int) -> int { return LEDGER_WIRE_CYCLE[i] - LEDGER_DISCOVERY[i] }
+fn is_bottleneck(i: int) -> bool { return delta_m(i) > BOTTLENECK_THRESHOLD }
+
+print("hexa-codex ENGINE N1 — discovery→execution latency baseline (cycle-8 · per-sibling)")
+print("====================================================================================")
+print("")
+
+let n = LEDGER_AXIS.len()
+let mut i = 0
+let mut sum = 0
+let mut maxv = 0
+let mut bottleneck_count = 0
+while i < n {
+    let d = delta_m(i)
+    sum = sum + d
+    if d > maxv { maxv = d }
+    let mut flag = "fast"
+    if is_bottleneck(i) {
+        flag = "BOTTLENECK (>5 cyc)"
+        bottleneck_count = bottleneck_count + 1
+    }
+    print("  " + LEDGER_AXIS[i] + " [" + LEDGER_SIBLING[i] + "]: disc=" + to_string(LEDGER_DISCOVERY[i]) +
+          " wire@" + to_string(LEDGER_WIRE_CYCLE[i]) + " → ΔM=" + to_string(d) + "  [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("  B1 [SAFETY]: disc=" + to_string(B1_DISCOVERY) + " · UNANCHORED (wire-time cycle unrecorded) → ΔM ≤ " + to_string(B1_DELTA_UPPER) + " (excluded from stats)")
+print("")
+let mean_x10 = (sum * 10) / n
+print("  n = " + to_string(n) + " anchored (+1 unanchored B1) — anecdotal, NOT a latency law")
+print("  mean ΔM = " + to_string(mean_x10) + "/10 cycles · max ΔM = " + to_string(maxv) + " cycles")
+print("  bottleneck cells (ΔM>5): " + to_string(bottleneck_count) + "/" + to_string(n) + " (cycle-5 reported 2/3 via conflated counter — corrected)")
+print("")
+print("__HEXA_CODEX_ENGINE_N1_LATENCY_BASELINE__ DONE")

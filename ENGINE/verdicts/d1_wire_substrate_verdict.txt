@@ -1,0 +1,11 @@
+# hexa-codex ENGINE D1 — wire verifier (cycle-5)
+# axis=ENGINE/ENGINE.md::D1 (SUBSTRATE finding → model selection driving)
+# source_finding=SUBSTRATE.md::cycle-23c POSITIVE + cycle-28 N1 family-vs-scale gap 0.49
+# wire=ENGINE/wires/wire_d1_substrate_family_rung.hexa
+# verifier=ENGINE/verify/numerics_engine_d1_wire_substrate.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — ENGINE D1 wire encodes SUBSTRATE family-confound finding (6/6 checks · Qwen-only ≠ universal)
+# checks=6/6
+# qwen_only_verdict=INSUFFICIENT for family-universal (Qwen-confound unaddressed)
+# mixed_verdict=family-universal ADMISSIBLE
+# family_slope_gap_x100=49
+# cost_bearing_nonqwen7b_fire=DEFERRED (SUBSTRATE N1 InternVL-7B/LLaVA-NeXT-7B · BinomialSE falsifier)

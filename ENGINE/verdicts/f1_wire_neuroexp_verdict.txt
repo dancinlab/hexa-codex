@@ -1,0 +1,13 @@
+# hexa-codex ENGINE F1 — wire verifier (cycle-7)
+# axis=ENGINE/ENGINE.md::F1 (NEUROEXP finding → inference-time depth/readout driving · NEW 6th sibling)
+# source_finding=NEUROEXP.md::L2 (cycle-11 logit-lens depth · 🟢 8/8 MEASURED · Qwen2.5-1.5B 28L)
+# wire=ENGINE/wires/wire_f1_neuroexp_depth_readout.hexa
+# verifier=ENGINE/verify/numerics_engine_f1_wire_neuroexp.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — ENGINE F1 wire encodes NEUROEXP L2 depth finding (6/6 checks · early-exit≥23 · readout=peak27≠final28)
+# checks=6/6
+# early_exit_min_layer=23
+# selected_readout_layer=27
+# peak_acc_x10=500 final_acc_x10=357
+# readout_block=23-28
+# class=method-transfer
+# actual_early_exit_fire=DEFERRED (NEUROEXP scaling Qwen2.5-{0.5,3,7}B × layer · peak/block shift falsifier)

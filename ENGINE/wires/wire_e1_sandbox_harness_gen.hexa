@@ -1,0 +1,88 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_e1_sandbox_harness_gen.hexa
+// ENGINE axis E1 first wire — SANDBOX finding → next-cycle harness auto-generation.
+//
+// SOURCE FINDING (SANDBOX cycle-28 N1 cross-substrate reproducibility 🟠):
+//   The SAME counting axis showed CONTRADICTORY shapes across manifest scales:
+//     cycle-23c (16-item, 4-rung 0.5/2.2/3/7B) → NON-MONOTONE V (4/4/2/5)
+//     cycle-24  (50-item, 3-rung PARTIAL 0.5/2.2/3B) → MONOTONE (12/56/75%)
+//   Same substrate · task · scorer — only manifest n changed, yet the finding
+//   SHAPE flipped.  The cycle-24 statistical confound: (a) INCOMPLETE rung
+//   coverage (3 of 4 rungs, no 7B → truncated ladder) and (b) NO time-cap
+//   (slow-substrate runs truncate mid-eval → non-reproducible).
+//
+// RULE.  The next-cycle harness must be auto-generated to DOMINATE both prior
+// manifests so neither partial's confound recurs: ≥50 items (adequate n, beats
+// cycle-23c's 16), 5 rungs (FULL coverage, beats cycle-24's 3-rung partial),
+// TIME-CAPPED per item (no truncation bias), BALANCED items/rung (no rung
+// starvation), and SEED-PINNED (deterministic regeneration).
+//
+// ENGINE N1 (latency).  SANDBOX finding cycle-28 → ENGINE wire cycle-6.
+// Logged to N1 baseline next round.
+//
+// FALSIFIER (paired verifier).
+//   (1) total items = 50 (≥ cycle-23c's 16 — not undersized)
+//   (2) rung count = 5 (FULL — not cycle-24's 3-rung partial)
+//   (3) per-item time cap > 0 (no truncation bias)
+//   (4) balanced: items/rung equal (no rung-starvation confound)
+//   (5) seed-pinned (deterministic regeneration)
+//   (6) generated spec STRICTLY dominates BOTH priors (5>4 rungs ∧ 5>3 rungs ∧ 50≥16 ∧ 50≥50)
+//       — does NOT reproduce either partial's confound (ENGINE.md::E1 falsifier)
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure harness-spec generator — emits a manifest spec, no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Prior manifests (the two contradictory cycle-28 N1 inputs)
+// ────────────────────────────────────────────────────────────────────────
+
+let PRIOR_C23C_ITEMS = 16   // cycle-23c: 16-item, 4-rung
+let PRIOR_C23C_RUNGS = 4
+let PRIOR_C24_ITEMS  = 50   // cycle-24: 50-item, 3-rung PARTIAL
+let PRIOR_C24_RUNGS  = 3
+
+// ────────────────────────────────────────────────────────────────────────
+// Generated harness spec (auto-derived to dominate both priors)
+// 5-rung VL scale ladder · 50 items · time-capped · balanced · seed-pinned
+// ────────────────────────────────────────────────────────────────────────
+
+let GEN_RUNG_PARAM_B_x10 = [5, 15, 22, 30, 70]   // 0.5/1.5/2.2/3/7 B × 10 — FULL 5-rung
+let GEN_TOTAL_ITEMS = 50
+let GEN_TIME_CAP_S_PER_ITEM = 24                 // 24s × 50 = 1200s ≈ 20min wall (cycle-24 "~20분" cap)
+let GEN_SEED = 42                                // pinned → deterministic regeneration
+
+fn gen_rung_count() -> int { return GEN_RUNG_PARAM_B_x10.len() }
+fn gen_items_per_rung() -> int { return GEN_TOTAL_ITEMS / gen_rung_count() }
+fn gen_wall_cap_s() -> int { return GEN_TIME_CAP_S_PER_ITEM * GEN_TOTAL_ITEMS }
+
+// dominance: generated spec covers strictly more than both priors
+fn dominates_priors() -> bool {
+    let r = gen_rung_count()
+    if r <= PRIOR_C23C_RUNGS { return false }    // 5 > 4
+    if r <= PRIOR_C24_RUNGS { return false }     // 5 > 3
+    if GEN_TOTAL_ITEMS < PRIOR_C23C_ITEMS { return false }   // 50 ≥ 16
+    if GEN_TOTAL_ITEMS < PRIOR_C24_ITEMS { return false }    // 50 ≥ 50
+    return true
+}
+
+print("hexa-codex ENGINE E1 — SANDBOX cross-substrate → harness auto-gen wire (cycle-6)")
+print("================================================================================")
+print("")
+print("prior manifests (contradictory cycle-28 N1 inputs):")
+print("  cycle-23c: " + to_string(PRIOR_C23C_ITEMS) + " items · " + to_string(PRIOR_C23C_RUNGS) + " rungs (NON-MONOTONE V)")
+print("  cycle-24 : " + to_string(PRIOR_C24_ITEMS) + " items · " + to_string(PRIOR_C24_RUNGS) + " rungs PARTIAL (MONOTONE)")
+print("")
+print("GENERATED harness spec (dominates both → confound-free):")
+print("  rungs (param B × 10): ")
+let mut i = 0
+while i < gen_rung_count() {
+    print("    rung#" + to_string(i) + " = " + to_string(GEN_RUNG_PARAM_B_x10[i]) + "/10 B")
+    i = i + 1
+}
+print("  total items     = " + to_string(GEN_TOTAL_ITEMS))
+print("  items / rung    = " + to_string(gen_items_per_rung()) + " (balanced)")
+print("  time cap / item = " + to_string(GEN_TIME_CAP_S_PER_ITEM) + "s · wall cap = " + to_string(gen_wall_cap_s()) + "s")
+print("  seed            = " + to_string(GEN_SEED) + " (pinned · deterministic)")
+print("  dominates both priors = " + (if dominates_priors() { "true" } else { "false" }))
+print("")
+print("__HEXA_CODEX_ENGINE_E1_SANDBOX_HARNESS_GEN__ DONE")

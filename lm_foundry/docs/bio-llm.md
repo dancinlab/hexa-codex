@@ -107,6 +107,45 @@ can:
 
 ---
 
+## §FINDINGS — measured (absorbed from retired BIODATA domain, 2026-05-27)
+
+> 두 closed-form finding 이 `hexa-forge bio` recipe 의 §STRUCT (tokenizer · dataset 비례) 와 §FLOW (scaling-law 적용) 결정에 직접 적용된다. verifier 재실행 가능 (`hexa run lm_foundry/verify/numerics_bio_a{1,2}_*.hexa`), verdict 는 `lm_foundry/verdicts/bio_a{1,2}_*_verdict.txt`. 구 BIODATA 도메인 SSOT 폐기 후 이 섹션이 finding 의 canonical 위치.
+
+### FINDING-A1 — protein-LLM scaling = DISTINCT family (≠ text Chinchilla)
+
+> verifier: `lm_foundry/verify/numerics_bio_a1_protein_llm_scaling.hexa` · 9/9 PASS · 🔵 STRUCTURAL + 🟡 α-by-citation + 🟠 β-assumed
+
+| 축 | text Hoffmann 2022 | ESM2 protein (Lin 2023) |
+|---|---|---|
+| α (loss exponent) | 0.34 | ≈0.10 |
+| N_opt exp | 0.45 | 0.74 (STEEPER) |
+| D_opt exp | 0.55 | 0.26 (SHALLOWER) |
+| D/N C-exp 부호 | +0.097 (D/N 성장) | NEGATIVE (D/N 수축) |
+
+- **결론**: ε = \|α_text − α_protein\| = 0.24 ≫ 0.05 → A1 falsifier MEETS → BIO scaling = **별개 가족** (closed-negative on "protein-LLM follows text Chinchilla" folk claim).
+- **운영 (recipe 적용)**: protein-LLM 은 text Chinchilla 보다 **deeply UNDER-trained** 가 최적 — 같은 FLOP 에서 파라미터 ↑·데이터 ↓. text α/β 로 BIO compute planning 하면 operationally WRONG.
+- **honest residual**: Lagrangian shift 자체는 🔵 closed-form, α_protein 은 🟡 citation (Lin 2023 5-rung perplexity-vs-params 기울기), β_protein 은 🟠 assumed = text β. 자체 fit 으로 close 하려면 ESM2 checkpoint-by-checkpoint loss 재계산 (T4 cost-bearing).
+- **외부 anchor**: Hoffmann 2022 (arXiv:2203.15556) · Lin 2023 (arXiv:2206.13517).
+
+### FINDING-A2 — vocab size cascades into architecture choice
+
+> verifier: `lm_foundry/verify/numerics_bio_a2_vocab_size_capacity.hexa` · 8/8 PASS · 🔵 SUPPORTED-FORMAL
+
+| 도메인 | V | embed (V·d, d=1024) | 동일 컨텐츠 seq-length | attn/layer | 32L total cost |
+|---|---|---|---|---|---|
+| text BPE | 50000 | 102.4M | 30 | 1× | 132M |
+| protein 아미노 | 20 | 41K (2500× 작음) | 300 | 100× text | 2.95G |
+| DNA 4-nt | 4 | 8K (12500× 작음) | 900 | **900× text** | 26.5G |
+
+- **결론**: embed = 2·V·d 선형 → 'V 무관' 반증자 REFUTED. 작은 V 는 sequence² 비용으로 attention 에서 보상 — V 선택이 architecture 가능성을 결정.
+- **운영 (recipe 적용)**:
+  - **ESM2 V=20** (아미노) = protein-LLM sweet spot (embed 41K, seq 300 → 표준 MHA 가능).
+  - **DNA-LLM (V=4) 은 linear-attention 필수** (Mamba/Caduceus) — 표준 MHA on DNA = 900× text attention = prohibitive.
+  - "tokenization 은 전처리일 뿐" folk view REFUTED.
+- **honest residual**: V·d + n²·d = 🔵 structural identity. seq-length 값은 typical operating point (실측 아님). d=1024 = mid-range modern LLM; 더 큰 d 일수록 embed 무게가 dominant → V 중요성 증가.
+
+---
+
 ## Cross-link policy
 
 | concern                           | sibling                                  |

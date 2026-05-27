@@ -1,0 +1,105 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_c1_ops_hetero_scheduler.hexa
+// ENGINE axis C1 first wire — OPS finding → multi-node scheduler rule.
+//
+// SOURCE FINDING (OPS cycle-16 M/M/c knee + cycle-28 N1 heterogeneous-μ):
+//   cycle-16 single-UMA fit: μ_eff ∈ {9.53, 7.505, 5.0} req/s/slot, ceiling=c·μ
+//   (R²=1.0) — closed on a SINGLE host under a HOMOGENEOUS-μ assumption.
+//   cycle-28 N1 opened the 2-host path: mini (mac M3 Metal/UMA, fast) + ubu-1
+//   (x86 CPU-only Q4_K_M, ~3 qps, slow) are RADICALLY heterogeneous μ_i.
+//   Open question (Bolch 2006 §6.3): does homogeneous c·μ̄ still hold, or is a
+//   heterogeneous-channel family needed?
+//
+// RULE.  When per-server μ_i are heterogeneous, the pool dispatcher must pick a
+// HETEROGENEITY-AWARE policy — weighted-round-robin (split ∝ μ_i) or SED
+// (shortest-expected-delay) — which keeps BOTH servers work-conserving and
+// reaches λ_max ≈ Σμ_i.  It must NOT use naive equal-split round-robin (which
+// the homogeneous single-UMA formula implies): that bottlenecks on the SLOW
+// server (λ_max = c·μ_min, the Whitt 1986 dominant-slow-server variant) and
+// wastes the fast server's capacity.
+//
+// ENGINE N1 (latency).  OPS finding cycle-16 (homogeneous) + cycle-28 (hetero
+// probe) → ENGINE wire cycle-5.  Logged to N1 baseline next round.
+//
+// FALSIFIER (paired verifier).
+//   (1) scheduler selects weighted-RR or SED (heterogeneity-aware), NOT naive-RR
+//   (2) heterogeneity-aware λ_max prediction = Σμ_i (work-conserving)
+//   (3) naive-RR / slow-server-bound = c·μ_min < Σμ_i (correctly inferior)
+//   (4) heterogeneity-aware STRICTLY EXCEEDS dominant-slow-server bound
+//       (i.e. wire does NOT match Whitt 1986 single-bound — ENGINE.md::C1 falsifier)
+//   (5) weighted split is proportional to μ_i (fast server gets larger share)
+//   (6) deterministic
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure scheduler-policy recompute — no runtime dispatch, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Per-server service rates (μ_i × 100, req/s) — cycle-16 μ_eff + cycle-28 host spec
+//   mini  : mac M3 Metal/UMA  ≈ 9.53 req/s  (cycle-16 top μ_eff slot)
+//   ubu-1 : x86 CPU-only Q4_K_M ≈ 3.0 req/s (cycle-24 P3: 180 tok/s ≈ ~3 qps)
+// ────────────────────────────────────────────────────────────────────────
+
+let SERVER_NAMES = ["mini-mac-metal", "ubu-1-x86-cpu"]
+let SERVER_MU_x100 = [953, 300]   // req/s × 100
+
+fn sum_mu() -> int {
+    let mut s = 0
+    let mut i = 0
+    while i < SERVER_MU_x100.len() {
+        s = s + SERVER_MU_x100[i]
+        i = i + 1
+    }
+    return s
+}
+
+fn min_mu() -> int {
+    let mut m = SERVER_MU_x100[0]
+    let mut i = 1
+    while i < SERVER_MU_x100.len() {
+        if SERVER_MU_x100[i] < m { m = SERVER_MU_x100[i] }
+        i = i + 1
+    }
+    return m
+}
+
+let C = SERVER_MU_x100.len()   // number of servers (channels)
+
+// λ_max predictions (× 100, req/s)
+fn lambda_work_conserving() -> int { return sum_mu() }          // SED / weighted-RR: Σμ_i
+fn lambda_naive_rr() -> int { return C * min_mu() }             // equal split: bottlenecked by slow server
+fn lambda_homogeneous_cmubar() -> int { return sum_mu() }       // c·μ̄ == Σμ_i (mean-based, mis-applies to dispatch)
+
+// scheduler decision: heterogeneity-aware iff μ_i spread is non-trivial
+fn select_policy() -> str {
+    // spread test: max/min μ ratio > 1.2 ⇒ heterogeneous ⇒ weighted-RR
+    let mut mx = SERVER_MU_x100[0]
+    let mn = min_mu()
+    let mut i = 1
+    while i < C {
+        if SERVER_MU_x100[i] > mx { mx = SERVER_MU_x100[i] }
+        i = i + 1
+    }
+    if mx * 100 > mn * 120 {
+        return "weighted-round-robin"   // heterogeneity-aware
+    }
+    return "equal-round-robin"          // homogeneous fallback
+}
+
+print("hexa-codex ENGINE C1 — OPS heterogeneous-μ → scheduler rule wire (cycle-5)")
+print("==========================================================================")
+print("")
+print("per-server μ (req/s × 100):")
+let mut i = 0
+while i < C {
+    print("  " + SERVER_NAMES[i] + ": μ = " + to_string(SERVER_MU_x100[i]) + "/100")
+    i = i + 1
+}
+print("")
+print("selected policy: " + select_policy())
+print("λ_max predictions (req/s × 100):")
+print("  heterogeneity-aware (weighted-RR / SED) = " + to_string(lambda_work_conserving()) + "/100  (Σμ_i, work-conserving)")
+print("  naive equal-RR / dominant-slow-server   = " + to_string(lambda_naive_rr()) + "/100  (c·μ_min, Whitt 1986 lower bound)")
+let gain_x100 = (lambda_work_conserving() * 100) / lambda_naive_rr()
+print("  throughput gain over slow-server bound  = " + to_string(gain_x100) + "/100 ×")
+print("")
+print("__HEXA_CODEX_ENGINE_C1_OPS_HETERO_SCHEDULER__ DONE")

@@ -1,7 +1,7 @@
 # ENGINE — discovery-to-execution driving lane (domain SSOT)
 
 @title: ⚙️ ENGINE — 발견 → LLM 실행 자동 driving lane ("측정과 실행을 직접 잇는 frontier")
-@goal: **다른 5 도메인의 NOVEL frontier (SANDBOX·ECONOMICS·SAFETY·OPS·SUBSTRATE) 의 verified findings 를 실제 LLM (lm_foundry · SANDBOX substrate · ubu-1 RTX 5070 · vast.ai pod) 의 학습·추론·serving 행동 변경 으로 자동 driving 하는 lane.** 발견 자체가 paper로 끝나는 게 아니라 다음 model run · 다음 inference path 에 직접 반영되도록 closed-loop discovery→execution pipeline 을 구축한다. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]) — 발견 frontier 가 무한이므로 driving frontier 도 무한.
+@goal: **다른 측정 도메인의 NOVEL frontier (SANDBOX·ECONOMICS·SAFETY·OPS·SUBSTRATE·NEUROEXP) 의 verified findings 를 실제 LLM (lm_foundry · SANDBOX substrate · ubu-1 RTX 5070 · vast.ai pod) 의 학습·추론·serving 행동 변경 으로 자동 driving 하는 lane.** 발견 자체가 paper로 끝나는 게 아니라 다음 model run · 다음 inference path 에 직접 반영되도록 closed-loop discovery→execution pipeline 을 구축한다. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]) — 발견 frontier 가 무한이므로 driving frontier 도 무한.
 
 > Domain doc · dancinlab `domain-meta-domain` principle. The **6th orthogonal group** of the hexa-codex (verb-group 4개 + SANDBOX substrate + ENGINE driving). Current-state spec only; dated history → [`ENGINE.log.md`](ENGINE.log.md).
 >
@@ -9,7 +9,7 @@
 
 ## North-star
 
-ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한다. 다른 5 도메인은 "측정 frontier" 이고, ENGINE 은 그 측정 결과를 **실제 LLM 행동 변경** 으로 wire 한다.
+ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한다. 다른 측정 도메인 (ECONOMICS·SAFETY·OPS·SUBSTRATE·SANDBOX·NEUROEXP) 은 "측정 frontier" 이고, ENGINE 은 그 측정 결과를 **실제 LLM 행동 변경** 으로 wire 한다. bio-domain LLM 트랙은 별도 도메인이 아니라 `lm_foundry/docs/bio-llm.md` (hexa-forge bio recipe) 안에서 관리 (구 BIODATA 흡수 2026-05-27).
 
 ```
    측정 frontier              ENGINE driving             실제 LLM 행동
@@ -19,6 +19,7 @@ ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한�
    OPS finding         ──▶  scheduler / routing  ──▶  serving μ heterogeneous-aware
    SUBSTRATE finding   ──▶  model selector       ──▶  family-confound-aware ladder
    SANDBOX finding     ──▶  bench harness auto   ──▶  next-cycle measurement gate
+   NEUROEXP finding    ──▶  inference depth sel  ──▶  early-exit + readout-layer pick
 ```
 
 각 lane 은 verified verdict (🟢/🟡/🟠/🔴) 를 input 으로 받고, LLM behavior change 를 output 으로 emit. closed-loop 의 measurement 는 ENGINE 의 **자기 NOVEL axis (N)** 가 담당 — "discovery → execution latency 와 fidelity" 자체를 측정 대상으로 한다.
@@ -37,19 +38,23 @@ ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한�
 
 ### 축 C — OPS finding → multi-node scheduler driving
 > **driving target:** SANDBOX pool dispatch (mini + ubu-1 LAN) 의 routing policy.
-- [ ] C1 — OPS cycle-16 M/M/c knee + cycle-28 NOVEL N1 (heterogeneous-μ) finding 을 multi-node scheduler 가 반영 → SED routing 또는 weighted-round-robin 자동 선택. 반증자: scheduler 가 dominant-slow-server (Whitt 1986) variant 와 일치 — single-UMA formula 만 사용.
+- [x] C1 — OPS cycle-16 M/M/c knee + cycle-28 NOVEL N1 (heterogeneous-μ) finding 을 multi-node scheduler 가 반영 → SED routing 또는 weighted-round-robin 자동 선택. 반증자: scheduler 가 dominant-slow-server (Whitt 1986) variant 와 일치 — single-UMA formula 만 사용. **CYCLE-5 wire (2026-05-27):** `ENGINE/wires/wire_c1_ops_hetero_scheduler.hexa` + `ENGINE/verify/numerics_engine_c1_wire_ops.hexa` ✅ 6/6 PASS · 🟢 SUPPORTED-NUMERICAL. per-server μ (mini-mac-metal=9.53 · ubu-1-x86-cpu=3.0 req/s) → selected policy=`weighted-round-robin` (heterogeneity-aware). λ_max hetero-aware=Σμ_i=12.53 vs naive equal-RR/Whitt slow-server-bound=c·μ_min=6.0 → 예측 gain **2.09×**. wire 가 single-UMA-only 도 dominant-slow-server (Whitt 1986) 도 아님 (falsifier 양쪽 held). **runtime 2-host fire 는 cost-bearing — deferred** (OPS N1 `bench/sandbox_p3_multinode_2host.hexa` measured aggregate throughput ±15% falsifier). **frontier OPEN** — closed-form 예측이지 2-host 측정 아님; OPS N1 이 measured value 를 emit 하면 wire λ_max 재검증 필요.
 
 ### 축 D — SUBSTRATE finding → model selection driving
 > **driving target:** SANDBOX bench manifest 의 model rung selection.
-- [ ] D1 — SUBSTRATE cycle-23c POSITIVE + cycle-28 NOVEL N1 (family-vs-scale gap 0.49) finding 을 bench harness 가 자동 반영 → family-confound-aware rung selection (Qwen 만 ladder 가 아니라 non-Qwen 비례 포함). 반증자: bench 가 cycle-28 finding 무시 (Qwen-only rung 으로 capability claim).
+- [x] D1 — SUBSTRATE cycle-23c POSITIVE + cycle-28 NOVEL N1 (family-vs-scale gap 0.49) finding 을 bench harness 가 자동 반영 → family-confound-aware rung selection (Qwen 만 ladder 가 아니라 non-Qwen 비례 포함). 반증자: bench 가 cycle-28 finding 무시 (Qwen-only rung 으로 capability claim). **CYCLE-5 wire (2026-05-27):** `ENGINE/wires/wire_d1_substrate_family_rung.hexa` + `ENGINE/verify/numerics_engine_d1_wire_substrate.hexa` ✅ 6/6 PASS · 🟢 SUPPORTED-NUMERICAL. rung-selection rule: family-universal claim 은 ≥2 family + non-Qwen 비율 > 0 일 때만 admissible. Qwen-only ladder [Qwen×4] → `INSUFFICIENT for family-universal (Qwen-confound unaddressed)`; mixed ladder [SmolVLM×2+Qwen×2] → `family-universal ADMISSIBLE`. cycle-28 family-slope gap=0.49>0 (SmolVLM monotone vs Qwen dip-recover → confound empirically detectable). core falsifier held: wire 는 Qwen-only ladder 를 절대 universal 로 certify 안 함. **non-Qwen-7B rung 실측 deferred** (SUBSTRATE N1 InternVL-7B/LLaVA-NeXT-7B · BinomialSE falsifier). **frontier OPEN** — closed-form rung-gate 이지 non-Qwen 실측 아님; SUBSTRATE N1 real fire 가 family-universal vs Qwen-specific 를 discriminate 하면 gate threshold 재정의 필요.
 
 ### 축 E — SANDBOX measurement → next-cycle gate driving
 > **driving target:** SANDBOX 의 next-cycle bench harness 자동 generation.
-- [ ] E1 — SANDBOX cycle-28 NOVEL N1 (cross-substrate reproducibility 🟠) finding 이 next-cycle 50-item TIME-CAPPED 5-rung harness 를 자동 generate (현재 manual). 반증자: 자동 generated harness 가 cycle-24 partial 의 statistical confound 를 그대로 재생산.
+- [x] E1 — SANDBOX cycle-28 NOVEL N1 (cross-substrate reproducibility 🟠) finding 이 next-cycle 50-item TIME-CAPPED 5-rung harness 를 자동 generate (현재 manual). 반증자: 자동 generated harness 가 cycle-24 partial 의 statistical confound 를 그대로 재생산. **CYCLE-6 wire (2026-05-27):** `ENGINE/wires/wire_e1_sandbox_harness_gen.hexa` + `ENGINE/verify/numerics_engine_e1_wire_sandbox.hexa` ✅ 6/6 PASS · 🟢 SUPPORTED-NUMERICAL. harness-spec generator: cycle-28 N1 의 모순된 두 input (cycle-23c 16-item/4-rung NON-MONOTONE V vs cycle-24 50-item/3-rung partial MONOTONE) 을 받아 둘 다 dominate 하는 spec 자동 emit — **5-rung (full coverage) · 50-item · 24s/item TIME-CAP (wall 1200s≈20min) · 10 items/rung balanced · seed=42 pinned**. core falsifier held: 생성 spec 가 5>4 rungs ∧ 5>3 rungs ∧ 50≥16 ∧ 50≥50 items 로 두 prior partial 을 모두 dominate → cycle-24 의 incomplete-coverage + no-time-cap confound 재생산 안 함. **actual 5-rung SANDBOX fire deferred** (SANDBOX N1 mac M3 ~20min $0 · cross-manifest rank-correlation falsifier — re-run 후에도 manifest-scale-dependent shape 면 confound 가 coverage 아닌 intrinsic). **frontier OPEN** — closed-form spec generator 이지 실측 harness 실행 아님; SANDBOX N1 real re-run 이 spec 를 소비하면 generator threshold (min-n · rung 수) 재정의 필요.
+
+### 축 F — NEUROEXP finding → inference-time depth/readout driving
+> **driving target:** SANDBOX serving stack 의 inference-time layer selection (early-exit · readout-layer pick · speculative depth). NEUROEXP 는 6번째 측정 sibling (LLM-신경학 실험) — 원 5-sibling intake matrix 에 없던 도메인.
+- [x] F1 — NEUROEXP cycle-11 L2 (layer-wise logit-lens depth · 🟢 8/8 MEASURED) finding 을 inference-time early-exit / readout-layer selector 가 반영 → readout 은 peak layer 27 (50.0%) 에서, final layer 28 (35.7%) 아님 · early-exit 는 ≥ layer 23 (82% depth, final-6 block) 부터만 안전. 반증자: selector 가 strict last-single-layer readout 또는 pre-23 monotonic early-exit 선택 (L2 의 'late-stack HOLDS · last-single REFUTED' 양쪽 위반). **CYCLE-7 wire (2026-05-27):** `ENGINE/wires/wire_f1_neuroexp_depth_readout.hexa` + `ENGINE/verify/numerics_engine_f1_wire_neuroexp.hexa` ✅ 6/6 PASS · 🟢 SUPPORTED-NUMERICAL. emitted rule: readout block=23-28 · readout layer=27 (peak, ≠ final 28) · early-exit min=23 · mid-exit@14 unsafe (gap 27.5pp≫5pp). benefit: peak readout = +14.3pp logit-lens acc vs final · early-exit floor = mid-exit 27.5pp loss 회피. **actual early-exit inference fire deferred** (NEUROEXP scaling Qwen2.5-{0.5,3,7}B × layer · peak/block shift falsifier). class=method-transfer (logit-lens probe technique cleanly transfers · NEUROEXP L1/C1/L2 MATCH 패턴 일관). **frontier OPEN** — 1.5B single-point measured; peak layer 27 이 scale 에 따라 이동하는지 (예: 7B 에서 다른 block) NEUROEXP scaling fire 가 닫으면 readout rule 재-wire 필요. bio-domain LLM 트랙은 ENGINE sibling 이 아님 — `lm_foundry/docs/bio-llm.md` (구 BIODATA 흡수) 안에서 관리, ENGINE matrix 미등록.
 
 ### 축 N — 🆕 NOVEL: discovery → execution closed-loop latency (ENGINE 메인, ⭐ MAIN priority lane)
 > **⭐ MAIN priority lane** (ENGINE 의 self-NOVEL axis). 다른 5 axis 의 *driving 자체를 측정* 하는 meta-axis. measurement frontier 가 발견을 만든 시점부터 그 발견이 실제 LLM behavior change 로 wire 된 시점까지 의 시간 (latency) + 적용된 결과의 fidelity (발견값 ↔ wired-behavior 일치율).
-- [ ] N1 — discovery→execution **latency** 측정 baseline 수립: 각 sibling NOVEL axis 의 cycle N 결과 → ENGINE 적용된 cycle M 까지 ΔM 측정 (현재 모두 manual ∞). 반증자: 측정 cycle ↔ ENGINE wire cycle 간격이 5 cycle 초과 → human-in-loop 가 bottleneck 임을 quantify (자동화 필요 신호). 외부 anchor: closed-loop optimization 분야 (Snoek 2012 Bayesian optimization · Sutton 1988 TD learning).
+- [x] N1 — discovery→execution **latency** 측정 baseline 수립: 각 sibling NOVEL axis 의 cycle N 결과 → ENGINE 적용된 cycle M 까지 ΔM 측정 (현재 모두 manual ∞). 반증자: 측정 cycle ↔ ENGINE wire cycle 간격이 5 cycle 초과 → human-in-loop 가 bottleneck 임을 quantify (자동화 필요 신호). 외부 anchor: closed-loop optimization 분야 (Snoek 2012 Bayesian optimization · Sutton 1988 TD learning). **CYCLE-5 baseline (2026-05-27):** `ENGINE/wires/wire_n1_latency_baseline.hexa` + `ENGINE/verify/numerics_engine_n1_latency_baseline.hexa` ✅ 5/5 PASS · 🟢 SUPPORTED-NUMERICAL. latency ledger (manual ∞ → MEASURED): A1-spawn ΔM=7 [BOTTLENECK] · A1-mature ΔM=0 (same-session, fastest loop) · B1-mature ΔM=14 [BOTTLENECK]. mean ΔM=7.0 · max=14 · bottleneck cells (ΔM>5)=2/3. **HONEST self-measurement finding:** same-session 이 아닐 때마다 human-in-loop 가 병목 (ΔM>5) — N1 닫기 = discovery→wire handoff 자동화로 ΔM→0. n=2 anecdotal (latency law 아님). 외부 anchor Snoek 2012 BayesOpt · Sutton 1988 TD-learning. **CYCLE-8 ledger 확장 + 방법론 교정 (2026-05-27):** n=2→**6 anchored** (A1-spawn·A1-mature·C1·D1·E1·F1) · ✅ 7/7 PASS · 🟢. **cycle-5 카운터 혼용 버그 발견·수정**: cycle-5 는 A1(ECON)·B1(SAFETY)를 둘 다 wire-equiv=34(ECON 카운터)로 처리 → B1=14 는 incommensurable 카운터 혼용. 교정: ΔM = `(sibling 자기 카운터의 wire-time cycle) − discovery`. 결과 **A1-spawn=7(BOTTLENECK)·A1-mature=0·C1=1·D1=1·E1=1·F1=2** · mean ΔM=**2.0** · max=7 · 병목(>5)=**1/6** (cycle-5 의 2/3 → 교정). B1 은 UNANCHORED (cycle-2 prior-session wire, SAFETY wire-time cycle 미기록 → ΔM≤10, stats 제외·정직 flag). **발견 뒤집힘**: human-in-loop 병목은 STARTUP artifact (A1-spawn, paper-mature-gate 이해 전) 였고, 최근 cross-domain wire (C1·D1·E1·F1) 는 ΔM 1-2 로 FAST — 루프는 이미 빠름. **instrument 개선**: 이제 각 wire 가 sibling-cycle-at-wire 를 stamp (pre-instrumentation gap 닫음). **frontier OPEN** (⭐ MAIN perpetual) — 새 wire land 마다 anchored point 추가; B1 같은 unanchored 는 retro-anchor 불가 (정직 제외 유지); 자동화 수렴 = 거의 도달 (mean 2.0 < 5, A1-spawn 만 초과).
 
 ## Sibling 도메인 finding intake matrix (consumer 입장 reverse)
 
@@ -62,6 +67,9 @@ ENGINE 은 5 sibling 의 verdict 를 input 으로 받음. 각 sibling 의 SANDBO
 | OPS | cycle-16 M/M/c + cycle-28 N1 heterogeneous-μ predict 🟡 | C1 multi-node scheduler |
 | SUBSTRATE | cycle-23c 7B counting=5/5 + cycle-28 N1 family-vs-scale gap 0.49 🟢 | D1 model selector |
 | SANDBOX | cycle-28 N1 cross-substrate reproducibility 🟠 + 25/25 first-arc | E1 next-cycle harness gen |
+| NEUROEXP | cycle-11 L2 logit-lens depth (readout=final-6 block 23-28, peak@27 non-monotonic) 🟢 8/8 | F1 inference depth/readout select |
+
+> Note: bio-domain LLM finding (구 BIODATA A1/A2 = protein scaling · vocab→architecture) 은 ENGINE sibling 이 아님 — `lm_foundry/docs/bio-llm.md` 안에서 관리 (2026-05-27 BIODATA 도메인 폐기).
 
 ## Dispatch surface (ENGINE 의 wire targets)
 
@@ -71,6 +79,7 @@ ENGINE 은 5 sibling 의 verdict 를 input 으로 받음. 각 sibling 의 SANDBO
 | SANDBOX `llama-server` inference-time hooks | refusal direction projection-out | B1 (SAFETY) |
 | `pool` multi-host dispatcher | SED / weighted-round-robin scheduler | C1 (OPS) |
 | `bench/sandbox_*.hexa` generators | manifest + rung selection | E1 (SANDBOX) |
+| SANDBOX serving inference-time layer selection | early-exit floor + readout-layer pick | F1 (NEUROEXP) |
 
 ## Honesty invariants
 

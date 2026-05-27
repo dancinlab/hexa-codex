@@ -6,6 +6,51 @@
 
 ---
 
+## 2026-05-27 — cycle-47 G2 first probe · agent trajectory cost · 🔵 8/8 + operating-point refined
+
+NOVEL 축 G 두번째 first-probe. G2 = agent loop 의 N_calls^k_agent power law.
+
+**검증기**: `verify/numerics_economics_g2_agent_trajectory_cost.hexa`
+**RUN**: pool ubu-1 native compile (cycle-44/46 검증 `hexa cc` 패턴).
+**공식**: `total(N) = c_f·N·base + c_f·s·N(N-1)/2` (LINEAR + QUADRATIC)
+
+**8/8 PASS (verbatim)**:
+- without-cache cost(1) = 3,000,000 (base only)
+- without-cache cost(5) = 16,500,000 EXACT (15M linear + 1.5M quad)
+- without-cache cost(50) = 333,750,000 EXACT (150M linear + 183.75M quad)
+- quadratic 183.75M > linear 150M at N=50 (accumulation dominates)
+- cost ratio N=50/N=5 = 20.227× — SUPER-LINEAR (k > 1, < 2)
+- k_agent ≈ 1.3 (ratio 20.2× ∈ band [15×,30×])
+- cache ratio 7.65× < nocache 20.2× — caching FLATTENS slope
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL.
+
+**핵심 발견 (operating-point refinement)**:
+- seed: k_agent ≈ 1.5–2.0 for context-accumulating loops
+- closed-form: k_agent **operating-point dependent**:
+  - base/s → ∞ (작은 step, 큰 prefix): k → 1.0 (pure linear)
+  - base/s → 0 (큰 step, no prefix): k → 2.0 (pure quadratic)
+  - typical base/s = 20:1 (10000/500): **k ≈ 1.3** (mixed regime)
+- seed의 1.5–2.0 범위는 accumulation 이 dominate 할 때만 (small base, large step).
+- **caching 효과 quantified**: full-prefix-cache (G1 composition) 이 slope 를 20.2→7.65 으로
+  flatten — 단 c_r·s·N²/2 quadratic 잔존 (full-accumulated-context cache 필요 for pure-linear).
+- "caching makes agents linear" 운영주장은 cache 가 ALL accumulated context 덮을 때만 true.
+
+**honest residual**:
+- structural super-linearity = 🔵 closed-form identity.
+- 정확한 k_agent slope = operating-point dependent; verifier 는 ONE point (20:1).
+- 외부 paper anchor 검증 (ReAct/Reflexion/SWE-Agent published cost traces) = cycle-48+ WebFetch 로 deferred.
+- cycle-48+ T4: SANDBOX agentic loop on Qwen2.5-1.5B-Q4 + simple search → 실측 k_agent.
+- G2 frontier OPEN.
+
+**연결**:
+- verifier: [`verify/numerics_economics_g2_agent_trajectory_cost.hexa`](verify/numerics_economics_g2_agent_trajectory_cost.hexa)
+- verdict: [`.verdicts/economics/g2_agent_trajectory_cost_verdict.txt`](.verdicts/economics/g2_agent_trajectory_cost_verdict.txt)
+- 다음 순차: G3 (cache-hit decay) · G4 (multi-turn α drift) · G5 (conversation KV growth)
+
+---
+
 ## 2026-05-27 — cycle-46 G1 first probe · prompt-cache amortization · 🔵 8/8 + N_break off-by-one corrected
 
 NOVEL 축 G (agentic amortization) 첫 first-probe. G1 = 3 vendor prompt-cache 가격

@@ -1,0 +1,236 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_g2_agent_trajectory_cost.hexa
+// ECONOMICS axis G2 (NOVEL · cycle-45 spawn) — agent trajectory cost scaling law.
+//
+// CLAIM (seed cycle-45 G2): agent loops with context-accumulation have
+//   $/task ∝ N_calls^k_agent  with k_agent ≈ 1.5–2.0 (super-linear / quadratic-leaning)
+// because each call's input length grows with accumulated tool outputs:
+//   input(turn n) = base + (n-1)·s     where s = per-turn growth (tool output etc)
+//   cost(turn n) = c_f · input(turn n)
+//   total(N)     = c_f·N·base + c_f·s·N(N-1)/2   ← quadratic in N
+//
+// FALSIFIER (seed): if measured k_agent ≤ 1.1 across all 3 method families,
+// the "context-accumulation makes agents quadratic" hypothesis FALSIFIED.
+//
+// CLOSED-FORM RECOMPUTE (this verifier · 🔵 STRUCTURAL):
+//   - total(N) decomposes as LINEAR (N·base) + QUADRATIC (N²·s/2) terms.
+//   - At typical (base=10000, s=500), N=5→50 cost ratio = 20.227 (super-linear,
+//     pure-linear would give 10×, pure-quadratic 100×).
+//   - Slope k_agent ≈ 1.3 at this operating point (mixed linear+quad regime).
+//     Hits the seed's 1.5-2.0 band ONLY when base/s ratio is small (s dominates).
+//   - With FULL prefix-caching (G1 composition · ALSO caches accumulated tool
+//     outputs), total grows LINEARLY in N (k_agent → 1.0).
+//
+// HONESTY.  The slope k_agent depends on operating point (base/s ratio). The
+// closed-form recompute shows the STRUCTURAL super-linearity (k > 1) at typical
+// operating points; absolute slope value (1.3 vs seed's 1.5-2.0) is operating-
+// point dependent — refines seed's range claim.
+//
+// External anchor: Yao 2023 ReAct (arXiv:2210.03629) · Shinn 2023 Reflexion
+// (arXiv:2303.11366) · Princeton SWE-Agent (arXiv:2405.15793).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Closed-form accumulation algebra · no substrate.")
+
+// canonical operating point (typical agent loop):
+//   base = 10000 tok (system prompt + tool descriptions + initial user)
+//   s    = 500 tok per turn (tool output + LLM reply added to context)
+//   c_f  = 300 (×100 cents/Mtok, Anthropic Claude Sonnet 4.5 baseline)
+//   c_w  = 375 (cache-write surcharge)
+//   c_r  = 30  (cache-read 90% discount)
+let BASE = 10000
+let S = 500
+let CF = 300
+let CW = 375
+let CR = 30
+
+// without-cache total = c_f·N·base + c_f·s·N(N-1)/2
+fn cost_nocache(n: int) -> int {
+    return CF * n * BASE + CF * S * n * (n - 1) / 2
+}
+
+// with FULL-prefix-cache (each turn writes the newly-added s tokens; reads all prior)
+// Turn 1: cache-write base. Cost = c_w·base + c_f·s (delta paid full first time)
+// Turn n≥2: cache-read (base + (n-1)·s prior cached) + c_w·s (write new chunk) + c_f·new_user_delta
+// Simplified canonical: assume new_user_delta = 0 (just tool calling), full prefix cached:
+//   cost(n) = c_r·(base + (n-1)·s) + c_w·s  for n≥2
+//   cost(1) = c_w·base + c_w·s
+// Total = c_w·base + N·c_w·s + Σ_{n=2}^N c_r·(base + (n-1)·s)
+//       = c_w·base + N·c_w·s + (N-1)·c_r·base + c_r·s·(N(N-1)/2)
+// The c_r·s·N²/2 term is QUADRATIC but with c_r << c_f (10× smaller) → much smaller coefficient
+fn cost_full_cache(n: int) -> int {
+    if n == 1 { return CW * BASE + CW * S }
+    return CW * BASE + n * CW * S + (n - 1) * CR * BASE + CR * S * n * (n - 1) / 2
+}
+
+print("hexa-codex ECONOMICS G2 — agent trajectory cost scaling (cycle-47 first probe)")
+print("================================================================================")
+print("  closed-form: total(N) = c_f·N·base + c_f·s·N(N-1)/2  [LINEAR + QUADRATIC]")
+print("  operating point: base=10000 · s=500 · Anthropic c_f=300/c_w=375/c_r=30")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── check 1 — without-cache total at N=1 = base cost
+checks_total = checks_total + 1
+let NC1 = cost_nocache(1)   // 300·10000 = 3,000,000
+if NC1 == 3000000 {
+    print("  [PASS] without-cache cost(1) = " + to_string(NC1) + " (base only · c_f·base)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] cost(1) = " + to_string(NC1) + " ≠ 3,000,000")
+}
+
+// ── check 2 — without-cache cost(5) = 16,500,000 EXACT
+// 5·3,000,000 + 300·500·5·4/2 = 15,000,000 + 1,500,000 = 16,500,000
+checks_total = checks_total + 1
+let NC5 = cost_nocache(5)
+if NC5 == 16500000 {
+    print("  [PASS] without-cache cost(5) = " + to_string(NC5) + " EXACT (linear 15M + quad 1.5M)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] cost(5) = " + to_string(NC5) + " ≠ 16,500,000")
+}
+
+// ── check 3 — without-cache cost(50) = 333,750,000 EXACT
+// 50·3,000,000 + 300·500·50·49/2 = 150,000,000 + 183,750,000 = 333,750,000
+checks_total = checks_total + 1
+let NC50 = cost_nocache(50)
+if NC50 == 333750000 {
+    print("  [PASS] without-cache cost(50) = " + to_string(NC50) + " EXACT (linear 150M + quad 183.75M)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] cost(50) = " + to_string(NC50) + " ≠ 333,750,000")
+}
+
+// ── check 4 — quadratic component DOMINATES linear at N=50
+checks_total = checks_total + 1
+let LIN50 = CF * 50 * BASE              // 150,000,000
+let QUAD50 = CF * S * 50 * 49 / 2       // 183,750,000
+if QUAD50 > LIN50 {
+    print("  [PASS] quadratic " + to_string(QUAD50) + " > linear " + to_string(LIN50) + " at N=50 (accumulation dominates)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] quadratic ≤ linear at N=50")
+}
+
+// ── check 5 — ratio cost(50)/cost(5) demonstrates SUPER-LINEAR scaling
+// Pure-linear would give 10× (N 5→50); pure-quadratic 100×; mixed = between.
+// Ratio = 333,750,000 / 16,500,000 = 20.227 → ratio_x1000 = 20227
+// Expect: pure-linear < ratio < pure-quad → 10000 < ratio_x1000 < 100000
+checks_total = checks_total + 1
+let RATIO_x1000 = NC50 * 1000 / NC5
+if RATIO_x1000 > 10000 && RATIO_x1000 < 100000 {
+    print("  [PASS] cost ratio N=50/N=5 = " + to_string(RATIO_x1000) + "/1000 (20.2×) — SUPER-LINEAR (k > 1, < 2)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ratio = " + to_string(RATIO_x1000) + " outside [10000,100000]")
+}
+
+// ── check 6 — ratio_x1000 ≈ 20000 places k_agent in [1.2, 1.5] band
+// (10^k = 20.2 → k ≈ 1.306; rough proxy: ratio_x1000 in [15000, 30000] → k in [1.18, 1.48])
+checks_total = checks_total + 1
+if RATIO_x1000 >= 15000 && RATIO_x1000 <= 30000 {
+    print("  [PASS] k_agent ≈ 1.3 (ratio 20.2× ∈ band [15×,30×]) — mixed linear+quad regime at base/s=20:1")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] k_agent band miss")
+}
+
+// ── check 7 — FULL-prefix-cache reduces growth but does NOT make purely linear
+// (c_r·s·N²/2 quadratic component still present, but with c_r=30 << c_f=300 it's 10× smaller)
+// Compare cache(50)/cache(5) vs nocache(50)/nocache(5) — cache ratio < nocache ratio
+checks_total = checks_total + 1
+let CC5 = cost_full_cache(5)
+let CC50 = cost_full_cache(50)
+let CACHE_RATIO_x1000 = CC50 * 1000 / CC5
+if CACHE_RATIO_x1000 < RATIO_x1000 {
+    print("  [PASS] cache ratio " + to_string(CACHE_RATIO_x1000) + "/1000 < nocache " + to_string(RATIO_x1000) + "/1000 — caching FLATTENS slope (k closer to 1)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] cache should flatten slope vs no-cache")
+}
+
+// ── check 8 — determinism
+checks_total = checks_total + 1
+let NC50_RE = cost_nocache(50)
+if NC50_RE == NC50 {
+    print("  [PASS] deterministic")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 SUPPORTED-FORMAL — agent trajectory cost super-linear closed-form (8/8)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — agent cost recompute disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("KEY FINDING (closed-form):")
+print("  - Without cache: total(N) = c_f·N·base + c_f·s·N(N-1)/2 — STRUCTURALLY SUPER-LINEAR (k > 1).")
+print("  - At base/s=20:1 typical operating point, N=5→50 cost ratio = 20.2× → k_agent ≈ 1.3")
+print("    (seed predicted 1.5-2.0; closed-form refines to 1.3 at this operating point).")
+print("  - Quadratic component (183.75M) > linear component (150M) at N=50 ⇒ accumulation dominates.")
+print("  - With FULL-prefix-caching: c_r·s·N²/2 quadratic still present but with c_r=30 (10× smaller),")
+print("    cache ratio (50/5) FLATTENS slope vs no-cache ratio. NOT pure-linear (k still > 1).")
+print("")
+print("OPERATIONAL CORRECTION (vs seed):")
+print("  - seed: k_agent ≈ 1.5-2.0 for context-accumulating loops")
+print("  - closed-form: k_agent depends on base/s ratio:")
+print("    * base/s → ∞ (small step, large prefix): k → 1.0 (pure linear)")
+print("    * base/s → 0 (large step, no prefix): k → 2.0 (pure quadratic)")
+print("    * typical base/s=20:1: k ≈ 1.3 (mixed regime)")
+print("  - seed's 1.5-2.0 band hits ONLY when accumulation dominates (small base, large step).")
+print("  - 'caching makes agents linear' (G1 composition claim) is APPROXIMATELY true only if")
+print("    cache covers ALL accumulated context, not just system prefix.")
+print("")
+print("HONEST RESIDUAL:")
+print("  - structural super-linearity = 🔵 closed-form identity.")
+print("  - exact k_agent slope = operating-point dependent; verifier shows ONE point (20:1).")
+print("  - external anchor verification (ReAct/Reflexion/SWE-Agent published cost traces)")
+print("    deferred to cycle-48+ WebFetch pass.")
+print("  - cycle-48+ T4: SANDBOX agentic loop on Qwen2.5-1.5B-Q4 + simple search → measured k_agent.")
+print("  - G2 frontier OPEN (feedback_closure_is_physical_limit): structural close ≠ empirical close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_G2_AGENT_TRAJECTORY_COST__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/g2_agent_trajectory_cost_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS G2 — agent trajectory cost scaling law (cycle-47 first probe)\n"
+content = content + "# axis=ECONOMICS.md::G2 (NOVEL · cycle-45 spawn · G = agentic amortization)\n"
+content = content + "# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g2_agent_trajectory_cost_law\n"
+content = content + "# verifier=verify/numerics_economics_g2_agent_trajectory_cost.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# operating_point=base10000_s500_ratio20:1\n"
+content = content + "# nocache_cost_N5=" + to_string(NC5) + " (15M linear + 1.5M quad)\n"
+content = content + "# nocache_cost_N50=" + to_string(NC50) + " (150M linear + 183.75M quad)\n"
+content = content + "# nocache_ratio_N50_N5_x1000=" + to_string(RATIO_x1000) + " (20.2x super-linear, k≈1.3)\n"
+content = content + "# cache_ratio_N50_N5_x1000=" + to_string(CACHE_RATIO_x1000) + " (flattened vs nocache)\n"
+content = content + "# quadratic_dominates_linear_at_N50=true (183.75M > 150M)\n"
+content = content + "# seed_k_band_1.5-2.0=refined_to_1.3_at_typical_base_s_20:1 (operating-point dependent)\n"
+content = content + "# external_anchor=ReAct_arXiv2210.03629 · Reflexion_arXiv2303.11366 · SWE-Agent_arXiv2405.15793\n"
+content = content + "# next_probe=cycle-48+ T4 SANDBOX agentic loop on Qwen2.5-1.5B-Q4 → measured k_agent\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

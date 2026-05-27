@@ -6,6 +6,74 @@
 
 ---
 
+## 2026-05-27 — cycle-45 G NOVEL axis spawn · agentic / multi-turn amortization · 5 seeds
+
+ECONOMICS 의 G axis 를 새 NOVEL lane 으로 spawn. A-F + cycle-44 D1-Sardana 의
+time-horizon 격자에서 **누락된 중간층** (per-CONVERSATION-LIFETIME) 을 채운다:
+
+- A-E: training-side scaling (per-MODEL training lifetime)
+- F: inference single-call (per-CALL, single weight-stream)
+- cycle-44 D1-Sardana: per-MODEL inference-lifetime amortization
+- **G (cycle-45 spawn): per-CONVERSATION / per-TASK amortization** ← 신규
+
+**G 선택 근거 (8 후보 중)**:
+
+8 dimension brainstorm (hardware-substrate · agentic-multi-turn · multi-modal · dataset-side ·
+compression-economics · market-elasticity · meta-discovery-cost · safety-cost-coupling) 중
+**agentic / multi-turn** 가 (a) orthogonality (b) anchor strength (c) measurability 3 축 모두
+strongest:
+
+- **Orthogonality to A-F**: F 는 single-call single-turn 만 다룬다. G 는 N-turn conversation /
+  N-call agentic loop 의 amortization. 같은 physical surface 의 다른 time-horizon — F1/F2/F5
+  를 reuse 하면서도 새 questions (cache N_break · k_agent · hit-decay · α-drift · KV growth) 생성.
+  hardware-substrate (per-hardware F1 sublane 으로 흡수 가능) · compression (F5 와 겹침) ·
+  multi-modal (anchor 약함) 보다 명확히 orthogonal.
+- **External anchor strength**: 가장 강력. 2024–2026 vendor pricing 의 가장 큰 변화 —
+  Anthropic prompt caching (Sep 2024) · OpenAI prompt caching (Oct 2024) · DeepSeek context
+  caching (Dec 2024) · Google Gemini implicit caching (2025) — 모두 명시적 published
+  pricing tier. agentic literature 도 ReAct (arXiv:2210.03629) · Reflexion (arXiv:2303.11366) ·
+  SWE-Agent (arXiv:2405.15793) · SWE-Bench Verified leaderboard 의 per-task $ 숫자가 anchor.
+  Market-elasticity / meta-discovery 후보는 peer-reviewed 스케일링법칙 anchor 가 약하다.
+- **Measurability at $0/cheap tier**: 5/5 seed 가 closed-form $0 first probe. G1 = 3 vendor
+  pricing 닫힌형 N_break · G2 = 3 agent benchmark trace 의 log-log OLS · G3 = vendor
+  block-granularity 닫힌형 decay · G4 = F3 α 와 multi-turn drift 합성 · G5 = F2 KV 의
+  multi-turn 확장 + K_opt break-point. publication-bias bottleneck (F-axis 의 교훈) 우회.
+- **Falsifier per seed**: 모두 INDEPENDENT 외부 published claim 타겟 (Anthropic 90% 헤드라인 ·
+  ReAct linear-cost 통념 · vendor cache block 도큐 · F3 single-call α invariance ·
+  StreamingLLM/H2O 압축 ratio). self-strawman 회피 ([[feedback_negative_paper_external_claim]]).
+
+**5 seed 헤드라인**:
+
+| seed | tier-target | falsifier (one-line) |
+|------|:-:|---|
+| G1 — prompt-cache amortization curve | 🔵 | Anthropic 90% discount headline misleading if N_break > 5 |
+| G2 — agent trajectory cost scaling law | 🟢 | "context-accumulation makes agents quadratic" false if k_agent ≤ 1.1 |
+| G3 — cache-hit decay vs divergence offset | 🔵 | effective discount unachievable in production if hit < 0.5 |
+| G4 — multi-turn spec-dec α drift | 🟢 | F3 per-class α invariance generalizes if measured drift < 1% |
+| G5 — conversation KV-bytes growth law | 🔵 | naive linear-in-N falsified if engine implicit-evicts sub-linearly |
+
+**spawn 한계 (정직)**:
+
+- 이번 cycle 은 PURE SPAWN — verifier 1 줄도 안 만들었다. G1..G5 의 first probe (모두 $0
+  closed-form) 는 cycle-46+ 별도 spawn 으로 fan-out. ECONOMICS.md G milestones 5 개는
+  모두 `- [ ]` 미시작 상태.
+- G3/G5 의 SANDBOX T4 단계 (cycle-47+) 는 llama-server prefix-cache 의 vendor-API 정의와
+  semantic divergence 가 있어 substrate 측정값이 vendor 행동을 그대로 reflect 안할 수 있다.
+  closed-form 자체는 vendor-doc 기반으로 검증되지만, "vendor 실제 청구액 = 닫힌형 예측" 까지
+  주장하려면 실제 API 호출 (paid) 가 필요한데 본 spawn 은 그 경계 밖.
+- frontier OPEN ([[feedback_closure_is_physical_limit]]): G1..G5 가 모두 GREEN close 해도
+  vendor caching policy 가 계속 진화 (Anthropic 1-hour beta TTL, Google implicit caching) +
+  agent framework context-management 패턴 (compaction, sub-agent fork) 도 진화 — 100% 닫힘
+  설계 아님.
+
+**연결**: cycle-43 (C1 Lagrangian 🔵) → cycle-44 (D1 Sardana inference-amortization, parallel
+sibling) → cycle-45 (G axis spawn, this entry) → cycle-46+ (G1..G5 first probes, fan-out).
+
+verdict-tier 차이: 본 entry 는 spawn 만, verifier 없음 → tier 없음. ECONOMICS milestone 도
+flip 하지 않음.
+
+---
+
 ## 2026-05-27 — cycle-43 C1 Lagrangian VERIFIED · 🔵 SUPPORTED-FORMAL 8/8 (Mac local `hexa build` 토큰 통과)
 
 cycle-42 의 BLOCKED 가 사용자 `! sidecar sign local` 토큰 발급으로 즉시 unblock.

@@ -20,14 +20,15 @@
 > AGENT 은 완료되지 않는다. 새 tool·plan depth·task domain 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [x] A1 — single-tool call 정확도 · tool selection accuracy. 반증자: 1-step tool call < 70% on basic tasks (calculator·search 등). **CYCLE-9 round-5 first probe (2026-05-28):** `AGENT/bench/agent_a1_tool_call_rate.hexa` + `AGENT/verify/numerics_agent_a1_tool_call_rate.hexa` ✅ 7/7 PASS · 🔵 STRUCTURAL + 🟡 BY-CITATION (70% threshold = BFCL/ToolBench convention). Identity: `acc = N_correct / N_total × 100` · falsifier `acc < 70`. Worked example 4 models × N_total=100 (4 tools × 25 trials): excellent=92 silent · mid=78 silent · **weak=55 fires** · **broken=30 fires** — bidirectional. External anchors: Yao 2023 ReAct (arXiv:2210.03629) · Schick 2023 Toolformer (arXiv:2302.04761) · Shinn 2023 Reflexion · Patil 2023 Gorilla. **실측 tool call eval DEFERRED** (cycle-10+ · BFCL · ToolBench · API-Bank on ubu-1 HF). **frontier OPEN** ([[feedback_closure_is_physical_limit]]) — identity close ≠ measured close. 축 N (plan-vs-execute divergence) 다음 ⭐ MAIN priority lane.
+- [x] A1 — single-tool call 정확도 · tool selection accuracy. 반증자: 1-step tool call < 70% on basic tasks (calculator·search 등). **CYCLE-9 round-5 first probe (2026-05-28):** `AGENT/bench/agent_a1_tool_call_rate.hexa` + `AGENT/verify/numerics_agent_a1_tool_call_rate.hexa` ✅ 7/7 PASS · 🔵 STRUCTURAL + 🟡 BY-CITATION (70% threshold = BFCL/ToolBench convention). Identity: `acc = N_correct / N_total × 100` · falsifier `acc < 70`. Worked example 4 models × N_total=100 (4 tools × 25 trials): excellent=92 silent · mid=78 silent · **weak=55 fires** · **broken=30 fires** — bidirectional. External anchors: Yao 2023 ReAct (arXiv:2210.03629) · Schick 2023 Toolformer (arXiv:2302.04761) · Shinn 2023 Reflexion · Patil 2023 Gorilla. **실측 tool call eval DEFERRED** (cycle-10+ · BFCL · ToolBench · API-Bank on ubu-1 HF). **frontier OPEN** ([[feedback_closure_is_physical_limit]]) — identity close ≠ measured close. 축 N⭐ (agentic trajectory step-decay · ex-FRONTIER F3) = NOVEL MAIN priority lane — single-tool A1 의 multi-step 확장.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — multi-step plan depth × error recovery ladder · SWE-bench-style 측정. 반증자: depth-3 plan 성공률 < depth-1 성공률 × 0.5 → multi-step compound error.
 
-### 축 N — 🆕 NOVEL: plan-vs-execute divergence (⭐ MAIN priority lane)
-> **⭐ MAIN priority lane** — AGENT 의 self-NOVEL axis. 올바른 plan 을 세웠지만 execution 단계에서 빗나가는 빈도 — 계획과 실행의 gap. 외부 anchor: Yao 2023 ReAct · Shinn 2023 Reflexion · Wang 2024 voyager.
-- [ ] N1 — explicit plan generation 후 step-by-step execution 정확도 비교. 반증자: plan 정확도 > 90% 인데 execution 정확도 < 70% → execution-bound (plan-execute decoupling 필요).
+### 축 N — 🆕 NOVEL: agentic trajectory step-decay (⭐ MAIN priority lane)
+> **⭐ MAIN priority lane** — AGENT 의 self-NOVEL. single-tool call (A1) 에서 multi-step trajectory 로 확장 · GAIA·ATBench·SWE-bench Pro anchor. 도착지 없음 ([[feedback_closure_is_physical_limit]]).
+- [x] N1 — multi-step 도구 사용 trajectory step-decay (single-tool A1 의 NOVEL 확장). 반증자: 5-step 성공률 < single-step × 0.3. **CYCLE-10 reorg (2026-05-28 · FRONTIER F3 흡수)** ✅ 🔵 STRUCTURAL + 🟡 BY-CITATION · 7/7 PASS · `AGENT/verify/numerics_agent_n1_agentic_trajectory_step_decay.hexa` · gpt5=782·claude5=755·gemma4=564·qwen3.6=704 silent · weak_4b_legacy=214 fires.
+- [ ] N2 — plan-vs-execute divergence (강등 ← 이전 N1 ⭐ placeholder). explicit plan generation 후 step-by-step execution 정확도 비교. 반증자: plan 정확도 > 90% 인데 execution 정확도 < 70% → execution-bound (plan-execute decoupling 필요). 외부 anchor: Yao 2023 ReAct · Shinn 2023 Reflexion · Wang 2024 Voyager. measured-tier 필요.
 
 ## SANDBOX 활용 (measurement substrate)
 
@@ -37,7 +38,8 @@ AGENT 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — local lla
 |---|---|---|
 | A1 first probe | mac M3 / ubu-1 local | `.verdicts/AGENT/a1_*` |
 | B1 ladder | SANDBOX bench harness | `.verdicts/AGENT/b1_*` |
-| N1 ⭐ NOVEL | mac M3 / vast.ai pod | `.verdicts/AGENT/n1_*` |
+| N1 ⭐ NOVEL MAIN (agentic trajectory step-decay · ex-FRONTIER F3) | mac M3 / vast.ai pod | `AGENT/verdicts/n1_agentic_trajectory_step_decay_verdict.txt` |
+| N2 (plan-vs-execute divergence · 강등) | mac M3 / vast.ai pod | `.verdicts/AGENT/n2_*` |
 
 ## Dispatch surface (ENGINE 후보 wire)
 

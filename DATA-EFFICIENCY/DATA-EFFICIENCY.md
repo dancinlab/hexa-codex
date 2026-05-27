@@ -20,7 +20,7 @@
 > DATA-EFFICIENCY 은 완료되지 않는다. 새 corpus·filter·curriculum 기법 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — curriculum 순서 효과 (easy-first vs random) · sample-efficiency 곡선. 반증자: curriculum 효과 < 5% vs 무작위 → curriculum 무의미.
+- [x] A1 — curriculum 순서 효과 (easy-first vs random) · sample-efficiency 곡선. 반증자: curriculum 효과 < 5% vs 무작위 → curriculum 무의미. _CYCLE-9 round-8 wire — closed-form `curriculum_delta_pp = max(curriculum_acc) − random_acc` 7/7 (🔵 STRUCTURAL + 🟡 BY-CITATION) · placeholder 4-config × 4 sample-size sweep (random=6500 baseline · easy-to-hard=7200 Δ=+7.00pp silent · hard-to-easy=6300 Δ=−2.00pp fires · interleaved=6700 Δ=+2.00pp fires) · anchors Bengio 2009 ICML · Hacohen 2019 ICML · Wu 2021 ICLR · Soviany 2022 IJCV · substrate fire DEFERRED ([[feedback_closure_is_physical_limit]] — identity close ≠ measured close)._
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — quality tier (raw·dedup·curated) × scale ladder. 반증자: quality tier 효과가 1B scale 이상에서 vanish → quality 는 small-scale 만 유효.

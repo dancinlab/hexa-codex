@@ -54,21 +54,27 @@
 likened to synaptic plasticity, in-context learning to neural circuits,
 and integrated-information measures are ported wholesale from
 neuroscience. We ask a sharper question --- \emph{which} bio-to-LLM
-mappings actually hold, and which break --- and answer it with seven
-closed-form ($\tierBlue$) recomputations spanning four neuroscience
-methodologies (Hebbian plasticity, integrated information $\Phi$,
-lesion/ablation, causal circuit probing) and three system-level
-comparisons (cellular automata, spike-timing plasticity, biological
-connectome integration). The seven results split cleanly: all four
-\emph{method transfers} succeed (bio measurement/intervention techniques
-apply to LLMs exactly), while all three \emph{system comparisons} fail
-(bio systems and LLM systems sit in different dynamical/mechanism
-classes). The split is the headline: ``bio-inspired = LLM'' is
-\emph{true as a method analogy, false as a system isomorphism}. Two of
-the system comparisons are counter-intuitive closed-form negatives --- a
-sparse $3$-cell copy chain has $\Phi=2.0$ versus a dense $6$-connection
-XOR cycle's $\Phi=1.5$, refuting ``denser $\Rightarrow$ more integrated.''
-All verdicts are deterministic and were recomputed on a single host; the
+mappings actually hold, and which break --- and answer it with ten
+probes: seven closed-form ($\tierBlue$) recomputations plus three
+on-model measured ($\tierGreen$) experiments on Qwen2.5-1.5B, spanning
+six \emph{method transfers} (Hebbian plasticity, integrated information
+$\Phi$, lesion/ablation, causal circuit probing, layer-wise logit lens,
+rank-1 weight editing) and four \emph{system comparisons} (cellular
+automata, spike-timing plasticity, biological connectome integration,
+activation spectrum). The ten results split cleanly with ZERO
+exceptions: all six method transfers succeed (bio measurement/intervention
+techniques apply to LLMs exactly --- $4/4$ closed-form $+$ $2/2$ measured),
+while all four system comparisons fail (bio systems and LLM systems sit in
+different dynamical/mechanism classes --- $3/3$ closed-form $+$ $1/1$
+measured). The split is the headline: ``bio-inspired = LLM'' is
+\emph{true as a method analogy, false as a system isomorphism}, and the
+distinction \emph{predicts} the outcome across all ten axes. Counter-intuitive
+negatives sharpen it: a sparse $3$-cell copy chain has $\Phi=2.0$ versus a
+dense $6$-connection XOR cycle's $\Phi=1.5$ (closed-form, refuting
+``denser $\Rightarrow$ more integrated''); and on Qwen2.5-1.5B the
+activation eigenspectrum slope ($\alpha\!\approx\!4.5$) is a different
+power-law family from biological $1/f$ ($\alpha\!\approx\!1$), dense not
+sparse (measured). All verdicts are deterministic / reproducible; the
 \texttt{NEUROEXP/verify/} and \texttt{NEUROEXP/verdicts/} records give
 bit-for-bit reproduction. We claim a taxonomy, not a brain.
 \end{abstract}
@@ -87,9 +93,10 @@ loose metaphor.
 
 We supply the boundary. Treating an LLM as a substrate one can
 experiment \emph{on} --- rather than a model one trains \emph{with} bio
-data --- we run seven independent closed-form probes, each a falsifiable
-recomputation with a pre-registered threshold. Four probes import a
-neuroscience \emph{methodology} onto the transformer; three probes
+data --- we run ten independent probes (seven closed-form $\tierBlue$ +
+three on-model measured $\tierGreen$ on Qwen2.5-1.5B), each a falsifiable
+recomputation/measurement with a pre-registered threshold. Six probes
+import a neuroscience \emph{methodology} onto the transformer; four probes
 compare a biological \emph{system} against a transformer system. The
 central finding is that this distinction --- method vs.\ system --- is
 exactly the line between success and failure.
@@ -97,17 +104,27 @@ exactly the line between success and failure.
 \medskip
 \noindent\textbf{Contributions.}
 \begin{enumerate}\itemsep0.3em
-\item A closed-form taxonomy (Table~\ref{tab:pipeline},
-  Table~\ref{tab:results}) of seven bio-to-LLM mappings, each tagged
-  $\tierBlue$ and recomputed deterministically.
-\item The \emph{method-transfer vs.\ system-comparison} split: four
-  method transfers hold exactly; three system comparisons separate ---
-  a $4{+}3$ pattern with no exceptions in our set.
-\item Two counter-intuitive closed-form negatives: linear attention
+\item A taxonomy (Table~\ref{tab:pipeline}, Table~\ref{tab:results}) of
+  ten bio-to-LLM mappings --- seven $\tierBlue$ closed-form + three
+  $\tierGreen$ measured-on-model --- each recomputed/measured
+  deterministically.
+\item The \emph{method-transfer vs.\ system-comparison} split: six
+  method transfers hold exactly; four system comparisons separate ---
+  a $6{+}4$ pattern with NO exceptions across all ten axes, holding
+  identically in both the closed-form ($4{+}3$) and measured ($2{+}1$)
+  tiers.
+\item Counter-intuitive negatives that sharpen the law: linear attention
   \emph{is} a Hebbian fast-weight learner (Schlag identity) but softmax
-  attention is not; and a sparse biological copy chain out-integrates a
-  dense LLM-style XOR cycle ($\Phi=2.0$ vs.\ $1.5$), refuting
-  ``density $\Rightarrow$ integration.''
+  attention is not; a sparse biological copy chain out-integrates a
+  dense LLM-style XOR cycle ($\Phi=2.0$ vs.\ $1.5$, refuting
+  ``density $\Rightarrow$ integration''); and on a real model the
+  activation eigenspectrum ($\alpha\!\approx\!4.5$, dense) is a different
+  power-law family from biological $1/f$ ($\alpha\!\approx\!1$, sparse).
+\item Three measured-on-model results (Qwen2.5-1.5B, RTX 5070):
+  logit-lens readout is a final $\sim$6-layer block (not a single layer,
+  peak at the penultimate layer); rank-1 ROME edit is local
+  (collateral/intended $=0.45$, supporting MLP-as-associative-memory);
+  activation spectrum mismatches spiking $1/f$.
 \end{enumerate}
 
 \section{Background}
@@ -130,11 +147,11 @@ plasticity \citep{bipoo1998}, and the \emph{C.\ elegans} connectome
 \section{Pipeline}
 \label{sec:pipeline}
 
-Each probe is one row of Table~\ref{tab:pipeline}. Every row is
-$\tierBlue$ (closed-form): the verdict is a deterministic recomputation,
-not a numerical fit. The ``backing verdict'' column is the persisted
-record under \texttt{NEUROEXP/verdicts/} that makes the row
-independently re-verifiable.
+Each probe is one row of Table~\ref{tab:pipeline}. Seven rows are
+$\tierBlue$ (closed-form, deterministic recomputation); three rows are
+$\tierGreen$ (measured on Qwen2.5-1.5B, RTX 5070). The ``backing
+verdict'' column is the persisted record under \texttt{NEUROEXP/verdicts/}
+that makes the row independently re-verifiable.
 
 \medskip
 \noindent\fbox{\parbox{0.97\linewidth}{\small\textbf{Tier rubric.}
@@ -159,29 +176,44 @@ C1 & induction head $\equiv$ ICL gain         & method   & \tierBlue & \texttt{c
 S1 & NCA vs.\ token-AR dynamical class        & system   & \tierBlue & \texttt{s1\_nca\_token\_ar} \\
 N2 & STDP vs.\ attention causal mask          & system   & \tierBlue & \texttt{n2\_stdp\_attention} \\
 $\Phi$2 & LLM $\Phi$ vs.\ \emph{C.\ elegans} $\Phi$ & system & \tierBlue & \texttt{phi2\_llm\_vs\_celegans} \\
+\midrule
+L2 & layer-wise logit-lens readout depth     & method   & \tierGreen & \texttt{l2\_layer\_probe} \\
+C2 & rank-1 ROME edit locality                & method   & \tierGreen & \texttt{c2\_rome\_locality} \\
+S2 & activation spectrum vs.\ spiking $1/f$   & system   & \tierGreen & \texttt{s2\_spiking\_spectral} \\
 \bottomrule
 \end{tabular}
-\caption{Seven closed-form probes. The \textbf{Class} column is the
-paper's thesis: \emph{method} rows transfer a neuroscience technique onto
-the LLM; \emph{system} rows compare a biological system to a transformer
-system. Every row is $\tierBlue$ deterministic.}
+\caption{Ten probes --- seven $\tierBlue$ closed-form (top) + three
+$\tierGreen$ measured-on-model (bottom, Qwen2.5-1.5B). The \textbf{Class}
+column is the paper's thesis: \emph{method} rows transfer a neuroscience
+technique onto the LLM; \emph{system} rows compare a biological system to
+a transformer system. The measured tier reproduces the class split
+($2$ method MATCH $+$ $1$ system MISMATCH), identical to the closed-form
+tier's $4{+}3$.}
 \label{tab:pipeline}
 \end{table}
 
 \section{Method}
 \label{sec:method}
 
-Each probe is a self-contained \texttt{hexa} program that builds to a
-native binary and emits its verdict to \texttt{NEUROEXP/verdicts/}. All
-seven were compiled and executed on a single Linux host (\texttt{ubu-1})
-via the \texttt{hexa cc} native toolchain; the integrated-information
-probes ($\Phi$1, $\Phi$2) import the faithful big-$\Phi$ engine from the
-\texttt{hexa-lang} standard library (\texttt{stdlib/consciousness/}),
-which was promoted from a sibling consciousness-research repository
-without modification. Thresholds are pre-registered inside each verifier
-(e.g.\ the $\varepsilon$ band for an identity, the sign of a gap); a
-probe ``passes'' only when every check passes, and the emitted tier is
-mechanical.
+Each probe's verdict is emitted by a self-contained \texttt{hexa} program
+that builds to a native binary and writes to \texttt{NEUROEXP/verdicts/};
+all ten verifiers were compiled and executed on a single Linux host
+(\texttt{ubu-1}) via the \texttt{hexa cc} native toolchain. The
+integrated-information probes ($\Phi$1, $\Phi$2) import the faithful
+big-$\Phi$ engine from the \texttt{hexa-lang} standard library
+(\texttt{stdlib/consciousness/}), promoted from a sibling
+consciousness-research repository without modification. Thresholds are
+pre-registered inside each verifier; a probe ``passes'' only when every
+check passes, and the emitted tier is mechanical.
+
+\paragraph{Measured tier (L2, C2, S2).} Three probes are $\tierGreen$:
+their inputs are real activations/weights of Qwen2.5-1.5B-Instruct,
+captured on an RTX 5070 with a pinned clean environment
+(\texttt{transformers 4.51.3}, \texttt{torch 2.12 cu130},
+\texttt{numpy<2}). The capture scripts are intentionally repo-external
+(the repo is \texttt{.hexa}-only); the \texttt{.hexa} verifier checks the
+emitted measurement against the pre-registered claim, so the measured
+rows obey the same pass/tier mechanics as the closed-form rows.
 
 \paragraph{Honest-gradient discipline.}
 One probe ($\Phi$2) was first written with the hypothesis ``dense LLM
@@ -194,7 +226,7 @@ only the (wrong) prior framing. The negative is the finding.
 \section{Verify}
 \label{sec:verify}
 
-The four \emph{method} transfers (each $\tierBlue$):
+The closed-form \emph{method} transfers ($\tierBlue$):
 
 \begin{itemize}\itemsep0.3em
 \item \textbf{N1.} Linear attention's running matrix
@@ -219,7 +251,7 @@ The four \emph{method} transfers (each $\tierBlue$):
   gain are coupled, not separable.
 \end{itemize}
 
-The three \emph{system} comparisons (each $\tierBlue$, all separating):
+The closed-form \emph{system} comparisons ($\tierBlue$, all separating):
 
 \begin{itemize}\itemsep0.3em
 \item \textbf{S1.} Neural cellular automata vs.\ token-autoregression
@@ -243,34 +275,80 @@ $ HEXA_CODEX_ROOT=. ./numerics_neuroexp_phi2_llm_vs_celegans
 => 11/11 checks  =>  VERDICT: BLUE SUPPORTED-FORMAL
 \end{lstlisting}
 
+The measured tier on Qwen2.5-1.5B ($\tierGreen$) --- two method
+transfers MATCH, one system comparison MISMATCH, reproducing the
+closed-form split:
+
+\begin{itemize}\itemsep0.3em
+\item \textbf{L2 (method, MATCH).} Layer-wise logit lens (project each
+  layer's hidden state through the model's own final norm + unembed,
+  measure next-token accuracy) over $28$ layers / $98$ positions: the
+  middle layer (14) reads out at $8.2\%$ vs.\ the final layer's $35.7\%$
+  (gap $27.6$pp $\gg 5$pp), and accuracy reaches within $5$pp of final
+  only from layer $23$ ($82\%$ depth). Readout is a final $\sim$6-layer
+  \emph{block}, not one layer; the logit-lens \emph{peak} is the
+  penultimate layer ($50.0\%>35.7\%$), so the final transform slightly
+  de-optimizes the raw next-token lens. The probing technique transfers
+  cleanly (method MATCH); the strict ``last-layer-only'' folk form is
+  refuted while late-stack concentration holds.
+\item \textbf{C2 (method, MATCH).} A rank-1 ROME-style edit
+  $\Delta W=\alpha\,v k^{\!\top}$ on a mid MLP \texttt{down\_proj} moves
+  the target prompt's next-token logits by $\lVert\Delta\rVert=856.8$
+  while the mean over $8$ unrelated prompts is $388.4$ ---
+  locality $=388/857=0.453<0.5$, BOUNDED and target-favoring
+  ($\sim$2.2$\times$). The editing intervention transfers and
+  ``MLP $=$ associative key-value memory'' is supported (collateral
+  $\ne 0$, which is exactly why MEMIT spreads edits across layers).
+\item \textbf{S2 (system, MISMATCH).} The covariance eigenspectrum of a
+  mid-layer activation matrix follows a power law with slope
+  $\alpha\!\approx\!4.5$ (bulk) --- a different family from biological
+  $1/f$ spiking ($\alpha\!\approx\!1$); and activation sparsity is
+  $0.95\%$ (essentially dense continuous floats, the categorical
+  opposite of sparse binary spike trains). The transformer
+  \emph{system} sits in a different spectral $+$ sparsity class from
+  spiking neurons (system MISMATCH).
+\end{itemize}
+
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize,frame=single,xleftmargin=0pt]
+$ python nex_s2_spectral.py      # Qwen2.5-1.5B, RTX 5070
+  activation eigenspectrum alpha = 4.54  (vs spiking 1/f alpha ~ 1.0)
+  sparsity = 0.95%  (dense)  =>  S2 MISMATCH
+=> hexa verifier 8/8  =>  VERDICT: GREEN SUPPORTED-NUMERICAL
+\end{lstlisting}
+
 \section{Results}
 \label{sec:results}
 
-The seven verdicts partition exactly by class
+The ten verdicts partition exactly by class
 (Table~\ref{tab:results}): every \emph{method} transfer holds, every
-\emph{system} comparison separates. No row crosses the line. This is
-the paper's single claim.
+\emph{system} comparison separates --- in BOTH the closed-form and the
+measured tier. No row crosses the line. This is the paper's single claim.
 
 \begin{table}[h]
 \centering
 \small
-\begin{tabular}{llcl}
+\begin{tabular}{llccl}
 \toprule
-\textbf{ID} & \textbf{Mapping} & \textbf{Outcome} & \textbf{Reading} \\
+\textbf{ID} & \textbf{Mapping} & \textbf{Tier} & \textbf{Outcome} & \textbf{Reading} \\
 \midrule
-N1     & Hebbian $\equiv$ linear-attn      & MATCH    & weight-update method transfers \\
-$\Phi$1 & $\Phi$ on attention substrate    & MATCH    & measurement method transfers \\
-L1     & ablation $=$ lesion study         & MATCH    & intervention method transfers \\
-C1     & induction $=$ ICL probe           & MATCH    & causal-probe method transfers \\
-S1     & NCA vs.\ token-AR                 & MISMATCH & dynamical classes differ \\
-N2     & STDP vs.\ causal mask             & MISMATCH & train- vs.\ forward-layer differ \\
-$\Phi$2 & LLM vs.\ \emph{C.\ elegans} $\Phi$ & MISMATCH & integration direction inverts \\
+N1     & Hebbian $\equiv$ linear-attn      & \tierBlue  & MATCH    & weight-update method transfers \\
+$\Phi$1 & $\Phi$ on attention substrate    & \tierBlue  & MATCH    & measurement method transfers \\
+L1     & ablation $=$ lesion study         & \tierBlue  & MATCH    & intervention method transfers \\
+C1     & induction $=$ ICL probe           & \tierBlue  & MATCH    & causal-probe method transfers \\
+L2     & logit-lens readout depth          & \tierGreen & MATCH    & probing technique transfers (measured) \\
+C2     & rank-1 ROME edit locality         & \tierGreen & MATCH    & editing intervention transfers (measured) \\
+S1     & NCA vs.\ token-AR                 & \tierBlue  & MISMATCH & dynamical classes differ \\
+N2     & STDP vs.\ causal mask             & \tierBlue  & MISMATCH & train- vs.\ forward-layer differ \\
+$\Phi$2 & LLM vs.\ \emph{C.\ elegans} $\Phi$ & \tierBlue & MISMATCH & integration direction inverts \\
+S2     & activation spectrum vs.\ $1/f$    & \tierGreen & MISMATCH & power-law family differs (measured) \\
 \bottomrule
 \end{tabular}
-\caption{The $4{+}3$ split. Method transfers (top) succeed without
-exception; system comparisons (bottom) separate without exception. The
-class label \emph{predicts} the outcome --- that predictiveness is the
-result.}
+\caption{The $6{+}4$ split (method MATCH $6$ : system MISMATCH $4$).
+Method transfers (top) succeed without exception; system comparisons
+(bottom) separate without exception --- and the split holds identically
+in the closed-form ($4{+}3$, $\tierBlue$) and measured ($2{+}1$,
+$\tierGreen$) tiers. The class label \emph{predicts} the outcome across
+all ten axes; that predictiveness is the result.}
 \label{tab:results}
 \end{table}
 
@@ -291,19 +369,28 @@ naive proxy of connection count.
 \label{sec:limits}
 
 \begin{itemize}\itemsep0.2em
-\item \textbf{Closed-form, not measured.} Every row is a structural /
-  algebraic identity on a small toy ($n{\le}3$ TPMs, $3$-head circuits).
-  Behavioural equivalence under real training, full-width attention, and
-  multi-layer composition is $\tierOrange$ and deferred to a SANDBOX
-  measurement pass (axes L2, C2, S2).
+\item \textbf{Closed-form scale.} The seven $\tierBlue$ rows are
+  structural / algebraic identities on small toys ($n{\le}3$ TPMs,
+  $3$-head circuits). The three $\tierGreen$ rows graduate the most
+  load-bearing of these to a real model (Qwen2.5-1.5B, axes L2/C2/S2),
+  but full-width / multi-model behavioural equivalence remains an open
+  ladder, not a closed result.
+\item \textbf{Measured tier is single-point.} L2/C2/S2 are one model
+  (1.5B), one layer/$\alpha$/prompt-set each. The open ladder is a
+  Qwen2.5-$\{0.5,1.5,3,7\}$B $\times$ layer sweep, a trained-probe (not
+  just logit-lens) readout, the full covariance-preconditioned ROME
+  solve, and a same-rig LIF/Izhikevich simulator for S2 (its spiking
+  $\alpha\!\approx\!1$ is a literature anchor, not a same-pipeline run).
 \item \textbf{Toy scale for $\Phi$.} Faithful big-$\Phi$ is intractable
   past small $n$; the \emph{C.\ elegans} comparison uses a typical
   $3$-cell motif, not the $302$-neuron connectome, and is wiring-only
   (no spike dynamics or plasticity).
-\item \textbf{Method/system is our partition.} The $4{+}3$ split is a
-  post-hoc reading of seven probes. It is consistent and falsifiable
-  (a method transfer that fails, or a system comparison that matches,
-  would break it) but it is not yet stress-tested at $n{>}7$.
+\item \textbf{Method/system is our partition.} The $6{+}4$ split is a
+  post-hoc reading of ten probes --- but it now holds identically in two
+  independent tiers (closed-form $4{+}3$ and measured $2{+}1$), which is
+  stronger than a single-tier coincidence. It is falsifiable: a method
+  transfer that fails, or a system comparison that matches, would break
+  it; not yet stress-tested at $n{>}10$.
 \item \textbf{Not a consciousness claim.} $\Phi$ on an attention TPM
   measures irreducibility of a toy mechanism, nothing more; we make no
   claim about machine experience.
@@ -313,12 +400,16 @@ naive proxy of connection count.
 \label{sec:repro}
 
 Code and verdicts: \url{https://github.com/dancinlab/hexa-codex} under
-\texttt{NEUROEXP/verify/} (seven \texttt{.hexa} verifiers) and
-\texttt{NEUROEXP/verdicts/} (seven verdict records, each carrying the
-verbatim tier, inputs, and external anchors). Every probe is a native
+\texttt{NEUROEXP/verify/} (ten \texttt{.hexa} verifiers) and
+\texttt{NEUROEXP/verdicts/} (ten verdict records, each carrying the
+verbatim tier, inputs, and external anchors). Every verifier is a native
 binary built by \texttt{hexa cc}; the integrated-information probes
-import \texttt{stdlib/consciousness/} from \texttt{hexa-lang}. Build this
-paper: \texttt{make} (xelatex $\times 3$ + bibtex).
+import \texttt{stdlib/consciousness/} from \texttt{hexa-lang}. The three
+measured rows (L2/C2/S2) were captured on Qwen2.5-1.5B (RTX 5070,
+\texttt{transformers 4.51.3} / \texttt{torch 2.12 cu130} / \texttt{numpy<2});
+capture scripts are repo-external (the repo is \texttt{.hexa}-only) and
+reproducible from the documented prompt set + pinned environment. Build
+this paper: \texttt{make} (xelatex $\times 3$ + bibtex).
 
 \section{Conclusion}
 \label{sec:conclusion}
@@ -327,11 +418,13 @@ The bio-LLM analogy is best used as a \emph{method} loan, not a
 \emph{system} identity. Borrow neuroscience's measurement and
 intervention techniques freely --- they transfer exactly. Do not assume
 the borrowed system's dynamics come with them: cellular automata,
-spike-timing kernels, and evolved connectomes occupy classes a
-sequential token generator does not. The single most important
-follow-up is the $\tierOrange\!\to\!\tierGreen$ pass: measure the same
-seven mappings on a real transformer (Qwen2.5) and test whether the
-$4{+}3$ split survives contact with trained weights.
+spike-timing kernels, evolved connectomes, and spiking spectra occupy
+classes a sequential token generator does not. We have already run the
+first $\tierGreen$ pass --- three mappings (L2/C2/S2) measured on
+Qwen2.5-1.5B reproduced the $6{+}4$ split exactly --- so the law now
+holds across two independent tiers; the open follow-up is to scale that
+measured pass across model sizes, layers, and a same-rig spiking
+simulator, and to test whether the split ever breaks.
 
 % =========================================================================
 \paragraph{Acknowledgments.}

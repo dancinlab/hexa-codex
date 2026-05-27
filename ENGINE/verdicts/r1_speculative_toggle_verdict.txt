@@ -1,0 +1,13 @@
+# hexa-codex ENGINE R1 — speculative-decode auto-toggle verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::R1 (BATCH-COMPOSITION/N1 SPECULATIVE-DECODING finding → serving spec-decode auto-toggle decision rule)
+# wire=ENGINE/wires/wire_r1_speculative_toggle.hexa
+# verifier=ENGINE/verify/numerics_engine_r1_speculative_toggle.hexa
+# tier=🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (BATCH-COMP/N1 finding consume · Leviathan 2023 arXiv:2211.17192 · Cai 2024 Medusa arXiv:2401.10774) — spec_toggle wires draft-acceptance into a serving speculative-decode enable/disable choice · acceptance-gated
+# checks=7/7
+# rule=spec_toggle(acceptance_rate_x100): accept>=5000 (50%) -> enable (speedup>=1.2x · 가치 있음); accept<5000 -> disable (speedup<1.2x · 오버헤드 회피)
+# source_finding=BATCH-COMP/N1 accept_threshold_x100=5000 (50%) · predicted_speedup_x100 = 100 + accept_x100*(k-1)/k (k_draft=5) · accept<50% fires falsifier (speedup<1.2x · speculation 무의미)
+# cases=tiny_draft_good[8000=80%]->enable · medium_draft[7000=70%]->enable · self_spec_medusa[7500=75%]->enable · mismatched_draft[4500=45%]->disable · bad_draft[3000=30%]->disable
+# falsifier=finding-ignorant rule (enable-always for accept<50%, ignoring speedup<1.2x overhead) detected as WRONG vs spec_toggle disable (check 4)
+# external_anchor=Leviathan 2023 arXiv:2211.17192 (ICML speculative decoding) · Chen 2023 arXiv:2302.01318 (DeepMind speculative sampling) · Cai 2024 Medusa arXiv:2401.10774 (consumed via BATCH-COMP/N1)
+# acceptance_gated=speculative decode ENABLED only for draft-target pairs clearing 50% acceptance (predicted speedup >= 1.2x) · DISABLED below (draft FLOPs + KV-cache rollback > gain)
+# honest_residual=live serving speculative-decode toggle wiring (vLLM/TGI · lm_foundry · SANDBOX local llama-server · measured wall-clock tokens/s per draft-target pair) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)

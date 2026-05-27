@@ -1,0 +1,116 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_r1_speculative_toggle.hexa
+// ENGINE axis R1 — BATCH-COMPOSITION/N1 SPECULATIVE-DECODING finding →
+// serving speculative-decode auto-toggle decision rule.
+//
+// SOURCE FINDING (BATCH-COMPOSITION/N1 · speculative decoding).
+//   predicted_speedup_x100(c) = 100 + accept_x100×(k−1)/k (k_draft=5 · first-order
+//   monotone relation). A draft-target combo's value is governed by its draft
+//   ACCEPTANCE rate: bad_draft (30%) and mismatched_draft (45%) fire the falsifier
+//   (accept < 50% → speedup < 1.2× · speculation 무의미 · pure overhead); the good
+//   drafts tiny(80%) · medium(70%) · self_spec(75%) stay silent (accept ≥ 50% →
+//   speedup ≥ 1.2× · the speculation pays for the draft FLOPs).
+//
+// DECISION RULE (closed-form · this wire). spec_toggle(acceptance_rate_x100) turns
+//   that finding into an actual serving choice — should speculative decoding be
+//   ENABLED for this draft-target pairing, or DISABLED to avoid the draft/verify
+//   overhead?
+//     (1) acceptance ≥ 50% (5000) → "enable"  — the predicted speedup clears 1.2×;
+//                                                the draft FLOPs + verify-batch
+//                                                cost are repaid. Take the win.
+//     (2) acceptance < 50%        → "disable" — predicted speedup < 1.2×; the draft
+//                                                model burns FLOPs and the verify
+//                                                pass rolls back the KV-cache more
+//                                                often than it commits. Net loss —
+//                                                run plain autoregressive decode.
+//
+// The boundary 50% (5000 on the accept_x100 ledger) is BATCH-COMP/N1's own
+// ACCEPT_THRESHOLD_x100 — the same threshold the finding's falsifier fires on.
+// wire ↔ finding consistency is asserted by check (6) of the verifier.
+//
+// FALSIFIER (paired verifier · check 4). A wire that IGNORED the finding —
+// keeping speculative decode ENABLED for an acceptance<50% combo (where the
+// finding says speedup < 1.2×, i.e. pure overhead) — is constructed explicitly
+// and MUST be detected as wrong against spec_toggle's "disable".
+//
+// HONESTY. Closed-form decision rule only. Connecting this rule to a live serving
+// speculative-decode toggle (vLLM/TGI · lm_foundry · SANDBOX local llama-server ·
+// measured wall-clock tokens/s per draft-target pair) is a cost-bearing T4
+// contact DEFERRED to cycle-11+ (cx_lab_sandbox · per
+// feedback_closure_is_physical_limit — rule close ≠ measured close).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Finding constants (BATCH-COMP/N1 · integer × 100 accept ledger · libm-free)
+//   accept_x100: 10000 = 100% · 5000 = 50% boundary
+// ────────────────────────────────────────────────────────────────────────
+
+let ACCEPT_THRESHOLD_x100 = 5000   // 50% — speculative-decode enable boundary (BATCH-COMP/N1)
+
+// BATCH-COMP/N1 draft-target combos (consumed acceptance data · accept_x100)
+let TINY_DRAFT_GOOD_ACCEPT_x100   = 8000   // 80% — well-matched tiny draft
+let MEDIUM_DRAFT_ACCEPT_x100      = 7000   // 70% — balanced draft/target
+let SELF_SPEC_MEDUSA_ACCEPT_x100  = 7500   // 75% — Medusa self-spec heads
+let MISMATCHED_DRAFT_ACCEPT_x100  = 4500   // 45% — < 50% · fires
+let BAD_DRAFT_ACCEPT_x100         = 3000   // 30% — < 50% · fires (worst)
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — spec_toggle(acceptance_rate_x100) → {enable, disable}
+// ────────────────────────────────────────────────────────────────────────
+
+fn spec_toggle(acceptance_rate_x100: int) -> str {
+    // (1) acceptance ≥ 50% → predicted speedup clears 1.2× · enable.
+    if acceptance_rate_x100 >= ACCEPT_THRESHOLD_x100 {
+        return "enable"
+    }
+    // (2) acceptance < 50% → speedup < 1.2× · disable (avoid draft/verify overhead).
+    return "disable"
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Test cases — BATCH-COMP/N1-consistent (5 draft-target combos)
+// ────────────────────────────────────────────────────────────────────────
+
+let CASE_NAME = [
+    "tiny_draft_good",       // 80% ≥ 50 → enable
+    "medium_draft",          // 70% ≥ 50 → enable
+    "self_spec_medusa",      // 75% ≥ 50 → enable
+    "mismatched_draft",      // 45% < 50 → disable
+    "bad_draft",             // 30% < 50 → disable (overhead 회피)
+]
+let CASE_ACCEPT_x100 = [
+    TINY_DRAFT_GOOD_ACCEPT_x100,
+    MEDIUM_DRAFT_ACCEPT_x100,
+    SELF_SPEC_MEDUSA_ACCEPT_x100,
+    MISMATCHED_DRAFT_ACCEPT_x100,
+    BAD_DRAFT_ACCEPT_x100,
+]
+let CASE_EXPECT = [
+    "enable",                // 80%
+    "enable",                // 70%
+    "enable",                // 75%
+    "disable",               // 45%
+    "disable",               // 30%
+]
+
+print("hexa-codex ENGINE R1 — BATCH-COMP/N1 SPECULATIVE-DECODING → serving spec-toggle decision rule (cycle-10)")
+print("=====================================================================================================")
+print("")
+print("source finding: BATCH-COMP/N1 accept_threshold = " + to_string(ACCEPT_THRESHOLD_x100) +
+      "/10000 (= 50% · accept < 50% → predicted speedup < 1.2× · speculation 무의미)")
+print("decision rule:  spec_toggle(acceptance_rate_x100) → {enable, disable}")
+print("")
+
+let mut i = 0
+while i < CASE_NAME.len() {
+    let got = spec_toggle(CASE_ACCEPT_x100[i])
+    let mut mark = "ok"
+    if got != CASE_EXPECT[i] { mark = "MISMATCH" }
+    print("  " + CASE_NAME[i] + " (accept=" + to_string(CASE_ACCEPT_x100[i]) +
+          "/10000) → spec_toggle=" + got + " [expect " + CASE_EXPECT[i] + " · " + mark + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_R1_SPECULATIVE_TOGGLE__ DONE")

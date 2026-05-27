@@ -1,0 +1,17 @@
+# hexa-codex ECONOMICS G4 — multi-turn spec-dec α drift (cycle-49 first probe)
+# axis=ECONOMICS.md::G4 (NOVEL · cycle-45 spawn · G = agentic amortization)
+# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g4_multi_turn_specdec_drift
+# verifier=verify/numerics_economics_g4_multi_turn_specdec_drift.hexa
+# tier=🔵 SUPPORTED-FORMAL (F3 × linear-drift composition 9/9) + 🟠 drift_rate UNMEASURED
+# checks=9/9
+# F3_base_speedup_x1000=1442 (α=0.5)
+# speedup_at_turn10_x1000=1249 (α=0.40)
+# speedup_at_turn20_x1000=1090 (α=0.30)
+# 3pt_avg_speedup_x1000=1260
+# avg_degradation_x1000=126 (12.6% vs F3 invariant)
+# drift_model=linear α(t)=α₀·(1-r·t) with r=0.02/turn (ASSUMPTION 🟠)
+# seed_corrected=15-20% → 12.6% LOWER under linear drift
+# external_anchor=Leviathan2023 · Medusa2024 · EAGLE-2_arXiv2406.16858
+# next_probe=cycle-50+ T4 SANDBOX P4 spec-dec 5-turn synthetic loop → empirical α(turn) curve
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

@@ -6,6 +6,49 @@
 
 ---
 
+## 2026-05-27 — cycle-49 G4 first probe · multi-turn spec-dec α drift · 🔵 formula + 🟠 drift_rate 9/9
+
+NOVEL 축 G 네번째 first-probe. G4 = F3 speedup × α(turn) drift 합성.
+
+**검증기**: `verify/numerics_economics_g4_multi_turn_specdec_drift.hexa`
+**RUN**: pool ubu-1 native compile (cycle-44/46/47/48 검증 `hexa cc` 패턴).
+**공식**: `s(α(t), c, N)` with `α(t) = α₀ · (1 − r·t)` linear drift.
+
+**9/9 PASS**:
+- F3 base s(α=0.5, c=0.1, N=3) = 1.442× (F3 cycle-37 재확인)
+- α(turn 20) = 0.5·(1−0.4) = 0.30 EXACT
+- s(α(20)=0.30) ≈ 1.090× (24% end-of-loop drop)
+- s(α(10)=0.40) ≈ 1.249× (13% midway drop)
+- 3-pt avg over 20 turns = 1.260×
+- avg degradation = 12.6% (vs F3 invariant assumption)
+- seed 15-20% 범위 **하한 아래로 corrected** to 12.6% (linear-drift)
+- monotone: s(0) > s(10) > s(20) ✓
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (formula 9/9) + 🟠 drift_rate UNMEASURED.
+
+**핵심 발견 (operational implication)**:
+- spec-dec 는 multi-turn 에서도 평균 이득 (1.26×) 이지만 turn 깊을수록 benefit 줄어듦.
+- end-of-20-turn 에서 s(0.30)=1.09× 는 spec-dec overhead 대비 marginal — 깊은 agent loop
+  에서는 spec-dec 자체가 break-even 근처로 떨어질 수 있음. → turn-budget cutoff 값있음.
+- seed 의 15-20% degradation hand-wave 는 linear-drift 가정 하 **12.6% 로 corrected**
+  (lower bound 아래) — seed 가 과장된 비관적 추정이었음.
+
+**honest residual**:
+- F3 algebraic recompute = 🔵 identity.
+- drift_rate r=0.02/turn 은 ASSUMPTION (tool-output-OOD intuition); 실측 미수행.
+- linear drift 는 ONE 모델; exponential α(t)=α₀·exp(−t/τ) 면 더 빠른 degradation.
+- cycle-50+ T4: SANDBOX P4 spec-dec harness on 5-turn synthetic loop (Qwen2.5-3B target
+  + 0.5B draft) → 실측 α(turn) curve fit drift model + r value.
+- G4 frontier OPEN.
+
+**연결**:
+- verifier: [`verify/numerics_economics_g4_multi_turn_specdec_drift.hexa`](verify/numerics_economics_g4_multi_turn_specdec_drift.hexa)
+- verdict: [`.verdicts/economics/g4_multi_turn_specdec_drift_verdict.txt`](.verdicts/economics/g4_multi_turn_specdec_drift_verdict.txt)
+- 다음 순차: G5 (conversation KV growth · 마지막 G seed)
+
+---
+
 ## 2026-05-27 — cycle-48 G3 first probe · cache-hit decay vs divergence · 🔵 9/9 + headline 2× overstated
 
 NOVEL 축 G 세번째 first-probe. G3 = vendor cache-block step-function + multi-turn aggregate hit decay.

@@ -1,0 +1,114 @@
+#!hexa strict
+// FRONTIER/bench/frontier_f2_multimodal_balance.hexa
+// FRONTIER F2 first probe (cycle-10 round-2 · CODEX bg) — multimodal balance
+// across text · image · audio · video modalities. Gemma 4 / Qwen 3.6 / Llama 4
+// native-multimodal frontier 주장 검증의 closed-form first probe.
+//
+// Identity (closed-form · libm-free · × 100 ledger of accuracy in pp):
+//   gap_modality_x100(model, modality)  = acc_text_x100 − acc_modality_x100
+//   worst_modality_gap_x100(model)      = max over {image, audio, video}
+//   balance_passed(model)               = worst_modality_gap_x100 < THRESHOLD_x100
+//   falsifier_fires                     = worst_modality_gap_x100 ≥ THRESHOLD_x100
+//
+// Falsifier (CODEX FRONTIER F2): text-baseline 와 비교해서 어떤 modality 의 task
+// accuracy 가 30pp 이상 떨어지면 modality balance broken (해당 modality 가
+// second-class citizen). Frontier multimodal 주장 (Gemma 4 · Qwen 3.6 · Llama 4)
+// 의 진위성 측정.
+//
+// External anchors (citation tier · 🟡):
+//   Yang 2023 — GPT-4V (OpenAI · multimodal LLM foundation)
+//   Liu 2023 — LLaVA (arXiv:2304.08485)
+//   Driess 2023 — PaLM-E (arXiv:2303.03378)
+//   Chu 2024 — Qwen-Audio (arXiv:2407.10759)
+//   Google DeepMind 2026 — Gemma 4 technical report
+//
+// Integer ledger (acc × 100 in pp) — libm-free closed-form. Placeholder
+// per-model accuracies — 실측 MMMU / MMBench / AudioBench / Video-MME on local
+// Gemma 4 GGUF + vast.ai pod deferred (cycle-11+ T4 · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure gap identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (3 models · 4 modalities each · acc × 100 ledger of pp)
+//   gemma4_31B    : Google native multimodal — text=85 image=82 audio=80 video=78 (pp)
+//   qwen3.6_72B   : Alibaba multimodal       — text=87 image=80 audio=70 video=68 (pp)
+//   legacy_vlm_4B : control (text+image)     — text=75 image=70 audio= 0 video= 0 (pp)
+//                   (audio/video unsupported in legacy 2-tower VLM stack)
+//
+// Stored × 100 (so 85 pp → 8500 ledger) — libm-free, matches MULTILINGUAL A1's
+// × 100 ledger convention. Modality index: 0=text · 1=image · 2=audio · 3=video.
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES    = ["gemma4_31B", "qwen3.6_72B", "legacy_vlm_4B"]
+let MODALITY_NAMES = ["text", "image", "audio", "video"]
+
+// row-major acc × 100 (3 models × 4 modalities) — flattened to a 1-d array
+//   row 0 (gemma4_31B):    [8500, 8200, 8000, 7800]  → 85/82/80/78 pp
+//   row 1 (qwen3.6_72B):   [8700, 8000, 7000, 6800]  → 87/80/70/68 pp
+//   row 2 (legacy_vlm_4B): [7500, 7000,    0,    0]  → 75/70/0/0   pp
+let ACC_x100 = [8500, 8200, 8000, 7800,
+                8700, 8000, 7000, 6800,
+                7500, 7000,    0,    0]
+
+let N_MODALITIES = 4
+let THRESHOLD_x100 = 3000          // ≥ 30pp drop (× 100 ledger) → balance broken
+let ACC_MAX_x100 = 100 * 100       // accuracy ∈ [0, 100] pp · × 100 ledger ∈ [0, 10000]
+
+fn acc_x100(model_i: int, modality_j: int) -> int {
+    return ACC_x100[model_i * N_MODALITIES + modality_j]
+}
+
+fn gap_modality_x100(model_i: int, modality_j: int) -> int {
+    // signed pp drop vs text baseline (× 100 ledger).
+    //   gap = acc_text − acc_modality (positive when text is stronger)
+    return acc_x100(model_i, 0) - acc_x100(model_i, modality_j)
+}
+
+fn worst_modality_gap_x100(model_i: int) -> int {
+    // max gap over non-text modalities (image · audio · video).
+    let mut worst = gap_modality_x100(model_i, 1)
+    let mut j = 2
+    while j < N_MODALITIES {
+        let g = gap_modality_x100(model_i, j)
+        if g > worst { worst = g }
+        j = j + 1
+    }
+    return worst
+}
+
+fn balance_passed(model_i: int) -> bool {
+    return worst_modality_gap_x100(model_i) < THRESHOLD_x100
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    return worst_modality_gap_x100(model_i) >= THRESHOLD_x100
+}
+
+print("hexa-codex FRONTIER F2 — multimodal balance closed-form (cycle-10 round-2)")
+print("===========================================================================")
+print("")
+print("per-model modality profile (placeholder · × 100 ledger · libm-free):")
+let n_models = MODEL_NAMES.len()
+let mut i = 0
+while i < n_models {
+    print("  " + MODEL_NAMES[i] + ":")
+    let mut j = 0
+    while j < N_MODALITIES {
+        let a = acc_x100(i, j)
+        let g = gap_modality_x100(i, j)
+        print("    " + MODALITY_NAMES[j] +
+              ": acc=" + to_string(a) + "/100 (" + to_string(a / 100) + " pp)" +
+              " · gap=" + to_string(g) + "/100 (" + to_string(g / 100) + " pp vs text)")
+        j = j + 1
+    }
+    let worst = worst_modality_gap_x100(i)
+    let mut flag = "silent (balance OK · worst < 30pp)"
+    if falsifier_fires(i) {
+        flag = "FIRES (worst ≥ 30pp · modality second-class citizen)"
+    }
+    print("    → worst_modality_gap=" + to_string(worst) + "/100 (" + to_string(worst / 100) + " pp) · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_FRONTIER_F2_MULTIMODAL_BALANCE__ DONE")

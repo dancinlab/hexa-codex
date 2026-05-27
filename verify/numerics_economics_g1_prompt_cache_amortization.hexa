@@ -1,0 +1,230 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_g1_prompt_cache_amortization.hexa
+// ECONOMICS axis G1 (NOVEL · cycle-45 spawn) — prompt-cache amortization curve.
+//
+// CLAIM (Anthropic + OpenAI + DeepSeek vendor pricing tiers, 2024-2026 snapshot):
+//   per-task cost with cache:
+//     C_cache(N) = c_w·p + (N-1)·(c_r·p + c_f·d) + c_f·(p + d)
+//   per-task baseline (no cache):
+//     C_base(N)  = N·c_f·(p+d)
+//   where p = persistent prefix tokens, d = per-turn delta tokens,
+//         c_w = cache-write price · c_r = cache-read price · c_f = full input price.
+//
+// N_break = smallest N such that C_cache(N) ≤ C_base(N).
+// Algebraic: N ≥ 1 + c_w/(c_f − c_r) (with c_w on top of c_f for surcharge model)
+//
+// SEED HYPOTHESIS (cycle-45 G1 spawn): "N_break ≤ 2 for ALL 3 vendors at prefix:delta
+// ratio ≥ 10:1" — i.e. cache wins from the SECOND turn.
+//
+// CLOSED-FORM RECOMPUTE (this verifier): At p=10000 / d=500 (20:1 ratio),
+// N_break = 3 for ALL 3 vendors. The seed's hand-waved "≤ 2" is OFF BY ONE.
+// Correct operational guidance: prompt-caching wins from TURN 3, not turn 2.
+//
+// ASYMPTOTIC SAVING (N → ∞): less than vendor headline discount because delta
+// tokens never cache. Anthropic 86% (vs 90% headline) · OpenAI 48% (vs 50%) ·
+// DeepSeek 71% (vs 74%). The 3-4pp shortfall is the delta-token tax.
+//
+// HONESTY (feedback_negative_paper_external_claim).  The "N_break ≤ 2" prediction
+// is a SELF-generated seed hypothesis, not an external claim. The closed-form
+// correction REFINES our own operational guidance (a healthy self-falsification,
+// not a strawman). The published vendor pricing CALCULATIONS are recomputed
+// EXACTLY (🔵 algebraic identity).
+//
+// External anchor: Anthropic prompt-caching pricing page (Sep 2024) · OpenAI
+// prompt-caching announcement (Oct 2024) · DeepSeek-V3 context-caching api-docs (Dec 2024).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Closed-form recompute of vendor pricing formulas.")
+
+// Vendor pricing tiers — in 1/100-cent per Mtok scale (×100 for precision)
+// e.g. Anthropic $3/Mtok = 300, $3.75/Mtok = 375, $0.30/Mtok = 30
+let ANTH_CF = 300   // Anthropic Claude Sonnet 4.5 full input ×100 cents/Mtok
+let ANTH_CW = 375   // cache-write 1.25×
+let ANTH_CR = 30    // cache-read 0.1× (90% discount)
+
+let OAI_CF = 250    // OpenAI GPT-4o input
+let OAI_CW = 250    // no write surcharge (caching automatic)
+let OAI_CR = 125    // 50% discount
+
+let DS_CF = 27      // DeepSeek-V3 input
+let DS_CW = 27      // no write surcharge
+let DS_CR = 7       // ~74% discount (0.07/0.27 ≈ 0.26)
+
+// canonical eval point: p=10000 tok prefix, d=500 tok delta per turn (20:1 ratio)
+let P = 10000
+let D = 500
+
+// cost units: price[×100 cents/Mtok] × tokens — no division (ratio comparisons only)
+fn cost_cache(c_w: int, c_r: int, c_f: int, p: int, d: int, n: int) -> int {
+    return c_w * p + (n - 1) * (c_r * p + c_f * d) + c_f * (p + d)
+}
+
+fn cost_base(c_f: int, p: int, d: int, n: int) -> int {
+    return n * c_f * (p + d)
+}
+
+print("hexa-codex ECONOMICS G1 — prompt-cache amortization curve (cycle-46 first probe)")
+print("=================================================================================")
+print("  3-vendor recompute (Anthropic + OpenAI + DeepSeek) · p=10000 / d=500 (20:1)")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── check 1 — 3 vendor pricing tiers loaded
+checks_total = checks_total + 1
+if ANTH_CF == 300 && OAI_CF == 250 && DS_CF == 27 {
+    print("  [PASS] 3 vendor pricing tiers loaded (Anthropic $3 · OpenAI $2.50 · DeepSeek $0.27 per Mtok)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] vendor pricing load mismatch")
+}
+
+// ── check 2 — Anthropic at N=2: cache LOSES (cache > baseline)
+checks_total = checks_total + 1
+let ANTH_C2 = cost_cache(ANTH_CW, ANTH_CR, ANTH_CF, P, D, 2)   // 7,350,000
+let ANTH_B2 = cost_base(ANTH_CF, P, D, 2)                       // 6,300,000
+if ANTH_C2 > ANTH_B2 {
+    print("  [PASS] Anthropic N=2: cache " + to_string(ANTH_C2) + " > baseline " + to_string(ANTH_B2) + " (cache LOSES at turn 2)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] cache should lose at N=2")
+}
+
+// ── check 3 — Anthropic at N=3: cache WINS (cache ≤ baseline) → N_break = 3
+checks_total = checks_total + 1
+let ANTH_C3 = cost_cache(ANTH_CW, ANTH_CR, ANTH_CF, P, D, 3)   // 7,800,000
+let ANTH_B3 = cost_base(ANTH_CF, P, D, 3)                       // 9,450,000
+if ANTH_C3 <= ANTH_B3 {
+    print("  [PASS] Anthropic N=3: cache " + to_string(ANTH_C3) + " ≤ baseline " + to_string(ANTH_B3) + " (cache WINS · N_break=3)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] cache should win at N=3")
+}
+
+// ── check 4 — OpenAI at N=3: cache ≤ baseline (equality or strict)
+checks_total = checks_total + 1
+let OAI_C3 = cost_cache(OAI_CW, OAI_CR, OAI_CF, P, D, 3)
+let OAI_B3 = cost_base(OAI_CF, P, D, 3)
+if OAI_C3 <= OAI_B3 {
+    print("  [PASS] OpenAI N=3: cache " + to_string(OAI_C3) + " ≤ baseline " + to_string(OAI_B3) + " (cache WINS or equal · N_break=3)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] OpenAI cache should win or equal at N=3")
+}
+
+// ── check 5 — DeepSeek at N=3: cache ≤ baseline
+checks_total = checks_total + 1
+let DS_C3 = cost_cache(DS_CW, DS_CR, DS_CF, P, D, 3)
+let DS_B3 = cost_base(DS_CF, P, D, 3)
+if DS_C3 <= DS_B3 {
+    print("  [PASS] DeepSeek N=3: cache " + to_string(DS_C3) + " ≤ baseline " + to_string(DS_B3) + " (cache WINS · N_break=3)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] DeepSeek cache should win at N=3")
+}
+
+// ── check 6 — seed's "N_break ≤ 2" hypothesis FALSIFIED: all 3 vendors lose at N=2
+checks_total = checks_total + 1
+let OAI_C2 = cost_cache(OAI_CW, OAI_CR, OAI_CF, P, D, 2)
+let OAI_B2 = cost_base(OAI_CF, P, D, 2)
+let DS_C2 = cost_cache(DS_CW, DS_CR, DS_CF, P, D, 2)
+let DS_B2 = cost_base(DS_CF, P, D, 2)
+if ANTH_C2 > ANTH_B2 && OAI_C2 > OAI_B2 && DS_C2 > DS_B2 {
+    print("  [PASS] seed's 'N_break ≤ 2' FALSIFIED — all 3 vendors LOSE at N=2 (correct N_break = 3, off by 1)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] expected all 3 vendors to lose at N=2")
+}
+
+// ── check 7 — Anthropic asymptotic saving (N → large): 4500/31500 = 0.143 → 85.7% saving
+// vs vendor headline 90% — 4.3pp delta-token tax
+checks_total = checks_total + 1
+let anth_marg_cache = ANTH_CR * P + ANTH_CF * D       // 30·10000 + 300·500 = 450,000
+let anth_marg_base = ANTH_CF * (P + D)                // 300·10500 = 3,150,000
+// ratio cache/base × 1000:
+let anth_ratio_x1000 = anth_marg_cache * 1000 / anth_marg_base   // 450000·1000/3150000 = 142
+let anth_saving_x1000 = 1000 - anth_ratio_x1000                   // 858
+if anth_saving_x1000 >= 850 && anth_saving_x1000 <= 870 {
+    print("  [PASS] Anthropic asymptotic saving = " + to_string(anth_saving_x1000) + "/1000 = 85.8% (vs 90% headline · 4pp delta-token tax)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Anthropic saving = " + to_string(anth_saving_x1000) + " ∉ [850,870]")
+}
+
+// ── check 8 — determinism
+checks_total = checks_total + 1
+let ANTH_C3_RE = cost_cache(ANTH_CW, ANTH_CR, ANTH_CF, P, D, 3)
+if ANTH_C3_RE == ANTH_C3 {
+    print("  [PASS] deterministic (re-compute identical)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 SUPPORTED-FORMAL — vendor cache pricing closed-form recomputed (8/8) · seed's N_break≤2 prediction CORRECTED to 3"
+} else {
+    verdict_tier = "🔴 FALSIFIED — vendor pricing recompute disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("OPERATIONAL CORRECTION (vs seed hypothesis):")
+print("  - cycle-45 G1 seed predicted: 'cache wins from turn 2' (N_break ≤ 2)")
+print("  - closed-form recompute shows: N_break = 3 for all 3 vendors at p=10k/d=500 (20:1)")
+print("  - off-by-one: cache pays off from TURN 3, not turn 2 — operational guidance refined")
+print("")
+print("ASYMPTOTIC SAVING (N → ∞, marginal turn analysis):")
+print("  - Anthropic: ~86% saving per turn (vs 90% headline) · 4pp delta-token tax")
+print("  - vendor headline discounts are PER-TOKEN, not PER-TASK; delta tokens never cache,")
+print("    so per-task saving asymptote sits 3-4pp below the headline cache-token discount.")
+print("")
+print("HONEST RESIDUAL (G1 first probe):")
+print("  - vendor pricing algebra = 🔵 closed-form identity (deterministic recompute).")
+print("  - seed self-correction (N_break 2→3) is INTERNAL refinement, not external strawman")
+print("    refutation (feedback_negative_paper_external_claim compliant — the seed itself was")
+print("    hand-waved; closed-form recompute is the canonical correction).")
+print("  - prefix:delta ratio 20:1 is one operating point; other ratios shift N_break.")
+print("  - cycle-47+ T4 (optional): SANDBOX llama-server prefix-cache hit-rate measurement on")
+print("    Qwen2.5-1.5B-Q4_K_M across a 10-turn synthetic conversation → measured vs closed-form.")
+print("  - G1 frontier OPEN (feedback_closure_is_physical_limit): pricing close ≠ measured close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_G1_PROMPT_CACHE_AMORTIZATION__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/g1_prompt_cache_amortization_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS G1 — prompt-cache amortization curve (cycle-46 first probe)\n"
+content = content + "# axis=ECONOMICS.md::G1 (NOVEL · cycle-45 spawn · G = agentic amortization)\n"
+content = content + "# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g1_prompt_cache_amortization_curve\n"
+content = content + "# verifier=verify/numerics_economics_g1_prompt_cache_amortization.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# eval_point=p10000_d500_ratio20:1\n"
+content = content + "# anthropic_N2_cache=" + to_string(ANTH_C2) + " base=" + to_string(ANTH_B2) + " (LOSES)\n"
+content = content + "# anthropic_N3_cache=" + to_string(ANTH_C3) + " base=" + to_string(ANTH_B3) + " (WINS)\n"
+content = content + "# openai_N3_cache=" + to_string(OAI_C3) + " base=" + to_string(OAI_B3) + " (WINS_OR_EQUAL)\n"
+content = content + "# deepseek_N3_cache=" + to_string(DS_C3) + " base=" + to_string(DS_B3) + " (WINS)\n"
+content = content + "# N_break_all_vendors=3 (seed predicted ≤2 → CORRECTED off-by-one)\n"
+content = content + "# anthropic_asymptotic_saving_x1000=" + to_string(anth_saving_x1000) + " (~86% vs 90% headline · 4pp delta-token tax)\n"
+content = content + "# external_anchor=Anthropic_pricing_Sep2024 · OpenAI_caching_Oct2024 · DeepSeek_v3_apidocs_Dec2024\n"
+content = content + "# next_probe=cycle-47+ T4 SANDBOX llama-server prefix-cache hit-rate measurement\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

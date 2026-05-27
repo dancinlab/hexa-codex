@@ -6,6 +6,60 @@
 
 ---
 
+## 2026-05-27 — cycle-46 G1 first probe · prompt-cache amortization · 🔵 8/8 + N_break off-by-one corrected
+
+NOVEL 축 G (agentic amortization) 첫 first-probe. G1 = 3 vendor prompt-cache 가격
+모델 닫힌형 + N_break 분석.
+
+**검증기**: `verify/numerics_economics_g1_prompt_cache_amortization.hexa`
+**실행 환경**: pool 호스트 ubu-1 (cycle-44 검증된 `hexa cc` 재빌드 패턴) — Mac sign-local
+토큰 만료, pool ubu-1 transpiler 재빌드 후 native compile.
+
+**공식**:
+```
+cache(N)    = c_w·p + (N−1)·(c_r·p + c_f·d) + c_f·(p + d)
+baseline(N) = N·c_f·(p + d)
+```
+
+**8/8 PASS (pool ubu-1 verbatim, p=10000/d=500 20:1 비율)**:
+- 3 vendor 가격 tier 로드 ✓ (Anthropic $3/$3.75/$0.30 · OpenAI $2.50/$2.50/$1.25 · DeepSeek $0.27/$0.27/$0.07 per Mtok)
+- Anthropic N=2: cache 7,350,000 > baseline 6,300,000 (cache LOSES)
+- Anthropic N=3: cache 7,800,000 ≤ baseline 9,450,000 (cache WINS) → **N_break = 3**
+- OpenAI N=3: cache 7,875,000 ≤ baseline 7,875,000 (WIN OR EQUAL) → N_break = 3
+- DeepSeek N=3: cache 720,500 ≤ baseline 850,500 (WIN) → N_break = 3
+- **seed "N_break ≤ 2" FALSIFIED 3-vendor 전체**; corrected N_break = 3 (off-by-one)
+- Anthropic 점근 saving = 858/1000 ≈ 85.8% (vs 90% headline · 4pp delta-token tax)
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL — vendor cache pricing closed-form recomputed (8/8);
+seed's N_break≤2 prediction CORRECTED to 3.
+
+**핵심 발견 (operational correction)**:
+1. **N_break = 3, not 2**: cycle-45 G1 spawn seed 가 hand-wave 로 "cache wins from turn 2"
+   라 했으나, 닫힌형 recompute 는 N=2 에서 cache 가 여전히 baseline 보다 비쌈 (write 비용
+   회수 안 됨). turn 3 부터 cache 가 cumulative 로 cheaper. 운영 가이드라인 1 turn 수정.
+2. **Delta-token tax**: vendor headline "90% 할인" (Anthropic) 은 per-token; 실제 per-task
+   asymptotic saving 은 85.8% (4pp 부족). 이유: delta tokens (매 턴 새 user input) 은 절대
+   cache hit 안 되므로 full price 그대로. delta 가 prefix 의 5% (500/10000) 이지만 full-price
+   라 비율로 절감을 약 4pp 깎음.
+
+**honest residual**:
+- vendor pricing algebra = 🔵 closed-form identity (deterministic recompute).
+- self-correction (seed 의 N_break≤2 → 3) 은 INTERNAL refinement, EXTERNAL strawman
+  반증 아님 ([[feedback_negative_paper_external_claim]] 준수). seed 자체가 hand-wave 였고
+  closed-form recompute 가 canonical 정정.
+- prefix:delta 20:1 은 한 operating point; 다른 비율에서 N_break shift 가능 (높은 prefix
+  비율 → N_break 작아질 수 있음, 낮으면 더 큼).
+- cycle-47+ T4: SANDBOX llama-server prefix-cache hit-rate 실측 → 닫힌형 prediction 검증.
+
+**연결**:
+- verifier: [`verify/numerics_economics_g1_prompt_cache_amortization.hexa`](verify/numerics_economics_g1_prompt_cache_amortization.hexa)
+- verdict: [`.verdicts/economics/g1_prompt_cache_amortization_verdict.txt`](.verdicts/economics/g1_prompt_cache_amortization_verdict.txt)
+- seed: [`.discoveries/economics-g-agentic-amortization-spawn.tape`](.discoveries/economics-g-agentic-amortization-spawn.tape) @C d_econ_g1_prompt_cache_amortization_curve
+- 다음 순차: G2 (agent trajectory cost ∝ N_calls^k) · G3 (cache-hit decay) · G4 (multi-turn α drift) · G5 (conversation KV growth)
+
+---
+
 ## 2026-05-27 — cycle-45 G NOVEL axis spawn · agentic / multi-turn amortization · 5 seeds
 
 ECONOMICS 의 G axis 를 새 NOVEL lane 으로 spawn. A-F + cycle-44 D1-Sardana 의

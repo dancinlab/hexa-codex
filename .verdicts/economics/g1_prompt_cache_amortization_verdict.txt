@@ -1,0 +1,17 @@
+# hexa-codex ECONOMICS G1 — prompt-cache amortization curve (cycle-46 first probe)
+# axis=ECONOMICS.md::G1 (NOVEL · cycle-45 spawn · G = agentic amortization)
+# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g1_prompt_cache_amortization_curve
+# verifier=verify/numerics_economics_g1_prompt_cache_amortization.hexa
+# tier=🔵 SUPPORTED-FORMAL — vendor cache pricing closed-form recomputed (8/8) · seed's N_break≤2 prediction CORRECTED to 3
+# checks=8/8
+# eval_point=p10000_d500_ratio20:1
+# anthropic_N2_cache=7350000 base=6300000 (LOSES)
+# anthropic_N3_cache=7800000 base=9450000 (WINS)
+# openai_N3_cache=7875000 base=7875000 (WINS_OR_EQUAL)
+# deepseek_N3_cache=720500 base=850500 (WINS)
+# N_break_all_vendors=3 (seed predicted ≤2 → CORRECTED off-by-one)
+# anthropic_asymptotic_saving_x1000=858 (~86% vs 90% headline · 4pp delta-token tax)
+# external_anchor=Anthropic_pricing_Sep2024 · OpenAI_caching_Oct2024 · DeepSeek_v3_apidocs_Dec2024
+# next_probe=cycle-47+ T4 SANDBOX llama-server prefix-cache hit-rate measurement
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native binary)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (cycle-44 proven recipe)

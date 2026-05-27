@@ -20,7 +20,7 @@
 > CONTAMINATION 은 완료되지 않는다. 새 eval set·pretrain corpus·검출 기법 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — n-gram contamination rate (eval ↔ pretrain) · 13-gram match. 반증자: 표준 eval 의 n-gram contamination > 30% → 점수가 외운 점수 + 실력 점수 mix.
+- [x] A1 — n-gram contamination rate (eval ↔ pretrain) · 13-gram match. 반증자: 표준 eval 의 n-gram contamination > 30% → 점수가 외운 점수 + 실력 점수 mix. **CYCLE-9 round-1 wire (2026-05-28):** `CONTAMINATION/bench/contamination_a1_ngram_ratio.hexa` + `CONTAMINATION/verify/numerics_contamination_a1_ngram_ratio.hexa` ✅ 6/6 PASS · 🔵 STRUCTURAL (combinatorial ratio identity matched/total ∈ [0,1]) + 🟡 BY-CITATION (13-gram + 30% threshold = Dodge 2021 C4 / Sainz 2023 ChatGPT-eval convention). worked example 6 rows (placeholder counts, NO real corpus scan) — edges {clean=0%, full=100%}, falsifier-trips {tripped 42%, max_real 85%}, just-below {borderline 29%}. external anchors: Dodge 2021 (arXiv:2104.08758) · Sainz 2023 (arXiv:2310.18018) · Magar & Schwartz 2022 (arXiv:2203.08242). **honest residual**: 실제 corpus scan (C4/Pile/RedPajama × MMLU/HellaSwag/GSM8K Dodge-style 13-gram bloom-filter on ubu-1) 는 cycle-10+ T4 cost-bearing round deferred. **frontier OPEN** (feedback_closure_is_physical_limit) — formula close ≠ measured close; 새 eval set·corpus·검출 기법 등장 시 axis 재개.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — perplexity outlier (학습 본 sample 은 perplexity 낮음) · eval-vs-train per-sample fit. 반증자: eval 셋의 perplexity 분포가 random sample 분포와 KL > 0.3 → 외운 흔적.

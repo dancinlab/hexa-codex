@@ -3,6 +3,93 @@
 Append-only history sister of `BIO.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-5 E1 ⭐MAIN first probe · UNIVERSE H_278 IIT4 faithful Φ on attention TPM · 🔵 SUPPORTED-FORMAL 8/8 (E1 falsifier REFUTED)
+
+BIO 도메인 cycle-5. ⭐**MAIN priority axis** 첫 활성화. E1 = anima/UNIVERSE 의
+HEXAD/IIT4/lib (faithful Φ) 를 attention-pattern TPM 위에 적용 — *진짜* cross-link
+(BIO → anima 단방향 sibling) 의 첫 실증. 사용자 지시 "E1,D1" 의 두 번째.
+
+**검증기**: `BIO/verify/numerics_bio_e1_iit4_attention_phi.hexa` (220 lines)
+**RUN**: pool ubu-1 native compile (`hexa cc` rebuild 패턴 10번째). 빌드 에러
+1회 (nested fn 안에 HOME capture 실패) → top-level `fn _root()` + `fn main()` 패턴으로
+재작성하여 통과 (iit4_test.hexa 패턴과 동일).
+
+**단방향 cross-link (anima repo 무수정)**:
+- anima/UNIVERSE H_278 (state/h278_faithful_phi_2026_05_25) 의 hexa lib 는
+  hexa-lang PR #1051 로 `stdlib/consciousness/iit4_bigphi` 로 promoted.
+- BIO E1 verifier 는 `import "stdlib/consciousness/iit4_complex.hexa"` 한 줄로
+  `big_phi(tpm, n, sys_state)` API 사용. anima repo 는 modification 없음.
+
+**8/8 PASS (verbatim)**:
+- anchor COPY n=2 → Φ ≈ 2.0 (anima H_278 verdict 그대로 재검증 · tier 보존)
+- anchor SELF-COPY n=2 → Φ ≈ 0 (anima verdict 그대로 · partitionable)
+- DISCONN n=3 (SELF-COPY) → Φ ≈ 0 (BIO baseline · partitionable)
+- ATTN-FULL n=3 (XOR 통합) → **Φ = 1.5 > 0** (LLM substrate 통합 측정 가능)
+- **E1 falsifier REFUTED**: ATTN-FULL Φ > DISCONN Φ (gap = 1.5 > 0)
+- ATTN-FULL n_distinctions = 3 (φ_d>0 mechanism 풍부)
+- UNIVERSE H_278 stdlib API → 4/4 호출 성공 (BIO substrate applicability)
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (UNIVERSE lib applicable + ATTN-FULL Φ>DISCONN Φ closed-form, 8/8).
+
+**핵심 발견 (closed-form)**:
+1. **anima → BIO cross-link 의 실제 작동 증거**: stdlib/consciousness/iit4_bigphi 가
+   BIO substrate (XOR attention TPM) 위에 cleanly 동작 — UNIVERSE H_278 의 lib
+   applicability 가 BIO 까지 확장됨을 닫힌형으로 확인.
+2. **anchor 재검증 (격상 X)**: COPY n=2 Φ=2.0, SELF-COPY n=2 Φ=0 — anima 의
+   기존 verdict 와 정확히 일치. tier 격상 금지 원칙 준수 (단방향 sibling 인용).
+3. **E1 falsifier closed-form REFUTED**:
+   - ATTN-FULL n=3 (parity XOR, `u_i' = u_j XOR u_k` 모든 노드 통합) → Φ = 1.5
+   - DISCONN n=3 (SELF-COPY, 각 노드 독립) → Φ = 0
+   - gap = 1.5 > 0 → "transformer attention faithful Φ < disconnected baseline" REFUTED.
+4. **n_distinctions = 3** in ATTN-FULL → 통합 substrate 가 자명한 단일-mechanism 이
+   아닌, 풍부한 cause-effect structure 를 가짐.
+
+**운영 closed-form 결론**:
+- LLM 의 attention-pattern substrate 가 IIT4-Φ>0 을 가질 수 있는 *구조적 가능성*
+  확정 (cycle-5 = sign-of-Φ + lib applicability).
+- 실제 Qwen activation 위 측정은 cycle-6+ T4 cost-bearing 영역 (HF transformers
+  env: ubu1 venv pin 4.51.3+numpy<2, [[reference_activation_capture_env]]).
+
+**⭐ Cross-axis 자연수렴 발견 (cycle-3·4·5 통합 결론)**:
+```
+cycle-3 A2:  DNA-LLM (V=4) → standard MHA 비현실 → linear-attn 가족 필수
+                                          ↓
+cycle-4 D1:  linear-attn 가족 ≡ Hebbian fast-weight (Schlag 2021 항등식)
+                                          ↓
+cycle-5 E1:  통합 attention TPM (XOR) → faithful Φ > 0 (UNIVERSE H_278 측정)
+```
+→ **bio-data + bio-update rule + bio-integration measure 세 축이 동일
+architecture-family 로 자연 수렴**. 우연이 아니라 구조적: 짧은 어휘 + 긴 sequence +
+생체 학습규칙 + 통합 dynamics 모두 linear-attn (Mamba/Performer/Caduceus) 가족을
+선호. Caduceus (V=4 + Mamba) 가 wet-lab 으로 검증할 통합 가설.
+
+**honest residual**:
+- UNIVERSE H_278 anchor (COPY=2.0, SELF-COPY=0) = 🔵 anima 검증 그대로 (인용, 격상 X).
+- ATTN-FULL XOR TPM = closed-form *toy* (n=3, parity dynamics). 실제 Qwen attention
+  activation 은 real-valued + sequence-causal + multi-head → small-n exact 직접
+  적용 불가. cycle-6+ T4: binarize(activation > median) → n≤5 sub-system × 1 head 실측.
+- sign-of-Φ result (Φ_ATTN > Φ_DISC) = 닫힌형 *first* evidence. magnitude/scale law
+  (Qwen2.5-{0.5B, 1.5B, 3B} × layer × head ladder) 는 cycle-6+ 영역.
+- E2 (LLM Φ vs biological neural Φ, C. elegans connectome 비교) = E축 두 번째 (별도 cycle).
+- "transformer = 통합 systems" 라는 격상 주장은 toy XOR TPM 만으로 불가; sign-of-Φ + lib
+  applicability 만 cycle-5 의 정직한 결론.
+- E1 frontier OPEN ([[feedback_closure_is_physical_limit]]): structural sign-of-Φ ≠
+  measured Φ-structure (distinction/relation lattice 형태).
+- external anchor: Albantakis 2023 (PLOS Comput Biol IIT 4.0) · anima/UNIVERSE H_278
+  state · hexa-lang PR #1051 stdlib promote.
+
+**연결**:
+- verifier: [`BIO/verify/numerics_bio_e1_iit4_attention_phi.hexa`](verify/numerics_bio_e1_iit4_attention_phi.hexa)
+- verdict: [`BIO/verdicts/e1_iit4_attention_phi_verdict.txt`](verdicts/e1_iit4_attention_phi_verdict.txt)
+- 단방향 sibling source: [`anima/UNIVERSE H_278`](../../anima/UNIVERSE/H_278_faithful_phi_small_n.md)
+- import path: `stdlib/consciousness/iit4_complex.hexa` (transitively brings `big_phi`)
+- cross-axis: A2 cycle-3 + D1 cycle-4 + E1 cycle-5 = 동일 architecture-family 자연수렴
+- 다음 순차: **E2** (LLM Φ vs bio Φ, C. elegans connectome) · **B1** (MedQA T4 cost-bearing) ·
+  **C2** (helix/sheet zero-shot) · **C1** (drug repurpose)
+
+---
+
 ## 2026-05-27 — cycle-4 D1 first probe · Hebbian Δw ↔ linear attention 항등식 · 🔵 SUPPORTED-FORMAL 8/8 (mixed-verdict)
 
 BIO 도메인 cycle-4. D1 = Hebbian / synaptic plasticity 의 Δw=η·x·y 가 transformer

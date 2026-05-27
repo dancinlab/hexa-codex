@@ -3,6 +3,14 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-28 — cycle-11 GPU fire 3-lane: 축 I1 measured 검증 + 축 N1-loop 자동화 detection half + frontier sweep #1
+
+사용자 "gpu fire · all" — measured lane + cross-session loop 자동화 + frontier 흡수 3개 동시. ubu-1 down · ubu-2 RTX 5070 live · mini 에 qwen2.5-1.5b Q8+Q4 GGUF 둘 다 존재 (이전 cycle-11 blocker "GGUF 없음" 해소).
+
+- [x] **lane 1 (측정) — 축 I1 measured 검증**: ENERGY/N2 quantization wire 의 selector 결정을 실제 추론으로 검증. SANDBOX substrate (mini Apple Silicon Metal · llama-server · `cx_lab_sandbox`) · qwen2.5-1.5b Q8_0 vs Q4_K_M · 15-prompt 결정론적 greedy. 압축 **1.921×** · 속도 **1.376×** · Q4≈Q8 답변 일치 **15/15** (semantic 손실 0 · floor ~6.7pp). ENGINE/I1 "normal budget→Q4" 결정 measured-CORRECT. verifier `ENERGY/verify/measured_energy_n2_quantization_qwen15b.hexa` 🟢 7/7. wire_i1 헤더 + ENGINE.md I1 row + ENERGY.md/log measured 승급. honest residual: full MMLU/GSM8K = deeper frontier OPEN · fp16/int8/q2 disk 부재로 🟡 유지 · Metal-specific tok/s.
+- [x] **lane 2 (loop 자동화) — 축 N1-loop detection half**: N1 의 honest residual ("측정이 AUTONOMOUSLY wire 트리거 = STILL UNBUILT") 의 detection 절반 구축. `ENGINE/loop/auto_wire_gap_scanner.hexa` 가 ORPHAN SET = findings − covered 기계 계산 → LIVE 62 findings · 20 wires · 39 ORPHAN (CALIBRATION/A1 의 matrix↔wire gap 까지 검출). 7-CHECK verifier `ENGINE/loop/verify/numerics_engine_loop_gap_scanner.hexa` 🔵 7/7 (synthetic fixture). commits `f1f75e1`→`d4e89ce`. honest residual: gap-detection BUILT · autonomous wire-AUTHORING = NEXT FRONTIER OPEN — N1 은 닫힘 아닌 ONE STEP ADVANCED.
+- [x] **lane 3 (frontier 흡수) — sweep #1**: 2026 LLM frontier 스윕 → 6 신규 falsifiable 후보 (UNLEARNING 신규도메인 · sandbagging→ROBUSTNESS/N2 · reward-hack→AGENT/N2 · diffusion-parallel→ARCHITECTURE/N2 · merge-interference→POST-TRAINING/N2 · latent-reasoning→HALLUCINATION/N2). proposal-only · `.discoveries/frontier_2026_*.tape` · commit `fa64c1e`. 우선순위: latent-reasoning (최저비용 첫 probe) · sandbagging (closed-negative 논문감). frontier 무한 — sweep #1 (OPEN/continuation).
+
 ## 2026-05-28 — cycle-10 wire: 축 U VERTICAL routing 등재 (12 vertical A1 통합 → task-domain specialist dispatch · 7/7)
 
 ENGINE intake matrix 에 **축 U — VERTICAL 전문 모델 task-domain routing** 신규 등재. axis letter 고갈 (A~T 19 사용 · N=NOVEL) 대응 — 12 vertical 도메인 (CODE·BIO·MATH·LAW·MEDICAL·FINANCE·SCIENCE·ROBOTICS·MATERIALS·WEATHER·CYBERSECURITY + OFFICE generalist) 의 A1 finding 을 single-letter 12개로 낭비하지 않고 **통합 축 U 1개** 로 묶음.

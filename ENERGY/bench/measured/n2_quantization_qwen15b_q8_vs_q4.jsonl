@@ -1,0 +1,39 @@
+# hexa-codex ENERGY/N2 measured fire — qwen2.5-1.5b Q8 vs Q4 quantization
+# substrate: mini (Apple Silicon Metal GPU) llama-server · SANDBOX (cx_lab_sandbox) · 2026-05-28
+# deterministic: temperature=0 top_k=1 seed=0 max_tokens=64 cache_prompt=false · 15-prompt fixed set
+# Q8_0  size=1894532128 bytes  avg_tps=32.91  correct=13/15
+# Q4_K_M size=986048768 bytes  avg_tps=45.29  correct=14/15
+# compression(Q8/Q4)=1.921x  speedup(Q4/Q8)=1.376x  answer-substring-agreement=15/15(100%)
+# scored-delta=+1 Q4 (continents 'seven' vs '7' format artifact · NOT knowledge) · shared-error=1 (blue+yellow→both said yellow · NOT quant-induced)
+## === Q8_0 per-prompt ===
+{"q":"What is 7 times 8? Answer with just the number.","gold":"56","ans":"56 ","ok":1,"tps":34.99399269792019}
+{"q":"What is the capital of France? One word.","gold":"Paris","ans":"Paris ","ok":1,"tps":56.580287427860135}
+{"q":"How many continents are there on Earth? Just the number.","gold":"7","ans":"There are seven continents on Earth. ","ok":0,"tps":22.96791382438733}
+{"q":"What is 144 divided by 12? Just the number.","gold":"12","ans":"12 ","ok":1,"tps":26.532940645811777}
+{"q":"What color do you get mixing blue and yellow? One word.","gold":"green","ans":"Yellow. ","ok":0,"tps":31.760147367083782}
+{"q":"What is the chemical symbol for water?","gold":"H2O","ans":"The chemical symbol for water is H2O. ","ok":1,"tps":20.866094682749996}
+{"q":"How many sides does a hexagon have? Just the number.","gold":"6","ans":"6 ","ok":1,"tps":56.46686806516277}
+{"q":"What planet is known as the Red Planet? One word.","gold":"Mars","ans":"Mars ","ok":1,"tps":22.689113763216405}
+{"q":"What is 2 to the power of 10? Just the number.","gold":"1024","ans":"1024 ","ok":1,"tps":33.384522935167254}
+{"q":"Who wrote Romeo and Juliet? Last name only.","gold":"Shakespeare","ans":"William Shakespeare ","ok":1,"tps":22.954733265999447}
+{"q":"What is the square root of 81? Just the number.","gold":"9","ans":"9 ","ok":1,"tps":38.28850387671102}
+{"q":"What gas do plants absorb from the air for photosynthesis? Name it.","gold":"carbon dioxide","ans":"Plants absorb carbon dioxide (CO2) from the air for photosynthesis. ","ok":1,"tps":26.849495940198274}
+{"q":"What is 15 percent of 200? Just the number.","gold":"30","ans":"30 ","ok":1,"tps":48.269537095139256}
+{"q":"How many minutes are in 2 hours? Just the number.","gold":"120","ans":"120 ","ok":1,"tps":26.743330881861336}
+{"q":"What is the largest planet in our solar system? One word.","gold":"Jupiter","ans":"Jupiter ","ok":1,"tps":24.267328895108513}
+## === Q4_K_M per-prompt ===
+{"q":"What is 7 times 8? Answer with just the number.","gold":"56","ans":"56 ","ok":1,"tps":47.76461597248758}
+{"q":"What is the capital of France? One word.","gold":"Paris","ans":"Paris. ","ok":1,"tps":56.887135922330096}
+{"q":"How many continents are there on Earth? Just the number.","gold":"7","ans":"7 ","ok":1,"tps":53.86915183020443}
+{"q":"What is 144 divided by 12? Just the number.","gold":"12","ans":"12 ","ok":1,"tps":55.46004104043037}
+{"q":"What color do you get mixing blue and yellow? One word.","gold":"green","ans":"yellow. ","ok":0,"tps":38.26140189776554}
+{"q":"What is the chemical symbol for water?","gold":"H2O","ans":"The chemical symbol for water is H2O. ","ok":1,"tps":18.79207930940817}
+{"q":"How many sides does a hexagon have? Just the number.","gold":"6","ans":"6 ","ok":1,"tps":40.83049221158361}
+{"q":"What planet is known as the Red Planet? One word.","gold":"Mars","ans":"Mars. ","ok":1,"tps":49.47188759987137}
+{"q":"What is 2 to the power of 10? Just the number.","gold":"1024","ans":"1024 ","ok":1,"tps":43.72578684553428}
+{"q":"Who wrote Romeo and Juliet? Last name only.","gold":"Shakespeare","ans":"William Shakespeare ","ok":1,"tps":43.53883664228492}
+{"q":"What is the square root of 81? Just the number.","gold":"9","ans":"9 ","ok":1,"tps":82.7335153470671}
+{"q":"What gas do plants absorb from the air for photosynthesis? Name it.","gold":"carbon dioxide","ans":"Plants absorb carbon dioxide (CO2) from the air for photosynthesis. ","ok":1,"tps":15.643619933652648}
+{"q":"What is 15 percent of 200? Just the number.","gold":"30","ans":"30 ","ok":1,"tps":40.82243601083155}
+{"q":"How many minutes are in 2 hours? Just the number.","gold":"120","ans":"120 ","ok":1,"tps":36.34546363182045}
+{"q":"What is the largest planet in our solar system? One word.","gold":"Jupiter","ans":"Jupiter ","ok":1,"tps":55.179517363154794}

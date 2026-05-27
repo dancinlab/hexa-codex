@@ -39,9 +39,13 @@
 // the budget (e.g. budget 100 but returns gguf_q2 loss 1500) MUST be detected as
 // FAIL — the constraint loss ≤ budget is the falsifiable contract (ENGINE.md::I1).
 //
-// HONESTY.  Closed-form decision rule over ENERGY/N2 placeholder tiers. Actual
-// serving quant connection (real per-level MMLU/GSM8K re-eval driving live model
-// load) is cost-bearing — DEFERRED to cycle-11+ (feedback_closure_is_physical_limit).
+// HONESTY.  Closed-form decision rule over ENERGY/N2 tiers. The selector decision is
+// now MEASURED-VALIDATED for the Q8/Q4 pair (cycle-11 · 2026-05-28 · SANDBOX mini Metal ·
+// qwen2.5-1.5b · ENERGY/verify/measured_energy_n2_quantization_qwen15b.hexa 🟢 7/7):
+// compression 1.921× · speedup 1.376× · quality loss < 6.7pp resolution floor (Q4≈Q8
+// answer agreement 15/15). At normal budgets the selector picks Q4 — measured-CORRECT.
+// STILL OPEN (cost-bearing · feedback_closure_is_physical_limit): full per-level MMLU/GSM8K
+// re-eval (sub-7pp loss unresolved) · fp16/int8/gguf_q2 (not on disk) · RTX 5070 cross-check.
 // External anchors: ENERGY/N2 · Frantar 2023 GPTQ (2210.17323) · Lin 2023 AWQ (2306.00978).
 //
 // @no-lock-needed

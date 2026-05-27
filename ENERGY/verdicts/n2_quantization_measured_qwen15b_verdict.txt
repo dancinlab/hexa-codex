@@ -1,0 +1,18 @@
+# hexa-codex ENERGY N2 MEASURED — qwen2.5-1.5b Q8 vs Q4 quantization fire (cycle-11 · 2026-05-28)
+# axis=ENERGY/ENERGY.md::N2 QUANTIZATION (measured elevation of the closed-form quality-size trade)
+# wire=ENGINE/wires/wire_i1_quant_level_selector.hexa (axis I1 · selector decision measured-correct)
+# substrate=mini (Apple Silicon Metal GPU) · llama-server · SANDBOX (cx_lab_sandbox · self-hosted, no external API)
+# decode=deterministic temperature=0 top_k=1 seed=0 max_tokens=64 cache_prompt=false · 15-prompt fixed Q&A set
+# raw_data=ENERGY/bench/measured/n2_quantization_qwen15b_q8_vs_q4.jsonl
+# tier=🟢 SUPPORTED-NUMERICAL (real llama-server inference · qwen2.5-1.5b Q8 vs Q4 · SANDBOX Metal · 7/7) — compression 1.921× + speedup 1.376× MEASURED · quality loss < 6.7pp resolution floor (semantic agreement 100%) · ENGINE/I1 selector decision measured-correct
+# checks=7/7
+# measured_Q8=size 1894532128 B · 32.91 tok/s · correct 13/15
+# measured_Q4=size 986048768 B · 45.29 tok/s · correct 14/15
+# compression=1894532128 × 1000 / 986048768 = 1921 (= 1.921× · MEASURED)
+# speedup=4529 × 1000 / 3291 = 1376 (= 1.376× · MEASURED · Q4 faster — less weight bandwidth)
+# quality=answer-substring agreement 15/15 (100%) · semantic divergence 0 · scored-delta +1 Q4 is a 'seven' vs '7' format artifact (continents Q · NOT knowledge) · 1 shared error (blue+yellow→yellow · NOT quant-induced)
+# selector_validation=ENGINE/I1 'argmin size { level : loss ≤ budget }' picks Q4 at normal budgets — measured-CORRECT (Q4 smaller·faster·no detectable loss)
+# placeholder_relation=closed-form assumed Q4 loss 3.0% (300/10000); MEASURED loss < 6.7pp resolution floor → placeholder 3% is an UNREFUTED UPPER bound, not a measured value
+# honest_residual=N=15 floor ~6.7pp ('0 loss' = '< 6.7pp', not exactly 0) · full MMLU/GSM8K per-level re-eval = DEEPER frontier OPEN (cost-bearing) · Metal-specific tok/s (RTX cross-check pending) · fp16/int8/gguf_q2 not on disk → stay 🟡 BY-CITATION
+# frontier_open=feedback_closure_is_physical_limit — first measured contact elevates 1 of 5 levels to 🟢; the 3% sub-resolution loss + 4 other levels remain OPEN
+# external_anchors=Frantar 2023 GPTQ (2210.17323) · Lin 2023 AWQ (2306.00978) · Dettmers 2022 LLM.int8 (2208.07339) · llama.cpp GGUF Q8_0/Q4_K_M

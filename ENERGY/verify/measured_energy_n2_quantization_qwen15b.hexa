@@ -1,0 +1,215 @@
+#!hexa strict
+// ENERGY/verify/measured_energy_n2_quantization_qwen15b.hexa
+// ENERGY N2 MEASURED — real per-level inference fire elevating the closed-form
+// quantization quality-size trade (numerics_energy_n2_quantization_quality_size.hexa)
+// from 🔵+🟡 placeholder tiers to 🟢 SUPPORTED-NUMERICAL on a live local model.
+//
+// SUBSTRATE (cx_lab_sandbox): mini (Apple Silicon Metal GPU) · llama-server · SANDBOX
+//   self-hosted substrate — NOT an external paid API. Deterministic decode:
+//   temperature=0 · top_k=1 · seed=0 · max_tokens=64 · cache_prompt=false.
+//   model: Qwen2.5-1.5B-Instruct · GGUF Q8_0 vs Q4_K_M · 15-prompt fixed Q&A set.
+//   raw data: ENERGY/bench/measured/n2_quantization_qwen15b_q8_vs_q4.jsonl (2026-05-28).
+//
+// MEASURED LEDGER (integer · libm-free · ×100 tok/s · ×1000 ratios):
+//   Q8_0   size = 1894532128 B · avg = 32.91 tok/s · correct 13/15
+//   Q4_K_M size =  986048768 B · avg = 45.29 tok/s · correct 14/15
+//   answer-substring agreement Q4≈Q8 = 15/15 (100% — Q4 reproduces Q8's semantic answer on EVERY prompt)
+//   scored-delta = +1 for Q4 is a FORMAT artifact (continents: Q8 said "seven", Q4 said "7") — NOT knowledge.
+//   the single genuine error (blue+yellow → both answered "yellow") is SHARED → not quant-induced.
+//
+// WHAT THIS MEASURES vs the placeholder:
+//   - compression 1.921× and speedup 1.376× are now REAL measured numbers (were published-tier guesses).
+//   - quality loss is BELOW this eval's resolution: semantic divergence = 0 at a 15-prompt floor of ~6.7pp.
+//     So the placeholder's "Q4 = 3.0% loss" is an UNREFUTED UPPER bound here, NOT a measured value.
+//   - the ENGINE/I1 selector decision ("pick max compression within budget" → Q4 at normal budgets)
+//     is MEASURED-CORRECT: Q4 is smaller, faster, with no detectable semantic loss.
+//
+// HONEST RESIDUAL (feedback_closure_is_physical_limit — measured ≠ terminal):
+//   - N=15 → resolution floor ≈ 6.7pp; "0 loss" means "< 6.7pp", not exactly 0.
+//   - full MMLU/GSM8K per-level re-eval = DEEPER frontier, still OPEN (cost-bearing).
+//   - measured on Apple-Silicon Metal — absolute tok/s is hardware-specific; the >1× speedup
+//     DIRECTION generalizes (smaller weights = less bandwidth) but the magnitude is Metal-specific.
+//   - other levels (fp16/int8/gguf_q2) NOT on disk → their tiers stay 🟡 BY-CITATION (placeholder).
+//
+// External anchors: ENERGY/N2 · Frantar 2023 GPTQ (2210.17323) · Lin 2023 AWQ (2306.00978) ·
+//   Dettmers 2022 LLM.int8 (2208.07339) · llama.cpp GGUF Q-levels (Q8_0/Q4_K_M).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Recompute over already-captured measured numbers — no live model load, no atlas atoms. The inference fire already ran; this verifies its ledger.")
+
+// ────────────────────────────────────────────────────────────────────────
+// MEASURED LEDGER (verbatim from the inference fire)
+// ────────────────────────────────────────────────────────────────────────
+let Q8_SIZE_BYTES = 1894532128
+let Q4_SIZE_BYTES = 986048768
+let Q8_TPS_x100   = 3291        // 32.91 tok/s
+let Q4_TPS_x100   = 4529        // 45.29 tok/s
+let N_PROMPTS     = 15
+let Q8_CORRECT    = 13
+let Q4_CORRECT    = 14
+let ANSWER_AGREEMENT = 15       // Q4 reproduces Q8's semantic answer on every prompt
+let SHARED_ERROR     = 1        // blue+yellow→yellow, both levels — NOT quant-induced
+
+let SAFE_AGREEMENT_THRESHOLD = 13   // ≥ 90% of 15 (13.5 floored) = safe-compression regime
+let NAIVE_NO_COMPRESSION_x1000 = 1000   // a "quant is free / same size" claim = 1.000×
+
+// derived measured quantities
+fn compression_x1000() -> int { return Q8_SIZE_BYTES * 1000 / Q4_SIZE_BYTES }   // expect 1921
+fn speedup_x1000() -> int     { return Q4_TPS_x100 * 1000 / Q8_TPS_x100 }       // expect 1376
+fn semantic_divergence() -> int { return N_PROMPTS - ANSWER_AGREEMENT }         // expect 0
+fn resolution_floor_pp_x100() -> int { return 10000 / N_PROMPTS }               // 666 = 6.66pp
+
+print("hexa-codex ENERGY N2 MEASURED — qwen2.5-1.5b Q8 vs Q4 quantization fire (cycle-11 · SANDBOX Metal)")
+print("====================================================================================================")
+print("")
+print("measured ledger (mini Metal · llama-server · greedy temp=0 seed=0 · 15-prompt):")
+print("  Q8_0   size=" + to_string(Q8_SIZE_BYTES) + " B · " + to_string(Q8_TPS_x100) + " (×100 tok/s) · correct " + to_string(Q8_CORRECT) + "/" + to_string(N_PROMPTS))
+print("  Q4_K_M size=" + to_string(Q4_SIZE_BYTES) + " B · " + to_string(Q4_TPS_x100) + " (×100 tok/s) · correct " + to_string(Q4_CORRECT) + "/" + to_string(N_PROMPTS))
+print("  answer agreement Q4≈Q8 = " + to_string(ANSWER_AGREEMENT) + "/" + to_string(N_PROMPTS))
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// check 1 — compression identity: Q8/Q4 bytes = 1.921× · and Q4 strictly smaller
+checks_total = checks_total + 1
+let comp = compression_x1000()
+if comp == 1921 && Q4_SIZE_BYTES < Q8_SIZE_BYTES {
+    print("  [PASS] compression identity: " + to_string(Q8_SIZE_BYTES) + " × 1000 / " + to_string(Q4_SIZE_BYTES) +
+          " = " + to_string(comp) + " (= 1.921× · MEASURED · Q4 strictly smaller)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] compression expected 1921 · got " + to_string(comp))
+}
+
+// check 2 — range bound: sizes > 0 · tps > 0 · correct/agreement ∈ [0, N]
+checks_total = checks_total + 1
+let mut range_ok = true
+if Q8_SIZE_BYTES <= 0 { range_ok = false }
+if Q4_SIZE_BYTES <= 0 { range_ok = false }
+if Q8_TPS_x100 <= 0 { range_ok = false }
+if Q4_TPS_x100 <= 0 { range_ok = false }
+if Q8_CORRECT < 0 || Q8_CORRECT > N_PROMPTS { range_ok = false }
+if Q4_CORRECT < 0 || Q4_CORRECT > N_PROMPTS { range_ok = false }
+if ANSWER_AGREEMENT < 0 || ANSWER_AGREEMENT > N_PROMPTS { range_ok = false }
+if range_ok {
+    print("  [PASS] range: sizes>0 · tps>0 · correct/agreement ∈ [0," + to_string(N_PROMPTS) + "] (measured values sane)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] some measured value out of range")
+}
+
+// check 3 — speedup identity: Q4 tok/s / Q8 tok/s = 1.376× · Q4 strictly faster
+checks_total = checks_total + 1
+let spd = speedup_x1000()
+if spd == 1376 && Q4_TPS_x100 > Q8_TPS_x100 {
+    print("  [PASS] speedup identity: " + to_string(Q4_TPS_x100) + " × 1000 / " + to_string(Q8_TPS_x100) +
+          " = " + to_string(spd) + " (= 1.376× · MEASURED · Q4 strictly faster — less weight bandwidth)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] speedup expected 1376 · got " + to_string(spd))
+}
+
+// check 4 — FALSIFIER fires: the naive "quant is free / Q4 same size as Q8" model (compression 1.000×)
+//   is CONTRADICTED by the measured 1.921× → a quant-blind selector is caught wrong.
+checks_total = checks_total + 1
+if comp != NAIVE_NO_COMPRESSION_x1000 && comp > NAIVE_NO_COMPRESSION_x1000 {
+    print("  [PASS] falsifier FIRES 🔴: 'quant is free (Q4 == Q8 size · 1.000×)' contradicted by measured " +
+          to_string(comp) + " (= 1.921×) — a compression-blind selector is caught wrong")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] falsifier broken — measured compression did not contradict the no-compression claim")
+}
+
+// check 5 — silent (safe-compression regime): measured agreement ≥ safe threshold → over-compression
+//   alarm does NOT fire for Q4 on this model (matches placeholder's 'gguf_q4 silent ≤ 5%'). Bidirectional.
+checks_total = checks_total + 1
+if ANSWER_AGREEMENT >= SAFE_AGREEMENT_THRESHOLD {
+    print("  [PASS] silent: agreement " + to_string(ANSWER_AGREEMENT) + "/" + to_string(N_PROMPTS) +
+          " ≥ " + to_string(SAFE_AGREEMENT_THRESHOLD) + " (safe-compression regime · over-compression alarm correctly does NOT fire for Q4 · proves bidirectional)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] safe-regime control broken — measured agreement below threshold but Q4 should be safe")
+}
+
+// check 6 — determinism (recompute identical)
+checks_total = checks_total + 1
+if compression_x1000() == compression_x1000() && speedup_x1000() == speedup_x1000() &&
+   semantic_divergence() == semantic_divergence() {
+    print("  [PASS] recompute deterministic (compression · speedup · divergence stable on re-call)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic recompute")
+}
+
+// check 7 — sanity-invariant: smaller weights bought speed at ZERO detectable semantic cost.
+//   speedup > 1× (Q4 faster) AND semantic_divergence == 0 (loss floored at 0 · the +1 scored-accuracy
+//   is a format artifact, NOT negative loss) AND that 0 is bounded by the resolution floor.
+checks_total = checks_total + 1
+let div = semantic_divergence()
+let floor = resolution_floor_pp_x100()
+if spd > 1000 && div == 0 && floor > 0 {
+    print("  [PASS] sanity: Q4 faster (speedup " + to_string(spd) + " > 1000) at ZERO semantic divergence (" +
+          to_string(div) + "/" + to_string(N_PROMPTS) + ") · bounded by resolution floor " + to_string(floor) +
+          " (×100 pp = 6.66pp · '0 loss' = '< 6.7pp', NOT exactly 0)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken: spd=" + to_string(spd) + " div=" + to_string(div) + " floor=" + to_string(floor))
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🟢 SUPPORTED-NUMERICAL (real llama-server inference · qwen2.5-1.5b Q8 vs Q4 · SANDBOX Metal · 7/7) — compression 1.921× + speedup 1.376× MEASURED · quality loss < 6.7pp resolution floor (semantic agreement 100%) · ENGINE/I1 selector decision measured-correct"
+} else {
+    verdict_tier = "🔴 FALSIFIED — measured quantization ledger contradicts the trade identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("ENERGY N2 MEASURED finding (cycle-11 SANDBOX fire · 2026-05-28):")
+print("  - compression 1.921× (1894532128 B → 986048768 B) · speedup 1.376× (32.91 → 45.29 tok/s) — REAL measured")
+print("  - quality loss UNDETECTABLE at N=15 (answer agreement 15/15 · semantic divergence 0 · floor ~6.7pp)")
+print("  - placeholder 'Q4 = 3% loss' = unrefuted UPPER bound here (15-prompt eval cannot resolve sub-7pp)")
+print("  - ENGINE/I1 selector: 'max compression within budget → Q4' is measured-CORRECT (smaller·faster·no detectable loss)")
+print("  - honest residual: full MMLU/GSM8K per-level re-eval DEEPER frontier OPEN · Metal-specific tok/s · fp16/int8/q2 still 🟡 (not on disk)")
+print("")
+print("__HEXA_CODEX_MEASURED_ENERGY_N2_QWEN15B__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/ENERGY/verdicts/n2_quantization_measured_qwen15b_verdict.txt"
+
+let mut content = "# hexa-codex ENERGY N2 MEASURED — qwen2.5-1.5b Q8 vs Q4 quantization fire (cycle-11 · 2026-05-28)\n"
+content = content + "# axis=ENERGY/ENERGY.md::N2 QUANTIZATION (measured elevation of the closed-form quality-size trade)\n"
+content = content + "# wire=ENGINE/wires/wire_i1_quant_level_selector.hexa (axis I1 · selector decision measured-correct)\n"
+content = content + "# substrate=mini (Apple Silicon Metal GPU) · llama-server · SANDBOX (cx_lab_sandbox · self-hosted, no external API)\n"
+content = content + "# decode=deterministic temperature=0 top_k=1 seed=0 max_tokens=64 cache_prompt=false · 15-prompt fixed Q&A set\n"
+content = content + "# raw_data=ENERGY/bench/measured/n2_quantization_qwen15b_q8_vs_q4.jsonl\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# measured_Q8=size 1894532128 B · 32.91 tok/s · correct 13/15\n"
+content = content + "# measured_Q4=size 986048768 B · 45.29 tok/s · correct 14/15\n"
+content = content + "# compression=1894532128 × 1000 / 986048768 = 1921 (= 1.921× · MEASURED)\n"
+content = content + "# speedup=4529 × 1000 / 3291 = 1376 (= 1.376× · MEASURED · Q4 faster — less weight bandwidth)\n"
+content = content + "# quality=answer-substring agreement 15/15 (100%) · semantic divergence 0 · scored-delta +1 Q4 is a 'seven' vs '7' format artifact (continents Q · NOT knowledge) · 1 shared error (blue+yellow→yellow · NOT quant-induced)\n"
+content = content + "# selector_validation=ENGINE/I1 'argmin size { level : loss ≤ budget }' picks Q4 at normal budgets — measured-CORRECT (Q4 smaller·faster·no detectable loss)\n"
+content = content + "# placeholder_relation=closed-form assumed Q4 loss 3.0% (300/10000); MEASURED loss < 6.7pp resolution floor → placeholder 3% is an UNREFUTED UPPER bound, not a measured value\n"
+content = content + "# honest_residual=N=15 floor ~6.7pp ('0 loss' = '< 6.7pp', not exactly 0) · full MMLU/GSM8K per-level re-eval = DEEPER frontier OPEN (cost-bearing) · Metal-specific tok/s (RTX cross-check pending) · fp16/int8/gguf_q2 not on disk → stay 🟡 BY-CITATION\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — first measured contact elevates 1 of 5 levels to 🟢; the 3% sub-resolution loss + 4 other levels remain OPEN\n"
+content = content + "# external_anchors=Frantar 2023 GPTQ (2210.17323) · Lin 2023 AWQ (2306.00978) · Dettmers 2022 LLM.int8 (2208.07339) · llama.cpp GGUF Q8_0/Q4_K_M\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

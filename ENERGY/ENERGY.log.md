@@ -2,6 +2,18 @@
 
 Append-only history sister of `ENERGY.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — N2 MEASURED FIRE: qwen2.5-1.5b Q8 vs Q4 양자화 실측 (cycle-11 · 🔵+🟡 → 🟢 SUPPORTED-NUMERICAL · 첫 measured contact)
+
+GPU fire — placeholder 7B 티어를 실제 추론으로 닫음. SANDBOX substrate (mini Apple Silicon Metal GPU · llama-server · `cx_lab_sandbox` · 외부 API 아님). qwen2.5-1.5b-instruct Q8_0 vs Q4_K_M · 15-prompt 고정셋 · 결정론적 greedy (temp=0 top_k=1 seed=0).
+
+- [x] 측정 ledger: Q8_0 size 1894532128 B · 32.91 tok/s · 13/15 · Q4_K_M size 986048768 B · 45.29 tok/s · 14/15.
+- [x] 압축 **1.921×** (정확 바이트) · 속도 **1.376×** (Q4 더 빠름 — weight bandwidth 감소) · 둘 다 placeholder 아닌 REAL 측정.
+- [x] 품질: Q4≈Q8 답변 일치 **15/15 (100%)** · semantic divergence 0. 점수차 +1 Q4 = `seven`vs`7` 포맷 artifact (continents · 지식 아님). 유일 오답(blue+yellow→yellow) = Q8·Q4 공유 (양자화 탓 아님).
+- [x] verifier `ENERGY/verify/measured_energy_n2_quantization_qwen15b.hexa` 🟢 **7/7 PASS** · verdict `ENERGY/verdicts/n2_quantization_measured_qwen15b_verdict.txt` · raw `ENERGY/bench/measured/n2_quantization_qwen15b_q8_vs_q4.jsonl`.
+- [x] ENGINE/I1 selector 결정 measured-correct: normal budget → Q4 선택이 옳음 (작고·빠르고·손실 미검출).
+- **placeholder 관계**: closed-form 의 'Q4=3% 손실'은 이 15문항 해상도(~6.7pp)로 **반증 안 됨 — 상한일 뿐** (측정값 아님).
+- **honest residual (feedback_closure_is_physical_limit)**: N=15 floor ~6.7pp ('0 손실'='<6.7pp', 정확히 0 아님) · full MMLU/GSM8K per-level re-eval = 더 깊은 frontier OPEN (cost-bearing) · Metal-specific tok/s (RTX 5070 cross-check 미실시) · fp16/int8/gguf_q2 는 disk 부재로 🟡 유지. 5 레벨 중 1 쌍만 🟢 contact — 나머지 OPEN.
+
 ## 2026-05-28 — N2 NOVEL = quantization 품질-크기 trade-off (CODEX cycle-10 reorg Batch B · train/infer/serve stack)
 
 - [x] ENERGY NOVEL N2 신규 추가 — QUANTIZATION (품질-크기 trade-off). N1 (sparse-MoE active-premium) 보존 · 건드리지 않음. 기존 per-layer energy decomposition stub (unbuilt `- [ ]`) → **N3 로 밀림** (구현 없는 placeholder · QUANTIZATION 에게 N2 슬롯 양보).

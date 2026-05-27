@@ -1,0 +1,18 @@
+# hexa-codex NEUROEXP N2 — STDP ↔ attention temporal modulation (cycle-7 first probe)
+# axis=NEUROEXP.md::N2 (cycle-7 first probe · N = Neural-update rule probe)
+# verifier=NEUROEXP/verify/numerics_neuroexp_n2_stdp_attention.hexa
+# tier=🔵 SUPPORTED-FORMAL — STDP ≢ attention causal mask · N2 falsifier HOLDS (11/11)
+# checks=11/11
+# taxonomy=6 axes: direction/window-shape/sign/magnitude/mechanism/time-scale
+# match_pattern=5_DIFFER_1_MATCH (only direction = one-way time arrow 공유)
+# stdp_class=graded exp signed weight-update rule (training-time, ms-scale, Bi & Poo 1998)
+# attn_mask_class=binary unsigned forward-compute step (inference-time, position-index, Vaswani 2017)
+# stdp_toy_dt_plus5_x1000=750 (potentiation) · dt_minus5_x1000=-750 (depression)
+# attn_mask_toy=past 1 · self 1 · future 0 (binary, no graded decay)
+# N2_falsifier=STDP ≢ attention causal mask HOLDS (5/6 axes DIFFER)
+# operational=position bias (ALiBi · RoPE · T5) = STDP 1차 Taylor 근사 만큼만 유사 (LOGIT layer, NOT Δw)
+# cross_axis_pattern=N1·Φ1 MATCH (mechanism-layer 일치) · N2·S1 MISMATCH (mechanism-layer 다름)
+# external_anchor=BiPoo1998_JNeurosci · Vaswani2017_arXiv1706.03762 · Press2022_ALiBi_arXiv2108.12409 · Su2021_RoPE_arXiv2104.09864
+# next_probe=cycle-8+ T4 SANDBOX STDP-rule simulated transformer (forward-only STDP-bias) ICL 측정
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

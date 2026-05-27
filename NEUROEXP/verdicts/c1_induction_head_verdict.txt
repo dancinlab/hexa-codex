@@ -1,0 +1,17 @@
+# hexa-codex NEUROEXP C1 — induction-head causal effect ↔ ICL gain (cycle-10 first probe)
+# axis=NEUROEXP.md::C1 (cycle-10 first probe · C = Causal circuit probing)
+# verifier=NEUROEXP/verify/numerics_neuroexp_c1_induction_head.hexa
+# tier=🔵 SUPPORTED-FORMAL — induction ablation effect ≡ ICL gain (coupled) · C1 falsifier REJECTED (10/10)
+# checks=10/10
+# induction_strength=prefix_match·copy_fidelity = 0.9·0.95 = 0.855
+# icl_with=0.869 · icl_baseline=0.1 · icl_gain=0.769
+# ablation_effect=0.769 = ICL gain drop (full) → ablation effect ≡ ICL gain (COUPLED)
+# C1_falsifier=ablation effect 가 ICL gain 과 분리 REJECTED → 'induction = ICL 핵심 회로' (Olsson 2022) 강화
+# circuit=prev-token-head ∘ induction-head (2-step Q-composition, Elhage 2021)
+# operational=induction head 보존 = ICL 능력 보존 직접 조건 · causal probe ↔ bio optogenetics 동형
+# cross_axis_7cycle=MATCH 4 (N1·Φ1·L1·C1 = bio method-transfer) vs MISMATCH 3 (S1·N2·Φ2 = system-comparison)
+# core_finding=NEUROEXP 분류 기준: bio 방법론 LLM 적용 (method-transfer 일관 성공) vs bio-LLM 시스템 비교 (일관 분리)
+# external_anchor=Olsson2022_induction_heads · Elhage2021_transformer_circuits · Wang2023_IOI_arXiv2211.00593
+# next_probe=cycle-11+ T4 SANDBOX Qwen2.5 induction-head activation patching → 실측 coupling 계수
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

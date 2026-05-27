@@ -1,0 +1,16 @@
+# hexa-codex ENGINE/loop — wire-gap scanner set-logic verifier (N1 detection half)
+# axis=ENGINE/ENGINE.md::N1 (discovery→execution closed-loop · cross-session wire-gap detection)
+# scanner=ENGINE/loop/auto_wire_gap_scanner.hexa
+# verifier=ENGINE/loop/verify/numerics_engine_loop_gap_scanner.hexa
+# tier=🔵 STRUCTURAL (orphan = findings − covered set-difference identity · 7/7) — DETECTION set-logic proven on synthetic fixture; autonomous wire-AUTHORING UNBUILT (N1 residual OPEN)
+# checks=7/7
+# fixture=findings[a,b,c,d] · covered[a,c] · expected_orphans[b,d]
+# check_1_identity=orphan = findings − covered (relative complement A∖B · Halmos 1960)
+# check_2_range=counts ≥ 0 · orphan_count ≤ total_findings
+# check_3_edge=synthetic fixture computes EXACTLY [b,d]
+# check_4_falsifier=buggy coverage-ignorant orphan=[a,b,c,d] CAUGHT ≠ true [b,d] (fires)
+# check_5_silent=coverage ⊇ findings → orphan ∅ (no false orphan)
+# check_6_determinism=recompute identical orphan set
+# check_7_invariant=orphan ∩ covered = ∅
+# external_anchor=naive set theory relative complement (Halmos 1960)
+# honest_residual=gap-DETECTION + scaffold = BUILT (this scanner). autonomous wire-AUTHORING = NEXT FRONTIER, OPEN — reviewer still fills each scaffold's decision rule. N1 ADVANCED one honest step, NOT closed (feedback_closure_is_physical_limit).

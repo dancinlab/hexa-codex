@@ -1,0 +1,13 @@
+# hexa-codex POST-TRAINING A1 — alignment tax verifier (orchestra Post-Training 흡수 · cycle-10)
+# axis=POST-TRAINING/POST-TRAINING.md::A1 (alignment tax · 5 post-train methods · capability drop · 5pp threshold)
+# bench=POST-TRAINING/bench/post_training_a1_alignment_tax.hexa
+# verifier=POST-TRAINING/verify/numerics_post_training_a1_alignment_tax.hexa
+# tier=🔵 STRUCTURAL (alignment-tax identity + 5pp threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 5pp threshold = capability-sacrifice convention · cite Ouyang 2022 InstructGPT/RLHF + Rafailov 2023 DPO + Shao 2024 GRPO + Bai 2022 Constitutional AI)
+# checks=7/7
+# formula=alignment_tax_x100 = base_capability − post_capability (× 100 ledger of pp); falsifier_fires = alignment_tax > 5pp (> 500 in × 100 ledger)
+# placeholder_data=5 methods · sft_base (base=80 post=79 · tax 1pp · help +8 silent) · good_dpo (80/78 · 2pp · +15 silent) · rlhf_ppo (80/76 · 4pp · +20 silent) · grpo (80/77 · 3pp · +18 silent) · over_aligned (80/68 · 12pp · +25 FIRES)
+# bidirectional_discrimination=4 silent (sft_base · good_dpo · rlhf_ppo · grpo) + 1 fires (over_aligned) — falsifier 정확 발화 only on capability-sacrifice (over-aligned)
+# external_anchors=Ouyang 2022 InstructGPT/RLHF (arXiv:2203.02155) · Rafailov 2023 DPO (arXiv:2305.18290) · Shao 2024 GRPO (arXiv:2402.03300) · Bai 2022 Constitutional AI (arXiv:2212.08073)
+# substrate_fire=DEFERRED (cycle-11+ · base vs post capability bench MMLU/GSM8K/HumanEval pre/post alignment on local SANDBOX stack · cx_lab_sandbox)
+# absorbed_from=orchestra-research 20-skill 'Post-Training' (cycle-10 누락 흡수 · 신규 단독 도메인 POST-TRAINING)
+# frontier_open=feedback_closure_is_physical_limit — tax identity close ≠ measured alignment-tax close · 새 post-train method·alignment 목표 마다 frontier 재오픈

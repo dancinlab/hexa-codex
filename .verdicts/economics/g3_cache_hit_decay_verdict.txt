@@ -1,0 +1,18 @@
+# hexa-codex ECONOMICS G3 — cache-hit-rate decay (cycle-48 first probe)
+# axis=ECONOMICS.md::G3 (NOVEL · cycle-45 spawn · G = agentic amortization)
+# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g3_cache_hit_rate_decay_law
+# verifier=verify/numerics_economics_g3_cache_hit_decay.hexa
+# tier=🔵 SUPPORTED-FORMAL — vendor cache step-function + aggregate hit decay (9/9)
+# checks=9/9
+# anthropic_step_block=1024 · openai_step_block=128
+# anth_cached_at_div500=0 (USELESS below 1024)
+# anth_cached_at_div2048=2048 (2 blocks)
+# anth_cached_at_div10000=9216 (9 blocks · 1024, 784 tok remainder lost)
+# openai_cached_at_div500=384 (3 · 128-blocks · 8x more tolerant)
+# agg_hit_rate_N20_x10000=5128 (≈0.51, system 10k / total 19.5k)
+# anth_effective_at_hit_0.5_x1000=550 (0.55x → 45% save vs 90% headline · 45pp gap)
+# openai_effective_at_hit_0.5_x1000=750 (0.75x → 25% save vs 50% headline · 25pp gap)
+# external_anchor=Anthropic_cache_docs_Sep2024_1024-block · OpenAI_cache_docs_Oct2024_128-prefix
+# next_probe=cycle-49+ T4 SANDBOX llama-server cache-hit measurement under divergence injection
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native binary)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (cycle-44/46/47 proven recipe)

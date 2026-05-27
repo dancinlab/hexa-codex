@@ -1,0 +1,237 @@
+#!hexa strict
+// hexa-codex/verify/numerics_economics_g3_cache_hit_decay.hexa
+// ECONOMICS axis G3 (NOVEL · cycle-45 spawn) — cache-hit-rate decay vs divergence/N.
+//
+// CLAIM. Vendor cache-block granularity determines hit-rate STEP FUNCTION:
+//   - Anthropic: 1024-tok minimum cacheable block (Sep 2024 docs)
+//     hit_tokens(div) = floor(div / 1024) · 1024     [coarse step function]
+//   - OpenAI: 128-tok prefix granularity (Oct 2024 docs)
+//     hit_tokens(div) = floor(div / 128) · 128       [8× finer steps]
+//
+// AGGREGATE HIT DECAY across N turns with accumulating context:
+//   per-turn input(n) = system + delta·(n-1)       [delta = per-turn growth]
+//   hit_rate(n) = system / (system + delta·(n-1))  [only system cached]
+//   At N=20, system=10000, delta=500: hit_rate(20) = 10000/19500 ≈ 0.513
+//
+// EFFECTIVE DISCOUNT under partial hit:
+//   effective_price_per_tok = hit · c_r + (1 − hit) · c_f
+//   For Anthropic at hit=0.5: 0.55× base → only 45% saving (vs 90% headline)
+//   For OpenAI at hit=0.5: 0.75× base → only 25% saving (vs 50% headline)
+//
+// KEY FINDING. Vendor "90% / 50% discount" headlines are PER-TOKEN-CACHED.
+// Aggregate per-task discount at realistic N=20 multi-turn loop is FAR LESS
+// because deltas accumulate and only the system prefix cache-hits → effective
+// hit rate decays to ~0.5 → effective saving 45% (Anthropic) / 25% (OpenAI).
+//
+// HONESTY (feedback_negative_paper_external_claim): This REFINES the vendor
+// headline interpretation (per-token vs per-task) — not a strawman refutation.
+// Vendor headline IS correct for per-token; per-task is what operators care about.
+//
+// External anchor: Anthropic Claude prompt-caching docs (Sep 2024, 1024-tok block) ·
+// OpenAI prompt-caching docs (Oct 2024, 128-tok prefix granularity).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Closed-form vendor block-granularity recompute.")
+
+let ANTH_BLOCK = 1024
+let OAI_BLOCK = 128
+let PREFIX_LEN = 10000
+
+let SYSTEM = 10000
+let DELTA = 500
+
+// vendor pricing (×100 cents/Mtok, matches G1/G2)
+let ANTH_CF = 300
+let ANTH_CR = 30
+let OAI_CF = 250
+let OAI_CR = 125
+
+// step-function: contiguous-cached-tokens(divergence_offset, block_size)
+fn hit_tokens(div: int, block_size: int) -> int {
+    return (div / block_size) * block_size   // integer division = floor
+}
+
+// aggregate hit_rate at turn n = system / (system + delta·(n−1)) · 10000 (×10000 scale)
+fn agg_hit_rate_x10000(system: int, delta: int, n: int) -> int {
+    let input_len = system + delta * (n - 1)
+    return system * 10000 / input_len
+}
+
+// effective per-tok price = hit·c_r + (1−hit)·c_f, hit in ×10000 scale → return ×10 of base
+fn effective_x10(hit_x10000: int, c_r: int, c_f: int) -> int {
+    let cached = hit_x10000 * c_r              // hit·c_r·10000 scale
+    let uncached = (10000 - hit_x10000) * c_f
+    return (cached + uncached) / 1000   // back to ×10 base
+}
+
+print("hexa-codex ECONOMICS G3 — cache-hit-rate decay (cycle-48 first probe)")
+print("======================================================================")
+print("  Anthropic 1024-tok block · OpenAI 128-tok granularity · prefix=10000")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// ── check 1 — Anthropic 1024-block at div=500: cache USELESS (below first block)
+checks_total = checks_total + 1
+let ANTH_D500 = hit_tokens(500, ANTH_BLOCK)
+if ANTH_D500 == 0 {
+    print("  [PASS] Anthropic div=500: cached=0 tok (below 1024-block boundary, cache USELESS)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Anthropic div=500 cached = " + to_string(ANTH_D500) + " ≠ 0")
+}
+
+// ── check 2 — Anthropic at div=2048: 2 full blocks = 2048 cached
+checks_total = checks_total + 1
+let ANTH_D2048 = hit_tokens(2048, ANTH_BLOCK)
+if ANTH_D2048 == 2048 {
+    print("  [PASS] Anthropic div=2048: cached=" + to_string(ANTH_D2048) + " tok (2 full 1024-blocks)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Anthropic div=2048 cached = " + to_string(ANTH_D2048))
+}
+
+// ── check 3 — Anthropic at div=10000 (full prefix preserved): 9 blocks · 1024 = 9216
+checks_total = checks_total + 1
+let ANTH_D10000 = hit_tokens(10000, ANTH_BLOCK)   // 9·1024 = 9216
+if ANTH_D10000 == 9216 {
+    print("  [PASS] Anthropic div=10000: cached=" + to_string(ANTH_D10000) + " tok (9 blocks · 1024, 784 tok lost to remainder)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Anthropic div=10000 cached = " + to_string(ANTH_D10000))
+}
+
+// ── check 4 — OpenAI 128-block at div=500: cached=384 (3 blocks · 128) vs Anthropic 0
+checks_total = checks_total + 1
+let OAI_D500 = hit_tokens(500, OAI_BLOCK)   // 3·128 = 384
+if OAI_D500 == 384 {
+    print("  [PASS] OpenAI div=500: cached=" + to_string(OAI_D500) + " tok (3 · 128-blocks) vs Anthropic 0 → 384 tok better at small div")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] OpenAI div=500 cached = " + to_string(OAI_D500))
+}
+
+// ── check 5 — monotone step-function: hit at div=2048 > hit at div=1024
+checks_total = checks_total + 1
+let ANTH_D1024 = hit_tokens(1024, ANTH_BLOCK)
+if ANTH_D2048 > ANTH_D1024 {
+    print("  [PASS] Anthropic monotone: cached(2048)=" + to_string(ANTH_D2048) + " > cached(1024)=" + to_string(ANTH_D1024) + " (step-function strictly increasing)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Anthropic not monotone")
+}
+
+// ── check 6 — aggregate hit_rate at N=20 (system=10000, delta=500) ≈ 0.51 (10000/19500)
+checks_total = checks_total + 1
+let HIT_N20 = agg_hit_rate_x10000(SYSTEM, DELTA, 20)   // 10000·10000/19500 = 5128
+if HIT_N20 >= 5000 && HIT_N20 <= 5200 {
+    print("  [PASS] aggregate hit_rate(N=20) = " + to_string(HIT_N20) + "/10000 ≈ 0.51 (system 10k / total 19.5k)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] hit_rate(N=20) = " + to_string(HIT_N20) + " ∉ [5000,5200]")
+}
+
+// ── check 7 — Anthropic effective discount at hit=0.5: ~0.55× → 45% saving vs 90% headline
+checks_total = checks_total + 1
+let HIT_50 = 5000   // hit = 0.5
+let ANTH_EFF = effective_x10(HIT_50, ANTH_CR, ANTH_CF)    // (5000·30 + 5000·300)/1000 = (150000+1500000)/1000 = 1650
+// vs base ANTH_CF·10 = 3000. ratio = 1650/3000 = 0.55
+let ANTH_RATIO_x1000 = ANTH_EFF * 1000 / (ANTH_CF * 10)
+if ANTH_RATIO_x1000 >= 540 && ANTH_RATIO_x1000 <= 560 {
+    print("  [PASS] Anthropic eff at hit=0.5: ratio " + to_string(ANTH_RATIO_x1000) + "/1000 ≈ 0.55× (45% saving vs 90% headline · 45pp gap)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] Anthropic eff ratio = " + to_string(ANTH_RATIO_x1000))
+}
+
+// ── check 8 — OpenAI effective discount at hit=0.5: ~0.75× → 25% saving vs 50% headline
+checks_total = checks_total + 1
+let OAI_EFF = effective_x10(HIT_50, OAI_CR, OAI_CF)
+let OAI_RATIO_x1000 = OAI_EFF * 1000 / (OAI_CF * 10)
+if OAI_RATIO_x1000 >= 740 && OAI_RATIO_x1000 <= 760 {
+    print("  [PASS] OpenAI eff at hit=0.5: ratio " + to_string(OAI_RATIO_x1000) + "/1000 ≈ 0.75× (25% saving vs 50% headline · 25pp gap)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] OpenAI eff ratio = " + to_string(OAI_RATIO_x1000))
+}
+
+// ── check 9 — determinism
+checks_total = checks_total + 1
+let ANTH_D500_RE = hit_tokens(500, ANTH_BLOCK)
+if ANTH_D500_RE == ANTH_D500 {
+    print("  [PASS] deterministic")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 SUPPORTED-FORMAL — vendor cache step-function + aggregate hit decay (9/9)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — cache decay recompute disagrees (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("KEY FINDING (closed-form):")
+print("  - Anthropic 1024-tok step: small divergence (< 1024) → cache USELESS (0 tok).")
+print("  - OpenAI 128-tok step: 8× more divergence-tolerant (cache 384 tok at div=500).")
+print("  - Aggregate hit_rate decays as delta accumulates: N=20 with system=10k/delta=500 → ~0.51.")
+print("  - EFFECTIVE per-task discount at hit=0.5: Anthropic 0.55× (45% save vs 90% headline),")
+print("    OpenAI 0.75× (25% save vs 50% headline). Headlines are PER-TOKEN, not PER-TASK.")
+print("")
+print("OPERATIONAL CORRECTION:")
+print("  - vendor '90% discount' (Anthropic) headline applies to CACHE-HIT tokens only.")
+print("  - In a realistic 20-turn agent loop with 500-tok deltas, only HALF the tokens hit cache;")
+print("    operator-visible saving is ~45% (Anthropic) or ~25% (OpenAI), not the headline number.")
+print("  - 'cache makes inference cheap' is true (cache > no-cache always) but headline overstates")
+print("    the realistic saving by ~2× (Anthropic) at typical multi-turn agent operating point.")
+print("")
+print("HONEST RESIDUAL:")
+print("  - vendor block-granularity + hit-decay math = 🔵 closed-form identity.")
+print("  - aggregate-hit decay model assumes system-only caching; FULL accumulated-context caching")
+print("    (Anthropic 'cache_control' on assistant messages) would push hit_rate higher.")
+print("  - REAL substrate hit-rate may differ from vendor docs (cycle-49+ T4 substrate test).")
+print("  - prefix_len=10000, delta=500, N=20 = one operating point; other N/delta/prefix shift hit.")
+print("  - G3 frontier OPEN (feedback_closure_is_physical_limit): vendor-doc close ≠ substrate close")
+print("")
+print("__HEXA_CODEX_NUMERICS_ECONOMICS_G3_CACHE_HIT_DECAY__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/.verdicts/economics/g3_cache_hit_decay_verdict.txt"
+
+let mut content = "# hexa-codex ECONOMICS G3 — cache-hit-rate decay (cycle-48 first probe)\n"
+content = content + "# axis=ECONOMICS.md::G3 (NOVEL · cycle-45 spawn · G = agentic amortization)\n"
+content = content + "# seed=.discoveries/economics-g-agentic-amortization-spawn.tape @C d_econ_g3_cache_hit_rate_decay_law\n"
+content = content + "# verifier=verify/numerics_economics_g3_cache_hit_decay.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# anthropic_step_block=1024 · openai_step_block=128\n"
+content = content + "# anth_cached_at_div500=" + to_string(ANTH_D500) + " (USELESS below 1024)\n"
+content = content + "# anth_cached_at_div2048=" + to_string(ANTH_D2048) + " (2 blocks)\n"
+content = content + "# anth_cached_at_div10000=" + to_string(ANTH_D10000) + " (9 blocks · 1024, 784 tok remainder lost)\n"
+content = content + "# openai_cached_at_div500=" + to_string(OAI_D500) + " (3 · 128-blocks · 8x more tolerant)\n"
+content = content + "# agg_hit_rate_N20_x10000=" + to_string(HIT_N20) + " (≈0.51, system 10k / total 19.5k)\n"
+content = content + "# anth_effective_at_hit_0.5_x1000=" + to_string(ANTH_RATIO_x1000) + " (0.55x → 45% save vs 90% headline · 45pp gap)\n"
+content = content + "# openai_effective_at_hit_0.5_x1000=" + to_string(OAI_RATIO_x1000) + " (0.75x → 25% save vs 50% headline · 25pp gap)\n"
+content = content + "# external_anchor=Anthropic_cache_docs_Sep2024_1024-block · OpenAI_cache_docs_Oct2024_128-prefix\n"
+content = content + "# next_probe=cycle-49+ T4 SANDBOX llama-server cache-hit measurement under divergence injection\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

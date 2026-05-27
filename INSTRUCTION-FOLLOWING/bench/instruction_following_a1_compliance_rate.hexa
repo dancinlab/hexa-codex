@@ -1,0 +1,129 @@
+#!hexa strict
+// hexa-codex/INSTRUCTION-FOLLOWING/bench/instruction_following_a1_compliance_rate.hexa
+// INSTRUCTION-FOLLOWING axis A1 — format compliance rate closed-form (cycle-9 round-4)
+//
+// CLAIM.  compliance_rate(model) = N_passed / N_total · 100
+//   where each prompt carries ONE simple binary format constraint
+//   (5-word-limit · JSON-format · no-punctuation · line-per-item),
+//   N_total = #constraints × #prompts_per_constraint per model (4 × 25 = 100),
+//   N_passed = #responses that satisfy the constraint by deterministic regex check,
+//   compliance_rate ∈ [0, 100] (percentage semantics).
+//
+// External anchor (citation tier · 🟡):
+//   Zhou 2023 — IFEval (arXiv:2311.07911) — first large-scale strict-format LLM bench
+//   Tam 2024 — strict-format prompting (arXiv:2402.10210)
+//   Wadhwa 2024 — instruction-following taxonomy (constraint family decomposition)
+//
+// SCALE.  Integer ×100 ledger (percentage native · libm-free → 🔵 candidate).
+//
+// PLACEHOLDER DATA.  4 model profiles spanning strict-trained → raw-base:
+//   strict-trained (RLHF + format-tuned)  → compliance ≈ 95% (silent)
+//   mid           (standard chat-tuned)   → compliance ≈ 82% (silent at 90 threshold? NO — fires)
+//   weak          (older instruct)        → compliance ≈ 68% (fires)
+//   raw-base      (foundation, no chat)   → compliance ≈ 45% (fires hard)
+//   N_total per model = 4 constraints × 25 prompts = 100.
+//
+// FALSIFIER (paired verifier).
+//   compliance_rate < 90% on simple constraints → axis A1 falsifier fires
+//   (model fails canonical IFEval-style simple-constraint adherence).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form percentage recompute on integer ×100 ledger — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Closed-form compliance rate on integer ×100 ledger
+// ────────────────────────────────────────────────────────────────────────
+
+let N_CONSTRAINTS    = 4    // 5-word-limit · JSON-format · no-punctuation · line-per-item
+let N_PER_CONSTRAINT = 25   // prompts per constraint per model
+let N_TOTAL          = N_CONSTRAINTS * N_PER_CONSTRAINT   // = 100
+
+let CONSTRAINT_NAMES = ["5-word-limit", "JSON-format", "no-punctuation", "line-per-item"]
+
+let COMPLIANCE_THRESHOLD_x100 = 90    // < 90% on simple constraints → falsifier fires
+
+let MODEL_NAMES = ["strict-trained", "mid", "weak", "raw-base"]
+
+// per-constraint pass counts (out of 25 per cell) — placeholder profiles.
+// row = model, col = constraint.  sum across columns = N_passed for that model.
+//
+//                       5-word  JSON  no-punct  line/item   sum (N_passed)
+//   strict-trained:        24    23     24        24         = 95
+//   mid:                   22    20     20        20         = 82
+//   weak:                  18    16     17        17         = 68
+//   raw-base:              13    10     11        11         = 45
+//
+// Each cell ≤ 25 (per-constraint cap); each row sums to the model's N_passed.
+let PER_CONSTRAINT_PASSED = [
+    [24, 23, 24, 24],   // strict-trained → 95
+    [22, 20, 20, 20],   // mid            → 82
+    [18, 16, 17, 17],   // weak           → 68
+    [13, 10, 11, 11],   // raw-base       → 45
+]
+
+fn n_passed_total(m: int) -> int {
+    let row = PER_CONSTRAINT_PASSED[m]
+    let mut s = 0
+    let mut c = 0
+    while c < N_CONSTRAINTS {
+        s = s + row[c]
+        c = c + 1
+    }
+    return s
+}
+
+fn compliance_x100(m: int) -> int {
+    // (N_passed · 100) / N_total — integer percentage (libm-free)
+    return (n_passed_total(m) * 100) / N_TOTAL
+}
+
+fn falsifier_fires(m: int) -> bool {
+    return compliance_x100(m) < COMPLIANCE_THRESHOLD_x100
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Print
+// ────────────────────────────────────────────────────────────────────────
+
+print("hexa-codex INSTRUCTION-FOLLOWING A1 — format compliance rate closed-form (cycle-9 round-4)")
+print("===========================================================================================")
+print("")
+print("Formula:    compliance_rate = N_passed / N_total · 100       (Zhou 2023 IFEval · Tam 2024)")
+print("Scale:      integer ×100 throughout (closed-form, libm-free)")
+print("Constraints: " + to_string(N_CONSTRAINTS) + " simple binary checks × " +
+      to_string(N_PER_CONSTRAINT) + " prompts each = N_total = " + to_string(N_TOTAL))
+print("Threshold:  < " + to_string(COMPLIANCE_THRESHOLD_x100) + "% on simple constraints → falsifier fires")
+print("")
+
+print("per-model compliance profile (placeholder · IFEval-style simple-constraint bench):")
+let n_models = MODEL_NAMES.len()
+let mut i = 0
+while i < n_models {
+    let cr = compliance_x100(i)
+    let np = n_passed_total(i)
+    let mut flag = "ok"
+    if falsifier_fires(i) {
+        flag = "FAIL (< " + to_string(COMPLIANCE_THRESHOLD_x100) + "%)"
+    }
+    print("  " + MODEL_NAMES[i] +
+          ": N_passed=" + to_string(np) + "/" + to_string(N_TOTAL) +
+          " · compliance=" + to_string(cr) + "%   [" + flag + "]")
+    i = i + 1
+}
+print("")
+
+print("per-constraint × model breakdown (passes / 25):")
+print("  model           5-word  JSON  no-punct  line/item")
+let mut m = 0
+while m < n_models {
+    let row = PER_CONSTRAINT_PASSED[m]
+    print("  " + MODEL_NAMES[m] + ": " +
+          to_string(row[0]) + "  " +
+          to_string(row[1]) + "  " +
+          to_string(row[2]) + "  " +
+          to_string(row[3]))
+    m = m + 1
+}
+print("")
+
+print("__HEXA_CODEX_INSTRUCTION_FOLLOWING_A1_COMPLIANCE_RATE__ DONE")

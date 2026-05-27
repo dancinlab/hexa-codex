@@ -1,0 +1,202 @@
+#!hexa strict
+// PROMPT-SENSITIVITY/verify/numerics_prompt_sensitivity_a1_5prompt_agreement.hexa
+// PROMPT-SENSITIVITY A1 — closed-form verifier for 5-prompt agreement rate
+// (pairwise binomial matching · combinatorial identity + falsifier semantics).
+//
+// Asserts the agreement = matching_pairs / C(5,2) × 100 identity + falsifier:
+//   (1) C(5,2) = 10 pairs invariant (combinatorial identity)
+//   (2) all-same answers → agreement = 100 (every pair matches · upper bound)
+//   (3) all-different answers → agreement = 0 (no pair matches · lower bound)
+//   (4) range bound — agreement ∈ [0, 100] for all model arrays
+//   (5) < 80% model → falsifier fires (surface-prone correctly flagged)
+//   (6) ≥ 80% model → silent (consistent model not falsely flagged)
+//   (7) determinism (re-call same value · pure function)
+//
+// Source: PROMPT-SENSITIVITY/bench/prompt_sensitivity_a1_5prompt_agreement.hexa
+// External anchors:
+//   Sclar 2023 — quantifying prompt sensitivity (arXiv:2310.11324)
+//   Razavi 2022 — paraphrase robustness for NLI/QA
+//   Wei 2022 — chain-of-thought prompting (arXiv:2201.11903)
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["consistent", "mostly", "mixed", "surface-prone"]
+
+let ANS_CONSISTENT    = [7, 7, 7, 7, 7]
+let ANS_MOSTLY        = [7, 7, 7, 7, 3]
+let ANS_MIXED         = [7, 7, 7, 3, 3]
+let ANS_SURFACE_PRONE = [1, 2, 3, 4, 5]
+
+let AGREEMENT_THRESHOLD_x100 = 80
+
+fn n_pairs(n: int) -> int { return (n * (n - 1)) / 2 }
+
+fn matching_pairs(ans: [int]) -> int {
+    let n = ans.len()
+    let mut m = 0
+    let mut i = 0
+    while i < n {
+        let mut j = i + 1
+        while j < n {
+            if ans[i] == ans[j] { m = m + 1 }
+            j = j + 1
+        }
+        i = i + 1
+    }
+    return m
+}
+
+fn agreement_x100(ans: [int]) -> int {
+    let p = n_pairs(ans.len())
+    let m = matching_pairs(ans)
+    return (m * 100) / p
+}
+
+fn falsifier_fires(ans: [int]) -> bool {
+    return agreement_x100(ans) < AGREEMENT_THRESHOLD_x100
+}
+
+print("hexa-codex PROMPT-SENSITIVITY A1 falsifier — 5-prompt agreement closed-form")
+print("============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+
+// check 1 — C(5,2) = 10 pairs invariant (combinatorial identity)
+checks_total = checks_total + 1
+let p5 = n_pairs(5)
+if p5 == 10 {
+    print("  [PASS] C(5,2) = " + to_string(p5) + " pairs (combinatorial identity 5*4/2)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] C(5,2) = " + to_string(p5) + " expected 10")
+}
+
+// check 2 — all-same answers → agreement = 100 (upper bound)
+checks_total = checks_total + 1
+let ag_same = agreement_x100(ANS_CONSISTENT)
+let m_same = matching_pairs(ANS_CONSISTENT)
+if ag_same == 100 && m_same == 10 {
+    print("  [PASS] all-same [7,7,7,7,7] → matching=10/10 → agreement=100 (upper bound)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] all-same → matching=" + to_string(m_same) + " agreement=" + to_string(ag_same))
+}
+
+// check 3 — all-different answers → agreement = 0 (lower bound)
+checks_total = checks_total + 1
+let ag_diff = agreement_x100(ANS_SURFACE_PRONE)
+let m_diff = matching_pairs(ANS_SURFACE_PRONE)
+if ag_diff == 0 && m_diff == 0 {
+    print("  [PASS] all-different [1,2,3,4,5] → matching=0/10 → agreement=0 (lower bound)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] all-different → matching=" + to_string(m_diff) + " agreement=" + to_string(ag_diff))
+}
+
+// check 4 — range bound [0, 100] for all 4 model arrays
+checks_total = checks_total + 1
+let mut rb_ok = true
+let n = MODEL_NAMES.len()
+let mut k = 0
+while k < n {
+    let mut a = ANS_CONSISTENT
+    if k == 1 { a = ANS_MOSTLY }
+    if k == 2 { a = ANS_MIXED }
+    if k == 3 { a = ANS_SURFACE_PRONE }
+    let ag = agreement_x100(a)
+    if ag < 0 { rb_ok = false }
+    if ag > 100 { rb_ok = false }
+    k = k + 1
+}
+if rb_ok {
+    print("  [PASS] all 4 models agreement ∈ [0, 100] (range bound)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] some agreement out of [0, 100]")
+}
+
+// check 5 — < 80% model → falsifier fires (surface-prone correctly flagged)
+checks_total = checks_total + 1
+let ag_sp = agreement_x100(ANS_SURFACE_PRONE)
+let fires_sp = falsifier_fires(ANS_SURFACE_PRONE)
+if fires_sp && ag_sp < 80 {
+    print("  [PASS] surface-prone agreement=" + to_string(ag_sp) + " < 80 → falsifier fires (correct)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] surface-prone agreement=" + to_string(ag_sp) + " fires=" + to_string(if fires_sp { 1 } else { 0 }))
+}
+
+// check 6 — ≥ 80% model → silent (consistent NOT falsely flagged · false-positive 회피)
+checks_total = checks_total + 1
+let ag_c = agreement_x100(ANS_CONSISTENT)
+let fires_c = falsifier_fires(ANS_CONSISTENT)
+if !fires_c && ag_c >= 80 {
+    print("  [PASS] consistent agreement=" + to_string(ag_c) + " ≥ 80 → falsifier silent (false-positive avoided)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] consistent agreement=" + to_string(ag_c) + " fires=" + to_string(if fires_c { 1 } else { 0 }))
+}
+
+// check 7 — determinism (re-call same value · pure function)
+checks_total = checks_total + 1
+let d1 = agreement_x100(ANS_MIXED)
+let d2 = agreement_x100(ANS_MIXED)
+let dm1 = matching_pairs(ANS_MOSTLY)
+let dm2 = matching_pairs(ANS_MOSTLY)
+if d1 == d2 && dm1 == dm2 {
+    print("  [PASS] deterministic (re-call same agreement + same matching count)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] non-deterministic")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (combinatorial pairwise-agreement identity 7/7) + 🟡 BY-CITATION (80% threshold convention = Sclar 2023 · Razavi 2022)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — agreement formula contradicts combinatorial identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("PROMPT-SENSITIVITY A1 finding (placeholder · closed-form):")
+print("  - agreement = matching_pairs / C(5,2) × 100 (7/7 closed-form checks)")
+print("  - consistent=100 · mostly=60 · mixed=40 · surface-prone=0 (3 of 4 fire < 80%)")
+print("  - external anchors: Sclar 2023 arXiv:2310.11324 · Razavi 2022 · Wei 2022 CoT")
+print("  - 실측 5-prompt run (cycle-10+ T4): SANDBOX substrate · 5 paraphrase variants per question")
+print("")
+print("__HEXA_CODEX_NUMERICS_PROMPT_SENSITIVITY_A1_5PROMPT_AGREEMENT__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/PROMPT-SENSITIVITY/verdicts/a1_5prompt_agreement_verdict.txt"
+
+let mut content = "# hexa-codex PROMPT-SENSITIVITY A1 — 5-prompt agreement verifier (cycle-9 round-4)\n"
+content = content + "# axis=PROMPT-SENSITIVITY/PROMPT-SENSITIVITY.md::A1 (5-prompt agreement · pairwise binomial)\n"
+content = content + "# bench=PROMPT-SENSITIVITY/bench/prompt_sensitivity_a1_5prompt_agreement.hexa\n"
+content = content + "# verifier=PROMPT-SENSITIVITY/verify/numerics_prompt_sensitivity_a1_5prompt_agreement.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=agreement(A) = matching_pairs(A) * 100 / C(n,2); falsifier_fires = agreement < 80\n"
+content = content + "# placeholder_data=4 models × 5-answer arrays (consistent=100 · mostly=60 · mixed=40 · surface-prone=0)\n"
+content = content + "# external_anchors=Sclar 2023 (arXiv:2310.11324) · Razavi 2022 paraphrase · Wei 2022 CoT (arXiv:2201.11903)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-10+ · SANDBOX mac M3 / ubu-1 · 5 paraphrase variants per question)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — metric close ≠ measured close\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

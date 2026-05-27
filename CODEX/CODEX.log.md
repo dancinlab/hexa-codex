@@ -2,6 +2,56 @@
 
 Append-only history sister of `CODEX.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — cycle-9 round-4: 3 closed-form A1 wires (HALLUCINATION + INST-FOLLOW + PROMPT-SENS · /cycle-bg + salvage)
+
+`/cycle-bg` round-4 (sticky bg · cap=3 batch · bg agent fan-out). 3 closed-form A1 wires, 모두 ⭐⭐⭐ tier. throttle storm ×3 (15s→30s→60s cooldown 누적) 발생 — round-1 패턴 재현. 1 agent (INSTRUCTION-FOLLOWING) 가 21 tool_uses · 254s 후 API rate-limit 으로 죽었지만 **parent salvage 로 복구 성공** (cycle skill recovery pattern: untracked file salvage).
+
+| axis | tier | checks | branch | 비고 |
+|---|---|---|---|---|
+| HALLUCINATION/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | `agent/hallucination-a1-cycle9-r4` | 정상 완료 (5-model + zero-control Z=0) |
+| PROMPT-SENSITIVITY/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | `worktree-agent-a9dc0f5c4757ff18d` | 정상 완료 (C(5,2)=10 pairwise binomial) |
+| INSTRUCTION-FOLLOWING/A1 | 🔵 STRUCTURAL + 🟡 BY-CITATION | 7/7 | (no agent branch · parent salvage) | **agent rate-limit dead → parent salvaged** |
+
+### Build phase 출력
+
+- **HALLUCINATION** — `rate = N_confident_wrong / N_total × 100` · 5-model registry w/ zero-hall control Z=0 (bidirectional + null discrimination 보강). Anchors: Lin 2022 TruthfulQA (arXiv:2109.07958) · Kadavath 2022 P(True) · Yin 2023.
+- **PROMPT-SENSITIVITY** — pairwise C(5,2)=10 binomial agreement · all-same→100 · all-diff→0 · surface-prone fires · consistent silent. Anchors: Sclar 2023 (arXiv:2310.11324) · Razavi 2022 · Wei 2022 CoT.
+- **INSTRUCTION-FOLLOWING** — `compliance = N_passed / N_total × 100` · 4 models × 4 constraint types · per-constraint sum sanity (Σ_c cells == N_passed). Anchors: Zhou 2023 IFEval · Tam 2024 · Wadhwa 2024.
+
+### Agent death recovery pattern (새 학습)
+
+INSTRUCTION-FOLLOWING bg agent 가 21 tool_uses · 254s 후 "API Error: Server is temporarily limiting requests (not your usage limit) · Rate limited" 으로 사망. 단:
+- bench + verify 파일은 main worktree 에 untracked 로 남았다 (HALLUCINATION agent report 가 "untracked 봤다" 확인 → cross-validation).
+- `mkdir verdicts/` + `hexa run verify` → 7/7 PASS + verdict.txt 자동 작성.
+- parent 가 doc flip + log entry 인라인 마무리.
+
+새 recovery pattern: **agent 가 commit 전 사망 시 main worktree 의 untracked file 으로 살아남기도 함**. 기존 cycle skill "checkpoint commits are replay-safe" 의 변형 — checkpoint 없을 때 main-worktree untracked file 가 cross-process artifact 역할.
+
+### Throttle 관찰 (3-agent bg = 3 storm 재현)
+
+| 라운드 | mode | agents | storm |
+|---|---|---|---|
+| round-1 | bg | 3 | 3 (15s→30s→60s) · all 3 success |
+| round-2 | fg | 2 | 0 |
+| round-3 | fg | 2 | 0 |
+| round-4 | bg | 3 | 3 (15s→30s→60s) · 2 success + 1 partial-death (salvaged) |
+
+3-agent bg fan-out 은 100% storm 확정. 단 storm 이 작업을 죽이지는 않음 (자체 backoff). 단 누적 storm 이 마지막 단계에서 throttle-kill 한 사례 발생. 다음 round 부터 fg 또는 bg fan-out ≤ 2 권장.
+
+### 정직성 (honest residual)
+
+- 3 axis 모두 closed-form / citation tier · 실측 substrate fire 별 cycle-10+ deferred.
+- HALLUCINATION: TruthfulQA/SimpleQA 실측 미수행.
+- PROMPT-SENS: 5-prompt 실 LLM run 미수행.
+- INST-FOLLOW: IFEval ~541 prompt set × 25 verifier class 실측 미수행.
+
+- [x] dispatched + merged HALLUCINATION/A1 → 🔵+🟡 7/7
+- [x] dispatched + merged PROMPT-SENSITIVITY/A1 → 🔵+🟡 7/7
+- [x] dispatched + **salvaged** INSTRUCTION-FOLLOWING/A1 → 🔵+🟡 7/7
+- [ ] round-5 (남은 12 milestone · ⭐⭐⭐ 2 remaining: AGENT · LONG-CONTEXT + ⭐⭐ 10)
+
+**10/22 milestone done · 12 queued · ♾️ perpetual frontier OPEN.**
+
 ## 2026-05-28 — cycle-9 round-3: 2 closed-form A1 wires (PRIVACY + RAG · /cycle-fg inline)
 
 `/cycle-fg` round-3 (sticky fg · cap=2 batch · inline sequential). 2 closed-form A1 wires, 둘 다 ⭐⭐⭐ tier · 다른 compound 패턴 (delta-from-baseline vs OR compound).

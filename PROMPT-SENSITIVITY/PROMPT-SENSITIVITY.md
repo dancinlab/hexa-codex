@@ -20,7 +20,7 @@
 > PROMPT-SENSITIVITY 은 완료되지 않는다. 새 prompt 양식·domain·task class 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — 5-prompt agreement rate · variance · invariance score (closed-form). 반증자: factual prompt 일관성 < 80% → 표면 단서 의존 (진짜 앎 아님).
+- [x] A1 — 5-prompt agreement rate · variance · invariance score (closed-form). 반증자: factual prompt 일관성 < 80% → 표면 단서 의존 (진짜 앎 아님). **CYCLE-9 round-4 wire** · 🔵 STRUCTURAL + 🟡 BY-CITATION (7/7 closed-form) · anchors Sclar 2023 (arXiv:2310.11324) · Razavi 2022 · Wei 2022 CoT (arXiv:2201.11903) · 실측 5-prompt run deferred (cycle-10+ SANDBOX).
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — prompt-family ladder (formality·언어·길이) × task class 의 cross-model 비교. 반증자: prompt-family variance > task-class variance → prompt 가 task 보다 더 큰 영향 (잘못된 의존).

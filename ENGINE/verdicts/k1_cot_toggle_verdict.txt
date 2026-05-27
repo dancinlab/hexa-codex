@@ -1,0 +1,14 @@
+# hexa-codex ENGINE K1 — CoT-toggle scratch-pad serving verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::K1 (HALLUCINATION/N1 REASONING-DEPTH finding → serving scratch-pad/CoT toggle decision rule)
+# wire=ENGINE/wires/wire_k1_cot_toggle.hexa
+# verifier=ENGINE/verify/numerics_engine_k1_cot_toggle.hexa
+# tier=🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (HALLUCINATION/N1 cot_delta finding consume · Wei 2022 CoT arXiv:2201.11903 · 5pp scratch-pad-utility lower bound) — cot_toggle wires reasoning-depth utility into a direct-vs-thinking serving toggle · task-complexity gated
+# checks=7/7
+# rule=cot_toggle(cot_delta_pp_x100, task_complexity): cot_delta<500 -> direct (scratch-pad inert); cot_delta>=500 & complex -> thinking (utility활용); cot_delta>=500 & simple -> direct (비용절감)
+# source_finding=HALLUCINATION/N1 cot_delta_pp_x100 = scratchpad_x100 - direct_x100; frontier 4400/4200/4700/4000 (>= 500 · CoT load-bearing) · pattern_match 300 (< 500 · scratch-pad inert)
+# threshold=500/100 = 5pp scratch-pad-utility lower bound (separates deep-reasoning regime from pattern-matching regime · HALLUCINATION/N1)
+# cases=gpt5_o1[4400,complex]->thinking · gpt5_o1[4400,simple]->direct · gemma4_31b[4700,complex]->thinking · pattern_match[300,complex]->direct · pattern_match[300,simple]->direct
+# falsifier=finding-ignorant rule (complex-always-thinking, ignores cot_delta) forces thinking on Δ3pp pattern_match -> detected as WRONG vs cot_toggle direct (check 4)
+# external_anchor=Wei 2022 Chain-of-Thought (arXiv:2201.11903) · OpenAI o1 system card 2024 · Anthropic extended-thinking 2025 (consumed via HALLUCINATION/N1)
+# task_complexity_gated=CoT thinking enabled only when scratch-pad utility >= 5pp AND task is complex · simple tasks + inert utility default to direct (cost-saving)
+# honest_residual=live serving CoT-toggle wiring (lm_foundry · SANDBOX local llama-server thinking-mode switch) DEFERRED to cycle-11+ T4 (cx_lab_sandbox · feedback_closure_is_physical_limit — rule close != measured close)

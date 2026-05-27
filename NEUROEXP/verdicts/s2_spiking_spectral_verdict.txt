@@ -1,0 +1,19 @@
+# hexa-codex NEUROEXP S2 — spiking↔transformer activation spectral (cycle-12 first probe · 🟢 MEASURED)
+# axis=NEUROEXP.md::S2 (cycle-12 first probe · S = Spike/Dynamical-system · T4 cost-bearing)
+# verifier=NEUROEXP/verify/numerics_neuroexp_s2_spiking_spectral.hexa
+# capture=ubu-1 /tmp/nex_s2_spectral.py (repo-external · hexa-only rule · user-approved capture-only .py)
+# tier=🟢 SUPPORTED-NUMERICAL — Qwen2.5-1.5B activation spectrum: alpha 4.54 ≫ spiking 1.0 (gap 3.54) + dense 0.95% vs sparse → DIFFERENT family, S2 falsifier HOLDS (8/8)
+# checks=8/8
+# model=Qwen2.5-1.5B-Instruct · n_layers=28 · layer_used=14 · n_tokens=87 · d_model=1536
+# env=RTX5070 · torch2.12.0+cu130 · transformers4.51.3 · numpy1.26.4 (clean venv ubu-1)
+# alpha_transformer=4.542 (bulk ranks 2..768) · alpha_transformer_fullrange=8.866
+# spiking_ref_alpha=1.000 (~1/f cortical LFP/spike) · exponent_gap=3.542
+# sparsity_fraction=0.0095 (0.95% — essentially DENSE, continuous float)
+# top5_eigenvalues=[1.06e7, 1041, 600, 509, 352] (one huge mode, then steep power-law tail)
+# S2_falsifier=HOLDS — DIFFERENT power-law family (alpha 4.54 vs 1.0, gap 3.54) + DIFFERENT structure (dense vs sparse) → 'neuron-style activation' REFUTED
+# operational=spiking 1/f priors NOT a natural fit (transformer native spectrum far steeper) · SNN↔transformer needs IMPOSED sparsity (not emergent)
+# class=system-comparison (biological spiking system vs transformer system · MISMATCH · consistent w/ S1/N2/Φ2 SEPARATE)
+# cross_axis_tally=method-transfer 5/5 MATCH (N1·Φ1·L1·C1·L2) · system-comparison 4/4 MISMATCH (S1·N2·Φ2·S2)
+# external_anchor=Bedard&Destexhe2006_LFP_1/f · He2014_scalefree_brain · Beggs&Plenz2003_avalanches · Martin&Mahoney2021_arXiv1810.01075 · Qwen2.5_tech_report
+# next_probe=cycle-13+ same-rig LIF/Izhikevich simulator through identical eigenspectrum pipeline + Qwen2.5-{0.5B,1.5B,3B,7B}×layer×threshold sweep
+# RUN-HOST: capture on ubu-1 RTX5070 (clean venv nex-capture) · verifier compiled (hexa cc + hexa build) + executed on ubu-1 (native binary) · 8/8 PASS · __HEXA_CODEX_NUMERICS_NEUROEXP_S2_SPIKING_SPECTRAL__ DONE

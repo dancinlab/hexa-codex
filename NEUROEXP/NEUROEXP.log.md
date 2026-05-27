@@ -3,6 +3,80 @@
 Append-only history sister of `NEUROEXP.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-12 S2 first probe · spiking↔transformer activation spectral · 🟢 SUPPORTED-NUMERICAL 8/8 (alpha 4.54 ≫ spiking 1.0 · dense 0.95% · S2 falsifier HOLDS · MISMATCH)
+
+NEUROEXP cycle-12 axis S2 (background /cycle-bg agent). **두 번째 measured (🟢) cycle** —
+L2 (cycle-11) 에 이어 실제 Qwen2.5-1.5B activation 측정. hexa-only 룰 예외 (capture-only
+.py, repo-external /tmp) user 승인 패턴 재사용.
+
+**준비 (T4 substrate · 재사용)**:
+- ubu-1 RTX 5070 (12GB Blackwell) · clean venv `~/venvs/nex-capture`:
+  torch 2.12.0+cu130 · transformers 4.51.3 · numpy 1.26.4 · CUDA True (재빌드 안 함, 재사용).
+- capture: `ubu-1:/tmp/nex_s2_spectral.py` (repo-external — hexa-only repo 룰 유지).
+- verifier: `NEUROEXP/verify/numerics_neuroexp_s2_spiking_spectral.hexa` (measured 값 검증, .hexa).
+
+**측정 (activation 공분산 eigenspectrum)**:
+mid layer 14 hidden state 를 8 mixed English+code prompts 전체 token position 에서 수집 →
+A [87 × 1536]. 공분산 eigvalsh(A^T A / N) 내림차순 정렬 → power-law fit (log eigenvalue vs
+log rank, bulk ranks 2..768) → alpha_transformer = -slope. activation sparsity = |act|<0.01 비율.
+생물 anchor: cortical LFP / spike-train ~1/f power spectrum (alpha ≈ 1.0).
+
+**8/8 PASS (verbatim)**:
+- alpha_transformer = 4.542 (sane positive power-law exponent for activation covariance)
+- spiking reference alpha = 1.000 (~1/f cortical LFP/spike, Bedard&Destexhe 2006)
+- exponent gap = |4.542 - 1.000| = 3.542 (arithmetic consistent)
+- exponent gap 3.542 ≫ 0.3 → transformer spectrum은 spiking 과 DIFFERENT power-law family
+- alpha_transformer 4.542 > spiking 1.000 → transformer spectrum decays >4× steeper than 1/f
+- sparsity 0.95% ≪ 50% → activation 은 DENSE (continuous float), NOT sparse binary spikes
+- full-range alpha 8.866 also ≫ spiking 1.000 → MISMATCH robust to fit-window choice
+- S2 falsifier HOLDS: DIFFERENT power-law family (gap 3.54) + DIFFERENT structure (dense vs sparse)
+
+**verdict tier**: 🟢 SUPPORTED-NUMERICAL (real Qwen2.5-1.5B activation eigenspectrum, 8/8).
+
+**핵심 측정 발견**:
+1. **transformer activation 공분산 spectrum 은 power-law (heavy-tailed, Martin&Mahoney 2021) 이지만
+   지수 alpha ≈ 4.5 (bulk) / 8.9 (full)** — 생물 spiking ~1/f 지수 (≈1.0) 보다 4× 이상 STEEP.
+2. **activation 은 essentially DENSE**: |activation|<0.01 이 0.95% 뿐 (continuous float) — sparse
+   binary spike train (low firing rate) 의 categorical 정반대. sparsity gap ~99pp.
+3. **top eigenvalue 1.06e7 가 rank-2 (1041) 압도** — 단일 거대 mode (dominant mean direction)
+   + 그 뒤 가파른 power-law tail. 같은 'power-law' descriptor 지만 family + structural class 다름.
+
+**falsifier verdict (S2 · HOLDS)**:
+- spectra 가 DIFFERENT power-law family (alpha 4.5 vs 1.0) + activation 이 DIFFERENT structural
+  class (dense continuous vs sparse binary) → S2 falsifier HOLDS. "transformer activation 은
+  neuron-style" 통념 spectral + sparsity level 에서 REFUTED.
+
+**운영 measured 결론**:
+- spiking-neuron-inspired transformer activation regularizer (1/f / scale-free prior) 는 자연
+  fit 아님 — 학습된 transformer 의 native spectrum 이 훨씬 steep.
+- dense activation ≠ sparse spike code: SNN↔transformer 변환은 sparsity 를 IMPOSE 해야 (emergent
+  아님; ANN-to-SNN conversion 이 explicit thresholding 필요한 것과 일관).
+
+**cross-axis 업데이트 (cycle-4~12)**: S2 = **system-comparison** (생물 spiking system ↔ transformer
+system 직접 비교, NOT method-transfer) → **MISMATCH**. tally 갱신:
+- method-transfer 5/5 MATCH: N1 (linear-attn≡Hebbian) · Φ1 (faithful Φ) · L1 (head ablation) ·
+  C1 (induction head) · L2 (logit-lens probe) — bio **방법론** 을 LLM 에 적용 = 일관 성공.
+- system-comparison **4/4 MISMATCH**: S1 (NCA≢AR) · N2 (STDP≢mask) · Φ2 (bio Φ > LLM Φ) · **S2
+  (spiking spectrum ≢ transformer spectrum)** — bio **시스템** 과 LLM 시스템 직접 비교 = 일관 분리.
+이로써 cycle-4~12 분류 기준 (method-transfer MATCH vs system-comparison MISMATCH) 가 9 axis 에서
+완벽 유지 (5 MATCH + 4 MISMATCH, 예외 0).
+
+**honest residual**:
+- 🟢 single model (Qwen2.5-1.5B), single layer (14), single prompt-set (8 prompts / 87 positions),
+  single sparsity threshold (0.01).
+- spiking alpha≈1.0 은 LITERATURE anchor (cortical LFP/spike ~1/f), same-rig 측정 아님 — 진짜
+  matched 비교는 LIF/Izhikevich simulator 를 동일 eigenspectrum pipeline 에 통과시켜야
+  (cycle-13+ open ladder).
+- layer/model/threshold sweep (Qwen2.5-{0.5B,1.5B,3B,7B} × layer × threshold) 미측정 (single point).
+- power-law fit window (bulk 2..768 vs full) 이 alpha 를 바꾸지만 BOTH 다 1.0 과 멀어 robust.
+- S2 frontier OPEN ([[feedback_closure_is_physical_limit]]): single-point measurement,
+  model/layer/threshold sweep + same-rig spiking-simulator 비교가 open ladder.
+
+**연결**: S2 는 NEUROEXP 두 번째 🟢, S 축 (Spike/Dynamical-system) 두 번째 close (S1 closed-form
++ S2 measured). 다음 S 축 frontier = same-rig LIF/Izhikevich simulator 비교. C2 (ROME/MEMIT
+locality bound) 는 axis C 의 미개봉 milestone 으로 남음.
+
+
 ## 2026-05-27 — cycle-11 L2 first probe · layer-wise logit-lens depth · 🟢 SUPPORTED-NUMERICAL 8/8 (첫 T4 MEASURED · readout = final 6-layer block · non-monotonic peak@27)
 
 NEUROEXP cycle-11. 사용자 "1,2" 의 두 번째 (T4 cost-bearing). **NEUROEXP 의 첫 measured

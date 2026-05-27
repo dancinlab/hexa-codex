@@ -1,0 +1,121 @@
+#!hexa strict
+// hexa-codex/ENGINE/wires/wire_p1_ckpt_verify.hexa
+// ENGINE axis P1 — RELIABILITY/N1 CHECKPOINT-INTEGRITY finding → lm_foundry
+// checkpoint-resume automatic integrity-verification hook (cycle-10).
+//
+// SOURCE FINDING (RELIABILITY/N1 ⭐ · checkpoint integrity identity).
+//   integrity_pass = (mismatch_ppm == 0) AND (format_loss_pct_x100 < 500).
+//   save→load bit-exact (mismatch_ppm) + 포맷변환 손실 (format_loss_pct_x100)
+//   dual-falsifier. corrupted_shard (50000ppm) fires the mismatch falsifier ·
+//   safetensors / pytorch / gguf_q8 / gguf_q4 roundtrips stay silent (mismatch 0 ·
+//   loss ≤ 5%). The danger: safetensors/gguf_q8 SILENTLY load a corrupted or
+//   over-quantized checkpoint, so a training resume proceeds on broken weights.
+//
+// DECISION RULE (closed-form · this wire).  verify_resume(mismatch_ppm,
+//   format_loss_pct_x100) turns that integrity identity into an actual
+//   lm_foundry resume gate — a {accept, reject} decision on whether the loaded
+//   checkpoint may be used to RESUME training:
+//     (1) mismatch_ppm > 0           → "reject" — save→load bit-exactness broken;
+//                                        resume on these weights diverges from the
+//                                        saved optimizer/parameter state (학습 재개 불가).
+//     (2) format_loss_pct_x100 > 500 → "reject" — format-conversion (quant) loss
+//                                        exceeds 5%; the loaded checkpoint is too
+//                                        lossy to faithfully resume (포맷변환 손실 과다).
+//     (3) else                       → "accept" — bit-exact AND conversion loss
+//                                        ≤ 5% → 무결, safe to resume.
+//
+// The rule consumes the SAME RELIABILITY/N1 dual-falsifier identity (mismatch +
+// format-loss thresholds) — wire ↔ finding consistency is asserted by check (6)
+// of the verifier.
+//
+// FALSIFIER (paired verifier · check 4). A wire that IGNORED the finding —
+// accepting a mismatch_ppm > 0 resume (silently loading broken weights) — is
+// constructed explicitly and MUST be detected as wrong against verify_resume's
+// "reject".
+//
+// HONESTY. Closed-form decision rule only. Connecting this rule to the live
+// lm_foundry training-pipeline checkpoint-resume hook (real ckpt save→load
+// roundtrip + llama.cpp quantize fidelity diff) is a cost-bearing T4 contact
+// DEFERRED to cycle-11+ (per feedback_closure_is_physical_limit — rule close ≠
+// measured close).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure decision-rule emission — no runtime infer call, no atlas atoms touched.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Finding constants (RELIABILITY/N1 · integer ppm + pct×100 ledger · libm-free)
+// ────────────────────────────────────────────────────────────────────────
+
+let MISMATCH_REJECT_THRESHOLD_PPM = 0     // mismatch_ppm > 0 → reject (bit-exact 깨짐)
+let LOSS_REJECT_THRESHOLD_x100    = 500   // format_loss_pct_x100 > 500 (5%) → reject
+
+// ────────────────────────────────────────────────────────────────────────
+// Decision rule — verify_resume(mismatch_ppm, format_loss_pct_x100) → {accept, reject}
+// ────────────────────────────────────────────────────────────────────────
+
+fn verify_resume(mismatch_ppm: int, format_loss_pct_x100: int) -> str {
+    // (1) save→load bit-exactness broken → resume 불가.
+    if mismatch_ppm > MISMATCH_REJECT_THRESHOLD_PPM {
+        return "reject"
+    }
+    // (2) format-conversion (quant) loss exceeds 5% → 변환 손실 과다.
+    if format_loss_pct_x100 > LOSS_REJECT_THRESHOLD_x100 {
+        return "reject"
+    }
+    // (3) bit-exact AND loss ≤ 5% → 무결, safe to resume.
+    return "accept"
+}
+
+// ────────────────────────────────────────────────────────────────────────
+// Test cases — RELIABILITY/N1-consistent (5 scenarios · integer ledger)
+// ────────────────────────────────────────────────────────────────────────
+
+let CASE_NAME = [
+    "safetensors",        // 0ppm · 0% → accept (bit-exact clean roundtrip)
+    "pytorch",            // 0ppm · 0% → accept (torch.save/load bit-exact)
+    "gguf_q8",            // 0ppm · 0.5% → accept (loss ≤ 5% · silent OK)
+    "gguf_q4",            // 0ppm · 3.2% → accept (loss ≤ 5% · borderline OK)
+    "corrupted_shard",    // 50000ppm → reject (save→load mismatch fires)
+]
+let CASE_MISMATCH_PPM = [
+    0,                    // safetensors
+    0,                    // pytorch
+    0,                    // gguf_q8
+    0,                    // gguf_q4
+    50000,                // corrupted_shard (RELIABILITY/N1 datum)
+]
+let CASE_LOSS_x100 = [
+    0,                    // safetensors
+    0,                    // pytorch
+    50,                   // gguf_q8 (0.50%)
+    320,                  // gguf_q4 (3.20%)
+    0,                    // corrupted_shard
+]
+let CASE_EXPECT = [
+    "accept",             // bit-exact clean
+    "accept",             // bit-exact clean
+    "accept",             // loss 0.5% ≤ 5%
+    "accept",             // loss 3.2% ≤ 5%
+    "reject",             // mismatch 50000ppm > 0
+]
+
+print("hexa-codex ENGINE P1 — RELIABILITY/N1 CHECKPOINT-INTEGRITY → lm_foundry resume hook (cycle-10)")
+print("================================================================================================")
+print("")
+print("source finding: RELIABILITY/N1 integrity_pass = (mismatch_ppm == 0) AND (format_loss_pct_x100 < 500)")
+print("decision rule:  verify_resume(mismatch_ppm, format_loss_pct_x100) → {accept, reject}")
+print("  mismatch_ppm > 0 → reject (resume bit-exact 깨짐) · format_loss_pct_x100 > 500 (5%) → reject (변환 손실 과다) · else → accept")
+print("")
+
+let mut i = 0
+while i < CASE_NAME.len() {
+    let got = verify_resume(CASE_MISMATCH_PPM[i], CASE_LOSS_x100[i])
+    let mut mark = "ok"
+    if got != CASE_EXPECT[i] { mark = "MISMATCH" }
+    print("  " + CASE_NAME[i] + " (mismatch=" + to_string(CASE_MISMATCH_PPM[i]) +
+          "ppm · loss=" + to_string(CASE_LOSS_x100[i]) + "/100%) → verify_resume=" + got +
+          " [expect " + CASE_EXPECT[i] + " · " + mark + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ENGINE_P1_CKPT_VERIFY__ DONE")

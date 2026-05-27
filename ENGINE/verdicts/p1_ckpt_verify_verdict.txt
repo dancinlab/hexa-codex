@@ -1,0 +1,12 @@
+# hexa-codex ENGINE P1 — checkpoint-resume integrity-gate verifier (cycle-10)
+# axis=ENGINE/ENGINE.md::P1 (RELIABILITY/N1 CHECKPOINT-INTEGRITY finding → lm_foundry checkpoint-resume auto-verify hook)
+# wire=ENGINE/wires/wire_p1_ckpt_verify.hexa
+# verifier=ENGINE/verify/numerics_engine_p1_ckpt_verify.hexa
+# tier=🔵 STRUCTURAL (decision rule 7/7) + 🟡 BY-CITATION (RELIABILITY/N1 finding consume · safetensors/PyTorch/GGUF quant + ZeRO checkpoint convention) — verify_resume wires the checkpoint-integrity identity into an lm_foundry resume accept/reject gate · dual-falsifier (mismatch + format-loss)
+# checks=7/7
+# rule=verify_resume(mismatch_ppm, format_loss_pct_x100): mismatch_ppm > 0 -> reject (resume bit-exact 깨짐); format_loss_pct_x100 > 500 (5%) -> reject (변환 손실 과다); else -> accept (무결)
+# source_finding=RELIABILITY/N1 integrity_pass = (mismatch_ppm == 0) AND (format_loss_pct_x100 < 500); dual-falsifier (a) mismatch>0 · (b) loss_x100 > 500
+# cases=safetensors[0ppm/0%]->accept · pytorch[0ppm/0%]->accept · gguf_q8[0ppm/0.5%]->accept · gguf_q4[0ppm/3.2%]->accept · corrupted_shard[50000ppm/0%]->reject
+# falsifier=finding-ignorant rule (accept-always for mismatch>0 · silent broken-weight resume) detected as WRONG vs verify_resume reject (check 4)
+# external_anchor=safetensors spec (HuggingFace) · PyTorch torch.save/load · llama.cpp GGUF quant (Q8/Q4/Q2) · ZeRO checkpoint (Rajbhandari 2020 arXiv:1910.02054) · consumed via RELIABILITY/N1
+# honest_residual=live lm_foundry checkpoint-resume hook (real ckpt save→load roundtrip + llama.cpp quantize fidelity diff · mac M3 · vast.ai pod) DEFERRED to cycle-11+ T4 (feedback_closure_is_physical_limit — rule close != measured close)

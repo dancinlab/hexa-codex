@@ -35,6 +35,16 @@
 @domain ARCHITECTURE := "./ARCHITECTURE/ARCHITECTURE.md"
 @domain POST-TRAINING := "./POST-TRAINING/POST-TRAINING.md"
 @domain OBSERVABILITY := "./OBSERVABILITY/OBSERVABILITY.md"
+@domain MODEL-CLASS := "./MODEL-CLASS/MODEL-CLASS.md"
+# ─── VERTICAL/* 전문 모델 측정 도메인군 (2026-05-28 cycle-10 · "실제 생성되는 전문 모델") ───
+@domain CODE := "./VERTICAL/CODE/CODE.md"
+@domain BIO := "./VERTICAL/BIO/BIO.md"
+@domain MATH := "./VERTICAL/MATH/MATH.md"
+@domain LAW := "./VERTICAL/LAW/LAW.md"
+@domain MEDICAL := "./VERTICAL/MEDICAL/MEDICAL.md"
+@domain FINANCE := "./VERTICAL/FINANCE/FINANCE.md"
+@domain SCIENCE := "./VERTICAL/SCIENCE/SCIENCE.md"
+@domain ROBOTICS := "./VERTICAL/ROBOTICS/ROBOTICS.md"
 
 # ─── driving lane (실제 wire 구현) — ENGINE 은 line 6 core sibling 으로 등록됨 (active) ───
 # CODEX archived 2026-05-28 (cycle-10 reorg) — 22 candidate first-probe orchestrator 역할 종료.

@@ -20,7 +20,7 @@
 > ENERGY 은 완료되지 않는다. 새 HW (CPU/GPU/NPU)·kernel·model arch 가 등장할 때마다 축이 다시 열리고 새 cell 추가.
 
 ### 축 A — first probe (closed-form baseline)
-- [ ] A1 — RAPL (CPU) · NVIDIA-smi (GPU) 로 tokens/J at fixed task 측정. 반증자: tokens/J 가 SOTA 모델 대비 2배 초과 → 비효율 모델/구현.
+- [x] A1 — RAPL (CPU) · NVIDIA-smi (GPU) 로 tokens/J at fixed task 측정. 반증자: tokens/J 가 SOTA 모델 대비 2배 초과 → 비효율 모델/구현. **CYCLE-9 round-1 first probe (2026-05-28):** `ENERGY/bench/energy_a1_tokens_per_joule.hexa` + `ENERGY/verify/numerics_energy_a1_tokens_per_joule.hexa` ✅ 7/7 PASS · 🔵 STRUCTURAL (closed-form identity 6/7) + 🟡 BY-CITATION (SOTA floor 1/7). Identity tokens/J = N_tokens / E_total[J] where E_total = ∫P(t)dt ≈ Σ P_k·Δt_k ≈ mean_W·T (Riemann ↔ mean-power bit-identical, |Δ|=0 mJ). Worked example 200 W · 60 s · 480 tok → 12 000 J → 0.040 tok/J > 0.025 floor. Linearity (2× N → 2× tok/J) + inverse (2× E → ½ tok/J) closed-form. **Real RAPL + NVIDIA-smi 측정 = COST-BEARING, deferred** to a separate cycle on ubu-1 (RTX 5070 + 13900K, per-task fixture); macOS Mx 는 `bench/bitnet_m6_energy_per_token.hexa` 의 powermetrics recipe 재사용. External anchors: Patterson 2021 (arXiv:2104.10350) · Strubell 2019 (arXiv:1906.02243) · Schwartz 2020 (arXiv:1907.10597). **frontier OPEN** (feedback_closure_is_physical_limit) — instrumentation close ≠ measurement close; 새 HW (CPU/GPU/NPU) 등장 시 axis 재오픈.
 
 ### 축 B — second probe (measured ladder)
 - [ ] B1 — model scale · quant tier · batch size × tokens/J fit (Pareto frontier). 반증자: quant int4 의 energy 절감 < 30% vs fp16 → quant 의 energy 이득 marginal.

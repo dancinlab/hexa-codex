@@ -3,6 +3,31 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-28 — cycle-10 reorg: 12 흡수 N⭐ finding → intake matrix axis H~T 등재 (CODEX archive · ENGINE driving 무게중심)
+
+CODEX archive + FRONTIER retire 후, 흡수된 12 도메인 N⭐ finding 을 ENGINE intake matrix 에 axis letter 부여하여 등재 (N 은 NOVEL 점유 → skip). 사용자 directive: "전부 ENGINE intake matrix 등재하고 순차 wire" + "ENGINE 으로 실제 내꺼 만들어가는 재미".
+
+| axis | source finding | wire target |
+|---|---|---|
+| H | ENERGY/N1 SPARSE-MOE | MoE active-param-aware model selection |
+| I | ENERGY/N2 QUANTIZATION | 양자화 레벨 자동 선택 (품질 budget) |
+| J | AGENT/N1 AGENTIC-TRAJECTORY | multi-step plan-execute 안전 게이트 |
+| K | HALLUCINATION/N1 REASONING-DEPTH | scratch-pad/CoT inference 토글 |
+| L | ECONOMICS/N1 COST-PERFORMANCE | cost-aware model routing |
+| M | MULTIMODAL/A1 MODALITY-BALANCE | modality-aware dispatch |
+| O | ROBUSTNESS/N1 ALIGNMENT-FAKING | eval-vs-deploy consistency monitor |
+| P | RELIABILITY/N1 CHECKPOINT-INTEGRITY | checkpoint resume 자동 검증 |
+| Q | MULTILINGUAL/N1 TOKENIZER | tokenizer-fertility-aware context budget |
+| R | BATCH-COMP/N1 SPECULATIVE-DECODING | draft-acceptance-aware speculative 토글 |
+| S | HW-VARIANCE/N1 DISTRIBUTED-SCALING | scaling-efficiency-aware GPU 배치 |
+| T | LONG-CONTEXT/N2 KV-CACHE | paged-attention KV budget |
+
+→ intake matrix 가 7 sibling (A~G) + 12 흡수 (H~T) + N(NOVEL) = **19 driving axis** 확장. wire `.hexa` (finding → decision-rule closed-form) 는 순차 batch (cap=3) · 패턴 G1/N1 따라 `ENGINE/wires/wire_<x>1_*.hexa` + `ENGINE/verify/numerics_engine_<x>1_*.hexa`. 실제 LLM 연결 (lm_foundry Mk.I · SANDBOX serving) = cost-bearing cycle-11+ deferred.
+
+- [x] 12 흡수 N⭐ → axis H~T 등재 (intake matrix)
+- [ ] 순차 wire batch 1 (H·I·J) · 2 (K·L·M) · 3 (O·P·Q) · 4 (R·S·T)
+- [ ] 각 wire 실제 LLM behavior 연결 (cost-bearing cycle-11+)
+
 ## 2026-05-28 — cycle-10 round-1 ENGINE intake matrix 확장: axis G CALIBRATION promote + 19 wire stub · race-avoid 2 deferred
 
 `/cycle-bg` cycle-10 round-1 (post-22/22 closure). CODEX 22 candidate sibling 중 첫 🟢 SUPPORTED-NUMERICAL 도달 후보인 **CALIBRATION/A1 (ECE closed-form · Naeini 2015 · Guo 2017 · cycle-9 round-1 · 7/7 PASS)** 을 ENGINE intake matrix 의 **신규 axis letter G** 로 승격. 나머지 21 후보는 `## ENGINE intake (wire stub)` 섹션을 각 snapshot 에 plant (next axis letter H/I/J... 후보 frontier 선언).

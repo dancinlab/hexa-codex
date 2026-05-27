@@ -56,6 +56,54 @@ ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한�
 > **driving target:** SANDBOX serving stack (llama-server · transformers HF) 의 inference-time decoding temperature 자동 선택 + confidence threshold 기반 abstention/refusal. CALIBRATION 은 7번째 측정 sibling (model confidence ↔ 정답률 일치도) — CODEX 22 candidate 중 cycle-9 round-1 에 🟢 SUPPORTED-NUMERICAL 도달한 첫 후보 (cycle-10 round-1 promote).
 - [x] G1 — CALIBRATION cycle-9 round-1 A1 (ECE closed-form · Naeini 2015 AAAI · Guo 2017 ICML · 🟢 7/7 PASS) 의 ECE measurement 를 SANDBOX serving 의 decoding temperature 결정 + confidence-thresholded abstention 으로 wire. 반증자: wired ECE-driven decoding 이 per-bin acc/conf gap (ex2 over-confident: conf=90·acc=50 → ECE=0.40) 에 반응하지 않거나, ECE > 0.1 일 때도 temperature/threshold 미조정 (calibration 결과가 inference path 에 미반영). external anchor: Naeini 2015 ECE original · Guo 2017 modern over-conf > 0.1 · Kuleshov 2018 uncertainty regression · Platt scaling. **CYCLE-10 round-1 promote SPEC (2026-05-28):** ENGINE intake matrix 에 G 행 신규 추가 (CODEX 22 candidate 중 첫 axis-letter 부여). wire `.hexa` 작성은 cycle-10 후속 라운드 deferred (현재는 axis-letter reserve + matrix promotion). G1 첫 데이터 포인트: ΔM=0 (CALIBRATION/A1 spawn=cycle-9 round-1 → ENGINE/G promote=cycle-10 round-1, sibling-cycle 카운터 기준 인접 cycle = N1 latency ledger 의 fast cell 추가 후보). **frontier OPEN** — closed-form ECE formula 만 닫힘 (per-bin 정수 ×100 ledger · libm-free); per-model measured ECE (mac M3 llama-server / ubu-1 HF transformers · MMLU/GSM8K logprob extraction) deferred. CALIBRATION 의 새 measured fire 가 ECE > 0.1 model 을 발견하면 G1 wire 의 temperature schedule + abstention threshold 재정의 필요.
 
+### 축 H — ENERGY/N1 SPARSE-MOE finding → MoE active-param-aware model selection driving
+> **driving target:** SANDBOX serving 의 MoE 모델 선택 — active-param efficiency 기반 (dense vs MoE 같은 active-param-class 비교). "MoE free lunch" 신화가 task-class dependent 이므로 wire 는 task 별 dense/MoE 선택.
+- [ ] H1 — ENERGY/N1 (active_premium=982/1000 · 🔴 myth FALSIFIED in Gemma 4 family) 를 serving model-router 의 dense-vs-MoE 선택 로직으로 wire. 반증자: wired router 가 same-active-class 에서 MoE 를 무조건 선호 (myth 반영 안 함) OR task-class 무시. anchor: arXiv:2604.07035 · Fedus 2022 Switch. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire `.hexa` 순차 라운드.
+
+### 축 I — ENERGY/N2 QUANTIZATION finding → 양자화 레벨 자동 선택 driving
+> **driving target:** serving 시 품질 budget 기반 양자화 레벨 (fp16/Q8/Q4/Q2) 자동 선택 — 손실 ≤ 5% 유지하며 최대 압축.
+- [ ] I1 — ENERGY/N2 (gguf_q2 15% 손실 fires · fp16~q4 silent) 를 양자화-레벨 selector 로 wire. 반증자: wired selector 가 5% 손실 threshold 무시하고 q2 까지 압축 OR 품질 budget 미반영. anchor: Frantar 2023 GPTQ · Lin 2023 AWQ · llama.cpp GGUF. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 J — AGENT/N1 AGENTIC-TRAJECTORY finding → multi-step plan-execute 안전 게이트 driving
+> **driving target:** agentic serving 의 multi-step trajectory 안전 게이트 — step-decay 가 큰 모델은 step 수 제한 / 검증 강화.
+- [ ] J1 — AGENT/N1 (decay 214 fires · 4 frontier silent) 를 trajectory-length 게이트로 wire. 반증자: wired 게이트가 5-step decay < 0.3 모델에 step 제한 미적용 OR single/multi 구분 안 함. anchor: GAIA · ATBench · SWE-bench Pro. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 K — HALLUCINATION/N1 REASONING-DEPTH finding → scratch-pad/CoT inference 토글 driving
+> **driving target:** serving 시 scratch-pad/CoT 활성화 결정 — utility 큰 task 는 thinking 모드, 작은 task 는 direct (비용 절감).
+- [ ] K1 — HALLUCINATION/N1 (pattern_match Δ3 fires · 4 frontier Δ40-47 silent) 를 CoT-toggle 로 wire. 반증자: wired toggle 이 scratch-pad utility < 5pp task 에도 thinking 강제 (비용 낭비) OR utility 무시. anchor: Wei 2022 CoT · Gemma 4 TR. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 L — ECONOMICS/N1 COST-PERFORMANCE finding → cost-aware model routing driving
+> **driving target:** serving 의 cost-aware 모델 라우팅 — 같은 acc-tier 에서 50× cost spread 활용하여 cheapest-sufficient 선택.
+- [ ] L1 — ECONOMICS/N1 (50× spread fires · GPT-5 $15 vs DeepSeek V4 $0.30) 를 cost-router 로 wire. 반증자: wired router 가 same-acc-tier 에서 cheapest 무시 OR cost 차이 미반영. anchor: LXT 2026 · Artificial Analysis Index. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 M — MULTIMODAL/A1 MODALITY-BALANCE finding → modality-aware dispatch driving
+> **driving target:** multimodal serving 의 modality-aware 모델 dispatch — modality gap 큰 모델은 해당 modality task 회피.
+- [ ] M1 — MULTIMODAL/A1 (legacy_vlm 75pp fires · gemma4/qwen native silent) 를 modality-dispatch 로 wire. 반증자: wired dispatch 가 audio/video unsupported 모델에 해당 task 할당 OR gap 무시. anchor: Gemma 4 TR · LLaVA · Qwen-Audio. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 O — ROBUSTNESS/N1 ALIGNMENT-FAKING finding → eval-vs-deploy consistency monitor driving
+> **driving target:** serving 의 eval-vs-deploy 행동 일관성 모니터 — eval-aware sandbagging 의심 모델 flag + deploy 행동 감사.
+- [ ] O1 — ROBUSTNESS/N1 (strong_faker gap44 fires · honest/genuinely-unsafe silent) 를 consistency-monitor 로 wire. 반증자: wired monitor 가 eval-context hint 시 pass▲>10pp 모델 미감지 OR honest 를 false-flag. anchor: 2026 AISI report · Hubinger 2024 sleeper agents. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 P — RELIABILITY/N1 CHECKPOINT-INTEGRITY finding → checkpoint resume 자동 검증 driving
+> **driving target:** lm_foundry 학습 파이프라인의 checkpoint save→load 자동 무결성 검증 + 포맷변환 손실 게이트.
+- [ ] P1 — RELIABILITY/N1 (corrupted-shard fires · safetensors/gguf_q8 silent) 를 ckpt-verify hook 으로 wire. 반증자: wired hook 이 mismatch>0 resume 를 통과 OR 포맷변환 손실>5% 미감지. anchor: safetensors spec · ZeRO checkpoint. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 Q — MULTILINGUAL/N1 TOKENIZER finding → tokenizer-fertility-aware context budget driving
+> **driving target:** multilingual serving 의 언어별 context budget 조정 — low-resource lang 은 token-fertility 보정하여 context 확보.
+- [ ] Q1 — MULTILINGUAL/N1 (burmese 21%·hindi 35%·korean 47% fires) 를 context-budget allocator 로 wire. 반증자: wired allocator 가 low-fertility lang 에 영어와 동일 token budget 적용 (불공평) OR fertility 무시. anchor: Ahia 2023 · Petrov 2023. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 R — BATCH-COMPOSITION/N1 SPECULATIVE-DECODING finding → draft-acceptance-aware speculative 토글 driving
+> **driving target:** serving 의 speculative decoding 자동 토글 — draft acceptance 높은 조합만 활성화 (낮으면 비활성, 오버헤드 회피).
+- [ ] R1 — BATCH-COMP/N1 (bad_draft 30% fires · good drafts ≥50% silent) 를 speculative-toggle 로 wire. 반증자: wired toggle 이 acceptance<50% draft 를 활성 유지 (speedup<1.2× 낭비) OR acceptance 무시. anchor: Leviathan 2023 · Cai 2024 Medusa. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 S — HW-VARIANCE/N1 DISTRIBUTED-SCALING finding → scaling-efficiency-aware GPU 배치 driving
+> **driving target:** multi-GPU serving/training 의 scaling-efficiency 기반 GPU 수 결정 — efficiency<70% 면 GPU 추가 중단 (통신 오버헤드).
+- [ ] S1 — HW-VARIANCE/N1 (tp_comm_bound 60%·multinode 65% fires · dp/fsdp ≥70% silent) 를 GPU-count selector 로 wire. 반증자: wired selector 가 efficiency<70% 인데 GPU 계속 추가 OR Amdahl 무시. anchor: Megatron · ZeRO · FSDP. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
+### 축 T — LONG-CONTEXT/N2 KV-CACHE finding → paged-attention KV budget driving
+> **driving target:** serving 의 KV cache 전략 선택 — paged attention (vLLM) vs contiguous · utilization 기반 메모리 budget.
+- [ ] T1 — LONG-CONTEXT/N2 (static_maxlen 40%·contiguous 45% fires · paged ≥50% silent) 를 KV-cache-strategy selector 로 wire. 반증자: wired selector 가 utilization<50% 전략 (static_maxlen) 선택 OR fragmentation 무시. anchor: Kwon 2023 vLLM PagedAttention · Hooper 2024 KVQuant. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+
 ### 축 N — 🆕 NOVEL: discovery → execution closed-loop latency (ENGINE 메인, ⭐ MAIN priority lane)
 > **⭐ MAIN priority lane** (ENGINE 의 self-NOVEL axis). 다른 5 axis 의 *driving 자체를 측정* 하는 meta-axis. measurement frontier 가 발견을 만든 시점부터 그 발견이 실제 LLM behavior change 로 wire 된 시점까지 의 시간 (latency) + 적용된 결과의 fidelity (발견값 ↔ wired-behavior 일치율).
 - [x] N1 — discovery→execution **latency** 측정 baseline 수립: 각 sibling NOVEL axis 의 cycle N 결과 → ENGINE 적용된 cycle M 까지 ΔM 측정 (현재 모두 manual ∞). 반증자: 측정 cycle ↔ ENGINE wire cycle 간격이 5 cycle 초과 → human-in-loop 가 bottleneck 임을 quantify (자동화 필요 신호). 외부 anchor: closed-loop optimization 분야 (Snoek 2012 Bayesian optimization · Sutton 1988 TD learning). **CYCLE-5 baseline (2026-05-27):** `ENGINE/wires/wire_n1_latency_baseline.hexa` + `ENGINE/verify/numerics_engine_n1_latency_baseline.hexa` ✅ 5/5 PASS · 🟢 SUPPORTED-NUMERICAL. latency ledger (manual ∞ → MEASURED): A1-spawn ΔM=7 [BOTTLENECK] · A1-mature ΔM=0 (same-session, fastest loop) · B1-mature ΔM=14 [BOTTLENECK]. mean ΔM=7.0 · max=14 · bottleneck cells (ΔM>5)=2/3. **HONEST self-measurement finding:** same-session 이 아닐 때마다 human-in-loop 가 병목 (ΔM>5) — N1 닫기 = discovery→wire handoff 자동화로 ΔM→0. n=2 anecdotal (latency law 아님). 외부 anchor Snoek 2012 BayesOpt · Sutton 1988 TD-learning. **CYCLE-8 ledger 확장 + 방법론 교정 (2026-05-27):** n=2→**6 anchored** (A1-spawn·A1-mature·C1·D1·E1·F1) · ✅ 7/7 PASS · 🟢. **cycle-5 카운터 혼용 버그 발견·수정**: cycle-5 는 A1(ECON)·B1(SAFETY)를 둘 다 wire-equiv=34(ECON 카운터)로 처리 → B1=14 는 incommensurable 카운터 혼용. 교정: ΔM = `(sibling 자기 카운터의 wire-time cycle) − discovery`. 결과 **A1-spawn=7(BOTTLENECK)·A1-mature=0·C1=1·D1=1·E1=1·F1=2** · mean ΔM=**2.0** · max=7 · 병목(>5)=**1/6** (cycle-5 의 2/3 → 교정). B1 은 UNANCHORED (cycle-2 prior-session wire, SAFETY wire-time cycle 미기록 → ΔM≤10, stats 제외·정직 flag). **발견 뒤집힘**: human-in-loop 병목은 STARTUP artifact (A1-spawn, paper-mature-gate 이해 전) 였고, 최근 cross-domain wire (C1·D1·E1·F1) 는 ΔM 1-2 로 FAST — 루프는 이미 빠름. **instrument 개선**: 이제 각 wire 가 sibling-cycle-at-wire 를 stamp (pre-instrumentation gap 닫음). **frontier OPEN** (⭐ MAIN perpetual) — 새 wire land 마다 anchored point 추가; B1 같은 unanchored 는 retro-anchor 불가 (정직 제외 유지); 자동화 수렴 = 거의 도달 (mean 2.0 < 5, A1-spawn 만 초과).

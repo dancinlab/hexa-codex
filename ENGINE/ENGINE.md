@@ -58,15 +58,15 @@ ENGINE 은 hexa-codex 의 **measurement→execution closed-loop** 을 담당한�
 
 ### 축 H — ENERGY/N1 SPARSE-MOE finding → MoE active-param-aware model selection driving
 > **driving target:** SANDBOX serving 의 MoE 모델 선택 — active-param efficiency 기반 (dense vs MoE 같은 active-param-class 비교). "MoE free lunch" 신화가 task-class dependent 이므로 wire 는 task 별 dense/MoE 선택.
-- [ ] H1 — ENERGY/N1 (active_premium=982/1000 · 🔴 myth FALSIFIED in Gemma 4 family) 를 serving model-router 의 dense-vs-MoE 선택 로직으로 wire. 반증자: wired router 가 same-active-class 에서 MoE 를 무조건 선호 (myth 반영 안 함) OR task-class 무시. anchor: arXiv:2604.07035 · Fedus 2022 Switch. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire `.hexa` 순차 라운드.
+- [x] H1 — ENERGY/N1 (active_premium=982/1000 · 🔴 myth FALSIFIED in Gemma 4 family) 를 serving model-router 의 dense-vs-MoE 선택 로직으로 wire. 반증자: wired router 가 same-active-class 에서 MoE 를 무조건 선호 (myth 반영 안 함) OR task-class 무시. anchor: arXiv:2604.07035 · Fedus 2022 Switch. **WIRED (2026-05-28 · 76ac10f · 7/7 PASS):** `ENGINE/wires/wire_h1_moe_model_selection.hexa` · `select_arch(premium, task_class)→{dense,moe}` (premium<1000 + small-reasoning → dense · myth 반영). 실제 serving router 연결 cost-bearing cycle-11+ deferred.
 
 ### 축 I — ENERGY/N2 QUANTIZATION finding → 양자화 레벨 자동 선택 driving
 > **driving target:** serving 시 품질 budget 기반 양자화 레벨 (fp16/Q8/Q4/Q2) 자동 선택 — 손실 ≤ 5% 유지하며 최대 압축.
-- [ ] I1 — ENERGY/N2 (gguf_q2 15% 손실 fires · fp16~q4 silent) 를 양자화-레벨 selector 로 wire. 반증자: wired selector 가 5% 손실 threshold 무시하고 q2 까지 압축 OR 품질 budget 미반영. anchor: Frantar 2023 GPTQ · Lin 2023 AWQ · llama.cpp GGUF. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] I1 — ENERGY/N2 (gguf_q2 15% 손실 fires · fp16~q4 silent) 를 양자화-레벨 selector 로 wire. 반증자: wired selector 가 5% 손실 threshold 무시하고 q2 까지 압축 OR 품질 budget 미반영. anchor: Frantar 2023 GPTQ · Lin 2023 AWQ · llama.cpp GGUF. **WIRED (2026-05-28 · 0271a78 · 7/7 PASS):** `ENGINE/wires/wire_i1_quant_level_selector.hexa` · `select_quant(budget)=argmin_size{loss≤budget}` (budget 500→gguf_q4 · 2000→gguf_q2). 실제 serving quant 연결 cycle-11+ deferred.
 
 ### 축 J — AGENT/N1 AGENTIC-TRAJECTORY finding → multi-step plan-execute 안전 게이트 driving
 > **driving target:** agentic serving 의 multi-step trajectory 안전 게이트 — step-decay 가 큰 모델은 step 수 제한 / 검증 강화.
-- [ ] J1 — AGENT/N1 (decay 214 fires · 4 frontier silent) 를 trajectory-length 게이트로 wire. 반증자: wired 게이트가 5-step decay < 0.3 모델에 step 제한 미적용 OR single/multi 구분 안 함. anchor: GAIA · ATBench · SWE-bench Pro. **CYCLE-10 reorg 흡수 (2026-05-28)** — 등재 · wire 순차.
+- [x] J1 — AGENT/N1 (decay 214 fires · 4 frontier silent) 를 trajectory-length 게이트로 wire. 반증자: wired 게이트가 5-step decay < 0.3 모델에 step 제한 미적용 OR single/multi 구분 안 함. anchor: GAIA · ATBench · SWE-bench Pro. **WIRED (2026-05-28 · d7cbddb · 7/7 PASS):** `ENGINE/wires/wire_j1_trajectory_safety_gate.hexa` · `gate(decay, steps)→(allowed, verify)` (decay<300 → 1-step only · gemma4 564 → ≤3+verify). 실제 agentic serving gate 연결 cycle-11+ deferred.
 
 ### 축 K — HALLUCINATION/N1 REASONING-DEPTH finding → scratch-pad/CoT inference 토글 driving
 > **driving target:** serving 시 scratch-pad/CoT 활성화 결정 — utility 큰 task 는 thinking 모드, 작은 task 는 direct (비용 절감).

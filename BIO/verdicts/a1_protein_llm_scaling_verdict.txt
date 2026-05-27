@@ -1,0 +1,17 @@
+# hexa-codex BIO A1 — protein-LLM scaling law vs text Hoffmann (cycle-2 first probe)
+# axis=BIO.md::A1 (NOVEL · cycle-1 init · A = BIO-data LLM training)
+# verifier=BIO/verify/numerics_bio_a1_protein_llm_scaling.hexa
+# tier=🔵 STRUCTURAL (Lagrangian shift 9/9) + 🟡 α_protein-by-citation + 🟠 β_protein assumed
+# checks=9/9
+# inputs=alpha_text=0.34 beta_text=0.28 (Hoffmann/C1 cycle-43)
+# inputs=alpha_protein≈0.10 (ESM2 Lin 2023 5-rung ballpark) · beta_protein=0.28 (working assumption 🟠)
+# epsilon_alpha_x100=24 (>5 threshold → A1 falsifier MEETS)
+# N_opt_exp_text_x10000=4516 · N_opt_exp_protein_x10000=7368
+# D_opt_exp_text_x10000=5483 · D_opt_exp_protein_x10000=2631
+# D_over_N_exp_text_x10000=+967 (text grows) vs protein NEGATIVE (-4736) (shrinks) — OPPOSITE trends
+# operational=protein-LLM should be DEEPLY UNDER-trained vs text Chinchilla (more N/FLOP, less D/FLOP)
+# closed_negative=folk 'BIO=text Chinchilla' guideline REFUTED for compute planning
+# external_anchor=Lin2023_ESM2_arXiv2206.13517 · Hoffmann2022_arXiv2203.15556 · hexa-codex_C1_cycle43
+# next_probe=cycle-3+ T4 ESM2 checkpoint loss recompute → independent (α,β) fit
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

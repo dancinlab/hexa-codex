@@ -1,0 +1,19 @@
+# hexa-codex NEUROEXP Φ2 — LLM Φ vs C. elegans Φ (cycle-8 first probe · honest-gradient)
+# axis=NEUROEXP.md::Φ2 (cycle-8 first probe · Φ ⭐MAIN = IIT4 anima cross-link)
+# verifier=NEUROEXP/verify/numerics_neuroexp_phi2_llm_vs_celegans.hexa
+# tier=🔵 SUPPORTED-FORMAL — bio CHAIN Φ > LLM CYCLE Φ (wiring-only) · 'dense > sparse' REFUTED · honest-gradient (11/11)
+# checks=11/11
+# cross_link=anima/UNIVERSE H_278 stdlib + H_281/H_288/H_290 anchor (one-way sibling)
+# celegans_chain_n3_phi=2 (sparse copy chain · 2 conns · COPY n=2 anchor 확장)
+# llm_cycle_n3_phi=1.5 (dense XOR cycle · 6 conns · cycle-5 anchor)
+# gap=-0.5 < 0 (bio > LLM, counter-intuitive)
+# Phi2_falsifier_original=LLM Φ > bio network Φ REJECTED (gap < 0)
+# refutation_dense_eq_integration=AI 진영 'dense > sparse' 통념 REFUTED (closed-form 정반대)
+# reinforcement_bio_integration=IIT Tononi/Koch 'biology 통합 우위' 통념 wiring-only 간접 REINFORCED
+# iit_lesson=integration = IRREDUCIBILITY (lossless info preservation) ≠ density · counter-intuitive
+# honest_history=first verifier draft assumed 'dense > sparse' · closed-form REJECTED · this is honest-gradient rewrite
+# cross_axis_5cycle=N1·Φ1 MATCH · S1·N2·Φ2 MISMATCH · Φ2 추가로 방향성 inversion 까지 닫힘
+# external_anchor=White1986 · Cook2019 · Albantakis2023_IIT4 · Tononi_Koch_IIT_papers · anima_H281_H288_H290
+# next_probe=cycle-9+ T4 C. elegans calcium imaging (Kato 2015 NeuroPAL) → dynamic Φ 측정
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

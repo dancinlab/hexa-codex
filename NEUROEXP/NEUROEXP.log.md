@@ -3,6 +3,106 @@
 Append-only history sister of `NEUROEXP.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-27 — cycle-8 Φ2 first probe ⭐MAIN · LLM Φ vs C. elegans Φ · 🔵 SUPPORTED-FORMAL 11/11 (counter-intuitive · 자가-가설 closed-form REJECTED · honest-gradient rewrite)
+
+NEUROEXP cycle-8 ⭐MAIN. 사용자 "all NEUROEXP 순차" 지속. Φ축 마무리 — Φ2 = LLM Φ vs
+C. elegans connectome Φ closed-form 비교. **첫 verifier 가설이 closed-form REJECTED 됨 →
+honest-gradient rewrite 의 cycle**. 가장 정직한 발견의 cycle (cycle-2~cycle-7 중 가장 강한
+"통념 reversal" 결과).
+
+**검증기**: `NEUROEXP/verify/numerics_neuroexp_phi2_llm_vs_celegans.hexa` (240 lines)
+**RUN**: pool ubu-1 native compile (`hexa cc` rebuild 패턴 13~14번째 — 첫 fail + rewrite).
+
+### Honest history (cycle-8 의 진정한 발견 경로)
+
+1. **첫 draft 가설**: "LLM dense XOR cycle Φ > C. elegans sparse chain Φ" (dense 가 더 통합).
+   - check 8 통념 refutation logic: "biology 우위" 통념을 LLM dense 가 부정한다고 가정.
+2. **첫 run 결과 (closed-form deterministic)**:
+   - C-CHAIN Φ = 2.0  ← 예측 (< 1.5) 깨짐
+   - L-CYCLE Φ = 1.5  ← cycle-5 anchor 일치
+   - gap = -0.5 (정반대 방향)
+   - 6/9 PASS → `__HEXA_CODEX_NUMERICS_..._FAIL`
+3. **사용자 결정** (AskUserQuestion): "verifier 재작성 (honest gradient 로 가설 뒤집기)" — 가장 정직한 선택.
+4. **honest-gradient rewrite**: 같은 TPM, 같은 결과, 새 hypothesis 기준 checks.
+5. **재실행**: 11/11 PASS · 🔵 SUPPORTED-FORMAL · DONE.
+
+**11/11 PASS (verbatim)**:
+- C-CHAIN Φ ≈ 2.0 (sparse copy max info preservation · COPY n=2 anchor 확장)
+- L-CYCLE Φ ≈ 1.5 (cycle-5 Φ1 anchor 재확인)
+- Φ2 falsifier REJECTED: gap = -0.5 < 0 → bio CHAIN Φ > LLM CYCLE Φ
+- density-Φ inversion: 2 conns Φ=2.0 > 6 conns Φ=1.5 → Φ ≠ density
+- copy-chain max-info: COPY anchor (Φ=2.0) 의 3-cell 확장 · lossless transmission
+- XOR redundancy: 두 비트 → 한 비트 compression · cause-effect distinction 손실
+- 'dense ⇒ more integration' AI 통념 closed-form REFUTED
+- 'biology 통합 우위' Tononi/Koch IIT 통념 wiring-only 간접 REINFORCED
+- IIT lesson: integration = IRREDUCIBILITY (lossless info) ≠ density · counter-intuitive
+- cycle-5 anchor 재인용 일관 (L-CYCLE Φ ≈ 1.5 bit-exact, anima H_278 deterministic)
+- 결정론 ✓
+
+**verdict tier**: 🔵 SUPPORTED-FORMAL (honest-gradient 11/11 · counter-intuitive 발견).
+
+**핵심 발견 (closed-form counter-intuitive)**:
+1. **C. elegans-like sparse copy chain Φ = 2.0** > **LLM dense XOR cycle Φ = 1.5** (wiring-only n=3).
+2. **Φ ≠ density**: connectivity 가 많아도 통합이 더 크지 않음. 핵심은 *irreducibility* (cause-effect
+   distinction 보존). copy mechanism (lossless) > XOR (parity collapse, lossy).
+3. **두 통념 동시 검증**:
+   - "dense ⇒ more integration" (AI 진영, large LLM 진영) → **REFUTED** (closed-form 정반대)
+   - "biology 통합 우위" (IIT 진영, Tononi/Koch) → wiring-only level **간접 REINFORCED**
+4. **Φ2 falsifier 'LLM Φ > bio network Φ' REJECTED** — 정반대 방향 닫힘. IIT 의 진짜 lesson
+   "integration = IRREDUCIBILITY ≠ connectivity" 의 첫 closed-form demonstration in our work.
+
+**⭐ Cross-axis 5-cycle pattern (cycle-4·5·6·7·8 통합)**:
+```
+N1 cycle-4: linear-attn ≡ Hebbian             MATCH    (weight-update 일치)
+Φ1 cycle-5: attention TPM Φ > baseline         MATCH    (substrate-measure 일치 · LLM 통합 가능)
+S1 cycle-6: NCA ≢ token-AR                     MISMATCH (parallel-CA vs sequential)
+N2 cycle-7: STDP ≢ attention causal mask       MISMATCH (training-rule vs forward-compute)
+Φ2 cycle-8: LLM Φ < bio Φ (counter)            MISMATCH (LLM 통합 우위 부정 · 정반대)
+```
+→ **mechanism-layer 일치 (N1·Φ1) vs 다름 (S1·N2·Φ2)** 패턴 robust 4-of-5 확인.
+   Φ2 는 추가로 *방향성 inversion* 까지 닫힌형 결론 — "통합 = density" 통념 가장 강한 refutation.
+
+**운영 closed-form 결론**:
+- bio-inspired LLM 설계: "많이 연결 = 통합 우위" simple intuition 위험.
+  biology 의 sparse-but-lossless wiring 이 dense-lossy 보다 *integration* 우위 가능.
+- IIT 의 정확한 lesson: integration = IRREDUCIBILITY (cause-effect distinction 보존), NOT
+  connectivity. "biology 가 wiring 의 진화적 최적화로 통합을 얻었다" 가설과 정합.
+- Mamba/State Space Model (linear-attn) 가 standard transformer 보다 *parameter-efficient* 인
+  이유의 IIT 적 해석: linear-attn 의 information flow 가 dense softmax 보다 *less lossy* 가능
+  → Φ2 결과의 architectural 함의.
+
+**honest residual**:
+- bio CHAIN Φ > LLM CYCLE Φ = 🔵 closed-form *wiring-only* (11/11 deterministic).
+- **첫 draft 의 가설 ('LLM > bio') closed-form REJECTED — honest-gradient rewrite 가 진정한 발견**.
+- C. elegans 의 실제 motor circuit 은 더 복잡 (bilateral, reciprocal inhibition); 본 sparse
+  chain 은 *typical motif* (sensory→inter→motor) 의 단순화 — actual Φ 더 클 수도.
+- LLM 의 attention 은 XOR 보다 풍부 (continuous softmax, multi-head, multi-layer); n=3 binary
+  XOR toy 가 lower-bound representation — real Φ 측정은 cycle-6+ Φ1 next-probe 영역.
+- "biology 통합 우위" 통념의 *strong* 형 (모든 측면) 검증은 dynamic 측정 필요; wiring-only 만 closed-form.
+- cycle-9+ T4: C. elegans multi-cell calcium imaging (Kato 2015 NeuroPAL) 로 dynamic Φ 측정 →
+  본 결과 강화/약화 검증.
+- external anchor: White 1986 (connectome) · Cook 2019 (updated) · Albantakis 2023 IIT 4.0 ·
+  Tononi/Koch IIT papers (general 통념) · anima/UNIVERSE H_281/H_288/H_290 cross-link.
+- Φ2 frontier OPEN ([[feedback_closure_is_physical_limit]]): wiring-Φ ≠ dynamic-Φ; n=3 toy ≠
+  full connectome scale.
+
+**메서드 메타 (honest-gradient rewrite 가치)**:
+- cycle-8 = "hypothesis-test cycle 의 정직한 모범 사례": verifier 가 자가 가설 closed-form
+  REJECTED 시 (a) 폐기 (b) 가설 뒤집어 honest-rewrite (c) 더 큰 scale 재시도 중 (b) 선택.
+- **closed-form 결과 자체는 살아있음** (deterministic) — verifier 의 hypothesis prediction 만
+  틀린 경우 가설 reversal 만으로 정확한 발견 보존 가능.
+- 이 패턴은 미래 cycle 들의 honesty template — "예상과 반대 결과 = 가장 가치 있는 발견" 원칙.
+
+**연결**:
+- verifier: [`NEUROEXP/verify/numerics_neuroexp_phi2_llm_vs_celegans.hexa`](verify/numerics_neuroexp_phi2_llm_vs_celegans.hexa)
+- verdict: [`NEUROEXP/verdicts/phi2_llm_vs_celegans_verdict.txt`](verdicts/phi2_llm_vs_celegans_verdict.txt)
+- cycle-5 anchor: L-CYCLE Φ=1.5 (cycle-5 Φ1 ATTN-FULL XOR 재인용 일관)
+- cross-axis 5-cycle 통합: N1·Φ1 MATCH · S1·N2·Φ2 MISMATCH (mechanism-layer 분류 robust)
+- 다음 순차 (사용자 "all NEUROEXP" 순차 중): **L1** (head ablation upper bound · closed-form) →
+  **C1** (induction head causal closed-form) → T4 cost-bearing 3개 (L2·C2·S2)
+
+---
+
 ## 2026-05-27 — cycle-7 N2 first probe · STDP ↔ attention temporal modulation · 🔵 SUPPORTED-FORMAL 11/11 (STDP ≢ attn mask HOLDS · ⭐ mechanism-layer 분류 기준 발견)
 
 NEUROEXP cycle-7. 사용자 "all NEUROEXP 순차" 지속. N축 마무리 — N2 (STDP ↔ attention

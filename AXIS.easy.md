@@ -421,6 +421,29 @@ brainstorm 총 idea:           49
 - 🎓 POST-TRAINING — alignment-tax (over_aligned 12pp drop fires) · `f5765c5`
 - 📡 OBSERVABILITY — drift-detection latency (blind_big 30%·4batch fires) · `aacab64`
 
+## VERTICAL/* 전문 모델 측정군 + 범용 (2026-05-28 cycle-10 · "실제 생성되는 전문 모델")
+
+> 사용자 directive: "실제로 생성되는 전문 모델 (코드·바이오 등)". vertical specialized LLM 측정 도메인군 (VERTICAL/* 그룹 폴더) + 범용 generalist (OFFICE · horizontal 짝). "Small is the New Big" (DSLM frontier · vertical AI 시장 $10.2B→$115.4B 2034) 반영.
+
+| 도메인 | 아이콘 | A1 핵심 측정 | commit |
+|---|---|---|---|
+| CODE | 🖥️ | pass@k oneshot-ratio (lm_foundry Mk.I) | 6ee7ed1 |
+| BIO | 🧬 | specialization-gain (생명과학) | 431d916 |
+| MATH | 🔢 | formal-proof 검증율 (답≠증명) | 882ce5a |
+| LAW | ⚖️ | 판례 hallucination (Mata v.Avianca) | 9a7c372 |
+| MEDICAL | 🏥 | 임상안전 confident-wrong (환자위험) | 70db36d |
+| FINANCE | 💰 | 수치추론 (금융 정밀) | 9e41cc6 |
+| SCIENCE | 🔬 | multi-step 유도 (사실≠유도) | cf91cfa |
+| ROBOTICS | 🦾 | sim→real (reality gap) | 13ce598 |
+| MATERIALS | 🧪 | in-silico↔합성 gap (GNoME) | 83db35f |
+| WEATHER | ⛅ | forecast skill vs NWP (chaos) | 953e38d |
+| CYBERSECURITY | 🛡️ | 취약점 탐지 (defensive · Foundation-Sec) | 65ed974 |
+| OFFICE | 🏢 | generalist-vs-specialist gap (메타검증) | deaba13 |
+
+- 각 A1 closed-form 7/7 · perpetual @goal · N⭐ MAIN.
+- VERTICAL (전문 깊이 11) ⊥ OFFICE (범용 넓이 1) — OFFICE 의 falsifier 가 VERTICAL 존재 정당성 메타검증 (generalist < 전문 × 0.7 → DSLM 정당화).
+- 측정 layer 만 — 실제 생성 recipe 는 lm_foundry (code Mk.I) · lm_foundry/docs/bio-llm.md (bio).
+
 ## Cross-refs
 
 - ENGINE 도메인 SSOT: [`ENGINE/ENGINE.md`](ENGINE/ENGINE.md) (현재 6 sibling intake matrix)

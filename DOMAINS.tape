@@ -48,6 +48,8 @@
 @domain MATERIALS := "./VERTICAL/MATERIALS/MATERIALS.md"
 @domain WEATHER := "./VERTICAL/WEATHER/WEATHER.md"
 @domain CYBERSECURITY := "./VERTICAL/CYBERSECURITY/CYBERSECURITY.md"
+# ─── horizontal generalist (VERTICAL 의 직교 짝 · 2026-05-28) ───
+@domain OFFICE := "./OFFICE/OFFICE.md"
 
 # ─── driving lane (실제 wire 구현) — ENGINE 은 line 6 core sibling 으로 등록됨 (active) ───
 # CODEX archived 2026-05-28 (cycle-10 reorg) — 22 candidate first-probe orchestrator 역할 종료.

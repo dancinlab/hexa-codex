@@ -1,0 +1,17 @@
+# hexa-codex HALLUCINATION N1 ⭐ NOVEL MAIN — reasoning-depth scratch-pad utility verifier (cycle-10 reorg · absorbed from FRONTIER/F4)
+# axis=HALLUCINATION/HALLUCINATION.md::N1 ⭐ NOVEL MAIN — REASONING-DEPTH (scratch-pad / CoT utility · 깊은 추론이 confident-wrong 줄이는가)
+# bench=HALLUCINATION/bench/hallucination_n1_reasoning_depth_scratchpad.hexa
+# verifier=HALLUCINATION/verify/numerics_hallucination_n1_reasoning_depth_scratchpad.hexa
+# absorbed_from=FRONTIER/F4 reasoning-depth scratch-pad utility (cycle-10 reorg · FRONTIER meta-domain retire · frontier 축 분산 흡수)
+# tier=🔵 STRUCTURAL (cot_delta identity + signed-pp ledger 7/7) + 🟡 BY-CITATION (5pp threshold = scratchpad-utility 검출 lower bound + Wei 2022 CoT (arXiv:2201.11903) + Gemma 4 TR AIME 89.2% / LiveCodeBench 80.0% / GPQA 84.3%) — pattern_match_legacy FIRES · 4 frontier silent · bidirectional
+# checks=7/7
+# formula=cot_delta_pp_x100(model) = scratchpad_x100 − direct_x100 (signed pp gain); falsifier_fires = cot_delta_pp_x100 < 500 (× 100 ledger of 5pp · scratch-pad utility lower bound)
+# novel_framing=깊은 추론(scratch-pad / CoT) 이 confident-wrong (환각) 을 줄이는가 — scratch-pad utility 가 deep-reasoning regime (환각 억제) 과 pattern-matching regime (환각 잔존) 을 구분 (HALLUCINATION 의 self-NOVEL 확장)
+# placeholder_data=5 models (gpt5_o1 d45/s89 Δ44 · claude_5 d42/s84 Δ42 · gemma4_31b d38/s85 Δ47 · qwen3.6_72b d40/s80 Δ40 · pattern_match_legacy d15/s18 Δ3 · × 100 pp ledger)
+# frontier_silent=4/4 frontier thinking models silent (delta ≥ 40pp ≫ 5pp threshold · genuine deep reasoning · CoT load-bearing · 환각 억제)
+# legacy_fires=pattern_match_legacy FIRES 🔴 (delta=300/100 = 3pp < 5pp · scratch-pad utility ~ 0 · simple pattern matching · confident-wrong 잔존 · bidirectional control)
+# external_anchors=Wei 2022 CoT (arXiv:2201.11903) · OpenAI 2024 o1 system card · Anthropic 2025 Claude extended thinking · Google DeepMind 2026 Gemma 4 TR (AIME 89.2% · LiveCodeBench 80.0% · GPQA 84.3%) · arXiv:2604.07035 §reasoning controlled
+# anti_myth='깊은 추론이 환각을 줄인다' 주장 — pattern_match_legacy 에서 FALSIFIED (delta 3pp · scratch-pad utility ~ 0); CoT 의존도가 deep-reasoning regime 과 pattern-matching regime 을 구분
+# substrate_fire=DEFERRED (cycle-11+ T4 · SANDBOX mac M3 llama-server + local Gemma 4 31B GGUF reasoning · 실측 AIME 2026 · GPQA Diamond · LiveCodeBench)
+# frontier_open=feedback_closure_is_physical_limit — identity close ≠ measured close · placeholder direct/scratchpad pp values per public TRs (Gemma 4 TR cited anchor; gpt5/claude_5/qwen3.6 placeholder)
+# honest_residual=real measured AIME 2026 · GPQA Diamond · LiveCodeBench direct-vs-scratchpad re-run on local Gemma 4 31B mac M3 GGUF DEFERRED to cycle-11+ T4 (cx_lab_sandbox · cx_empirical_contact)

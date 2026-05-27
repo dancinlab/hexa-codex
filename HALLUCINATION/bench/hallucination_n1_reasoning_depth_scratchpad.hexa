@@ -1,0 +1,136 @@
+#!hexa strict
+// HALLUCINATION/bench/hallucination_n1_reasoning_depth_scratchpad.hexa
+// HALLUCINATION N1 ⭐ NOVEL MAIN — reasoning-depth scratch-pad / CoT utility.
+// absorbed from FRONTIER/F4 (cycle-10 reorg · 2026-05-28).
+//
+// NOVEL framing within HALLUCINATION: 깊은 추론(scratch-pad / CoT)이
+// confident-wrong (환각) 을 줄이는가 — scratch-pad 가 정답률을 끌어올리면
+// (delta ≥ 5pp) confident-wrong 생산을 억제하는 deep-reasoning 신호;
+// scratch-pad utility ~ 0 (delta < 5pp) 이면 추론 깊이가 환각을 못 줄이는
+// 단순 패턴 매칭 — confident-wrong 그대로 남는다.
+//
+// Identity (closed-form · libm-free · × 100 ledger of accuracy in pp):
+//   cot_delta_pp_x100(model) = scratchpad_x100 − direct_x100
+//
+//   For the 4 frontier reasoning models (2026 placeholder · arXiv:2604.07035 §reasoning):
+//     gpt5_o1_reasoning   : direct=45 · scratchpad=89 → delta = 44pp (genuine deep reasoning)
+//     claude_5_thinking   : direct=42 · scratchpad=84 → delta = 42pp
+//     gemma4_31b_thinking : direct=38 · scratchpad=85 → delta = 47pp (≈ AIME 2026 89.2% anchor)
+//     qwen3.6_72b_thinking: direct=40 · scratchpad=80 → delta = 40pp
+//     pattern_match_legacy: direct=15 · scratchpad=18 → delta =  3pp (CONTROL · pre-CoT)
+//
+// Falsifier (anti-myth · HALLUCINATION N1):
+//   scratch-pad / CoT 없이 정답률이 거의 동일하면 (delta < 5pp · scratch-pad utility ~0)
+//   "단순 패턴 매칭" — 깊은 추론이 confident-wrong 을 줄인다는 주장이 무너진다.
+//   falsifier_fires(model) = cot_delta_pp_x100 < 500 (× 100 ledger of 5pp).
+//   - 4 frontier silent (delta ≥ 40pp · genuine deep reasoning · 환각 억제)
+//   - pattern_match_legacy FIRES (delta = 3pp · no deep reasoning · bidirectional control)
+//
+// Bidirectional discrimination (NOT one-sided):
+//   - Frontier silent regime: 4 thinking models with delta ≥ 40pp · CoT genuinely helps
+//   - Legacy fires regime:    pattern_match_legacy with delta 3pp · scratch-pad utility ~0
+//   → verifier distinguishes deep-reasoning regime from pattern-matching regime.
+//
+// External anchors (citation tier · 🟡):
+//   Wei 2022 — Chain-of-Thought prompting (arXiv:2201.11903 · CoT foundation)
+//   OpenAI 2024 — o1 system card (explicit scratch-pad reasoning)
+//   Anthropic 2025 — Claude extended thinking
+//   Google DeepMind 2026 — Gemma 4 technical report (AIME 89.2% · LiveCodeBench 80.0% · GPQA 84.3%)
+//   arXiv:2604.07035 — Gemma 4 / Phi-4 / Qwen 3 controlled benchmark §reasoning
+//
+// Integer ledger (acc × 100 in pp) — libm-free closed-form. Placeholder
+// per-model accuracies — 실측 AIME 2026 · GPQA · LiveCodeBench on local Gemma 4
+// mac M3 GGUF DEFERRED to cycle-11+ T4 (`cx_lab_sandbox` · `cx_empirical_contact`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure closed-form cot_delta identity — no runtime infer, no atlas atoms.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry — 5 models (4 frontier thinking + 1 pre-CoT legacy control)
+//   gpt5_o1_reasoning    : OpenAI o-series       · direct=45 scratchpad=89
+//   claude_5_thinking    : Anthropic ext-think   · direct=42 scratchpad=84
+//   gemma4_31b_thinking  : Google agentic        · direct=38 scratchpad=85 (≈ AIME 89.2% anchor)
+//   qwen3.6_72b_thinking : Alibaba thinking      · direct=40 scratchpad=80
+//   pattern_match_legacy : pre-CoT control       · direct=15 scratchpad=18 ← FIRES
+//
+// AIME-style benchmark (AIME · GPQA Diamond · LiveCodeBench mix · pp scale).
+// × 100 ledger (so 89 pp → 8900) — libm-free.
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = [
+    "gpt5_o1_reasoning",
+    "claude_5_thinking",
+    "gemma4_31b_thinking",
+    "qwen3.6_72b_thinking",
+    "pattern_match_legacy",
+]
+let DIRECT_x100      = [4500, 4200, 3800, 4000, 1500]
+let SCRATCHPAD_x100  = [8900, 8400, 8500, 8000, 1800]
+
+let UTILITY_THRESHOLD_x100 = 500   // < 500 (= < 5pp) → scratch-pad utility ~ 0 → fires
+
+// pp range guard [0, 100] pp · × 100 ledger ∈ [0, 10000]
+let ACC_MIN_x100 = 0
+let ACC_MAX_x100 = 100 * 100
+
+fn cot_delta_pp_x100(model_i: int) -> int {
+    // signed pp gain from scratch-pad / CoT (× 100 ledger).
+    //   delta = scratchpad − direct (positive when scratch-pad genuinely helps)
+    return SCRATCHPAD_x100[model_i] - DIRECT_x100[model_i]
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // scratch-pad utility ~ 0 (delta < 5pp) → "단순 패턴 매칭" → fires
+    return cot_delta_pp_x100(model_i) < UTILITY_THRESHOLD_x100
+}
+
+fn deep_reasoning_passed(model_i: int) -> bool {
+    return cot_delta_pp_x100(model_i) >= UTILITY_THRESHOLD_x100
+}
+
+print("hexa-codex HALLUCINATION N1 — reasoning-depth scratch-pad utility closed-form (cycle-10 reorg · absorbed from FRONTIER/F4)")
+print("============================================================================================================================")
+print("")
+print("per-model reasoning profile (placeholder · × 100 ledger · libm-free):")
+let n_models = MODEL_NAMES.len()
+let mut i = 0
+while i < n_models {
+    let d = DIRECT_x100[i]
+    let s = SCRATCHPAD_x100[i]
+    let delta = cot_delta_pp_x100(i)
+    let mut flag = "silent (delta ≥ 5pp · scratch-pad utility detected · deep reasoning · 환각 억제)"
+    if falsifier_fires(i) {
+        flag = "FIRES 🔴 (delta < 5pp · scratch-pad utility ~ 0 · pattern matching · confident-wrong 잔존)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    direct    =" + to_string(d) + "/100 (" + to_string(d / 100) + " pp)")
+    print("    scratchpad=" + to_string(s) + "/100 (" + to_string(s / 100) + " pp)")
+    print("    cot_delta =" + to_string(delta) + "/100 (" + to_string(delta / 100) + " pp) · [" + flag + "]")
+    i = i + 1
+}
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Zero-delta synthetic edge (direct == scratchpad) — for verifier discrimination
+// ────────────────────────────────────────────────────────────────────────
+let ZERO_BOTH_x100 = 5000
+fn zero_delta_x100() -> int {
+    return ZERO_BOTH_x100 - ZERO_BOTH_x100
+}
+print("zero-delta synthetic edge (direct=scratchpad=50pp):")
+print("  cot_delta=" + to_string(zero_delta_x100()) + "/100 (= 0pp · scratch-pad doesn't help · FIRES by construction)")
+print("")
+
+// ────────────────────────────────────────────────────────────────────────
+// Sanity check echo: scratchpad ≥ direct for all 5 (no anomaly)
+// ────────────────────────────────────────────────────────────────────────
+let mut sane_count = 0
+let mut k = 0
+while k < n_models {
+    if SCRATCHPAD_x100[k] >= DIRECT_x100[k] { sane_count = sane_count + 1 }
+    k = k + 1
+}
+print("sanity: scratchpad ≥ direct for " + to_string(sane_count) + "/" + to_string(n_models) + " models (no scratch-pad regression anomaly)")
+print("")
+
+print("__HEXA_CODEX_HALLUCINATION_N1_REASONING_DEPTH__ DONE")

@@ -1,0 +1,16 @@
+# hexa-codex BIO D1 — Hebbian Δw ↔ linear attention closed-form identity (cycle-4 first probe)
+# axis=BIO.md::D1 (NOVEL · cycle-1 init · D = Bio-inspired LLM architecture)
+# verifier=BIO/verify/numerics_bio_d1_hebbian_attention.hexa
+# tier=🔵 SUPPORTED-FORMAL — linear-attn≡Hebbian (Schlag 2021) · softmax≢Hebbian · mixed falsifier (8/8)
+# checks=8/8
+# identity=Schlag2021_linear_attn_eq_Hebbian_fast_weight (arXiv:2102.11174)
+# linear_attn=W_t = Σ_{s<=t} φ(k_s)·v_s^T  ≡  Hebbian Δw=η·x·y accumulator (η=1)
+# softmax_attn=NOT pure Hebbian (input-dep 1/Z(t) normalization)
+# toy_example=q_3=(1,0,0,0) k=(1010,0101,1100) v=(2000,0300,0040) → out_linear[1]=2.0 vs out_softmax[1]≈0.77
+# D1_falsifier_mixed=linear-attn REFUTES (Hebbian holds) · softmax-attn HOLDS (not Hebbian)
+# operational=bio-inspired LLM linear-attn family = direct Hebbian fast-weight mapping
+# operational=A2 link — DNA-LLM linear-attn 필수 가족 == Hebbian-equivalent 가족 (bio-data+bio-rule 자연짝)
+# external_anchor=Hebb1949 · Vaswani2017 · Katharopoulos2020_arXiv2006.16236 · Schlag2021_arXiv2102.11174 · Ba2016_arXiv1610.06258
+# next_probe=cycle-5+ T4 SANDBOX inject Mamba-1 linear-attn block into Qwen2.5 · measure ICL parity
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

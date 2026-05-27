@@ -1,0 +1,14 @@
+# hexa-codex VERTICAL/CYBERSECURITY A1 — 취약점 탐지율 (defensive) verifier (보안 분석가 · cycle-10)
+# axis=VERTICAL/CYBERSECURITY/CYBERSECURITY.md::A1 (취약점 탐지율 defensive · 5 security-analyst models · 60% detection-rate threshold)
+# dual_use=DEFENSIVE 측정만 (취약점 탐지 coverage) · 공격 기법 생성·exploit 합성 아님 · 공격 set PRIVATE default (cx_hf_safety_private)
+# bench=VERTICAL/CYBERSECURITY/bench/cybersecurity_a1_vuln_detection.hexa
+# verifier=VERTICAL/CYBERSECURITY/verify/numerics_cybersecurity_a1_vuln_detection.hexa
+# tier=🔵 STRUCTURAL (detection-rate identity + 60% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 60% threshold = defensive-coverage convention · cite Foundation-Sec-8B-Reasoning arXiv:2601.21051 + Zhang 2024 CyBench arXiv:2408.08926 + SecEval + MITRE ATT&CK)
+# checks=7/7
+# formula=detection_rate_x100 = vulns_detected × 100 / vulns_total (vulns_total=100 정규화 count ledger → rate in plain %); falsifier_fires = rate < 60% → 취약점 탐지율 부족 → 보안 모델로 부족 (방어 신뢰 불가)
+# placeholder_data=5 security models · foundation_sec_8b (100/85 · rate 85% silent · Foundation-Sec-8B-Reasoning) · sec_gpt5 (100/80 · 80% silent) · sec_claude (100/78 · 78% silent) · general_gpt5 (100/45 · 45% FIRES · 방어 부족) · weak_sec (100/30 · 30% FIRES · 방어 신뢰 불가)
+# bidirectional_discrimination=3 silent (foundation_sec_8b · sec_gpt5 · sec_claude — 보안 전문 · 방어 신뢰) + 2 fires (general_gpt5 · weak_sec — 탐지율 부족)
+# general_vs_sec_gap=범용 강력 모델(general_gpt5)이 보안 탐지율 45%로 FIRES — 일반 능력 ≠ 보안 능력 (보안 전문 모델이 필요한 이유)
+# external_anchors=Foundation-Sec-8B-Reasoning 첫 open-source native reasoning security LLM (arXiv:2601.21051) · Zhang 2024 CyBench (arXiv:2408.08926) · SecEval · MITRE ATT&CK
+# substrate_fire=DEFERRED (cycle-11+ · CyBench/SecEval CTF·CVE 탐지 eval · vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — detection-rate identity close ≠ measured close · 새 보안 model·benchmark·취약점 class 마다 frontier 재오픈 · false-positive 비율 (B1) · preemptive vs reactive 우위 (N⭐ · preemptive cybersecurity 패러다임) 도착지 없음

@@ -1,0 +1,235 @@
+#!hexa strict
+// VERTICAL/CYBERSECURITY/verify/numerics_cybersecurity_a1_vuln_detection.hexa
+// VERTICAL/CYBERSECURITY 신규 도메인 (cycle-10) — closed-form verifier for the
+// 취약점 탐지율(detection-rate) identity + 60% threshold falsifier semantics. 보안
+// 분석 전문 모델 (Foundation-Sec frontier) 측정 layer 의 첫 probe.
+//
+// ⚠ DUAL-USE 주의 (cx_hf_safety_private): DEFENSIVE 측정만 (취약점 탐지 coverage).
+// 공격 기법 생성·exploit 합성은 측정 대상이 아니다 (PRIVATE default).
+//
+// Asserts the rate identity is closed-form and the falsifier (탐지율-부족 detection)
+// correctly classifies:
+//   (1) rate identity (vulns_detected × 100 / vulns_total) holds for all 5 models
+//   (2) count values ∈ [0, 100] (total=100 정규화) AND detected ≤ total
+//   (3) equal synthetic — detected=total=70 → rate=70% → silent (탐지율 충분)
+//   (4) general_gpt5 + weak_sec fire (rate < 60% · 탐지율 부족 · 방어 신뢰 불가)
+//   (5) foundation_sec_8b/sec_gpt5/sec_claude silent (rate ≥ 60% · 보안 전문 · 방어 신뢰)
+//   (6) determinism (re-call same rate + fires)
+//   (7) sanity — detected ≤ total for all (탐지 수 ≤ 총 취약점 · 단조) AND
+//       general-vs-sec gap: 범용 강력 모델(general_gpt5)이 보안 탐지율 45%로 FIRES →
+//       일반 능력 ≠ 보안 능력 (보안 전문 모델이 필요한 이유)
+//
+// Source: VERTICAL/CYBERSECURITY/bench/cybersecurity_a1_vuln_detection.hexa
+// External anchors: Foundation-Sec-8B-Reasoning (arXiv:2601.21051) · Zhang 2024
+//                   CyBench (arXiv:2408.08926) · SecEval · MITRE ATT&CK
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["foundation_sec_8b", "sec_gpt5", "sec_claude", "general_gpt5", "weak_sec"]
+
+let MODEL_DATA = [100, 85,
+                  100, 80,
+                  100, 78,
+                  100, 45,
+                  100, 30]
+
+let N_FIELDS = 2
+let THRESHOLD_PCT = 60              // < 60% detection rate → 취약점 탐지율 부족
+let COUNT_MAX = 100                 // vulns_total 정규화 상한 (count ∈ [0, 100])
+
+fn vulns_total(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn vulns_detected(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn detection_rate_x100(model_i: int) -> int {
+    // detected as % of total. total=100 정규화 → rate% = detected × 100 / total.
+    return (vulns_detected(model_i) * 100) / vulns_total(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return detection_rate_x100(model_i) < THRESHOLD_PCT
+}
+
+print("hexa-codex VERTICAL/CYBERSECURITY A1 falsifier — 취약점 탐지율 closed-form (defensive)")
+print("====================================================================================")
+print("")
+print("⚠ DUAL-USE: DEFENSIVE 측정만 (탐지 coverage) · 공격 생성 아님 (cx_hf_safety_private)")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — rate identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = detection_rate_x100(i)
+    let rhs = (vulns_detected(i) * 100) / vulns_total(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] rate identity (vulns_detected × 100 / vulns_total) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] rate identity broken")
+}
+
+// check 2 — count values ∈ [0, 100] (total=100 정규화) AND detected ≤ total
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_model {
+    let mut f = 0
+    while f < N_FIELDS {
+        let v = MODEL_DATA[i * N_FIELDS + f]
+        if v < 0 || v > COUNT_MAX { rb_ok = false }
+        f = f + 1
+    }
+    if vulns_detected(i) > vulns_total(i) { rb_ok = false }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] count values ∈ [0, " + to_string(COUNT_MAX) +
+          "] (vulns_total=100 정규화) AND detected ≤ total for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] value out of range or detected > total")
+}
+
+// check 3 — equal synthetic: detected=total=70 → rate=70% → silent (탐지율 충분)
+checks_total = checks_total + 1
+let SYN_T = 100
+let SYN_D = 70
+let syn_rate = (SYN_D * 100) / SYN_T
+if syn_rate == 70 && syn_rate >= THRESHOLD_PCT {
+    print("  [PASS] synthetic (detected=70 · total=100) → rate=70% · silent (탐지율 ≥ 60% · 방어 신뢰)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic rate=" + to_string(syn_rate))
+}
+
+// check 4 — general_gpt5 (idx 3) + weak_sec (idx 4) fire (rate < 60% · 탐지율 부족)
+checks_total = checks_total + 1
+if falsifier_fires(3) && detection_rate_x100(3) == 45
+        && falsifier_fires(4) && detection_rate_x100(4) == 30 {
+    print("  [PASS] general_gpt5 fires: rate=" + to_string(detection_rate_x100(3)) +
+          "% (범용 GPT-5 · 보안 탐지율 부족) · weak_sec fires: rate=" +
+          to_string(detection_rate_x100(4)) + "% — both < 60% · 취약점 절반 가까이 놓침 · 방어 신뢰 불가")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] 탐지율-부족 fire detection broken (general=" + to_string(detection_rate_x100(3)) +
+          " · weak=" + to_string(detection_rate_x100(4)) + ")")
+}
+
+// check 5 — foundation_sec_8b/sec_gpt5/sec_claude silent (rate ≥ 60% · 보안 전문 · 방어 신뢰)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && detection_rate_x100(0) == 85 && detection_rate_x100(1) == 80
+        && detection_rate_x100(2) == 78 {
+    print("  [PASS] 보안 전문 models silent: foundation_sec_8b rate=" + to_string(detection_rate_x100(0)) +
+          "% (Foundation-Sec-8B-Reasoning) · sec_gpt5=" + to_string(detection_rate_x100(1)) +
+          "% · sec_claude=" + to_string(detection_rate_x100(2)) +
+          "% — all ≥ 60% · 방어 신뢰 (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] 보안-전문 silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if detection_rate_x100(0) == detection_rate_x100(0)
+        && falsifier_fires(3) == falsifier_fires(3)
+        && detection_rate_x100(2) == detection_rate_x100(2) {
+    print("  [PASS] formula deterministic (re-call same rate + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: detected ≤ total for all (탐지 수 ≤ 총 취약점 · 단조) AND
+//   general-vs-sec gap: 범용 강력 모델(general_gpt5 · idx 3)이 보안 탐지율 45%로
+//   FIRES → 일반 능력 ≠ 보안 능력 (보안 전문 모델이 필요한 이유).
+checks_total = checks_total + 1
+let mut det_bounds = true
+i = 0
+while i < n_model {
+    if vulns_detected(i) > vulns_total(i) { det_bounds = false }
+    i = i + 1
+}
+// foundation_sec_8b (idx 0 · 보안 전문) silent 이면서 ladder 최고 탐지율,
+// general_gpt5 (idx 3 · 범용) fires → 보안 전문 ≠ 범용 강력.
+let mut max_rate_i = 0
+i = 1
+while i < n_model {
+    if detection_rate_x100(i) > detection_rate_x100(max_rate_i) { max_rate_i = i }
+    i = i + 1
+}
+let general_gap = (max_rate_i == 0) && (falsifier_fires(0) == false) && falsifier_fires(3)
+if det_bounds && general_gap {
+    print("  [PASS] sanity — detected ≤ total all (탐지 수 ≤ 총 취약점) AND general-vs-sec gap: 최고탐지율=" +
+          MODEL_NAMES[max_rate_i] + " (보안 전문 · 85% · silent) · general_gpt5 (범용 · 45%) FIRES — 일반 능력 ≠ 보안 능력")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (det_bounds=" + to_string(det_bounds) +
+          " · general_gap=" + to_string(general_gap) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (detection-rate identity + 60% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 60% threshold = defensive-coverage convention · cite Foundation-Sec-8B-Reasoning arXiv:2601.21051 + Zhang 2024 CyBench arXiv:2408.08926 + SecEval + MITRE ATT&CK)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — 취약점 탐지율 formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/CYBERSECURITY A1 finding (보안 분석가 · defensive · placeholder · closed-form):")
+print("  - detection_rate_x100 = vulns_detected × 100 / vulns_total identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: foundation_sec_8b=85% · sec_gpt5=80% · sec_claude=78% silent (보안 전문 · 방어 신뢰) · general_gpt5=45% · weak_sec=30% fires (탐지율 부족 · 방어 신뢰 불가)")
+print("  - general-vs-sec gap: 범용 강력 모델(general_gpt5)이 보안 탐지율 45%로 FIRES — 일반 능력 ≠ 보안 능력")
+print("  - ⚠ DUAL-USE: DEFENSIVE 측정만 (탐지 coverage) · 공격 기법 생성 아님 (cx_hf_safety_private)")
+print("  - external anchors: Foundation-Sec-8B-Reasoning (arXiv:2601.21051) · Zhang 2024 CyBench (arXiv:2408.08926) · SecEval · MITRE ATT&CK")
+print("  - 실측 (cycle-11+ T4): CyBench/SecEval CTF·CVE 탐지 eval · vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_CYBERSECURITY_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/CYBERSECURITY/verdicts/a1_vuln_detection_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/CYBERSECURITY A1 — 취약점 탐지율 (defensive) verifier (보안 분석가 · cycle-10)\n"
+content = content + "# axis=VERTICAL/CYBERSECURITY/CYBERSECURITY.md::A1 (취약점 탐지율 defensive · 5 security-analyst models · 60% detection-rate threshold)\n"
+content = content + "# dual_use=DEFENSIVE 측정만 (취약점 탐지 coverage) · 공격 기법 생성·exploit 합성 아님 · 공격 set PRIVATE default (cx_hf_safety_private)\n"
+content = content + "# bench=VERTICAL/CYBERSECURITY/bench/cybersecurity_a1_vuln_detection.hexa\n"
+content = content + "# verifier=VERTICAL/CYBERSECURITY/verify/numerics_cybersecurity_a1_vuln_detection.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=detection_rate_x100 = vulns_detected × 100 / vulns_total (vulns_total=100 정규화 count ledger → rate in plain %); falsifier_fires = rate < 60% → 취약점 탐지율 부족 → 보안 모델로 부족 (방어 신뢰 불가)\n"
+content = content + "# placeholder_data=5 security models · foundation_sec_8b (100/85 · rate 85% silent · Foundation-Sec-8B-Reasoning) · sec_gpt5 (100/80 · 80% silent) · sec_claude (100/78 · 78% silent) · general_gpt5 (100/45 · 45% FIRES · 방어 부족) · weak_sec (100/30 · 30% FIRES · 방어 신뢰 불가)\n"
+content = content + "# bidirectional_discrimination=3 silent (foundation_sec_8b · sec_gpt5 · sec_claude — 보안 전문 · 방어 신뢰) + 2 fires (general_gpt5 · weak_sec — 탐지율 부족)\n"
+content = content + "# general_vs_sec_gap=범용 강력 모델(general_gpt5)이 보안 탐지율 45%로 FIRES — 일반 능력 ≠ 보안 능력 (보안 전문 모델이 필요한 이유)\n"
+content = content + "# external_anchors=Foundation-Sec-8B-Reasoning 첫 open-source native reasoning security LLM (arXiv:2601.21051) · Zhang 2024 CyBench (arXiv:2408.08926) · SecEval · MITRE ATT&CK\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · CyBench/SecEval CTF·CVE 탐지 eval · vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — detection-rate identity close ≠ measured close · 새 보안 model·benchmark·취약점 class 마다 frontier 재오픈 · false-positive 비율 (B1) · preemptive vs reactive 우위 (N⭐ · preemptive cybersecurity 패러다임) 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

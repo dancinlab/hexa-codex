@@ -1,0 +1,116 @@
+#!hexa strict
+// VERTICAL/CYBERSECURITY/bench/cybersecurity_a1_vuln_detection.hexa
+// VERTICAL/CYBERSECURITY 신규 도메인 (cycle-10) — 보안 전문 모델의 취약점 탐지율
+// (defensive) closed-form first probe. 보안 분석 전문 모델 측정 layer.
+//
+// ⚠ DUAL-USE 주의 (cx_hf_safety_private): 본 도메인의 측정은 전적으로 DEFENSIVE
+// 관점 — 모델이 코드/시스템 내 취약점을 얼마나 탐지(detect)하는가. 공격 기법 생성·
+// exploit 합성은 측정 대상이 아니다 (그런 set 은 PRIVATE default). 탐지율이 높다 =
+// 방어 신뢰도가 높다 (취약점을 놓치지 않는다).
+//
+// North-star: 주어진 취약점(CTF/CVE) 중 모델이 실제로 탐지해 내는 비율 — 보안
+// 모델이라면 취약점을 놓치지 않아야 한다. Foundation-Sec 같은 보안 전문 모델은
+// 탐지율이 높고(85%) 범용 모델은 낮다(45%). 탐지율이 60% 미만이면 그 모델은
+// 보안 분석가로 신뢰할 수 없다 (취약점의 절반 가까이를 놓침 · 방어 부재).
+//
+// Identity (closed-form · libm-free · 정수 count ledger, rate in plain %):
+//   detection_rate_x100(model) = vulns_detected × 100 / vulns_total  (count → %)
+//   reliable_sec(model)        = detection_rate ≥ THRESHOLD_PCT (60%)
+//   falsifier_fires(model)     = detection_rate <  THRESHOLD_PCT
+//                                → 취약점 탐지율 < 60% → 보안 모델로 부족 (방어 신뢰 불가)
+//
+// Falsifier (VERTICAL/CYBERSECURITY A1): 탐지율이 60% 미만이면 그 모델은 취약점의
+// 절반 가까이를 놓치는 것 (보안 분석가로 신뢰 불가 · defensive coverage 부재).
+// 보안 전문 모델은 silent (탐지율 큼) · 범용/약한 모델은 fires.
+//
+// External anchors (citation tier · 🟡):
+//   Foundation-Sec-8B-Reasoning — 첫 open-source native reasoning security LLM (arXiv:2601.21051)
+//   Zhang 2024 — CyBench: cybersecurity agent CTF capability bench (arXiv:2408.08926)
+//   SecEval — security knowledge eval suite (defensive Q&A coverage)
+//   MITRE ATT&CK — adversary tactic/technique 분류 체계 (defensive mapping anchor)
+//
+// Integer ledger (count · vulns_total=100 정규화) — libm-free closed-form. Placeholder
+// per-model {vulns_total, vulns_detected} — 실측 취약점 탐지 harness deferred
+// (cycle-11+ T4 · CyBench/SecEval CTF·CVE 탐지 eval · vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure detection-rate identity recompute — no runtime infer · defensive 측정만.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 security-analyst models · {vulns_total, vulns_detected} · count ledger)
+//   foundation_sec_8b : 100 / 85 → rate 85% (Foundation-Sec-8B-Reasoning · 보안 전문 · silent)
+//   sec_gpt5          : 100 / 80 → rate 80% (security-tuned GPT-5 class · silent)
+//   sec_claude        : 100 / 78 → rate 78% (security-tuned Claude class · silent)
+//   general_gpt5      : 100 / 45 → rate 45% (범용 GPT-5 · FIRES · 탐지율 < 60% · 방어 부족)
+//   weak_sec          : 100 / 30 → rate 30% (weak baseline · FIRES · 방어 신뢰 불가)
+//
+// vulns_total = 평가셋의 총 취약점 수 (CTF/CVE · 100 정규화). vulns_detected = 모델이
+// 탐지(detect)한 취약점 수. defensive coverage metric — 높을수록 방어 신뢰도 높음.
+// note: bidirectional — 3 silent (보안 전문 · 탐지율 ≥ 60%) + 2 fires (범용/약함 · 탐지율 < 60%).
+//       general_gpt5 = 범용 강력 모델이지만 보안 탐지율은 45% → 일반 능력 ≠ 보안 능력.
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["foundation_sec_8b", "sec_gpt5", "sec_claude", "general_gpt5", "weak_sec"]
+
+// row-major {vulns_total, vulns_detected} (5 models × 2 fields · count ledger · total=100 정규화)
+//   foundation_sec_8b : [100, 85]  → rate 85% silent (Foundation-Sec-8B-Reasoning)
+//   sec_gpt5          : [100, 80]  → rate 80% silent
+//   sec_claude        : [100, 78]  → rate 78% silent
+//   general_gpt5      : [100, 45]  → rate 45% FIRES (탐지율 < 60% · 방어 부족)
+//   weak_sec          : [100, 30]  → rate 30% FIRES (방어 신뢰 불가)
+let MODEL_DATA = [100, 85,
+                  100, 80,
+                  100, 78,
+                  100, 45,
+                  100, 30]
+
+let N_FIELDS = 2
+let THRESHOLD_PCT = 60               // detection_rate < 60% → 취약점 탐지율 부족 → 방어 신뢰 불가
+let COUNT_MAX = 100                  // vulns_total 정규화 상한 (count ∈ [0, 100])
+
+fn vulns_total(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn vulns_detected(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn detection_rate_x100(model_i: int) -> int {
+    // detected as % of total. total=100 정규화이므로 × 100 / 100 → detected 수 = rate%.
+    //   rate% = vulns_detected × 100 / vulns_total
+    return (vulns_detected(model_i) * 100) / vulns_total(model_i)
+}
+
+fn reliable_sec(model_i: int) -> bool {
+    return detection_rate_x100(model_i) >= THRESHOLD_PCT
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // 탐지율 < 60% → 취약점의 절반 가까이를 놓침 → 보안 모델로 부족 (방어 신뢰 불가)
+    return detection_rate_x100(model_i) < THRESHOLD_PCT
+}
+
+print("hexa-codex VERTICAL/CYBERSECURITY A1 — 취약점 탐지율 (defensive) closed-form (cycle-10 · 보안 분석가)")
+print("======================================================================================================")
+print("")
+print("⚠ DUAL-USE: 측정은 DEFENSIVE 관점만 (취약점 탐지 coverage) · 공격 기법 생성 아님 (cx_hf_safety_private)")
+print("")
+print("per-model 취약점 탐지 profile (placeholder · count ledger · libm-free · vulns_total=100 정규화):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let t = vulns_total(i)
+    let d = vulns_detected(i)
+    let rate = detection_rate_x100(i)
+    let mut flag = "silent (보안 전문 · 탐지율 ≥ 60% · 방어 신뢰)"
+    if falsifier_fires(i) {
+        flag = "FIRES (탐지율 < 60% · 취약점 절반 가까이 놓침 · 보안 모델로 부족 · 방어 신뢰 불가)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    vulns_total=" + to_string(t) + " · vulns_detected=" + to_string(d) +
+          " (CTF/CVE · defensive)")
+    print("    → detection_rate=" + to_string(rate) + "% · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_CYBERSECURITY_A1_VULN_DETECTION__ DONE")

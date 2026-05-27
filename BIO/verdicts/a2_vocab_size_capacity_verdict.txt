@@ -1,0 +1,19 @@
+# hexa-codex BIO A2 — vocab size effect on LLM capacity (cycle-3 first probe)
+# axis=BIO.md::A2 (NOVEL · cycle-1 init · A = BIO-data LLM training)
+# verifier=BIO/verify/numerics_bio_a2_vocab_size_capacity.hexa
+# tier=🔵 SUPPORTED-FORMAL — V × d_model embed term + n²·d attention trade-off (8/8)
+# checks=8/8
+# vocab=text50000_BPE · protein20_amino · DNA4_nt
+# seq_lengths_typical=text30 protein300 DNA900 (same content)
+# d_model=1024
+# embed_params=text102.4M · protein41K · DNA8K (2·V·d, untied)
+# text_protein_embed_ratio=2500x · protein_DNA_ratio=5x
+# attn_per_layer=text921k · protein92M (100x text) · DNA829M (900x text)
+# total_cost_embed_plus_32attn=text132M · protein2.95G · DNA26.5G
+# A2_falsifier=V 무관 REFUTED (V·d embed term LOAD-BEARING)
+# operational=DNA-LLM needs linear-attn (Mamba/Caduceus); standard MHA prohibitive
+# operational=ESM2 V=20 amino is sweet-spot for protein (balanced embed vs seq)
+# external_anchor=Lin2023_ESM2 · DNABERT · Caduceus · Llama3_tokenizer
+# next_probe=cycle-4+ T4 SANDBOX perplexity-per-byte measurement across 3 tokenizations
+# RUN-HOST: compiled+executed on pool host ubu-1 (hexa build native)
+#   transpiler rebuilt via `HEXA_LANG=$HOME/core/hexa-lang hexa cc` (proven recipe)

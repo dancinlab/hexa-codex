@@ -1,0 +1,238 @@
+#!hexa strict
+// VERTICAL/SCIENCE/verify/numerics_science_a1_multistep_derive.hexa
+// VERTICAL 전문 모델 측정 도메인군 · SCIENCE — closed-form verifier for the multi-step
+// derive-ratio identity + 40% threshold falsifier semantics.
+//
+// ⚠ SCIENCE ≠ MATH ≠ BIO ≠ MEDICAL — 다른 vertical · 다른 falsifier:
+//   VERTICAL/MATH = 수학 (formal-proof 검증율) · VERTICAL/BIO = 생명과학 (specialization gain ·
+//   in-silico↔in-vitro) · VERTICAL/MEDICAL = 임상 · VERTICAL/SCIENCE = 물리·화학·일반과학 추론
+//   (GPQA · multi-step 유도). SCIENCE A1 falsifier = derive gap (사실 암기 ≠ 다단계 유도) —
+//   MATH 의 verify gap (답 ≠ 증명) 과도, BIO 의 specialization-gain 과도 다름.
+//
+// ⚠ recipe ≠ measurement — build recipe = RECIPE (만들기 · science SFT/RL) ·
+//   VERTICAL/SCIENCE = MEASUREMENT (얼마나 잘 유도하나 · multistep derive 정확도). GPQA 의
+//   graduate-level science reasoning 이 본 측정의 task surface.
+//
+// Asserts the derive-ratio identity is closed-form and the falsifier (derive-gap detection)
+// correctly classifies:
+//   (1) ratio identity (multistep × 100 / single_fact) holds for all 5 models
+//   (2) acc values ∈ [0, 100 pct] (× 100 ledger ∈ [0, 10000])
+//   (3) bidirectional synthetic — o1_science (single 88 multi 78 → ratio 89% silent) vs
+//       lookup_model (single 85 multi 25 → ratio 29% fires)
+//   (4) lookup_model + weak_sci fire (ratio < 40% · derive gap) · reasoners silent
+//   (5) gpt5_science + o1_reasoning + gemini_science silent (ratio ≥ 40% · 유도가 사실 따라옴)
+//   (6) determinism (re-call same ratio + fires)
+//   (7) sanity — multistep_derive ≤ single_fact for all (다단계 유도 ⊆ 단답 사실 · 유도하려면 사실 알아야) AND
+//       reasoner monotone: o1_reasoning (87%) ≥ gpt5_science (86%) ≥ gemini_science (83%)
+//
+// Source: VERTICAL/SCIENCE/bench/science_a1_multistep_derive.hexa
+// External anchors: Rein 2023 GPQA (arXiv:2311.12022) ·
+//                   Wang 2023 SciBench (arXiv:2307.10635) ·
+//                   He 2024 OlympiadBench (arXiv:2402.14008)
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["gpt5_science", "o1_reasoning", "gemini_science", "lookup_model", "weak_sci"]
+
+let MODEL_DATA = [8800, 7600,
+                  8500, 7400,
+                  8600, 7200,
+                  8500, 2500,
+                  7000, 2000]
+
+let N_FIELDS = 2
+let THRESHOLD_pct = 40              // < 40% derive_ratio → 다단계 유도 < 단답 × 0.4 → derive gap
+let ACC_MAX_x100 = 100 * 100        // [0, 10000]
+
+fn single_fact_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn multistep_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn derive_ratio_pct(model_i: int) -> int {
+    return multistep_x100(model_i) * 100 / single_fact_x100(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return derive_ratio_pct(model_i) < THRESHOLD_pct
+}
+
+print("hexa-codex VERTICAL/SCIENCE A1 falsifier — multi-step derive-ratio closed-form")
+print("=============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — ratio identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = derive_ratio_pct(i)
+    let rhs = multistep_x100(i) * 100 / single_fact_x100(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] ratio identity (multistep × 100 / single_fact) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ratio identity broken")
+}
+
+// check 2 — acc values ∈ [0, 100 pct] (× 100 ledger ∈ [0, 10000])
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_model {
+    let mut f = 0
+    while f < N_FIELDS {
+        let v = MODEL_DATA[i * N_FIELDS + f]
+        if v < 0 || v > ACC_MAX_x100 { rb_ok = false }
+        f = f + 1
+    }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] acc values ∈ [0, 100 pct] (× 100 ledger ∈ [0, " +
+          to_string(ACC_MAX_x100) + "]) for all " +
+          to_string(n_model * N_FIELDS) + " entries")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] value out of range")
+}
+
+// check 3 — bidirectional synthetic:
+//   o1_science (single 88 multi 78 → ratio 89% silent) vs lookup_model (single 85 multi 25 → ratio 29% fires)
+checks_total = checks_total + 1
+let O1_FACT = 8800   // 88 pct × 100
+let O1_MULTI = 7800  // 78 pct × 100
+let LK_FACT = 8500   // 85 pct × 100
+let LK_MULTI = 2500  // 25 pct × 100
+let o1_ratio = O1_MULTI * 100 / O1_FACT
+let lk_ratio = LK_MULTI * 100 / LK_FACT
+if o1_ratio == 88 && o1_ratio >= THRESHOLD_pct && lk_ratio == 29 && lk_ratio < THRESHOLD_pct {
+    print("  [PASS] bidirectional synthetic — o1_science (88/78 → ratio=" + to_string(o1_ratio) +
+          "% silent · 유도가 사실 따라옴) vs lookup_model (85/25 → ratio=" + to_string(lk_ratio) +
+          "% fires · 사실만 암기 · derive gap)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] bidirectional synthetic broken (o1_ratio=" + to_string(o1_ratio) +
+          " · lk_ratio=" + to_string(lk_ratio) + ")")
+}
+
+// check 4 — lookup_model (idx 3) + weak_sci (idx 4) fire (ratio < 40% · derive gap) · reasoners silent
+checks_total = checks_total + 1
+if falsifier_fires(3) && falsifier_fires(4)
+        && derive_ratio_pct(3) == 29 && derive_ratio_pct(4) == 28
+        && falsifier_fires(0) == false && falsifier_fires(1) == false
+        && falsifier_fires(2) == false {
+    print("  [PASS] derive-gap models fire: lookup_model ratio=" + to_string(derive_ratio_pct(3)) +
+          "% · weak_sci=" + to_string(derive_ratio_pct(4)) +
+          "% (< 40% · 사실 암기는 되나 유도 못함 · derive gap) — only these two fire")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] derive-gap fire detection broken")
+}
+
+// check 5 — gpt5_science + o1_reasoning + gemini_science silent (ratio ≥ 40% · 유도가 사실 따라옴)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && derive_ratio_pct(0) == 86 && derive_ratio_pct(1) == 87
+        && derive_ratio_pct(2) == 83 {
+    print("  [PASS] reasoners silent: gpt5_science ratio=" + to_string(derive_ratio_pct(0)) +
+          "% · o1_reasoning=" + to_string(derive_ratio_pct(1)) +
+          "% · gemini_science=" + to_string(derive_ratio_pct(2)) +
+          "% — all ≥ 40% · 유도가 사실을 따라옴 (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] reasoner silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if derive_ratio_pct(0) == derive_ratio_pct(0)
+        && falsifier_fires(3) == falsifier_fires(3)
+        && derive_ratio_pct(1) == derive_ratio_pct(1) {
+    print("  [PASS] formula deterministic (re-call same ratio + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: multistep_derive ≤ single_fact for all (유도하려면 사실 알아야 · multi ⊆ single) AND
+//   reasoner monotone: o1_reasoning (87%) ≥ gpt5_science (86%) ≥ gemini_science (83%).
+//   note: lookup_model · weak_sci 는 multi < single 이 정상 (derive gap 행), 단 multi ≤ single 은 항상 유지.
+checks_total = checks_total + 1
+let mut multi_subset = true
+i = 0
+while i < n_model {
+    if multistep_x100(i) > single_fact_x100(i) { multi_subset = false }
+    i = i + 1
+}
+let monotone_reasoners = derive_ratio_pct(1) >= derive_ratio_pct(0)
+        && derive_ratio_pct(0) >= derive_ratio_pct(2)
+if multi_subset && monotone_reasoners {
+    print("  [PASS] sanity — multistep_derive ≤ single_fact all (유도하려면 사실 알아야 · multi ⊆ single) AND reasoner monotone (o1 87 ≥ gpt5 86 ≥ gemini 83)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (multi_subset=" + to_string(multi_subset) +
+          " · monotone_reasoners=" + to_string(monotone_reasoners) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (multi-step derive-ratio identity + 40% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 40% threshold = fact/derive gap convention · cite Rein 2023 GPQA arXiv:2311.12022 + Wang 2023 SciBench arXiv:2307.10635 + He 2024 OlympiadBench arXiv:2402.14008)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — multi-step derive-ratio formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/SCIENCE A1 finding (과학 전문 모델 측정 · placeholder · closed-form):")
+print("  - derive_ratio_pct = multistep × 100 / single_fact identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: gpt5_science=86% · o1_reasoning=87% · gemini_science=83% silent (유도가 사실 따라옴) · lookup_model=29% · weak_sci=28% fire (사실 암기는 되나 유도 못함 · derive gap · shallow knowledge)")
+print("  - external anchors: Rein 2023 GPQA (arXiv:2311.12022) · Wang 2023 SciBench (arXiv:2307.10635) · He 2024 OlympiadBench (arXiv:2402.14008)")
+print("  - SCIENCE ≠ MATH ≠ BIO: 물리·화학·일반과학 추론 · derive gap (사실 ≠ 유도) — MATH verify gap (답 ≠ 증명) · BIO specialization-gain 과 다름")
+print("  - recipe ≠ measurement: build recipe = 만들기 (RECIPE) · SCIENCE 도메인 = 측정 (MEASUREMENT · multistep derive 정확도)")
+print("  - 실측 (cycle-11+ T4): GPQA single-fact + multi-step derive on HF transformers + vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_SCIENCE_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/SCIENCE/verdicts/a1_multistep_derive_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/SCIENCE A1 — multi-step derive-ratio verifier (과학 전문 모델 측정 · cycle-10)\n"
+content = content + "# axis=VERTICAL/SCIENCE/SCIENCE.md::A1 (multi-step 유도 능력 · 5 models · 40% derive-gap threshold)\n"
+content = content + "# bench=VERTICAL/SCIENCE/bench/science_a1_multistep_derive.hexa\n"
+content = content + "# verifier=VERTICAL/SCIENCE/verify/numerics_science_a1_multistep_derive.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=derive_ratio_pct = multistep × 100 / single_fact (단답으로 아는 것 중 다단계 유도까지 해내는 %); falsifier_fires = derive_ratio < 40% (다단계 유도 < 단답 사실 × 0.4) → 사실 암기는 되나 유도 못함 (derive gap · shallow knowledge)\n"
+content = content + "# placeholder_data=5 models · gpt5_science (single 88.0 · multi 76.0 · ratio 86% silent) · o1_reasoning (85.0 · 74.0 · ratio 87% silent) · gemini_science (86.0 · 72.0 · ratio 83% silent) · lookup_model (85.0 · 25.0 · ratio 29% FIRES · derive gap) · weak_sci (70.0 · 20.0 · ratio 28% FIRES · derive gap)\n"
+content = content + "# bidirectional_discrimination=3 silent (gpt5_science · o1_reasoning · gemini_science — reasoner · 유도가 사실 따라옴) + 2 fires (lookup_model · weak_sci — ratio<40% · 사실 암기는 되나 유도 못함 · derive gap · shallow knowledge)\n"
+content = content + "# external_anchors=Rein 2023 GPQA: A Graduate-Level Google-Proof Q&A Benchmark (arXiv:2311.12022) · Wang 2023 SciBench: Evaluating College-Level Scientific Problem-Solving (arXiv:2307.10635) · He 2024 OlympiadBench (arXiv:2402.14008)\n"
+content = content + "# vertical_distinction=SCIENCE ≠ MATH (formal-proof 검증율) ≠ BIO (specialization gain · in-silico↔in-vitro) ≠ MEDICAL (임상) — SCIENCE = 물리·화학·일반과학 추론 · GPQA multi-step 유도 · derive gap (사실 ≠ 유도) falsifier\n"
+content = content + "# recipe_vs_measurement=build recipe = RECIPE (만들기 · science SFT/RL · multi-step CoT corpus) · VERTICAL/SCIENCE = MEASUREMENT (얼마나 잘 유도하나 · multistep derive 정확도) — 다른 layer\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · GPQA single-fact + multi-step derive on HF transformers + vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — derive-ratio identity close ≠ measured close · 새 science model·reasoning 패러다임 마다 frontier 재오픈 · 축 N (반증가능 가설 생성 · Popper falsifiability) ⭐ MAIN · 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

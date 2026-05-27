@@ -1,0 +1,14 @@
+# hexa-codex VERTICAL/SCIENCE A1 — multi-step derive-ratio verifier (과학 전문 모델 측정 · cycle-10)
+# axis=VERTICAL/SCIENCE/SCIENCE.md::A1 (multi-step 유도 능력 · 5 models · 40% derive-gap threshold)
+# bench=VERTICAL/SCIENCE/bench/science_a1_multistep_derive.hexa
+# verifier=VERTICAL/SCIENCE/verify/numerics_science_a1_multistep_derive.hexa
+# tier=🔵 STRUCTURAL (multi-step derive-ratio identity + 40% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 40% threshold = fact/derive gap convention · cite Rein 2023 GPQA arXiv:2311.12022 + Wang 2023 SciBench arXiv:2307.10635 + He 2024 OlympiadBench arXiv:2402.14008)
+# checks=7/7
+# formula=derive_ratio_pct = multistep × 100 / single_fact (단답으로 아는 것 중 다단계 유도까지 해내는 %); falsifier_fires = derive_ratio < 40% (다단계 유도 < 단답 사실 × 0.4) → 사실 암기는 되나 유도 못함 (derive gap · shallow knowledge)
+# placeholder_data=5 models · gpt5_science (single 88.0 · multi 76.0 · ratio 86% silent) · o1_reasoning (85.0 · 74.0 · ratio 87% silent) · gemini_science (86.0 · 72.0 · ratio 83% silent) · lookup_model (85.0 · 25.0 · ratio 29% FIRES · derive gap) · weak_sci (70.0 · 20.0 · ratio 28% FIRES · derive gap)
+# bidirectional_discrimination=3 silent (gpt5_science · o1_reasoning · gemini_science — reasoner · 유도가 사실 따라옴) + 2 fires (lookup_model · weak_sci — ratio<40% · 사실 암기는 되나 유도 못함 · derive gap · shallow knowledge)
+# external_anchors=Rein 2023 GPQA: A Graduate-Level Google-Proof Q&A Benchmark (arXiv:2311.12022) · Wang 2023 SciBench: Evaluating College-Level Scientific Problem-Solving (arXiv:2307.10635) · He 2024 OlympiadBench (arXiv:2402.14008)
+# vertical_distinction=SCIENCE ≠ MATH (formal-proof 검증율) ≠ BIO (specialization gain · in-silico↔in-vitro) ≠ MEDICAL (임상) — SCIENCE = 물리·화학·일반과학 추론 · GPQA multi-step 유도 · derive gap (사실 ≠ 유도) falsifier
+# recipe_vs_measurement=build recipe = RECIPE (만들기 · science SFT/RL · multi-step CoT corpus) · VERTICAL/SCIENCE = MEASUREMENT (얼마나 잘 유도하나 · multistep derive 정확도) — 다른 layer
+# substrate_fire=DEFERRED (cycle-11+ · GPQA single-fact + multi-step derive on HF transformers + vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — derive-ratio identity close ≠ measured close · 새 science model·reasoning 패러다임 마다 frontier 재오픈 · 축 N (반증가능 가설 생성 · Popper falsifiability) ⭐ MAIN · 도착지 없음

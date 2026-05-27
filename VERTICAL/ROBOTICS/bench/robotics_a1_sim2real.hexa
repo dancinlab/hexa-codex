@@ -1,0 +1,110 @@
+#!hexa strict
+// VERTICAL/ROBOTICS/bench/robotics_a1_sim2real.hexa
+// VERTICAL/ROBOTICS 신규 도메인 (cycle-10) — 체화(embodied) VLA 모델의 sim→real
+// transfer 신뢰도 closed-form first probe. 로보틱스/physical AI 전문 모델 측정 layer.
+//
+// North-star: 시뮬레이션에서 잘 되는 모델(sim_success)이 실제 로봇 하드웨어에서도
+// 그만큼 되는가(real_success). 시뮬엔 90% 인데 실제론 30% 라면 그 모델은
+// "reality gap" 에 무너진다 (sim2real gap · 시뮬에 overfit). VLA(Vision-Language-
+// Action) 모델의 핵심 신뢰도 — 시뮬 점수만 높은 모델은 실세계에서 위험하다.
+//
+// Identity (closed-form · libm-free · success stored × 100 ledger, ratio in plain %):
+//   transfer_ratio_pct(model) = real_success_x100 × 100 / sim_success_x100  (× 100 cancels → %)
+//   strong_transfer(model)    = transfer_ratio_pct ≥ THRESHOLD_PCT (50%)
+//   falsifier_fires(model)    = transfer_ratio_pct <  THRESHOLD_PCT
+//                               → real < sim × 0.5 → sim2real gap (시뮬엔 되는데 실제 안 됨)
+//
+// Falsifier (VERTICAL/ROBOTICS A1): 실제 성공률이 시뮬 성공률의 50% 미만이면 그
+// 모델은 reality gap 에 무너진 것 (시뮬에 overfit · 실세계 transfer 실패).
+// sim2real 강건 모델은 silent (ratio 큼) · sim-overfit 모델은 fires.
+//
+// External anchors (citation tier · 🟡):
+//   Brohan 2023 — RT-2: Vision-Language-Action Models (arXiv:2307.15818)
+//   Kim 2024    — OpenVLA: An Open-Source Vision-Language-Action Model (arXiv:2406.09246)
+//   Black 2024  — π0: A Vision-Language-Action Flow Model for General Robot Control (arXiv:2410.24164)
+//   Tobin 2017  — Domain Randomization for Transferring Deep Nets sim→real (arXiv:1703.06907)
+//
+// Integer ledger (% × 100) — libm-free closed-form. Placeholder per-model
+// {sim_success, real_success} — 실측 sim→real transfer harness deferred
+// (cycle-11+ T4 · LIBERO/SimplerEnv sim eval + 실제 로봇 rollout · vast.ai pod · `cx_lab_sandbox`).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure sim→real transfer-ratio identity recompute — no runtime infer.")
+
+// ────────────────────────────────────────────────────────────────────────
+// Model registry (5 VLA models · {sim_success, real_success} · % × 100 ledger)
+//   rt2               : sim 85.0 · real 65.0 → ratio 76.4% (RT-2 · sim2real 강건 · silent)
+//   openvla           : sim 82.0 · real 58.0 → ratio 70.7% (OpenVLA · silent)
+//   pi_zero           : sim 88.0 · real 68.0 → ratio 77.2% (π0 flow · silent)
+//   sim_overfit_model : sim 90.0 · real 30.0 → ratio 33.3% (sim-overfit · FIRES · reality gap)
+//   weak_vla          : sim 70.0 · real 25.0 → ratio 35.7% (weak · FIRES · reality gap)
+//
+// sim_success  = 시뮬레이션 환경 task 성공률 (%). real_success = 실제 로봇 하드웨어 성공률.
+// stored × 100 (85.0% → 8500 ledger) — libm-free, matches VERTICAL/CODE/AGENT × 100.
+// note: bidirectional — 3 silent (sim2real 강건) + 2 fires (sim-overfit · reality gap).
+//       sim_overfit_model = 시뮬 최고점(90)이지만 실제 30 → silent 점수의 함정.
+// ────────────────────────────────────────────────────────────────────────
+
+let MODEL_NAMES = ["rt2", "openvla", "pi_zero", "sim_overfit_model", "weak_vla"]
+
+// row-major {sim_success_x100, real_success_x100} (5 models × 2 fields)
+//   rt2               : [8500, 6500]  → 85.0 / 65.0 · ratio 76.4% silent
+//   openvla           : [8200, 5800]  → 82.0 / 58.0 · ratio 70.7% silent
+//   pi_zero           : [8800, 6800]  → 88.0 / 68.0 · ratio 77.2% silent
+//   sim_overfit_model : [9000, 3000]  → 90.0 / 30.0 · ratio 33.3% FIRES (sim2real gap)
+//   weak_vla          : [7000, 2500]  → 70.0 / 25.0 · ratio 35.7% FIRES (reality gap)
+let MODEL_DATA = [8500, 6500,
+                  8200, 5800,
+                  8800, 6800,
+                  9000, 3000,
+                  7000, 2500]
+
+let N_FIELDS = 2
+let THRESHOLD_PCT = 50               // transfer_ratio < 50% → real < sim × 0.5 → sim2real gap
+let SCORE_MAX_x100 = 100 * 100       // success ∈ [0, 100] % · × 100 ledger ∈ [0, 10000]
+
+fn sim_success_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn real_success_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+
+fn transfer_ratio_pct(model_i: int) -> int {
+    // real success as % of sim success. Both operands share the × 100 ledger so
+    // the × 100 factors cancel → result is plain percent (높을수록 sim2real 강건).
+    //   ratio% = real_success_x100 × 100 / sim_success_x100
+    return (real_success_x100(model_i) * 100) / sim_success_x100(model_i)
+}
+
+fn strong_transfer(model_i: int) -> bool {
+    return transfer_ratio_pct(model_i) >= THRESHOLD_PCT
+}
+
+fn falsifier_fires(model_i: int) -> bool {
+    // real < sim × 0.5 → sim2real gap (시뮬엔 되는데 실제 안 됨 · reality gap)
+    return transfer_ratio_pct(model_i) < THRESHOLD_PCT
+}
+
+print("hexa-codex VERTICAL/ROBOTICS A1 — sim→real transfer 신뢰도 closed-form (cycle-10 · embodied VLA)")
+print("==================================================================================================")
+print("")
+print("per-model sim→real transfer profile (placeholder · × 100 ledger · libm-free):")
+let n_model = MODEL_NAMES.len()
+let mut i = 0
+while i < n_model {
+    let s = sim_success_x100(i)
+    let r = real_success_x100(i)
+    let ratio = transfer_ratio_pct(i)
+    let mut flag = "silent (sim2real 강건 · ratio ≥ 50%)"
+    if falsifier_fires(i) {
+        flag = "FIRES (ratio < 50% · real < sim × 0.5 · sim2real gap · reality gap)"
+    }
+    print("  " + MODEL_NAMES[i] + ":")
+    print("    sim_success=" + to_string(s / 100) + "." + to_string((s % 100) / 10) +
+          "% · real_success=" + to_string(r / 100) + "." + to_string((r % 100) / 10) + "%")
+    print("    → transfer_ratio=" + to_string(ratio) + "% · [" + flag + "]")
+    i = i + 1
+}
+print("")
+print("__HEXA_CODEX_ROBOTICS_A1_SIM2REAL__ DONE")

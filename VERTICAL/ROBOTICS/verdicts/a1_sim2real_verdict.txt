@@ -1,0 +1,13 @@
+# hexa-codex VERTICAL/ROBOTICS A1 — sim→real transfer 신뢰도 verifier (embodied VLA · cycle-10)
+# axis=VERTICAL/ROBOTICS/ROBOTICS.md::A1 (sim→real transfer 신뢰도 · 5 VLA models · 50% transfer-ratio threshold)
+# bench=VERTICAL/ROBOTICS/bench/robotics_a1_sim2real.hexa
+# verifier=VERTICAL/ROBOTICS/verify/numerics_robotics_a1_sim2real.hexa
+# tier=🔵 STRUCTURAL (transfer-ratio identity + 50% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 50% threshold = sim2real-gap convention · cite Brohan 2023 RT-2 arXiv:2307.15818 + Kim 2024 OpenVLA arXiv:2406.09246 + Black 2024 π0 arXiv:2410.24164 + Tobin 2017 domain randomization arXiv:1703.06907)
+# checks=7/7
+# formula=transfer_ratio_pct = real_success × 100 / sim_success (success stored × 100 ledger; × 100 factors cancel → ratio in plain %); falsifier_fires = ratio < 50% → real < sim × 0.5 → sim2real gap (reality gap)
+# placeholder_data=5 VLA models · rt2 (85/65 · ratio 76% silent) · openvla (82/58 · 70% silent) · pi_zero (88/68 · 77% silent) · sim_overfit_model (90/30 · 33% FIRES · reality gap) · weak_vla (70/25 · 35% FIRES · reality gap)
+# bidirectional_discrimination=3 silent (rt2 · openvla · pi_zero — sim2real 강건) + 2 fires (sim_overfit_model · weak_vla — reality gap)
+# sim_overfit_trap=highest-sim model (sim_overfit_model · sim 90 = ladder 최고점) FIRES (real 30) — 시뮬 점수만으로는 transfer 신뢰 불가
+# external_anchors=Brohan 2023 RT-2 (arXiv:2307.15818) · Kim 2024 OpenVLA (arXiv:2406.09246) · Black 2024 π0 (arXiv:2410.24164) · Tobin 2017 domain randomization sim→real (arXiv:1703.06907)
+# substrate_fire=DEFERRED (cycle-11+ · LIBERO/SimplerEnv sim eval + 실제 로봇 rollout transfer harness · vast.ai pod · cx_lab_sandbox)
+# frontier_open=feedback_closure_is_physical_limit — transfer-ratio identity close ≠ measured close · 새 VLA model·benchmark·로봇 platform 마다 frontier 재오픈 · long-horizon manipulation (B1) · safe-stop reliability (N⭐ · physical 위해) 도착지 없음

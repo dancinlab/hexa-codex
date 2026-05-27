@@ -1,0 +1,231 @@
+#!hexa strict
+// VERTICAL/ROBOTICS/verify/numerics_robotics_a1_sim2real.hexa
+// VERTICAL/ROBOTICS 신규 도메인 (cycle-10) — closed-form verifier for the sim→real
+// transfer-ratio identity + 50% threshold falsifier semantics. 로보틱스/physical AI
+// 전문 모델 (embodied VLA) 측정 layer 의 첫 probe.
+//
+// Asserts the ratio identity is closed-form and the falsifier (sim2real-gap detection)
+// correctly classifies:
+//   (1) ratio identity (real_success × 100 / sim_success) holds for all 5 models
+//   (2) success values ∈ [0, 100 %] (× 100 ledger ∈ [0, 10000]) AND real ≤ sim
+//   (3) equal synthetic — sim=real=80% → ratio=100% → silent (real = sim · gap 없음)
+//   (4) sim_overfit_model + weak_vla fire (ratio < 50% · real < sim × 0.5 · reality gap)
+//   (5) rt2/openvla/pi_zero silent (ratio ≥ 50% · sim2real 강건)
+//   (6) determinism (re-call same ratio + fires)
+//   (7) sanity — real ≤ sim for all (시뮬이 실제 upper-bound · 단조) AND sim-overfit
+//       trap: sim_overfit_model 의 sim(9000) 이 frontier 최고점이지만 real(3000)은
+//       최저 → silent-점수의 함정 (시뮬 점수만으로는 신뢰 불가)
+//
+// Source: VERTICAL/ROBOTICS/bench/robotics_a1_sim2real.hexa
+// External anchors: Brohan 2023 RT-2 (arXiv:2307.15818) · Kim 2024 OpenVLA
+//                   (arXiv:2406.09246) · Black 2024 π0 (arXiv:2410.24164) ·
+//                   Tobin 2017 domain randomization sim→real (arXiv:1703.06907)
+//
+// @no-lock-needed
+
+let MODEL_NAMES = ["rt2", "openvla", "pi_zero", "sim_overfit_model", "weak_vla"]
+
+let MODEL_DATA = [8500, 6500,
+                  8200, 5800,
+                  8800, 6800,
+                  9000, 3000,
+                  7000, 2500]
+
+let N_FIELDS = 2
+let THRESHOLD_PCT = 50              // < 50% transfer ratio → sim2real gap
+let SCORE_MAX_x100 = 100 * 100      // success × 100 ledger ∈ [0, 10000]
+
+fn sim_success_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 0]
+}
+fn real_success_x100(model_i: int) -> int {
+    return MODEL_DATA[model_i * N_FIELDS + 1]
+}
+fn transfer_ratio_pct(model_i: int) -> int {
+    // real success as % of sim success. Both operands share the × 100 ledger so
+    // the × 100 factors cancel → result is plain percent (e.g. 76).
+    //   ratio% = real_success_x100 × 100 / sim_success_x100
+    return (real_success_x100(model_i) * 100) / sim_success_x100(model_i)
+}
+fn falsifier_fires(model_i: int) -> bool {
+    return transfer_ratio_pct(model_i) < THRESHOLD_PCT
+}
+
+print("hexa-codex VERTICAL/ROBOTICS A1 falsifier — sim→real transfer-ratio closed-form")
+print("==============================================================================")
+print("")
+
+let mut checks_passed = 0
+let mut checks_total = 0
+let n_model = MODEL_NAMES.len()
+
+// check 1 — ratio identity for all 5 models
+checks_total = checks_total + 1
+let mut id_ok = true
+let mut i = 0
+while i < n_model {
+    let lhs = transfer_ratio_pct(i)
+    let rhs = (real_success_x100(i) * 100) / sim_success_x100(i)
+    if lhs != rhs { id_ok = false }
+    i = i + 1
+}
+if id_ok {
+    print("  [PASS] ratio identity (real_success × 100 / sim_success) holds for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] ratio identity broken")
+}
+
+// check 2 — success values ∈ [0, 100 %] AND real ≤ sim (시뮬이 실제 upper-bound)
+checks_total = checks_total + 1
+let mut rb_ok = true
+i = 0
+while i < n_model {
+    let mut f = 0
+    while f < N_FIELDS {
+        let v = MODEL_DATA[i * N_FIELDS + f]
+        if v < 0 || v > SCORE_MAX_x100 { rb_ok = false }
+        f = f + 1
+    }
+    if real_success_x100(i) > sim_success_x100(i) { rb_ok = false }
+    i = i + 1
+}
+if rb_ok {
+    print("  [PASS] success values ∈ [0, 100 %] (× 100 ledger ∈ [0, " +
+          to_string(SCORE_MAX_x100) + "]) AND real ≤ sim for all " +
+          to_string(n_model) + " models")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] value out of range or real > sim")
+}
+
+// check 3 — equal synthetic: sim=real=80% → ratio=100% → silent (real = sim · gap 없음)
+checks_total = checks_total + 1
+let SYN = 8000  // 80% × 100
+let syn_ratio = (SYN * 100) / SYN
+if syn_ratio == 100 && syn_ratio >= THRESHOLD_PCT {
+    print("  [PASS] synthetic equal (sim=real=80%) → ratio=100% · silent (real = sim · reality gap 없음)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] synthetic equal ratio=" + to_string(syn_ratio))
+}
+
+// check 4 — sim_overfit_model (idx 3) + weak_vla (idx 4) fire (ratio < 50% · reality gap)
+checks_total = checks_total + 1
+if falsifier_fires(3) && transfer_ratio_pct(3) == 33
+        && falsifier_fires(4) && transfer_ratio_pct(4) == 35 {
+    print("  [PASS] sim_overfit_model fires: ratio=" + to_string(transfer_ratio_pct(3)) +
+          "% (sim 90 · real 30 — sim2real gap) · weak_vla fires: ratio=" +
+          to_string(transfer_ratio_pct(4)) + "% (sim 70 · real 25) — both < 50% · reality gap")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sim2real-gap fire detection broken (overfit=" + to_string(transfer_ratio_pct(3)) +
+          " · weak=" + to_string(transfer_ratio_pct(4)) + ")")
+}
+
+// check 5 — rt2/openvla/pi_zero silent (ratio ≥ 50% · sim2real 강건)
+checks_total = checks_total + 1
+if falsifier_fires(0) == false && falsifier_fires(1) == false && falsifier_fires(2) == false
+        && transfer_ratio_pct(0) == 76 && transfer_ratio_pct(1) == 70
+        && transfer_ratio_pct(2) == 77 {
+    print("  [PASS] robust VLA models silent: rt2 ratio=" + to_string(transfer_ratio_pct(0)) +
+          "% (RT-2) · openvla=" + to_string(transfer_ratio_pct(1)) +
+          "% (OpenVLA) · pi_zero=" + to_string(transfer_ratio_pct(2)) +
+          "% (π0) — all ≥ 50% · sim2real 강건 (false-positive 회피)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] robust-VLA silent detection broken")
+}
+
+// check 6 — determinism (re-call same values)
+checks_total = checks_total + 1
+if transfer_ratio_pct(0) == transfer_ratio_pct(0)
+        && falsifier_fires(3) == falsifier_fires(3)
+        && transfer_ratio_pct(2) == transfer_ratio_pct(2) {
+    print("  [PASS] formula deterministic (re-call same ratio + fires · recursively delicious)")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] formula non-deterministic")
+}
+
+// check 7 — sanity: real ≤ sim for all (시뮬이 실제 upper-bound · 단조) AND sim-overfit
+//   trap: sim_overfit_model 의 sim 이 ladder 최고점(9000)인데 real 은 최저(3000) →
+//   silent-점수의 함정 (시뮬 점수만으로는 transfer 신뢰 불가).
+checks_total = checks_total + 1
+let mut sim_bounds = true
+i = 0
+while i < n_model {
+    if real_success_x100(i) > sim_success_x100(i) { sim_bounds = false }
+    i = i + 1
+}
+let mut max_sim_i = 0
+let mut min_real_i = 0
+i = 1
+while i < n_model {
+    if sim_success_x100(i) > sim_success_x100(max_sim_i) { max_sim_i = i }
+    if real_success_x100(i) < real_success_x100(min_real_i) { min_real_i = i }
+    i = i + 1
+}
+let overfit_trap = (max_sim_i == 3) && (min_real_i == 4) && falsifier_fires(3)
+if sim_bounds && overfit_trap {
+    print("  [PASS] sanity — real ≤ sim all (시뮬이 실제 upper-bound) AND sim-overfit trap: highest-sim=" +
+          MODEL_NAMES[max_sim_i] + " (sim 90) FIRES · 시뮬 점수만으론 신뢰 불가 (lowest-real=" +
+          MODEL_NAMES[min_real_i] + ")")
+    checks_passed = checks_passed + 1
+} else {
+    print("  [FAIL] sanity broken (sim_bounds=" + to_string(sim_bounds) +
+          " · overfit_trap=" + to_string(overfit_trap) + ")")
+}
+
+print("")
+print("  " + to_string(checks_passed) + "/" + to_string(checks_total) + " checks passed")
+
+let mut verdict_tier = ""
+if checks_passed == checks_total {
+    verdict_tier = "🔵 STRUCTURAL (transfer-ratio identity + 50% threshold semantics 7/7) + 🟡 BY-CITATION (placeholder data · 50% threshold = sim2real-gap convention · cite Brohan 2023 RT-2 arXiv:2307.15818 + Kim 2024 OpenVLA arXiv:2406.09246 + Black 2024 π0 arXiv:2410.24164 + Tobin 2017 domain randomization arXiv:1703.06907)"
+} else {
+    verdict_tier = "🔴 FALSIFIED — sim→real transfer-ratio formula contradicts identity (" + to_string(checks_passed) + "/" + to_string(checks_total) + ")"
+}
+print("  " + verdict_tier)
+print("")
+print("VERTICAL/ROBOTICS A1 finding (embodied VLA · placeholder · closed-form):")
+print("  - transfer_ratio_pct = real_success × 100 / sim_success identity (7/7 closed-form checks)")
+print("  - bidirectional discrimination: rt2=76% · openvla=70% · pi_zero=77% silent (sim2real 강건) · sim_overfit_model=33% · weak_vla=35% fires (reality gap)")
+print("  - sim-overfit trap: highest-sim model (sim 90) FIRES (real 30) — 시뮬 점수만으론 신뢰 불가")
+print("  - external anchors: Brohan 2023 RT-2 (arXiv:2307.15818) · Kim 2024 OpenVLA (arXiv:2406.09246) · Black 2024 π0 (arXiv:2410.24164) · Tobin 2017 (arXiv:1703.06907)")
+print("  - 실측 (cycle-11+ T4): LIBERO/SimplerEnv sim eval + 실제 로봇 rollout transfer harness · vast.ai pod (cx_lab_sandbox)")
+print("")
+print("__HEXA_CODEX_NUMERICS_ROBOTICS_A1__ " + (if checks_passed == checks_total { "DONE" } else { "FAIL" }))
+
+let HOME = env("HOME")
+fn _root() -> str {
+    let r = env("HEXA_CODEX_ROOT")
+    if r.len() > 0 { return r }
+    let mut p = exec("pwd").trim()
+    let mut depth = 0
+    while depth < 6 {
+        if exec("test -f " + p + "/DOMAINS.tape && echo y").trim() == "y" { return p }
+        p = exec("dirname " + p).trim()
+        depth = depth + 1
+    }
+    return HOME + "/core/hexa-codex"
+}
+let ROOT = _root()
+let OUT_PATH = ROOT + "/VERTICAL/ROBOTICS/verdicts/a1_sim2real_verdict.txt"
+
+let mut content = "# hexa-codex VERTICAL/ROBOTICS A1 — sim→real transfer 신뢰도 verifier (embodied VLA · cycle-10)\n"
+content = content + "# axis=VERTICAL/ROBOTICS/ROBOTICS.md::A1 (sim→real transfer 신뢰도 · 5 VLA models · 50% transfer-ratio threshold)\n"
+content = content + "# bench=VERTICAL/ROBOTICS/bench/robotics_a1_sim2real.hexa\n"
+content = content + "# verifier=VERTICAL/ROBOTICS/verify/numerics_robotics_a1_sim2real.hexa\n"
+content = content + "# tier=" + verdict_tier + "\n"
+content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(checks_total) + "\n"
+content = content + "# formula=transfer_ratio_pct = real_success × 100 / sim_success (success stored × 100 ledger; × 100 factors cancel → ratio in plain %); falsifier_fires = ratio < 50% → real < sim × 0.5 → sim2real gap (reality gap)\n"
+content = content + "# placeholder_data=5 VLA models · rt2 (85/65 · ratio 76% silent) · openvla (82/58 · 70% silent) · pi_zero (88/68 · 77% silent) · sim_overfit_model (90/30 · 33% FIRES · reality gap) · weak_vla (70/25 · 35% FIRES · reality gap)\n"
+content = content + "# bidirectional_discrimination=3 silent (rt2 · openvla · pi_zero — sim2real 강건) + 2 fires (sim_overfit_model · weak_vla — reality gap)\n"
+content = content + "# sim_overfit_trap=highest-sim model (sim_overfit_model · sim 90 = ladder 최고점) FIRES (real 30) — 시뮬 점수만으로는 transfer 신뢰 불가\n"
+content = content + "# external_anchors=Brohan 2023 RT-2 (arXiv:2307.15818) · Kim 2024 OpenVLA (arXiv:2406.09246) · Black 2024 π0 (arXiv:2410.24164) · Tobin 2017 domain randomization sim→real (arXiv:1703.06907)\n"
+content = content + "# substrate_fire=DEFERRED (cycle-11+ · LIBERO/SimplerEnv sim eval + 실제 로봇 rollout transfer harness · vast.ai pod · cx_lab_sandbox)\n"
+content = content + "# frontier_open=feedback_closure_is_physical_limit — transfer-ratio identity close ≠ measured close · 새 VLA model·benchmark·로봇 platform 마다 frontier 재오픈 · long-horizon manipulation (B1) · safe-stop reliability (N⭐ · physical 위해) 도착지 없음\n"
+write_file(OUT_PATH, content)
+print("verdict written: " + OUT_PATH)

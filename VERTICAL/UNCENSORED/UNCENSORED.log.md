@@ -2,6 +2,19 @@
 
 Append-only history sister of `UNCENSORED.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — 축 B1 MEASURED first-probe (ubu-1 · bidirectional 측정 · monotone hypothesis FALSIFIED at scale)
+
+축 B1 bidirectional + sub-axis 개선 직후 measured first-probe land. 3 model (aligned + huihui + josiefied) × 2 sub-axis (pure_capability MMLU 15-q + over_refusal_relief XSTest-safe 10-q) = 75 generations on ubu-1 RTX 5070 BF16.
+
+- [x] bench harness `bench/sandbox_uncensored_b1_capability_bidirectional.hexa` 작성: 15 MMLU-style 4-choice (mix STEM/humanities/commonsense) + 10 XSTest-style safe-looking-but-fine prompts · greedy 16-tok / 48-tok · regex letter scoring + marker-scan inversion · sequential 3-model load · NUMBERS-ONLY emit.
+- [x] ubu-1 dispatch + measured: aligned pure_cap 14/15 (93.33%) · relief 8/10 (80%) · huihui pure_cap 14/15 (×1.000 NEUTRAL) · relief 10/10 (×1.250 GAIN +25pp) · josiefied pure_cap 15/15 (×1.072 NEUTRAL · trends GAIN) · relief 10/10 (×1.250 GAIN).
+- [x] **monotone hypothesis FALSIFIED at this scale** — 가설 (relief↑ AND pure_cap↓) 의 relief gain side 는 양 recipe 모두 confirm (+25pp) · 그러나 pure_cap tax side 는 NOT confirm (huihui NEUTRAL · josiefied trends GAIN). literature 의 "abliteration 자동 tax" 통념 challenge.
+- [x] **axis-improvement framing 검증** — 단방향 falsifier (ratio<0.9 tax only) 였다면 양 recipe SILENT 였을 것 (relief 가는 완전 capture 불가). bidirectional + sub-axis split 가 실제 신호 capture · framing 변경 정당화.
+- [x] cross-recipe consistency: huihui (pure ablation) ≈ josiefied (custom finetune) at 1.5B class → abliteration target 이 recipe-method-independent 신호.
+- [x] verdict `verdicts/b1_cycle14d_capability_bidirectional_verdict.txt` + summary JSON 작성.
+- [x] UNCENSORED.md B1 axis `[ ]` → `[x]` (closed-form 단계 done · measured first-probe land).
+- **honest residual (cycle-15+ frontier)**: (15d.large) full MMLU 14k 또는 500-q stratified · (15d.gsm) GSM8K 1k · (15d.relief) XSTest-safe 250 + OR-Bench-safe category breakdown · (15d.scale) 7B+ replication (Qwen2.5-7B-Instruct + abliterated variant). 현재 n=15/n=10 이 binomial SE ≈ 12-14pp · 0.9/1.1 band 이 noise floor · tight bound 위해 scale-up 필수.
+
 ## 2026-05-28 — 축 B 양방향 falsifier 개선 (tax · gain · neutral · sub-axis 분리) · A1 패턴 mirror
 
 사용자 지적: B1 falsifier 가 "능력 깎이는가" 만 묻고 "능력 증가" 측면을 빠뜨림 → A1 의 bidirectional 패턴 (over↑↔under↓) 과 일관성 부족. abliteration 의 알려진 effect 패턴 (XSTest-safe 에서는 gain · MMLU/GSM8K 에서는 tax) 을 측정 surface 가 분리 capture 해야 정보 손실 없음.

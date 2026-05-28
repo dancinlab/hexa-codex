@@ -3,6 +3,23 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-28 — cycle-14 measured fire: B1 α-sweep + cross-recipe 🔴 HARDENED · cycle-13 honest residuals (a)+(c) CLOSED
+
+cycle-13 직후 honest residuals (a) α-sweep + (c) cross-recipe 단일 dispatch 에서 동시 close. α ∈ {0.5, 1.0, 2.0, 5.0} (10× range) × 2 recipes (huihui-ai pure ablation + Goekdeniz-Guelmez/Josiefied-v1 custom finetune). 모든 14 fail-condition cell 0/20 → closed-negative HARDENED 확정.
+
+- [x] mlabonne abliterated Qwen2.5-1.5B 부재 확인 (HF search 401) → Goekdeniz-Guelmez/Josiefied-Qwen2.5-1.5B-Instruct-abliterated-v1 (BF16 safetensors · custom finetune recipe · 다른 abliteration method) 로 대체. cross-recipe diversity 확보 (pure ablation huihui ↔ custom finetune josiefied).
+- [x] bench harness `bench/sandbox_engine_b1_cycle14_alpha_recipe_sweep.hexa` 작성: cycle-13 fork · α-sweep loop {0.5, 1.0, 2.0, 5.0} (1.0 = cycle-13 sanity reproduce) · L17 only (cycle-13 L17=L18=L19 identical) · sequential 3-model load aligned→huihui→josiefied · NUMBERS-ONLY emit.
+- [x] ubu-1 dispatch: base64 → scp → nohup venv python (same pattern as cycle-13).
+- [x] measured 결과 (NUMBERS-ONLY): aligned 19/20 (cycle-13 95% 재현) · r_L17 norm 18.29 (cycle-13 bit-for-bit 재현) · huihui baseline 0/20 + α-sweep 전체 0/20 + random 0/20 → FALSIFIED · josiefied baseline 1/20 + α-sweep 전체 0/20 (anti-restoration: project-IN 시 baseline 1/20 → 0/20 · 거부 *감소*) + random 0/20 → FALSIFIED. 양 recipe 모두 14 fail-condition cell 0/20.
+- [x] **🔴 HARDENED** — cycle-13 closed-negative 가 (a) under-scaling 도 아니고 (b) recipe-specific 도 아님. α=5.0 (5× 원본 norm) 도 복원 안 됨 · 두 다른 abliteration recipe 동일 패턴 → 구조적 reorganization 확정. Arditi 2024 single-direction universal mediation 가설 abliterated class 에서 강화된 closed-negative.
+- [x] verdict `ENGINE/verdicts/b1_cycle14_alpha_recipe_hardened_verdict.txt` + summary JSON 작성.
+- [x] cycle-13 wire invariant 재확인: aligned baseline 0.9500 = cycle-13 19/20 = cycle-19 95% (measurement plane intact across 3 measurement points).
+- [x] ENGINE.md B1 row 갱신 (cycle-14 단락 cycle-13 단락 뒤에 append · 14 fail-condition + cross-recipe + cross-α 명시 · cycle-15+ frontier 표기).
+- [x] paper trigger 강화 (cycle-13 + cycle-14 = double-measured-fire closed-negative · cross-recipe + cross-α replication 양쪽 모두 충족). PAPER/safety-arditi-falsified-abliterated/ scaffold cx_paper_gate 만족 (모든 section CLOSED-by-recompute).
+- **honest residual (cycle-15+ frontier)**: (15a) injection-and-readout (abliterated 에서 refusal 유도 후 emergent direction readout · subspace "re-tooled" vs "destroyed" 구분) · (15b) cross-family replication (Llama-3 · Mistral abliterated variants · 가설이 family-universal vs Qwen-specific 인지 판정) · (15c) Josiefied v2/v3 variant replication (recipe iteration 효과 측정) · L18/L19 cycle-14 에서 미측정 (cycle-13 이미 동일 0/20 확인 · compute 절약).
+- **N1 latency ledger 신규 cell**: B1-cycle-14 = same-session cycle-13 honest-residual → next cycle close (ΔM=1). cycle-12 → cycle-13 → cycle-14 모두 same-session same-operator (loop 가속 ledger).
+
+
 ## 2026-05-28 — cycle-13 measured fire: B1 PROJECT-IN 🔴 CLOSED-NEGATIVE · Arditi single-direction universality FALSIFIED for abliterated class
 
 cycle-12 SPEC 직후 실제 measured fire on ubu-1 RTX 5070. cycle-12 policy face (🟢 7/7 closed-form) 의 measured arm 이 transferable 아니라 **closed-negative** 로 land — abliteration 은 단순 ablation 이 아니라 refusal mediation 의 structural reorganization 라는 강한 증거.

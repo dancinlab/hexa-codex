@@ -2,3 +2,4 @@
 @V := "papers" :: index
 
 @paper neuroexp-method-vs-system := "./PAPER/neuroexp-method-vs-system"
+@paper safety-arditi-falsified-abliterated := "./PAPER/safety-arditi-falsified-abliterated"

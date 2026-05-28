@@ -1,0 +1,68 @@
+{
+  "aligned_baseline": 0.95,
+  "aligned_adv_refused": 19,
+  "aligned_benign_refused": 1,
+  "r_L17_norm": 18.2913,
+  "recipes": {
+    "huihui": {
+      "model_id": "huihui-ai/Qwen2.5-1.5B-Instruct-abliterated",
+      "baseline_rate": 0.0,
+      "baseline_n": 0,
+      "alpha_rates": {
+        "0.5": 0.0,
+        "1.0": 0.0,
+        "2.0": 0.0,
+        "5.0": 0.0
+      },
+      "alpha_n": {
+        "0.5": 0,
+        "1.0": 0,
+        "2.0": 0,
+        "5.0": 0
+      },
+      "best_alpha": 0.5,
+      "best_rate": 0.0,
+      "best_delta_in": 0.0,
+      "random_dir_mean": 0.0,
+      "random_dir_per_seed": {
+        "11": 0.0,
+        "22": 0.0,
+        "33": 0.0
+      },
+      "transferable": false,
+      "dampened": false,
+      "falsified": true
+    },
+    "josiefied": {
+      "model_id": "Goekdeniz-Guelmez/Josiefied-Qwen2.5-1.5B-Instruct-abliterated-v1",
+      "baseline_rate": 0.05,
+      "baseline_n": 1,
+      "alpha_rates": {
+        "0.5": 0.0,
+        "1.0": 0.0,
+        "2.0": 0.0,
+        "5.0": 0.0
+      },
+      "alpha_n": {
+        "0.5": 0,
+        "1.0": 0,
+        "2.0": 0,
+        "5.0": 0
+      },
+      "best_alpha": 0.5,
+      "best_rate": 0.0,
+      "best_delta_in": -0.05,
+      "random_dir_mean": 0.0,
+      "random_dir_per_seed": {
+        "11": 0.0,
+        "22": 0.0,
+        "33": 0.0
+      },
+      "transferable": false,
+      "dampened": false,
+      "falsified": true
+    }
+  },
+  "all_recipes_falsified": true,
+  "any_recipe_transferable": false
+}

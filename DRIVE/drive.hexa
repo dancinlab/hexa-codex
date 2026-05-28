@@ -1,0 +1,252 @@
+#!hexa strict
+// DRIVE/drive.hexa — multi-turn chat REPL for test-driving a vertical model.
+//
+// "Model test-drive cart" — load a local GGUF on llama-server and chat with it
+// turn-by-turn. Conversation history is accumulated in messages[] and re-sent
+// every turn, so the model sees the full dialogue (NOT single-shot). The
+// lightweight counterpart to a full agent TUI: no tools, no file edits, no
+// session machinery — just ask -> answer, to feel whether the model can code,
+// do math, etc.
+//
+// Usage:
+//   drive [model]          model = GGUF basename under ~/Models/gguf (.gguf
+//                          suffix optional), or an absolute /path.gguf.
+//                          default: Qwen2.5-1.5B-Instruct-Q4_K_M
+//   in-REPL commands:
+//     /reset               clear conversation history (fresh context)
+//     /quit | /exit | /q   end the session (or two blank Enters / EOF)
+//
+// Requires: llama-server + curl + jq on PATH; a *.gguf under ~/Models/gguf.
+//
+// @resolver-bypass(reason="External HTTP subprocess (curl -> llama-server) — no atlas atoms touched.")
+
+let HOME = env("HOME")
+let MODEL_DIR = HOME + "/Models/gguf"
+let PORT = "8099"
+let SERVER = "http://127.0.0.1:" + PORT
+let DEFAULT_MODEL = "Qwen2.5-1.5B-Instruct-Q4_K_M"
+let MAX_TOK = 512
+let CTX = "4096"
+let SERVER_LOG = "/tmp/drive-llama-server.log"
+
+// shell-quote a string for safe embedding in /bin/sh -c.
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// JSON-string-escape for embedding user/assistant content in a JSON body.
+fn json_escape(s: str) -> str {
+    let mut t = s.replace("\\", "\\\\")
+    t = t.replace("\"", "\\\"")
+    t = t.replace("\n", "\\n")
+    t = t.replace("\r", "\\r")
+    t = t.replace("\t", "\\t")
+    return t
+}
+
+// Resolve a model arg -> filesystem path. Absolute (/...) passes through; else
+// a basename under MODEL_DIR with a .gguf suffix appended if absent.
+fn resolve_model(name: str) -> str {
+    if name.len() > 0 && name.substr(0, 1) == "/" { return name }
+    let mut n = name
+    if n.len() < 5 || n.substr(n.len() - 5, 5) != ".gguf" { n = n + ".gguf" }
+    return MODEL_DIR + "/" + n
+}
+
+// Is a llama-server already healthy on our port?
+fn server_ready() -> bool {
+    let out = exec("curl -s --max-time 2 " + SERVER + "/health 2>/dev/null").trim()
+    return out.contains("\"status\":\"ok\"")
+}
+
+// Spawn llama-server (nohup, detached) and poll /health until ok or timeout.
+fn boot_server(model_path: str) -> bool {
+    let launch = "nohup llama-server -m " + shq(model_path) +
+                 " --host 127.0.0.1 --port " + PORT + " -c " + CTX +
+                 " > " + shq(SERVER_LOG) + " 2>&1 &"
+    exec(launch)
+    // Poll up to 90s — larger GGUFs load slowly on first boot.
+    let poll = "for i in $(seq 1 90); do " +
+               "if curl -s --max-time 2 " + SERVER + "/health 2>/dev/null " +
+               "| grep -q '\"status\":\"ok\"'; then echo READY; exit 0; fi; " +
+               "sleep 1; done; echo TIMEOUT"
+    let res = exec(poll).trim()
+    return res.contains("READY")
+}
+
+// One chat round: POST the full message history, return the assistant content.
+fn chat(msgs_inner: str, max_tok: int) -> str {
+    let body = "{\"messages\":[" + msgs_inner + "]," +
+               "\"temperature\":0,\"max_tokens\":" + str(max_tok) + "}"
+    let cmd = "curl -s -X POST " + SERVER + "/v1/chat/completions " +
+              "-H 'Content-Type: application/json' -d " + shq(body) +
+              " | jq -r '.choices[0].message.content // \"(no response)\"'"
+    return exec(cmd).trim()
+}
+
+// ── /build agentic loop (single-file program autocompletion) ──
+
+// Extract the first ```...``` code block from a model response. The leading
+// language-tag line (e.g. "python") is dropped. No fence -> whole text.
+fn extract_code(s: str) -> str {
+    let parts = s.split("```")
+    if len(parts) < 2 { return s.trim() }
+    let block = parts[1]
+    let lines = block.split("\n")
+    let mut body = ""
+    let mut i = 1                      // skip lines[0] = lang tag (or "")
+    while i < len(lines) {
+        if i > 1 { body = body + "\n" }
+        body = body + lines[i]
+        i = i + 1
+    }
+    return body
+}
+
+// Run a python file with an optional timeout prefix. Returns raw combined
+// stdout+stderr with a trailing "__RC=<code>" marker for exit-code parsing.
+fn run_program(path: str, tmo: str) -> str {
+    let cmd = tmo + "python3 " + shq(path) + " 2>&1; echo \"__RC=$?\""
+    return exec(cmd)
+}
+
+// Agentic loop: generate -> save -> run -> feed error back -> fix, until the
+// program exits 0 or max_iter is reached. Single self-contained Python file.
+fn build_loop(goal: str, tmo: str) {
+    let workdir = "/tmp/drive-build"
+    exec("mkdir -p " + shq(workdir))
+    let path = workdir + "/program.py"
+    let max_iter = 5
+
+    let task = "Write a single self-contained Python file that satisfies this goal: " +
+               goal + ". Output ONLY one python code block (```python ... ```), no prose. " +
+               "It must run with python3 and exit 0 on success; print results to stdout."
+    let mut msgs = "{\"role\":\"user\",\"content\":\"" + json_escape(task) + "\"}"
+
+    let mut i = 1
+    let mut done = false
+    while i <= max_iter {
+        println("")
+        println("[build " + str(i) + "/" + str(max_iter) + "] 생성 중...")
+        let resp = chat(msgs, 1024)
+        let code = extract_code(resp)
+        write_file(path, code)
+
+        let raw = run_program(path, tmo)
+        let segs = raw.split("__RC=")
+        let prog_out = segs[0].trim()
+        let mut rc = -1
+        if len(segs) >= 2 { rc = int(segs[1].trim()) }
+
+        if rc == 0 {
+            println("  ok 통과 (exit 0) — " + path)
+            println("  --- 출력 ---")
+            println(prog_out)
+            done = true
+            i = max_iter + 1              // stop the loop
+        } else {
+            println("  x 실패 (exit " + str(rc) + ")")
+            println(prog_out)
+            msgs = msgs +
+                ",{\"role\":\"assistant\",\"content\":\"" + json_escape(resp) + "\"}"
+            let fb = "It failed with exit code " + str(rc) + ". Error/output:\n" +
+                     prog_out + "\nFix it and output the COMPLETE corrected python " +
+                     "code block again, code only."
+            msgs = msgs +
+                ",{\"role\":\"user\",\"content\":\"" + json_escape(fb) + "\"}"
+            i = i + 1
+        }
+    }
+    if done == false {
+        println("")
+        println("미완성 — " + str(max_iter) + "회 시도 후에도 통과 못함. 마지막 파일: " + path)
+    }
+}
+
+fn main() {
+    // ── model arg: args() = [binary, <arg1>, ...] (a[1] = first user arg) ──
+    let a = args()
+    let mut model = DEFAULT_MODEL
+    if len(a) >= 2 && a[1].len() > 0 { model = a[1] }
+    let model_path = resolve_model(model)
+
+    // ── model file must exist ──
+    let exists = exec("test -f " + shq(model_path) + " && echo Y || echo N").trim()
+    if exists != "Y" {
+        println("x 모델 파일 없음: " + model_path)
+        println("  사용 가능 (~/Models/gguf):")
+        println(exec("ls -1 " + shq(MODEL_DIR) +
+                     "/*.gguf 2>/dev/null | xargs -n1 basename 2>/dev/null").trim())
+        exit(1)
+    }
+
+    // ── ensure a server is up ──
+    if server_ready() {
+        println(". llama-server 재사용 (port " + PORT + ")")
+    } else {
+        println(". llama-server 기동 중... (" + model + ")")
+        let ok = boot_server(model_path)
+        if ok {
+            println(". 준비 완료")
+        } else {
+            println("x 서버 기동 실패 — 로그: " + SERVER_LOG)
+            exit(1)
+        }
+    }
+
+    // ── timeout prefix for /build sandbox runs (no-op if `timeout` absent) ──
+    let tmo = exec("command -v timeout >/dev/null 2>&1 && printf 'timeout 15 ' || printf ''")
+
+    // ── banner ──
+    println("")
+    println("[DRIVE] 모델 시승 — " + model)
+    println("  대화가 이어집니다. /reset 초기화 · /quit 종료")
+    println("  /build <목표>  한 파일짜리 프로그램을 스스로 완성 (생성→실행→자가수정)")
+    println("")
+
+    // ── REPL loop (history accumulated in msgs_inner) ──
+    let mut msgs_inner = ""
+    let mut empty_streak = 0
+    let mut running = true
+    while running {
+        let line = input("you > ")
+        if line == "/quit" || line == "/exit" || line == "/q" {
+            running = false
+        } else if line.len() == 0 {
+            empty_streak = empty_streak + 1
+            if empty_streak >= 2 {
+                running = false
+            } else {
+                println("  (빈 입력 — 한 번 더 Enter 또는 /quit 로 종료)")
+            }
+        } else if line == "/reset" {
+            empty_streak = 0
+            msgs_inner = ""
+            println("  (대화 초기화됨)")
+            println("")
+        } else if line.len() > 7 && line.substr(0, 7) == "/build " {
+            empty_streak = 0
+            let goal = line.substr(7, line.len() - 7)
+            build_loop(goal, tmo)
+            println("")
+        } else {
+            empty_streak = 0
+            // append user turn
+            if msgs_inner.len() > 0 { msgs_inner = msgs_inner + "," }
+            msgs_inner = msgs_inner +
+                "{\"role\":\"user\",\"content\":\"" + json_escape(line) + "\"}"
+            // call model with full history
+            let reply = chat(msgs_inner, MAX_TOK)
+            println("")
+            println("bot > " + reply)
+            println("")
+            // append assistant turn so the next round has context
+            msgs_inner = msgs_inner +
+                ",{\"role\":\"assistant\",\"content\":\"" + json_escape(reply) + "\"}"
+        }
+    }
+
+    println("")
+    println("bye.")
+    exit(0)
+}

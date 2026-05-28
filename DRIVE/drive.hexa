@@ -112,14 +112,13 @@ fn run_program(path: str, tmo: str) -> str {
 
 // Agentic loop: generate -> save -> run -> feed error back -> fix, until the
 // program exits 0 or max_iter is reached. Single self-contained Python file.
-fn build_loop(goal: str, tmo: str) {
-    let workdir = "/tmp/drive-build"
-    exec("mkdir -p " + shq(workdir))
+fn build_loop(goal: str, tmo: str, workdir: str) {
     let path = workdir + "/program.py"
     let max_iter = 5
 
-    let task = "Write a single self-contained Python file that satisfies this goal: " +
-               goal + ". Output ONLY one python code block (```python ... ```), no prose. " +
+    let task = "Working directory: " + workdir + ". Write a single self-contained " +
+               "Python file that satisfies this goal: " + goal +
+               ". Output ONLY one python code block (```python ... ```), no prose. " +
                "It must run with python3 and exit 0 on success; print results to stdout."
     let mut msgs = "{\"role\":\"user\",\"content\":\"" + json_escape(task) + "\"}"
 
@@ -222,15 +221,26 @@ fn main() {
     // ── timeout prefix for /build sandbox runs (no-op if `timeout` absent) ──
     let tmo = exec("command -v timeout >/dev/null 2>&1 && printf 'timeout 15 ' || printf ''")
 
+    // ── entry-time working-directory awareness ──
+    // The folder drive is launched from becomes the project context: its path +
+    // file listing are injected as a system message so the model knows where it
+    // is, and /build writes its program here (not /tmp).
+    let workdir = cwd()
+    let filelist = exec("ls -1p " + shq(workdir) + " 2>/dev/null | head -40").trim()
+    let ctx = "You are a coding assistant. Working directory: " + workdir +
+              ". Files/dirs here:\n" + filelist
+    let SYS = "{\"role\":\"system\",\"content\":\"" + json_escape(ctx) + "\"}"
+
     // ── banner ──
     println("")
     println("[DRIVE] 모델 시승 — " + model)
+    println("  작업 폴더: " + workdir + "  (진입 시 인식)")
     println("  대화가 이어집니다. /reset 초기화 · /quit 종료")
-    println("  /model <이름>  모델 전환 (서버 재기동) · /build <목표>  한 파일 자가완성")
+    println("  /model <이름>  모델 전환 · /build <목표>  한 파일 자가완성 (이 폴더에 저장)")
     println("")
 
-    // ── REPL loop (history accumulated in msgs_inner) ──
-    let mut msgs_inner = ""
+    // ── REPL loop (history starts with the folder-context system message) ──
+    let mut msgs_inner = SYS
     let mut empty_streak = 0
     let mut running = true
     while running {
@@ -246,8 +256,8 @@ fn main() {
             }
         } else if line == "/reset" {
             empty_streak = 0
-            msgs_inner = ""
-            println("  (대화 초기화됨)")
+            msgs_inner = SYS
+            println("  (대화 초기화됨 — 폴더 컨텍스트 유지)")
             println("")
         } else if line.len() > 7 && line.substr(0, 7) == "/model " {
             empty_streak = 0
@@ -271,7 +281,7 @@ fn main() {
         } else if line.len() > 7 && line.substr(0, 7) == "/build " {
             empty_streak = 0
             let goal = line.substr(7, line.len() - 7)
-            build_loop(goal, tmo)
+            build_loop(goal, tmo, workdir)
             println("")
         } else {
             empty_streak = 0

@@ -22,7 +22,7 @@ hx install ./DRIVE      # drive 셸이 ~/.hx/bin 에 생성됨
 ## 실행
 
 ```sh
-drive                                     # 기본 모델 (Qwen2.5-1.5B-Instruct-Q4_K_M)
+drive                                     # 기본 모델 (supergemma4-e4b-abliterated-Q4_K_M)
 drive Qwen2.5-7B-Instruct-Q4_K_M          # ~/Models/gguf 의 다른 GGUF (위치 인자)
 drive --model Qwen2.5-3B-Instruct-Q4_K_M  # --model 플래그로도 지정
 drive /abs/path/to/model.gguf             # 절대경로도 가능

@@ -11,7 +11,7 @@
 // Usage:
 //   drive [model]          model = GGUF basename under ~/Models/gguf (.gguf
 //                          suffix optional), or an absolute /path.gguf.
-//                          default: Qwen2.5-1.5B-Instruct-Q4_K_M
+//                          default: supergemma4-e4b-abliterated-Q4_K_M
 //   in-REPL commands:
 //     /reset               clear conversation history (fresh context)
 //     /quit | /exit | /q   end the session (or two blank Enters / EOF)
@@ -24,10 +24,18 @@ let HOME = env("HOME")
 let MODEL_DIR = HOME + "/Models/gguf"
 let PORT = "8099"
 let SERVER = "http://127.0.0.1:" + PORT
-let DEFAULT_MODEL = "Qwen2.5-1.5B-Instruct-Q4_K_M"
+let DEFAULT_MODEL = "supergemma4-e4b-abliterated-Q4_K_M"
 let MAX_TOK = 512
 let CTX = "4096"
 let SERVER_LOG = "/tmp/drive-llama-server.log"
+
+// ANSI colors — ESC built once via printf (hexa string literals avoid raw ESC).
+let ESC = exec("printf '\\033'")
+let C_GREEN = ESC + "[32m"
+let C_CYAN = ESC + "[36m"
+let C_RED = ESC + "[31m"
+let C_DIM = ESC + "[2m"
+let C_RST = ESC + "[0m"
 
 // shell-quote a string for safe embedding in /bin/sh -c.
 fn shq(s: str) -> str {
@@ -206,14 +214,16 @@ fn main() {
 
     // ── ensure a server is up ──
     if server_ready() {
-        println(". llama-server 재사용 (port " + PORT + ")")
+        println(C_GREEN + "✓ 연결됨" + C_RST + C_DIM +
+                " — 재사용 @ 127.0.0.1:" + PORT + C_RST)
     } else {
-        println(". llama-server 기동 중... (" + model + ")")
+        println(C_DIM + "· llama-server 기동 중... (" + model + ")" + C_RST)
         let ok = boot_server(model_path)
         if ok {
-            println(". 준비 완료")
+            println(C_GREEN + "✓ 연결됨" + C_RST + C_DIM +
+                    " — " + model + " @ 127.0.0.1:" + PORT + C_RST)
         } else {
-            println("x 서버 기동 실패 — 로그: " + SERVER_LOG)
+            println(C_RED + "✗ 서버 기동 실패 — 로그: " + SERVER_LOG + C_RST)
             exit(1)
         }
     }
@@ -233,8 +243,8 @@ fn main() {
 
     // ── banner ──
     println("")
-    println("[DRIVE] 모델 시승 — " + model)
-    println("  작업 폴더: " + workdir + "  (진입 시 인식)")
+    println(C_CYAN + "[DRIVE] 모델 시승 — " + model + C_RST)
+    println(C_DIM + "  작업 폴더: " + workdir + "  (진입 시 인식)" + C_RST)
     println("  대화가 이어집니다. /reset 초기화 · /quit 종료")
     println("  /model <이름>  모델 전환 · /build <목표>  한 파일 자가완성 (이 폴더에 저장)")
     println("")
@@ -265,16 +275,16 @@ fn main() {
             let newpath = resolve_model(newmodel)
             let exok = exec("test -f " + shq(newpath) + " && echo Y || echo N").trim()
             if exok != "Y" {
-                println("  x 모델 파일 없음: " + newpath)
+                println(C_RED + "  ✗ 모델 파일 없음: " + newpath + C_RST)
             } else {
-                println("  . 모델 전환: " + newmodel + " (서버 재기동...)")
+                println(C_DIM + "  · 모델 전환: " + newmodel + " (서버 재기동...)" + C_RST)
                 exec("pkill -f 'llama-server.*" + PORT + "' 2>/dev/null; sleep 1")
                 let ok = boot_server(newpath)
                 if ok {
                     model = newmodel
-                    println("  . 준비 완료 — " + newmodel)
+                    println(C_GREEN + "  ✓ 연결됨" + C_RST + C_DIM + " — " + newmodel + C_RST)
                 } else {
-                    println("  x 기동 실패 — 로그: " + SERVER_LOG)
+                    println(C_RED + "  ✗ 기동 실패 — 로그: " + SERVER_LOG + C_RST)
                 }
             }
             println("")

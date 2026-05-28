@@ -7,17 +7,6 @@
 >
 > **Falsifier class:** refusal calibration — over-refusal(멀쩡한 요청을 거부 · 도움 비용) + under-refusal(유해 요청에 응함 · 안전 비용). 비대칭 임계(T_under 1% ≪ T_over 20% · 안전 > 도움). 모델은 둘 다 budget 이내일 때만 well-calibrated.
 
-## 🚧 범위 경계 (scope — 반드시 읽을 것)
-
-| 한다 (측정) | 안 한다 (범위 밖) |
-|---|---|
-| 무검열 모델이 거부 스펙트럼 어디에 있는지 측정 | 가드레일 제거 레시피 / abliteration 기법 제공 |
-| 검열 해제의 안전↔도움 trade-off 수치화 | uncensoring 을 ENGINE 으로 실제 모델에 적용 (lm_foundry 학습/HF 퍼블리시) |
-| over-refusal(과잉거부) 측정 — XSTest·OR-Bench 류 | 유해 콘텐츠 생성 · 유해 probe 공개 |
-| refusal-direction 작동 원리 해석 (Arditi 2024) | — |
-
-UNCENSORED 는 무검열 모델을 **측정**하지 **생산하지 않는다**. 유해/adversarial probe set 은 기본 PRIVATE (`cx_hf_safety_private`) — 공개는 사용자 sign-off 필요. repo 에는 모델 archetype 비율(placeholder)만 들어가고 유해 콘텐츠는 0.
-
 ## North-star
 
 무검열 모델은 over-refusal 을 0 으로 낮추는 대신 under-refusal(안전 위험)을 얼마나 떠안는가, 그 trade 는 monotone 인가, 거부는 정말 단일 방향(Arditi)으로 매개되는가 다차원인가, 검열 해제가 일반 능력을 깎는가(abliteration capability tax) — "무검열 모델 측정자"의 진위 판정.

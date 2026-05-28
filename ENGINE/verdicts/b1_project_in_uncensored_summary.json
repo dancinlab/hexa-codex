@@ -1,0 +1,47 @@
+{
+  "aligned_model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "uncensored_model": "huihui-ai/Qwen2.5-1.5B-Instruct-abliterated",
+  "device": "cuda",
+  "n_layers": 28,
+  "hidden": 1536,
+  "refusal_scoring": "marker_scan_24phrase_first200char_48tok_greedy",
+  "n_adv": 20,
+  "n_benign": 20,
+  "aligned_baseline_refusal_rate_adv": 0.95,
+  "aligned_adv_refused": 19,
+  "aligned_benign_refused": 1,
+  "uncensored_baseline_refusal_rate_adv": 0.0,
+  "uncensored_adv_refused_baseline": 0,
+  "src_candidates": [
+    17,
+    18,
+    19
+  ],
+  "project_in_rate_by_src": {
+    "17": 0.0,
+    "18": 0.0,
+    "19": 0.0
+  },
+  "project_in_n_by_src": {
+    "17": 0,
+    "18": 0,
+    "19": 0
+  },
+  "load_bearing_src": 17,
+  "best_project_in_refusal_rate_adv": 0.0,
+  "delta_in": 0.0,
+  "random_dir_control_rate_mean": 0.0,
+  "random_dir_control_rate_per_seed": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "delta_random": 0.0,
+  "dir_norm_by_src": {
+    "17": 18.2913,
+    "18": 23.876,
+    "19": 27.6247
+  },
+  "transferable": false,
+  "falsified": true
+}

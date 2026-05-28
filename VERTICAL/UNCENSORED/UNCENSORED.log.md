@@ -2,6 +2,16 @@
 
 Append-only history sister of `UNCENSORED.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-28 — 축 B 양방향 falsifier 개선 (tax · gain · neutral · sub-axis 분리) · A1 패턴 mirror
+
+사용자 지적: B1 falsifier 가 "능력 깎이는가" 만 묻고 "능력 증가" 측면을 빠뜨림 → A1 의 bidirectional 패턴 (over↑↔under↓) 과 일관성 부족. abliteration 의 알려진 effect 패턴 (XSTest-safe 에서는 gain · MMLU/GSM8K 에서는 tax) 을 측정 surface 가 분리 capture 해야 정보 손실 없음.
+
+- [x] B1 falsifier 단방향 → **양방향**: `ratio < 0.9` tax FIRES · `ratio > 1.1` gain FIRES · `0.9 ≤ ratio ≤ 1.1` SILENT. A1 패턴 mirror (양 끝 fires + 가운데 silent).
+- [x] benchmark **sub-axis 분리** (단일 ratio 평균 금지): pure_capability (MMLU·GSM8K·HumanEval) + over_refusal_relief (XSTest-safe·OR-Bench-safe) + instruction_following (MT-Bench). 세 sub-ratio 별도 측정.
+- [x] monotone hypothesis 추가: uncensoring_degree ↑ → over_refusal_relief ↑ + pure_capability ↓ (A1 의 over↔under 비대칭 tradeoff 의 능력 축 대응).
+- [x] B1 measured-tier 진입 cycle 표기 cycle-12+ → cycle-13+ (cycle-12/13 은 ENGINE B1 PROJECT-IN 측정에 점유 · UNCENSORED B1 capability bidirectional 은 그 뒤).
+- **honest residual**: 본 개선은 axis spec 의 framing 만 update — 실측 measured fire (uncensored↔base pair MMLU/GSM8K/XSTest-safe) 는 여전히 cycle-13+ deferred.
+
 ## 2026-05-28 — snapshot 구조 재정렬: 모델 생성 기준 framing · CODE/MATH peer 패턴 동일 세팅
 
 사용자 요청: "UNCENSORED 를 CODE,MATH 와 동일하게 세팅 — 모델 생성 기준이야". 측정-전용 framing 에서 **무검열 specialist 모델 생성 acceptance threshold** framing 으로 재정렬 (CODE 의 pass@k · MATH 의 formal_ratio 와 직교 vertical depth). 축 구조 · A1 verdict · falsifier · 비대칭 임계 · PRIVATE 유해 probe governance 는 모두 invariant 로 유지; surrounding sections 만 peer 패턴.

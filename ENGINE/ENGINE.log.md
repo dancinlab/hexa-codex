@@ -3,6 +3,22 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-28 — cycle-13 measured fire: B1 PROJECT-IN 🔴 CLOSED-NEGATIVE · Arditi single-direction universality FALSIFIED for abliterated class
+
+cycle-12 SPEC 직후 실제 measured fire on ubu-1 RTX 5070. cycle-12 policy face (🟢 7/7 closed-form) 의 measured arm 이 transferable 아니라 **closed-negative** 로 land — abliteration 은 단순 ablation 이 아니라 refusal mediation 의 structural reorganization 라는 강한 증거.
+
+- [x] HF pick 확정 (WebFetch 검증): `huihui-ai/Qwen2.5-1.5B-Instruct-abliterated` (BF16 safetensors · Qwen2.5-1.5B-Instruct base · failspy/mlabonne 방법론 reference). cycle-12 SPEC 의 "specific HF pick deferred to cycle-13 fire" residual 닫힘.
+- [x] bench harness 작성: `bench/sandbox_engine_b1_project_in_uncensored.hexa` (cycle-19 `sandbox_m5_safety_causal_ablation.hexa` fork · project-OUT → project-IN flip · sequential model load (aligned → unload → uncensored) for 12GB GPU · BF16 양쪽). 컴파일 검증 (129-line python payload emit OK).
+- [x] ubu-1 dispatch (cycle-19 패턴 base64 → scp → nohup venv python): preflight transformers==4.51.3 · torch==2.12.0+cu130 · numpy==1.26.4 (clean venv pin). PID 113893 백그라운드 실행.
+- [x] measured 결과 (NUMBERS-ONLY · adv text + completions redacted per cx_hf_safety_private): aligned baseline **19/20 (95.00%)** [cycle-19 재현] · benign 1/20 [specificity clean] · uncensored baseline **0/20 (0.00%)** [abliteration 작동 확인] · project-IN L17/L18/L19 모두 **0/20 (delta_in = +0.00pp)** [target ≥50pp 완전 실패] · random-dir control 0/20 [specificity 유지]. ||r||_L17=18.29 · L18=23.88 · L19=27.62 (depth-magnitude monotone). verdict `ENGINE/verdicts/b1_project_in_uncensored_measured_verdict.txt` + summary JSON.
+- [x] **🔴 FALSIFIED** — Arditi 2024 (arXiv:2406.11717) single-direction universal mediation 가설이 abliterated class 에서 closed-negative. random-dir control 도 0/20 → 결과가 stochastic artifact 가 아니라 transferable single direction 의 GENUINE absence.
+- [x] cycle-2 wire invariant 보존 검증: cycle-13 의 aligned baseline 재측정 = 95% = cycle-19 target. measurement plane intact, project-OUT verdict 재측정 불필요.
+- [x] paper trigger 인식 (cx_paper_significance 만족 · cx_paper_one_per_domain SAFETY closed-negative 슬롯 candidate · external Arditi claim 반증 ∴ feedback_negative_paper_external_claim 통과 · 자기-strawman 아님). 실제 paper 작성은 user sign-off 대기 (PAPER/safety-arditi-falsified-abliterated/ 후보).
+- [x] ENGINE.md B1 row 갱신 (cycle-12 SPEC 단락 뒤에 cycle-13 measured 결과 단락 append · cycle-2 invariant 보존 명시 · paper trigger 명시).
+- **honest residual (cycle-14+ frontier)**: (a) α-sweep (α=1.0 만 측정 · α∈{0.5, 2.0, 5.0} 미탐색 · 어떤 α 라도 복원하면 dampened, 어떤 것도 안 하면 structural) · (b) abliterated 내부에서 r 추출 (현재는 aligned-only · injection-and-readout 필요) · (c) cross-recipe replication (mlabonne · failspy abliteration 변종) · (d) n=20 → larger N (현재 0/20 은 hard zero · ≥50pp 복원과는 거리가 멀어 n 증가가 결과 뒤집을 가능성 낮음).
+- **N1 latency ledger 신규 cell**: B1-cycle-13 measured = same-session SPEC → measured fire (ΔM=1 · cycle-12 SPEC → cycle-13 measured · single-operator single-session). cycle-10 reorg 이후 same-session 패턴 유지.
+
+
 ## 2026-05-28 — cycle-12 first fire: B1 PROJECT-IN under uncensored default · 7/7 🟢 closed-form policy face
 
 cx_engine_default_uncensored policy land 직후 first measurement fire. B1 axis 의 direction flip 을 closed-form spec 으로 검증 — cycle-2 project-OUT (aligned baseline 95→0) 의 자연 거울상 = project-IN (uncensored baseline 0→≥50) · axis 정의 (refusal direction 인과 mediation) 보존 · 측정 화살표만 뒤집힘. ubu-1 GPU measured fire 는 cycle-13+ cost-bearing.

@@ -174,6 +174,25 @@ fn build_loop(goal: str, tmo: str, workdir: str) {
     }
 }
 
+// Write `content` to `path` with a .bak backup (when the file already existed)
+// and print a confirmation + diff. Shared by /edit and natural-language actions.
+fn apply_file_write(path: str, content: str) {
+    let present = exec("test -f " + shq(path) + " && echo Y || echo N").trim()
+    if present == "Y" { exec("cp " + shq(path) + " " + shq(path + ".bak")) }
+    write_file(path, content)
+    if present == "Y" {
+        println(C_GREEN + "  ✓ 수정됨" + C_RST + C_DIM +
+                " — " + path + " (백업: " + path + ".bak)" + C_RST)
+        let d = exec("diff " + shq(path + ".bak") + " " + shq(path) + " 2>/dev/null | head -20").trim()
+        if d.len() > 0 {
+            println(C_DIM + "  --- diff ---" + C_RST)
+            println(d)
+        }
+    } else {
+        println(C_GREEN + "  ✓ 생성됨" + C_RST + C_DIM + " — " + path + C_RST)
+    }
+}
+
 // ── /edit <file> <instruction> — model rewrites a named file, we write it back ──
 // Safe by design: only the explicitly named file is touched (NO arbitrary shell
 // exec from the model — an abliterated model could otherwise emit `rm -rf`), a
@@ -197,8 +216,10 @@ fn edit_file(rest: str, workdir: str) {
 
     let task = "File path: " + path + ". Current content:\n```\n" + cur +
                "\n```\nApply this change: " + instr +
-               ". Output ONLY the COMPLETE new file content in one code block " +
-               "(``` ... ```), no prose, no explanation."
+               ". Write EXACTLY the content and format requested — keep the literal " +
+               "syntax (e.g. `key=value` lines, one per line) and do NOT convert to " +
+               "JSON/YAML or otherwise reformat unless explicitly asked. Output ONLY " +
+               "the COMPLETE new file content in one code block (``` ... ```), no prose."
     let body = "{\"role\":\"user\",\"content\":\"" + json_escape(task) + "\"}"
     println(C_DIM + "  · 편집 생성 중... (" + path + ")" + C_RST)
     let resp = chat(body, 1024)
@@ -207,19 +228,32 @@ fn edit_file(rest: str, workdir: str) {
         println(C_RED + "  ✗ 모델이 빈 내용 반환 — 파일 유지" + C_RST)
         return
     }
-    if present == "Y" { exec("cp " + shq(path) + " " + shq(path + ".bak")) }
-    write_file(path, newc)
-    if present == "Y" {
-        println(C_GREEN + "  ✓ 수정됨" + C_RST + C_DIM +
-                " — " + path + " (백업: " + path + ".bak)" + C_RST)
-        let d = exec("diff " + shq(path + ".bak") + " " + shq(path) + " 2>/dev/null | head -20").trim()
-        if d.len() > 0 {
-            println(C_DIM + "  --- diff ---" + C_RST)
-            println(d)
-        }
-    } else {
-        println(C_GREEN + "  ✓ 생성됨" + C_RST + C_DIM + " — " + path + C_RST)
-    }
+    apply_file_write(path, newc)
+}
+
+// Detect a model-emitted routing directive (`@@EDIT <path>: <instr>`) in a chat
+// reply and carry it out. Returns true when a directive was found+applied, so the
+// caller skips printing the raw line. Natural-language autonomy: steered by the
+// system prompt, the model emits a SHORT plain directive (a plain delimiter — NOT
+// a ``` code fence, which made this abliterated GGUF emit a `<|channel>` token and
+// 500 the server). We hand the path+instruction to the proven edit_file, which
+// reads the REAL current content and writes the full new version with a .bak — so
+// "doc.txt 에 줄 추가해줘" in plain chat actually edits the file, content-preserving.
+fn apply_nl_action(reply: str, workdir: str) -> bool {
+    let marker = "@@EDIT "
+    let mi = reply.index_of(marker)
+    if mi < 0 { return false }
+    let seg = reply.substr(mi + marker.len(), reply.len() - mi - marker.len())
+    let mut linepart = seg
+    let eol = seg.index_of("\n")
+    if eol >= 0 { linepart = seg.substr(0, eol) }
+    let colon = linepart.index_of(":")
+    if colon < 0 { return false }
+    let path = linepart.substr(0, colon).trim()
+    let instr = linepart.substr(colon + 1, linepart.len() - colon - 1).trim()
+    if path.len() == 0 { return false }
+    edit_file(path + " " + instr, workdir)
+    return true
 }
 
 fn main() {
@@ -291,8 +325,12 @@ fn main() {
     let filelist = exec("ls -1p " + shq(workdir) + " 2>/dev/null | head -40").trim()
     let ctx = "You are a concise coding assistant in directory " + workdir +
               ". Answer briefly and directly; do NOT enumerate or summarize these " +
-              "files unless explicitly asked. For reference only, the directory " +
-              "contains:\n" + filelist
+              "files unless explicitly asked. When the user wants to CREATE or MODIFY " +
+              "a file, reply with EXACTLY one line and nothing else:\n" +
+              "@@EDIT <path>: <short description of the change>\n" +
+              "Use the path the user names (relative to the directory). For any " +
+              "request that is NOT a file change, answer normally in plain text. " +
+              "For reference only, the directory contains:\n" + filelist
     let SYS = "{\"role\":\"system\",\"content\":\"" + json_escape(ctx) + "\"}"
 
     // ── banner ──
@@ -301,6 +339,7 @@ fn main() {
     println(C_DIM + "  작업 폴더: " + workdir + "  (진입 시 인식)" + C_RST)
     println("  대화가 이어집니다. /reset 초기화 · /quit 종료")
     println("  /model <이름> 모델 전환 · /build <목표> 한 파일 자가완성 · /edit <파일> <지시> 파일 수정")
+    println(C_DIM + "  자연어로 \"X 파일 고쳐줘\" 해도 자동 수정됩니다 (.bak 백업)" + C_RST)
     println("")
 
     // ── REPL loop (history starts with the folder-context system message) ──
@@ -362,7 +401,12 @@ fn main() {
             // many seconds on a local CPU/Metal backend)
             println(C_DIM + "  · 생성 중..." + C_RST)
             let reply = chat(msgs_inner, MAX_TOK)
-            println("bot > " + reply)
+            // natural-language autonomy: if the model emitted a file action,
+            // apply it (writes the named file) instead of printing the raw block.
+            let applied = apply_nl_action(reply, workdir)
+            if applied == false {
+                println("bot > " + reply)
+            }
             println("")
             // append assistant turn so the next round has context
             msgs_inner = msgs_inner +

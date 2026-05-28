@@ -2,6 +2,13 @@
 
 `DRIVE.md` 의 append-only 기록 자매 문서. 각 엔트리는 `## <ISO timestamp> — <header>` (최신이 위); 본문 = `- [x]` (완료) / `- [ ]` (대기) 체크박스.
 
+## 2026-05-28 — 자연어 자동 파일 수정 (유저 명시 요청 · 5/5 패턴)
+
+- [x] 자연어 라우팅 — `/edit` 없이 평문 지시로 파일 수정. SYS 가 모델에 `@@EDIT <path>: <instr>` 한 줄을 내도록 지시 → `apply_nl_action` 파싱 → 검증된 `edit_file` 2-패스(실제 내용 읽고 전체 새 버전 생성, `.bak`). 단일-패스 대비 기존 내용 보존.
+- [x] 버그 발견+우회 — ` ```drive-edit: ` 코드펜스 SYS 지시가 abliterated gemma 3n 에서 `<|channel>` 특수 토큰 emit → llama-server 500 (`Failed to parse input`). **평문 구분자 `@@EDIT`** 로 전환해 해결. 일반 질문은 평문 답(오작동 0).
+- [x] `edit_file` 프롬프트에 리터럴 형식 보존 절 추가 — "config.txt" 를 JSON 으로 변환하던 P5 실패 → `key=value` 리터럴 유지로 수정.
+- [x] 5-패턴 시뮬레이션 5/5 통과 — P1 create · P2 append(기존보존) · P3 replace · P4 no-trigger(질문은 파일 안 건드림) · P5 multiline literal.
+
 ## 2026-05-28 — `/edit` 파일 수정 (유저 명시 요청)
 
 - [x] `/edit <파일> <지시>` 추가 — 채팅이 파일을 못 고치는 한계("UNCENSORED.md 안 바뀜" 실증)를 유저가 "fix" 지시 → `cx_drive_minimal` 부합 (유저 명시분).

@@ -22,20 +22,24 @@ hx install ./DRIVE      # drive 셸이 ~/.hx/bin 에 생성됨
 ## 실행
 
 ```sh
-drive                                   # 기본 모델 (Qwen2.5-1.5B-Instruct-Q4_K_M)
-drive Qwen2.5-7B-Instruct-Q4_K_M        # ~/Models/gguf 의 다른 GGUF
-drive /abs/path/to/model.gguf           # 절대경로도 가능
+drive                                     # 기본 모델 (Qwen2.5-1.5B-Instruct-Q4_K_M)
+drive Qwen2.5-7B-Instruct-Q4_K_M          # ~/Models/gguf 의 다른 GGUF (위치 인자)
+drive --model Qwen2.5-3B-Instruct-Q4_K_M  # --model 플래그로도 지정
+drive /abs/path/to/model.gguf             # 절대경로도 가능
+drive --list                              # 사용 가능 GGUF 목록 출력 후 종료
 ```
 
 - 처음 실행하면 `llama-server`를 8099 포트에 자동 기동(준비될 때까지 대기).
-- 이미 떠 있으면 재사용. **단, 다른 모델로 바꾸려면** 떠 있는 서버를 먼저 종료해야 함:
-  `pkill -f 'llama-server.*8099'` 후 `drive <다른모델>`.
+- 이미 떠 있으면 재사용. 실행 중 다른 모델로 바꾸려면 REPL 안에서 **`/model <이름>`**
+  (서버를 자동 재기동). CLI 재실행으로 바꿀 땐 떠 있는 서버를 먼저 내려야 함:
+  `pkill -f 'llama-server.*8099'`.
 
 ## REPL 명령
 
 | 입력 | 동작 |
 |---|---|
 | (아무 말) | 모델에 질문 — 직전 대화가 컨텍스트로 이어짐 |
+| `/model <이름>` | 모델 전환 — 서버를 재기동하고 같은 대화를 이어감 |
 | `/build <목표>` | 한 파일짜리 프로그램을 **스스로 완성** (생성→실행→자가수정 루프) |
 | `/reset` | 대화 기록 초기화 (새 컨텍스트) |
 | `/quit` `/exit` `/q` | 종료 (빈 줄 두 번 또는 Ctrl-D 도 종료) |

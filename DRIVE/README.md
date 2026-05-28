@@ -47,7 +47,7 @@ drive --list                              # 사용 가능 GGUF 목록 출력 후
 ## 혼자 완성 — `/build`
 
 목표를 주면 모델이 단일 Python 파일을 **스스로 짜고 → 돌려보고 → 틀리면 고쳐서**
-통과할 때까지 반복합니다(최대 5회). 결과물은 `/tmp/drive-build/program.py`.
+통과할 때까지 반복합니다(최대 5회). 결과물은 **실행한 폴더(cwd)** 의 `program.py`.
 
 ```
 /build print the numbers 1 to 5
@@ -77,6 +77,22 @@ drive --list                              # 사용 가능 GGUF 목록 출력 후
 턴1  you: 피보나치 짜줘    → [user]                → bot: def fib...
 턴2  you: 반복문으로 바꿔  → [user, bot, user]     → bot: (앞 코드 기억하고 수정)
 ```
+
+## 진입 시 폴더 인식
+
+`drive`를 실행한 폴더가 곧 작업 폴더예요. 진입할 때 그 폴더 경로 + 파일 목록을
+**system 메시지로 모델에 주입**하고, `/build` 결과도 그 폴더에 저장합니다.
+
+```
+~/myproj$ drive
+  작업 폴더: /Users/me/myproj  (진입 시 인식)
+you > 이 폴더에 무슨 파일 있어?
+bot > app.py, README.md, ...        ← 진입 시 인식한 목록
+you > /build app.py 에 헬스체크 엔드포인트 추가
+      → program.py 를 ~/myproj 에 생성
+```
+
+`/reset` 해도 폴더 컨텍스트는 유지됩니다(대화 기록만 비움).
 
 ## 요구 사항
 

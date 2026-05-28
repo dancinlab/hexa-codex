@@ -23,6 +23,7 @@ DRIVE 자체 (자동차)          이 문서 (정비 기록부)
 
 - [x] 멀티턴 채팅 REPL — `messages[]` 누적, 직전 대화 컨텍스트 이어짐 (7→17 검증) · PR #135
 - [x] `/build <목표>` 단일파일 자가완성 — 생성→실행→자가수정 (최대 5회), 결과는 cwd `program.py` · PR #135
+- [x] `/edit <파일> <지시>` 파일 실제 수정 — 모델이 새 전체 내용 반환, `.bak` 백업 후 덮어씀 (셸 exec 안 함, 안전). 유저 명시 요청 · live 검증 (note.txt 1a2)
 - [x] 모델 선택 — `drive <name>` · `--model` · `--list` · 런타임 `/model` 전환 · PR #137
 - [x] 진입 폴더(cwd) 인식 — 파일목록을 system 메시지로 주입 · PR #138
 - [x] 기본 모델 `supergemma4-e4b-abliterated-Q4_K_M` + 색상 연결 문구 · PR #139

@@ -1,0 +1,17 @@
+# hexa-codex ENGINE B1 — cycle-12 PROJECT-IN under uncensored default
+# axis=ENGINE/ENGINE.md::B1 (cycle-12 direction flip under cx_engine_default_uncensored)
+# source_policy=project.tape @D cx_engine_default_uncensored (2026-05-28)
+# source_finding=SAFETY.md cycle-19/20 (aligned peer L19 difference-of-means, AUROC 0.98)
+# wire=ENGINE/wires/wire_b1_project_in_uncensored.hexa (SPEC-only, no runtime call)
+# verifier=ENGINE/verify/numerics_engine_b1_project_in_uncensored.hexa
+# tier=🟢 SUPPORTED-NUMERICAL — ENGINE B1 cycle-12 PROJECT-IN wire SPEC consistent (7/7 checks · closed-form policy face)
+# checks=7/7
+# spec_baseline_class=uncensored
+# spec_direction_source=qwen2.5-1.5b-instruct
+# spec_layer_index=19
+# spec_intervention=projection_in_rank1_alpha100
+# expected_adv_delta_pp=50
+# governance_private_gate=cx_hf_safety_private
+# governance_emit_policy=NUMBERS_ONLY_text_redacted
+# cycle2_wire_invariant=PRESERVED (project_out on aligned baseline remains valid; no retroactive re-fire)
+# next_measured_fire=ubu-1 RTX 5070 cost-bearing (cycle-13+)

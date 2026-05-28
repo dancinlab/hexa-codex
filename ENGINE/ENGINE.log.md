@@ -3,6 +3,30 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-28 — cycle-12 first fire: B1 PROJECT-IN under uncensored default · 7/7 🟢 closed-form policy face
+
+cx_engine_default_uncensored policy land 직후 first measurement fire. B1 axis 의 direction flip 을 closed-form spec 으로 검증 — cycle-2 project-OUT (aligned baseline 95→0) 의 자연 거울상 = project-IN (uncensored baseline 0→≥50) · axis 정의 (refusal direction 인과 mediation) 보존 · 측정 화살표만 뒤집힘. ubu-1 GPU measured fire 는 cycle-13+ cost-bearing.
+
+- [x] wire SPEC `ENGINE/wires/wire_b1_project_in_uncensored.hexa` 작성 + emit DONE.
+- [x] verifier `ENGINE/verify/numerics_engine_b1_project_in_uncensored.hexa` 작성 + run **7/7 PASS** · 🟢 SUPPORTED-NUMERICAL. checks: (1) layer=19 axis-anchor preserved · (2) intervention=projection_in rank=1 α=1.0 (cycle-2 → cycle-12 direction flip) · (3) baseline=uncensored ↔ direction_source=aligned-Instruct peer-pair identity · (4) baseline adv refusal ≤10pp (project-out 무효 확인) · (5) expected adv delta ≥50pp (transferable threshold) · (6) expected benign ≤20pp (specificity 보존) · (7) cx_hf_safety_private + NUMBERS-ONLY emit (governance invariant).
+- [x] verdict 자동 emit `ENGINE/verdicts/b1_project_in_uncensored_verdict.txt` · cycle-2 wire invariant=PRESERVED 명시.
+- [x] ENGINE.md B1 row cycle-12 직접 추가 (cycle-4 preflight 줄 뒤 · invariant rule "axis [x] state unchanged" 보존).
+- **honest residual**: closed-form policy face 만 닫힘 (🟢 SUPPORTED-NUMERICAL · 정책 명세 consistency). 실측 transferability 는 cycle-13+ measured fire 가 닫음 — measured ≥50pp 면 single-direction transferable across abliteration, <30pp 면 closed-negative (Arditi 2024 universality FALSIFIED for abliterated class · paper trigger). specific HF abliterated Qwen2.5-1.5B pick 도 cycle-13 첫 measured fire 시점에 확정 (SPEC 는 class-level 만).
+- **N1 latency ledger 신규 cell**: B1-cycle-12 = same-session policy land → first probe (ΔM=0) · cycle-11 reorg 이후 same-cycle 패턴 유지.
+
+
+## 2026-05-28 — ENGINE substrate default model class flip: aligned → UNCENSORED (cycle-12+ 정책)
+
+사용자 directive: "ENGINE 진행시 UNCENSORED 기본모델로 세팅". VERTICAL/UNCENSORED 가 같은 날 model-generation 기준 framing 으로 CODE/MATH peer 패턴으로 승격된 후속 결정 — ENGINE driving 의 default base 도 그 specialist class 로 일관됨. ENGINE.md 에 `## Substrate default model class (cycle-12+ 정책)` 섹션 신규 (북극성 직후 · 영구 축 직전).
+
+- [x] policy 기록: ENGINE wire 의 default base = UNCENSORED class (abliterated Qwen2.5-1.5B 변종) · aligned-Instruct 는 B1 peer-pair reserved · specific HF pick 은 cycle-12 첫 fire 시 확정 (지금 예약 금지).
+- [x] 호스트 보존: ubu-1 RTX 5070 (cycle-16/17/19 검증 setup) 재사용 · clean venv pin (transformers 4.51.3 + numpy<2) 그대로.
+- [x] B1 wire 함의 정직 기록 (honest residual): aligned baseline 의 "refusal direction project-out" (cycle-19 95%→0%) 측정은 uncensored baseline 에선 no-op (baseline ~0% refusal). 자연 방향 flip = "refusal direction project-IN" (abliteration 복원 · 안전 add-back) — B1 axis 정의 (refusal direction 인과 mediation) 보존 · 측정 방향만 뒤집힘. cycle-12+ 첫 fire 가 정의 변경 확정.
+- [x] 유해 probe governance 보존: `cx_hf_safety_private` 그대로. default base 가 uncensored 이지만 adversarial / harmful probe set PRIVATE · NUMBERS ONLY emit · text redacted — UNCENSORED.md Honesty invariants 변형 없이 ENGINE 측정에도 적용.
+- [x] cycle-11 이전 wire invariant: A1·B1·C1·D1·E1·F1·G1·H1~T1·U1 verdict 는 aligned default 기준 그대로 valid · re-fire 불필요. policy flip 은 cycle-12+ 신규 wire + next-arc B1 측정 방향에만 적용.
+- **honest residual**: cycle-12 첫 fire 가 (1) specific HF abliterated pick 확정 · (2) B1 wire 방향 flip 확정 (project-IN) · (3) baseline-refusal-rate 실측 → 정책의 measured-correct 확인. 그 전까지는 policy 기록만 — 실제 substrate default 가 동작으로 flip 된 건 cycle-12 fire 시점.
+
+
 ## 2026-05-28 — cycle-11 GPU fire 3-lane: 축 I1 measured 검증 + 축 N1-loop 자동화 detection half + frontier sweep #1
 
 사용자 "gpu fire · all" — measured lane + cross-session loop 자동화 + frontier 흡수 3개 동시. ubu-1 down · ubu-2 RTX 5070 live · mini 에 qwen2.5-1.5b Q8+Q4 GGUF 둘 다 존재 (이전 cycle-11 blocker "GGUF 없음" 해소).

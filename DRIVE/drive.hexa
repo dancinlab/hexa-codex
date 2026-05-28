@@ -86,7 +86,7 @@ fn boot_server(model_path: str) -> bool {
 fn chat(msgs_inner: str, max_tok: int) -> str {
     let body = "{\"messages\":[" + msgs_inner + "]," +
                "\"temperature\":0,\"max_tokens\":" + str(max_tok) + "}"
-    let cmd = "curl -s -X POST " + SERVER + "/v1/chat/completions " +
+    let cmd = "curl -s --max-time 180 -X POST " + SERVER + "/v1/chat/completions " +
               "-H 'Content-Type: application/json' -d " + shq(body) +
               " | jq -r '.choices[0].message.content // \"(no response)\"'"
     return exec(cmd).trim()
@@ -237,8 +237,10 @@ fn main() {
     // is, and /build writes its program here (not /tmp).
     let workdir = cwd()
     let filelist = exec("ls -1p " + shq(workdir) + " 2>/dev/null | head -40").trim()
-    let ctx = "You are a coding assistant. Working directory: " + workdir +
-              ". Files/dirs here:\n" + filelist
+    let ctx = "You are a concise coding assistant in directory " + workdir +
+              ". Answer briefly and directly; do NOT enumerate or summarize these " +
+              "files unless explicitly asked. For reference only, the directory " +
+              "contains:\n" + filelist
     let SYS = "{\"role\":\"system\",\"content\":\"" + json_escape(ctx) + "\"}"
 
     // ── banner ──
@@ -299,9 +301,10 @@ fn main() {
             if msgs_inner.len() > 0 { msgs_inner = msgs_inner + "," }
             msgs_inner = msgs_inner +
                 "{\"role\":\"user\",\"content\":\"" + json_escape(line) + "\"}"
-            // call model with full history
+            // call model with full history (show progress — generation can take
+            // many seconds on a local CPU/Metal backend)
+            println(C_DIM + "  · 생성 중..." + C_RST)
             let reply = chat(msgs_inner, MAX_TOK)
-            println("")
             println("bot > " + reply)
             println("")
             // append assistant turn so the next round has context

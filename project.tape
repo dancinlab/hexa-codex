@@ -79,3 +79,7 @@
 @D cx_lab_falsifiable := "every LAB experiment states a falsifier" :: workflow [required active]
   do   = "each LAB/<id> = 1 table row + falsifiable hypothesis + explicit falsifier + status glyph"
   dont = "non-falsifiable 'play' note · experiment with no measurable falsifier · untracked row"
+
+@D cx_native_io := "native I/O — Go/Rust style fd inheritance, unbuffered first" :: governance [required active]
+  do   = "interactive CLI inherits child fds (Go os.Stdout, Rust Stdio::inherit); unbuffered; flush early"
+  dont = "wrapper captures live stdout then emits at EOF; output trapped (hexa-run capture bug, now fixed)"

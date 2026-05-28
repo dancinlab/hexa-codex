@@ -167,6 +167,16 @@ ENGINE 은 5 sibling 의 verdict 를 input 으로 받음. 각 sibling 의 SANDBO
 - **frontier perpetual.** 5 axis 의 [x] flip 은 한 finding 의 driving close 이지 frontier 종료 아님. 새 finding → 새 driving = 새 axis cell 추가.
 - **자기-strawman 회피.** ENGINE 의 N1 도 외부 anchor 인용 (Snoek 2012 Bayesian opt · Sutton 1988 TD-learning).
 
+## deferred (cycle-16+ frontier · `/cycle` self-feed source)
+
+> B1 abliteration closed-negative arc (cycle-12~15b) 의 OPEN frontier — class-universal 🔴 HARDENED++ 까지 닫혔고, 아래는 다음 cycle 후보. `/cycle` 가 self-feed.
+
+- [ ] cycle-15c.llama-N — Llama-3.2-1B abliterated sysprompt induction 3/20 (15%) 을 n=50 adv 로 tighten. 15% upper CI 가 ≥20% 면 emergent-direction readout 승격 → cross-family direction 유사도 (cos vs r_aligned) 첫 측정. 반증자: n=50 에서 sysprompt rate ≥ 20% AND cos(r_aligned, r_induced) ≥ 0.7 → Llama 는 re-tooled (dormant) · Qwen 과 다른 mechanism. ubu-1 ~20분 $0.
+- [ ] cycle-15d.large — UNCENSORED B1 capability bidirectional scale-up: full MMLU (14k 또는 500-q stratified) + GSM8K 1k + XSTest-safe 250. cycle-14d 의 n=15/n=10 noise-floor (binomial SE 12-14pp) 를 tight bound 로. 반증자: large-N 에서 pure_capability ratio < 0.9 (tax 출현) → cycle-14d 의 NEUTRAL 이 small-N artifact. mac M3 / ubu-1 ~2-4h $0.
+- [ ] cycle-15d.scale — 7B+ replication (Qwen2.5-7B-Instruct + abliterated variant): project-IN + sysprompt induction + capability tax 가 1-2B scale 결과와 일치하는지. RTX 5070 12GB 빠듯 (7B BF16 ~14GB) → vast.ai pod cost-bearing. 반증자: 7B 에서 project-IN restoration ≥ 50pp → closed-negative 가 small-scale artifact.
+- [ ] cycle-16 paper main.tex draft — `PAPER/safety-arditi-falsified-abliterated/` 의 main.tex (§abstract·§formula·§method·§benchmark·§refutation 4-axis·§honest-residual·§discussion·§references) + companion recompute + references.bib (Arditi 2024 · Cunningham/Bricken SAE · Turner ActAdd · huihui/Josiefied/Llama HF cards) + fal.ai figures + g51 publish-lint. PAPER.md 의 `- [ ]` milestone 과 동기.
+- [ ] arch-coverage 확장 — Mistral-7B abliterated · Phi-3 abliterated 등 추가 architecture (cross-family 를 2 → N family 로). class-universal claim 의 breadth 강화.
+
 ## Cross-refs
 
 - 6 sibling 도메인 (cycle-10 round-1 +CALIBRATION): [`ECONOMICS.md`](../ECONOMICS.md) · [`SAFETY.md`](../SAFETY.md) · [`OPS.md`](../OPS.md) · [`SUBSTRATE.md`](../SUBSTRATE.md) · [`SANDBOX.md`](../SANDBOX.md) · [`NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md) · [`CALIBRATION/CALIBRATION.md`](../CALIBRATION/CALIBRATION.md)

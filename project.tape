@@ -83,3 +83,7 @@
 @D cx_native_io := "native I/O — Go/Rust style fd inheritance, unbuffered first" :: governance [required active]
   do   = "interactive CLI inherits child fds (Go os.Stdout, Rust Stdio::inherit); unbuffered; flush early"
   dont = "wrapper captures live stdout then emits at EOF; output trapped (hexa-run capture bug, now fixed)"
+
+@D cx_drive_minimal := "DRIVE — minimal feature, user-specified only" :: governance [required active]
+  do   = "add a DRIVE feature ONLY when the user explicitly names it; keep the test-drive REPL minimal"
+  dont = "propose / suggest / auto-add DRIVE features; feature-creep; 'shall I add X?' trailer prompts"

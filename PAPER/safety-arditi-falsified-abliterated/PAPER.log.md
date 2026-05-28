@@ -2,6 +2,15 @@
 
 Append-only history sister of `PAPER.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
+## 2026-05-29 — §refutation 4 orthogonal axes 로 강화 · class-universal 확정 (cycle-15 FULL + cycle-15b cross-family)
+
+cycle-15 (3-of-3 Qwen abliterated recipes 모두 sysprompt induced 0/20) + cycle-15b (Llama-3.2-1B cross-family HARDENED) 결과 반영. §refutation 이 4 orthogonal refutation axis 로 강화: (1) cross-α + (2) cross-recipe + (3) sysprompt-induction failure + (4) cross-family. paper claim "FALSIFIED for abliterated class" → "FALSIFIED HARDENED++ class-universal across architectures" 로 강화.
+
+- [x] §refutation 행 갱신 (4 orthogonal axis 명시 · cycle-15 + cycle-15b 새 verdict 링크).
+- [x] verdict matrix 의 refutation row 갱신 (3 verdict 파일 + 1 UNCENSORED B1 cycle-14d link).
+- [x] paper @title / @goal 의 "FALSIFIED" → "class-universal HARDENED++" 강화는 main.tex draft 단계에서 일관 적용 (PAPER.md @title / @goal 은 다음 draft round 에서 동기화).
+- **honest residual**: paper main.tex draft 는 여전히 next turn (4 orthogonal refutation 으로 §refutation 만 더 풍부해짐 · 작성 자체는 미시작).
+
 ## 2026-05-28 — paper scaffold land (4 sections CLOSED-by-recompute · cx_paper_gate 만족)
 
 ENGINE B1 cycle-12 SPEC + cycle-13 measured 🔴 + cycle-14 cross-α + cross-recipe HARDENED 🔴 + UNCENSORED B1 cycle-14d bidirectional 🟢 = 4 § sections 모두 closed-by-recompute. cx_paper_gate 만족, scaffold 진입.

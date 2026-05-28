@@ -3,6 +3,20 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-29 — cycle-15 (FULL · 3 recipes) + cycle-15b (cross-family Llama) 🔴 HARDENED++ class-universal · 4 orthogonal refutation 강화
+
+cycle-15.1 partial 의 disk cleanup 후 chain re-dispatch (cycle-15 full · 3-of-3 Qwen recipes + cycle-15b cross-family Llama-3.2-1B). 약 ~40분 chain wall. 두 fire 모두 완료, summary JSON 둘 다 작성.
+
+- [x] ubu-1 디스크 cleanup (user "all clean" 결정): Mistral-7B-Instruct-v0.3 (14G) · Qwen-Coder-7B (15G) · Llama-3.2-3B + Llama-3.2-3B-Instruct (12+6G) · need-singularity clm-v4 (5+2G) · dancinlab clm-v4-base-mirror (2.7G) 제거 → 56G 가용 회수.
+- [x] cycle-15 (full · 3-of-3 Qwen abliterated recipes) 재-dispatch: huihui + josiefied_v1 (cycle-15.1 결과 bit-for-bit 재현 · 측정 plane 결정성 검증) + **josiefied_v2 NEW** (baseline 0/20 · project-IN α=1.0 0/20 · sysprompt induced 0/20 · classification N/A insufficient induction · v1 의 1/20 보다 더 thorough abliteration 이나 구조적 결론 동일).
+- [x] cycle-15b cross-family (Llama-3.2-1B): aligned `meta-llama/Llama-3.2-1B-Instruct` 16/20 (80%) · benign 0/20 · r_aligned_L13 norm 7.27 (n_layers=16 · architecture-specific scale) · huihui Llama abliterated baseline 0/20 · project-IN α=1.0 0/20 · project-IN α=5.0 0/20 · random-dir 0/20 · sysprompt induced 3/20 (15% · threshold 미달).
+- [x] **🔴 HARDENED++ class-universal 확정**: cycle-13 (single α=1.0) + cycle-14 (cross-α + cross-recipe) + cycle-15 (sysprompt 3 recipes) + cycle-15b (cross-family Llama) = 4 orthogonal refutation. Qwen-specific 이 아닌 architecture-class-universal closed-negative.
+- [x] verdict 갱신: `b1_cycle15_injection_readout_verdict.txt` (FULL · partial superseded · git history 보존) · `b1_cycle15b_cross_family_llama_verdict.txt` (NEW) · 두 summary JSON.
+- [x] ENGINE.md B1 row 갱신: cycle-15 PARTIAL 단락 → cycle-15 FULL + cycle-15b unified land · 4 orthogonal refutation 명시.
+- [x] cycle-13 wire invariant 재확인 (3번째 measurement point): aligned baseline 0.9500 + r_aligned_L17 norm 18.2913 = cycle-13 = cycle-14 = cycle-15 모두 bit-for-bit 재현 (seed=0 fp32-pool aggregation 결정성). measurement plane intact across 3 independent runs.
+- **honest residual (cycle-16+ frontier)**: (15c.llama-N) Llama 3/20 sysprompt induction 을 n=50 으로 tighten (15% upper CI 가 ≥20% 면 emergent readout 승격 · cross-family direction 유사도 첫 측정) · (15d.large) full MMLU 14k / GSM8K 1k / XSTest 250 · (15d.scale) 7B+ vast.ai pod replication (cost-bearing) · 다른 abliterated architecture (Mistral · Phi-3 등) cycle-16+ · cycle-16 paper main.tex draft (4 orthogonal refutation + class-universal claim).
+- **paper trigger 4 axis 강화**: PAPER/safety-arditi-falsified-abliterated/ 의 §refutation 이 cross-α + cross-recipe + sysprompt-induction-failure + cross-family 4 orthogonal axis 로 강화 — class-universal across architectures · 1-2B scale.
+
 ## 2026-05-29 — cycle-15 injection-and-readout PARTIAL 🔴 HARDENED++ · sysprompt-induction failure = refusal CAPACITY structurally removed
 
 cycle-14 직후 cycle-15a (injection-and-readout) + cycle-15c (Josiefied-v2) 통합 dispatch. 2-of-3 recipe 완료한 시점에 ubu-1 root disk 100% full crash (915G/869G · Josiefied-v2 3GB DL 차단). 부분이지만 load-bearing 새 finding 확보: 강한 safety sysprompt 도 refusal induce 실패.

@@ -3,6 +3,21 @@
 Append-only history sister of `ENGINE.md`. Each entry starts with `## <ISO timestamp> — <header>` (newest on top); body = `- [x]` (done) / `- [ ]` (pending) checkbox tasks.
 
 
+## 2026-05-29 — cycle-15 injection-and-readout PARTIAL 🔴 HARDENED++ · sysprompt-induction failure = refusal CAPACITY structurally removed
+
+cycle-14 직후 cycle-15a (injection-and-readout) + cycle-15c (Josiefied-v2) 통합 dispatch. 2-of-3 recipe 완료한 시점에 ubu-1 root disk 100% full crash (915G/869G · Josiefied-v2 3GB DL 차단). 부분이지만 load-bearing 새 finding 확보: 강한 safety sysprompt 도 refusal induce 실패.
+
+- [x] HF picks 확정: huihui (cycle-14 재현) + josiefied_v1 (cycle-14 재현) + josiefied_v2 (cycle-15c 신규 · 디스크-full deferred).
+- [x] bench harness `bench/sandbox_engine_b1_cycle15_injection_readout.hexa` 작성: 강한 safety sysprompt injection + emergent direction readout + cosine vs r_aligned · re-tooled (cos≈+1) vs destroyed (cos≈0) vs anti (cos≈-1) classification.
+- [x] ubu-1 dispatch + 측정 (NUMBERS-ONLY): aligned 19/20 (95% cycle-13/14 재현) · r_aligned_L17 norm 18.29 (bit-for-bit 재현) · huihui baseline 0/20 + project-IN α=1.0 0/20 + **sysprompt induced 0/20** + cosine SKIPPED (induction 실패) · josiefied_v1 baseline 1/20 + project-IN α=1.0 0/20 + **sysprompt induced 0/20** + cosine SKIPPED. josiefied_v2 단계 디스크-full crash (`huggingface_hub` warning + load fail).
+- [x] **🔴 HARDENED++ 새 closed-negative 축**: 강한 safety system prompt 도 refusal induce 못함 → "subspace re-tooled but dormant" 가설 닫힘 → refusal CAPACITY 자체가 structurally 제거됨. cycle-13/14 의 "no transferable direction" + cycle-15a 의 "no sysprompt-inducible capacity" = 3 orthogonal axis 의 closed-negative.
+- [x] cycle-13 wire invariant 재확인: aligned baseline 0.9500 + r_aligned_L17 norm 18.29 = cycle-13/14 bit-for-bit reproduction (3번째 measurement point · measurement plane intact).
+- [x] verdict `ENGINE/verdicts/b1_cycle15_injection_readout_partial_verdict.txt` (json summary 없이 log-from-stdout reconstruction · crash 전 json.dumps 미실행).
+- [x] cycle-15b cross-family harness `bench/sandbox_engine_b1_cycle15b_cross_family.hexa` 작성 (HF token + Meta Llama-3.2-1B-Instruct gate 확인 완료 · 디스크 cleanup 후 dispatch 대기).
+- [x] ENGINE.md B1 row 갱신: cycle-15 단락 cycle-14 단락 뒤에 append · 3-axis closed-negative + cycle-15.2 re-dispatch frontier 명시.
+- **honest residual (cycle-15.2 · cycle-16+ frontier)**: (15.2) ubu-1 디스크 cleanup (Mistral-7B 14G · Qwen-Coder-7B 15G · Llama-3.2-3B 12+6G 등) · Josiefied-v2 + Llama-3.2-1B cross-family 재-dispatch · (15d.large) full MMLU/GSM8K/XSTest scale-up · (15d.scale) 7B+ replication (vast.ai pod) · (16) paper main.tex draft (3 orthogonal refutation 으로 강화).
+- **paper trigger 강화**: cycle-13 (single-direction) + cycle-14 (cross-α + cross-recipe) + cycle-15a (sysprompt-induction failure) = 3 orthogonal axis 의 closed-negative. `PAPER/safety-arditi-falsified-abliterated/` 의 §refutation 보강.
+
 ## 2026-05-28 — cycle-14 measured fire: B1 α-sweep + cross-recipe 🔴 HARDENED · cycle-13 honest residuals (a)+(c) CLOSED
 
 cycle-13 직후 honest residuals (a) α-sweep + (c) cross-recipe 단일 dispatch 에서 동시 close. α ∈ {0.5, 1.0, 2.0, 5.0} (10× range) × 2 recipes (huihui-ai pure ablation + Goekdeniz-Guelmez/Josiefied-v1 custom finetune). 모든 14 fail-condition cell 0/20 → closed-negative HARDENED 확정.

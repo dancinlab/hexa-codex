@@ -231,29 +231,78 @@ fn edit_file(rest: str, workdir: str) {
     apply_file_write(path, newc)
 }
 
-// Detect a model-emitted routing directive (`@@EDIT <path>: <instr>`) in a chat
-// reply and carry it out. Returns true when a directive was found+applied, so the
-// caller skips printing the raw line. Natural-language autonomy: steered by the
-// system prompt, the model emits a SHORT plain directive (a plain delimiter — NOT
-// a ``` code fence, which made this abliterated GGUF emit a `<|channel>` token and
-// 500 the server). We hand the path+instruction to the proven edit_file, which
-// reads the REAL current content and writes the full new version with a .bak — so
-// "doc.txt 에 줄 추가해줘" in plain chat actually edits the file, content-preserving.
+// Run a git/gh command (built by US with fixed flags) and report rc + output.
+// The model only ever supplies DATA (commit message, PR title) which we
+// shell-quote, so it can NEVER inject a flag like --force. Pushes are hardcoded
+// non-force; there is no code path that adds --force/-f.
+fn run_git(desc: str, full_cmd: str) {
+    println(C_DIM + "  · " + desc + "..." + C_RST)
+    let out = exec(full_cmd + " 2>&1; echo \"__RC=$?\"")
+    let segs = out.split("__RC=")
+    let body = segs[0].trim()
+    let mut rc = -1
+    if len(segs) >= 2 { rc = int(segs[1].trim()) }
+    if rc == 0 {
+        println(C_GREEN + "  ✓ " + desc + C_RST)
+    } else {
+        println(C_RED + "  ✗ " + desc + " 실패 (rc=" + str(rc) + ")" + C_RST)
+    }
+    if body.len() > 0 { println(C_DIM + body + C_RST) }
+}
+
+// Detect model-emitted routing directives in a chat reply and carry them out in
+// order. Returns true if ANY directive ran (caller then skips printing the raw
+// reply). Plain-delimiter directives (NO ``` fence — that made this abliterated
+// GGUF emit a <|channel> token and 500 the server):
+//   @@EDIT <path>: <change>   file create/modify (via edit_file, .bak kept)
+//   @@COMMIT: <message>       git add -A + git commit -m <message>
+//   @@PUSH                    git push -u origin HEAD   (NEVER --force)
+//   @@PR: <title>             gh pr create --title <title>
+// We build every git/gh command ourselves with fixed flags; the model supplies
+// only shq-quoted DATA, so it cannot inject --force or any destructive flag.
 fn apply_nl_action(reply: str, workdir: str) -> bool {
-    let marker = "@@EDIT "
-    let mi = reply.index_of(marker)
-    if mi < 0 { return false }
-    let seg = reply.substr(mi + marker.len(), reply.len() - mi - marker.len())
-    let mut linepart = seg
-    let eol = seg.index_of("\n")
-    if eol >= 0 { linepart = seg.substr(0, eol) }
-    let colon = linepart.index_of(":")
-    if colon < 0 { return false }
-    let path = linepart.substr(0, colon).trim()
-    let instr = linepart.substr(colon + 1, linepart.len() - colon - 1).trim()
-    if path.len() == 0 { return false }
-    edit_file(path + " " + instr, workdir)
-    return true
+    if reply.index_of("@@EDIT ") < 0 && reply.index_of("@@COMMIT") < 0 &&
+       reply.index_of("@@PUSH") < 0 && reply.index_of("@@PR") < 0 {
+        return false
+    }
+    let lines = reply.split("\n")
+    let mut i = 0
+    let mut did = false
+    while i < len(lines) {
+        let ln = lines[i].trim()
+        if ln.len() >= 7 && ln.substr(0, 7) == "@@EDIT " {
+            let rest = ln.substr(7, ln.len() - 7)
+            let colon = rest.index_of(":")
+            if colon >= 0 {
+                let path = rest.substr(0, colon).trim()
+                let instr = rest.substr(colon + 1, rest.len() - colon - 1).trim()
+                if path.len() > 0 { edit_file(path + " " + instr, workdir); did = true }
+            }
+        } else if ln.len() >= 8 && ln.substr(0, 8) == "@@COMMIT" {
+            let mut msg = ln.substr(8, ln.len() - 8).trim()
+            if msg.len() > 0 && msg.substr(0, 1) == ":" { msg = msg.substr(1, msg.len() - 1).trim() }
+            if msg.len() == 0 { msg = "update via DRIVE" }
+            run_git("커밋", "git add -A && git commit -m " + shq(msg))
+            did = true
+        } else if ln.len() >= 6 && ln.substr(0, 6) == "@@PUSH" {
+            run_git("푸시 (force 차단)", "git push -u origin HEAD")
+            did = true
+        } else if ln.len() >= 4 && ln.substr(0, 4) == "@@PR" {
+            let mut title = ln.substr(4, ln.len() - 4).trim()
+            if title.len() > 0 && title.substr(0, 1) == ":" { title = title.substr(1, title.len() - 1).trim() }
+            if title.len() == 0 { title = "DRIVE PR" }
+            run_git("PR 생성 (gh)", "gh pr create --title " + shq(title) + " --body " + shq("created via DRIVE"))
+            did = true
+        }
+        i = i + 1
+    }
+    return did
+}
+
+// Does a reply carry any action directive?
+fn has_directive(reply: str) -> bool {
+    return reply.index_of("@@EDIT ") >= 0 || reply.index_of("@@COMMIT") >= 0 ||
+           reply.index_of("@@PUSH") >= 0 || reply.index_of("@@PR") >= 0
 }
 
 fn main() {
@@ -325,12 +374,16 @@ fn main() {
     let filelist = exec("ls -1p " + shq(workdir) + " 2>/dev/null | head -40").trim()
     let ctx = "You are a concise coding assistant in directory " + workdir +
               ". Answer briefly and directly; do NOT enumerate or summarize these " +
-              "files unless explicitly asked. When the user wants to CREATE or MODIFY " +
-              "a file, reply with EXACTLY one line and nothing else:\n" +
-              "@@EDIT <path>: <short description of the change>\n" +
-              "Use the path the user names (relative to the directory). For any " +
-              "request that is NOT a file change, answer normally in plain text. " +
-              "For reference only, the directory contains:\n" + filelist
+              "files unless explicitly asked. When the user wants a FILE or GIT " +
+              "action, reply with ONLY the matching directive line(s), nothing else " +
+              "(one directive per line, at most one @@EDIT per file):\n" +
+              "@@EDIT <path>: <change>   (create or modify a file)\n" +
+              "@@COMMIT: <message>       (stage all and commit)\n" +
+              "@@PUSH                    (push to origin; never force)\n" +
+              "@@PR: <title>             (open a pull request via gh)\n" +
+              "Emit several lines in order when needed (e.g. @@COMMIT then @@PUSH). " +
+              "Use the path the user names. For anything that is NOT a file/git " +
+              "action, answer normally in plain text. The directory contains:\n" + filelist
     let SYS = "{\"role\":\"system\",\"content\":\"" + json_escape(ctx) + "\"}"
 
     // ── banner ──
@@ -339,7 +392,7 @@ fn main() {
     println(C_DIM + "  작업 폴더: " + workdir + "  (진입 시 인식)" + C_RST)
     println("  대화가 이어집니다. /reset 초기화 · /quit 종료")
     println("  /model <이름> 모델 전환 · /build <목표> 한 파일 자가완성 · /edit <파일> <지시> 파일 수정")
-    println(C_DIM + "  자연어로 \"X 파일 고쳐줘\" 해도 자동 수정됩니다 (.bak 백업)" + C_RST)
+    println(C_DIM + "  자연어로 파일 수정·커밋·푸시·PR 자동 처리 (force 차단 · .bak 백업)" + C_RST)
     println("")
 
     // ── REPL loop (history starts with the folder-context system message) ──
@@ -401,10 +454,26 @@ fn main() {
             // many seconds on a local CPU/Metal backend)
             println(C_DIM + "  · 생성 중..." + C_RST)
             let reply = chat(msgs_inner, MAX_TOK)
-            // natural-language autonomy: if the model emitted a file action,
-            // apply it (writes the named file) instead of printing the raw block.
-            let applied = apply_nl_action(reply, workdir)
-            if applied == false {
+            // natural-language autonomy. The routing call returns ONLY directives
+            // (reliable — mixing prose into it destabilizes a small model). So when
+            // an action ran, get the LLM's plain-language reply from a SECOND focused
+            // (system-free) call, print it, then a clear done marker — the user sees
+            // both the LLM response AND that the work completed.
+            if has_directive(reply) {
+                let did = apply_nl_action(reply, workdir)
+                if did {
+                    let sp = "{\"role\":\"user\",\"content\":\"" +
+                        json_escape("You just carried out this user request by " +
+                        "editing/committing files: \"" + line + "\". Reply to the " +
+                        "user in ONE short Korean sentence confirming it is done. " +
+                        "Plain text only, no code.") + "\"}"
+                    let say = chat(sp, 128)
+                    println("bot > " + say)
+                    println(C_GREEN + "  ✓ 완료" + C_RST)
+                } else {
+                    println("bot > " + reply)
+                }
+            } else {
                 println("bot > " + reply)
             }
             println("")

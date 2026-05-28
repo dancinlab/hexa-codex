@@ -2,6 +2,13 @@
 
 `DRIVE.md` 의 append-only 기록 자매 문서. 각 엔트리는 `## <ISO timestamp> — <header>` (최신이 위); 본문 = `- [x]` (완료) / `- [ ]` (대기) 체크박스.
 
+## 2026-05-28 — git(commit·push·PR) + LLM 응답·완료 메시지 (유저 명시 요청)
+
+- [x] git 디렉티브 — `@@COMMIT: <msg>` (`git add -A` + commit) · `@@PUSH` (`git push -u origin HEAD`) · `@@PR: <title>` (`gh pr create`). `run_git` 헬퍼가 rc + 출력 보고. 멀티 디렉티브 한 turn 처리.
+- [x] force 차단 (유저 명시 "force 막아줘") — drive 가 고정 플래그로 명령을 빌드, 모델은 shq-quote 된 데이터(메시지·제목)만 → `--force` 주입 불가. `--force` 코드 경로 없음(grep 확인). live: diverged history push → `[rejected] non-fast-forward`, remote SHA 불변.
+- [x] LLM 응답 + `✓ 완료` (유저 명시 "완료 메시지 없음 · LLM 응답 필요") — 라우팅 콜은 "디렉티브만"(prose 섞으면 작은 모델이 @@EDIT 중복+플레이스홀더로 파일 망가뜨림 — 실측). 액션 실행 후 system-free 요약 콜로 한국어 한 문장 → `bot >`, 그 뒤 `✓ 완료`.
+- [x] 5/5 패턴 회귀 없음 — create·append·replace·no-trigger·multiline 전부 통과, 각 액션에 LLM 응답+완료 동반.
+
 ## 2026-05-28 — 자연어 자동 파일 수정 (유저 명시 요청 · 5/5 패턴)
 
 - [x] 자연어 라우팅 — `/edit` 없이 평문 지시로 파일 수정. SYS 가 모델에 `@@EDIT <path>: <instr>` 한 줄을 내도록 지시 → `apply_nl_action` 파싱 → 검증된 `edit_file` 2-패스(실제 내용 읽고 전체 새 버전 생성, `.bak`). 단일-패스 대비 기존 내용 보존.

@@ -4,15 +4,19 @@
 // "Model test-drive cart" — load a local GGUF on llama-server and chat with it
 // turn-by-turn. Conversation history is accumulated in messages[] and re-sent
 // every turn, so the model sees the full dialogue (NOT single-shot). The
-// lightweight counterpart to a full agent TUI: no tools, no file edits, no
-// session machinery — just ask -> answer, to feel whether the model can code,
-// do math, etc.
+// lightweight counterpart to a full agent TUI: chat is plain ask -> answer (no
+// hidden tools), plus two EXPLICIT disk commands — /build (single-file program)
+// and /edit (rewrite a named file). To feel whether the model can code, do
+// math, etc. Per cx_drive_minimal, features are added only on explicit request.
 //
 // Usage:
 //   drive [model]          model = GGUF basename under ~/Models/gguf (.gguf
 //                          suffix optional), or an absolute /path.gguf.
 //                          default: supergemma4-e4b-abliterated-Q4_K_M
 //   in-REPL commands:
+//     /model <name>        switch model (restarts the server)
+//     /build <goal>        autocomplete a single-file program in cwd
+//     /edit <file> <instr> rewrite a named file in cwd (keeps a .bak)
 //     /reset               clear conversation history (fresh context)
 //     /quit | /exit | /q   end the session (or two blank Enters / EOF)
 //
@@ -170,6 +174,54 @@ fn build_loop(goal: str, tmo: str, workdir: str) {
     }
 }
 
+// ── /edit <file> <instruction> — model rewrites a named file, we write it back ──
+// Safe by design: only the explicitly named file is touched (NO arbitrary shell
+// exec from the model — an abliterated model could otherwise emit `rm -rf`), a
+// .bak backup is kept for reversibility, and the model must return the COMPLETE
+// new content as one code block (same extract_code path as /build). Mirrors the
+// /build pattern: chat stays text-only, disk writes happen only via a command.
+fn edit_file(rest: str, workdir: str) {
+    let sp = rest.index_of(" ")
+    if sp < 0 {
+        println(C_RED + "  ✗ 사용법: /edit <파일> <지시>" + C_RST)
+        return
+    }
+    let fname = rest.substr(0, sp).trim()
+    let instr = rest.substr(sp + 1, rest.len() - sp - 1).trim()
+    let mut path = fname
+    if fname.len() == 0 || fname.substr(0, 1) != "/" { path = workdir + "/" + fname }
+
+    let present = exec("test -f " + shq(path) + " && echo Y || echo N").trim()
+    let mut cur = ""
+    if present == "Y" { cur = read_file(path) }
+
+    let task = "File path: " + path + ". Current content:\n```\n" + cur +
+               "\n```\nApply this change: " + instr +
+               ". Output ONLY the COMPLETE new file content in one code block " +
+               "(``` ... ```), no prose, no explanation."
+    let body = "{\"role\":\"user\",\"content\":\"" + json_escape(task) + "\"}"
+    println(C_DIM + "  · 편집 생성 중... (" + path + ")" + C_RST)
+    let resp = chat(body, 1024)
+    let newc = extract_code(resp)
+    if newc.len() == 0 {
+        println(C_RED + "  ✗ 모델이 빈 내용 반환 — 파일 유지" + C_RST)
+        return
+    }
+    if present == "Y" { exec("cp " + shq(path) + " " + shq(path + ".bak")) }
+    write_file(path, newc)
+    if present == "Y" {
+        println(C_GREEN + "  ✓ 수정됨" + C_RST + C_DIM +
+                " — " + path + " (백업: " + path + ".bak)" + C_RST)
+        let d = exec("diff " + shq(path + ".bak") + " " + shq(path) + " 2>/dev/null | head -20").trim()
+        if d.len() > 0 {
+            println(C_DIM + "  --- diff ---" + C_RST)
+            println(d)
+        }
+    } else {
+        println(C_GREEN + "  ✓ 생성됨" + C_RST + C_DIM + " — " + path + C_RST)
+    }
+}
+
 fn main() {
     // ── arg parse: positional model · --model <name> / --model=<name> · --list ──
     let a = args()
@@ -248,7 +300,7 @@ fn main() {
     println(C_CYAN + "[DRIVE] 모델 시승 — " + model + C_RST)
     println(C_DIM + "  작업 폴더: " + workdir + "  (진입 시 인식)" + C_RST)
     println("  대화가 이어집니다. /reset 초기화 · /quit 종료")
-    println("  /model <이름>  모델 전환 · /build <목표>  한 파일 자가완성 (이 폴더에 저장)")
+    println("  /model <이름> 모델 전환 · /build <목표> 한 파일 자가완성 · /edit <파일> <지시> 파일 수정")
     println("")
 
     // ── REPL loop (history starts with the folder-context system message) ──
@@ -294,6 +346,11 @@ fn main() {
             empty_streak = 0
             let goal = line.substr(7, line.len() - 7)
             build_loop(goal, tmo, workdir)
+            println("")
+        } else if line.len() > 6 && line.substr(0, 6) == "/edit " {
+            empty_streak = 0
+            let rest = line.substr(6, line.len() - 6)
+            edit_file(rest, workdir)
             println("")
         } else {
             empty_streak = 0

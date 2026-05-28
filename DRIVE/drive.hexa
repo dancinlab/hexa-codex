@@ -164,10 +164,35 @@ fn build_loop(goal: str, tmo: str) {
 }
 
 fn main() {
-    // ── model arg: args() = [binary, <arg1>, ...] (a[1] = first user arg) ──
+    // ── arg parse: positional model · --model <name> / --model=<name> · --list ──
     let a = args()
     let mut model = DEFAULT_MODEL
-    if len(a) >= 2 && a[1].len() > 0 { model = a[1] }
+    let mut do_list = false
+    let mut ai = 1
+    while ai < len(a) {
+        let arg = a[ai]
+        if arg == "--list" {
+            do_list = true
+        } else if arg == "--model" {
+            if ai + 1 < len(a) { model = a[ai + 1]; ai = ai + 1 }
+        } else if arg.len() >= 8 && arg.substr(0, 8) == "--model=" {
+            model = arg.substr(8, arg.len() - 8)
+        } else if arg.len() >= 2 && arg.substr(0, 2) == "--" {
+            // unknown flag — ignore
+        } else if arg.len() > 0 {
+            model = arg
+        }
+        ai = ai + 1
+    }
+
+    // ── --list: print available GGUFs under MODEL_DIR and exit ──
+    if do_list {
+        println("사용 가능 모델 (~/Models/gguf):")
+        println(exec("ls -1 " + shq(MODEL_DIR) +
+                     "/*.gguf 2>/dev/null | xargs -n1 basename 2>/dev/null").trim())
+        exit(0)
+    }
+
     let model_path = resolve_model(model)
 
     // ── model file must exist ──
@@ -201,7 +226,7 @@ fn main() {
     println("")
     println("[DRIVE] 모델 시승 — " + model)
     println("  대화가 이어집니다. /reset 초기화 · /quit 종료")
-    println("  /build <목표>  한 파일짜리 프로그램을 스스로 완성 (생성→실행→자가수정)")
+    println("  /model <이름>  모델 전환 (서버 재기동) · /build <목표>  한 파일 자가완성")
     println("")
 
     // ── REPL loop (history accumulated in msgs_inner) ──
@@ -223,6 +248,25 @@ fn main() {
             empty_streak = 0
             msgs_inner = ""
             println("  (대화 초기화됨)")
+            println("")
+        } else if line.len() > 7 && line.substr(0, 7) == "/model " {
+            empty_streak = 0
+            let newmodel = line.substr(7, line.len() - 7).trim()
+            let newpath = resolve_model(newmodel)
+            let exok = exec("test -f " + shq(newpath) + " && echo Y || echo N").trim()
+            if exok != "Y" {
+                println("  x 모델 파일 없음: " + newpath)
+            } else {
+                println("  . 모델 전환: " + newmodel + " (서버 재기동...)")
+                exec("pkill -f 'llama-server.*" + PORT + "' 2>/dev/null; sleep 1")
+                let ok = boot_server(newpath)
+                if ok {
+                    model = newmodel
+                    println("  . 준비 완료 — " + newmodel)
+                } else {
+                    println("  x 기동 실패 — 로그: " + SERVER_LOG)
+                }
+            }
             println("")
         } else if line.len() > 7 && line.substr(0, 7) == "/build " {
             empty_streak = 0

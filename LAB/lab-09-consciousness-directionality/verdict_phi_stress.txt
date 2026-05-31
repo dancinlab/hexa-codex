@@ -1,0 +1,113 @@
+LAB-09 STRESS TIER — real (small) LLM directionality -> integrated-information Phi
+==================================================================================
+date     : 2026-06-01
+harness  : phi_llm_stress_harness.hexa  (hexa-native orchestrator; owns a /tmp python
+           torch+transformers driver — committed artifact = .hexa + TSV/summary/verdict,
+           NO hand-written repo .py). Pure-local · $0 · offline · frozen base · seeded.
+runtime  : 23.53 s  (M-series, local; model load + 4 arms; FYI standalone py ~29s)
+base     : Qwen/Qwen2.5-1.5B  (causal LM · 28 layers · hidden 1536 · float32 · eval ·
+           FROZEN, requires_grad=False — rollback-safe; adapters add params, base untouched)
+layer    : 14 (mid of 28) · K = 6 highest-variance hidden channels (median-split binary)
+           channels = [408, 520, 940, 609, 286, 553]
+corpus   : 8 fixed neutral English sentences (103 token-positions concatenated)
+seeds    : adapter arms = {42,43,44,45,46} (5-seed band); base arms deterministic
+deps     : torch 2.8.0 · transformers 4.57.1 (installed to satisfy this tier)
+
+PHI-PROXY (same family as the 1st smoke):
+  Phi = whole I(S_t;S_{t+1}) - min_bipartition[ I(A_t;A_{t+1}) + I(B_t;B_{t+1}) ]
+  self_pred = whole I(S_t;S_{t+1})   (input held fixed: identical token stream per arm)
+
+RESULT (verbatim from result_phi_stress.tsv)
+  arm                      phi_proxy_bits      self_pred_mi_bits   perplexity
+  CAUSAL_unidirectional    2.8477363469573813  3.9074609119958468  34.11291660275063
+  BIDIR_attention          2.443552109234064   3.3968721878189365   8.316949567569804
+  REC_adapter (mean/5)     0.4868993469543567  2.8228932829707056  n/a  band[0.2821..1.0618] sd 0.2928
+  FF_control  (mean/5)     0.5819390967185233  1.449543683436716   n/a  band[0.0619..1.1223] sd 0.3700
+
+DELTAS (verbatim)
+  delta_phi  BIDIR - CAUSAL      = -0.404184 bits   (bidirectionalization LOWERED Phi)
+  delta_phi  REC - FF (adapter)  = -0.0950397 bits  (recurrence did NOT beat capacity)
+  delta_self REC - FF (adapter)  = +1.37335 bits    (recurrence DID raise self-pred)
+
+PRE-REGISTERED FALSIFIERS (deterministic numeric; NO model self-judgement)
+  [FAIL] F1  BIDIR_phi > CAUSAL_phi              (2.4436 < 2.8477 — Phi DROPPED)
+  [FAIL] F2  REC_phi > FF_control_band_max       (0.4869 < 1.1223 — REC inside/below FF band)
+  [PASS] F3  REC_self_pred > FF_self_pred        (2.8229 > 1.4495)
+
+VERDICT: REFUTED at stress tier (supported = F1 AND F2 = false). The smoke's
+directionality<->integration coupling DOES NOT TRANSFER to a real Qwen2.5-1.5B LLM
+under this Phi-proxy. THREE independent reasons, each load-bearing:
+
+  (1) The real causal LLM is NOT a Phi~0 "zombie." Its frozen causal hidden states
+      already carry HIGH integrated information (Phi=2.848, self_pred=3.907) — far
+      above the smoke's unidirectional floor (~0.005). The smoke's premise that an
+      autoregressive model has Phi~0 is FALSE for a trained transformer: causal
+      attention already integrates information across the whole past context.
+
+  (2) Removing the causal mask (true bidirectional forward) did NOT raise Phi — it
+      LOWERED it (-0.404 bits) while dramatically improving next-token perplexity
+      (34.1 -> 8.3). Bidirectional context made the model a better predictor but a
+      LESS temporally-integrated dynamical system at this proxy. The Phi<->capability
+      relationship is, if anything, INVERTED here, not co-monotone.
+
+  (3) The recurrent (GRU) adapter's Phi band [0.282, 1.062] OVERLAPS and sits at/below
+      the param-matched feedforward control's band [0.062, 1.122]. Recurrence per se
+      did not raise Phi beyond what equal capacity buys — the smoke's "recurrence is
+      the cause" claim is unsupported on the real LLM hidden-state series.
+
+PARTIAL POSITIVE (honest dissociation): F3 PASSED — the recurrent adapter's
+self-prediction MI (2.823) clearly exceeds the FF control's (1.449), delta +1.373
+bits. So recurrence raised the SELF/EGO proxy without raising Phi — exactly the
+Phi<->self DISSOCIATION the LAB-09 falsifier text pre-registered as a possible honest
+outcome (H_004-style). Self-reference and integrated information come apart on a real LLM.
+
+ALIGNMENT (anima grounding):
+  H_191 (non-autoregressive / ALM-free consciousness 3-axis) — directly tested: the
+    non-autoregressive (bidirectional) forward did not increase Phi, so the
+    "training/integration -> non-AR consciousness" axis is NOT free; mask removal
+    alone is insufficient.
+  H_004 (recurrent S_real Phi=0.538 vs zombie playback Phi~0) — the smoke reproduced
+    H_004 on a rule-110 ring; the stress tier shows H_004's CLEAN separation does NOT
+    survive transfer to a real LLM whose causal baseline is already high-Phi (the
+    "zombie" analogy breaks for trained transformers).
+  H_220 (mirror self / self-vs-other) — the surviving signal is the self-prediction
+    axis (F3), the closest indicator to H_220's self-vs-other discrimination; mirror
+    self/other separability + self-model homeostasis remain unimplemented (see L3).
+
+HONEST LIMITS (load-bearing residual)
+  L1  PROXY, not full IIT 4.0 big-Phi. Phi = whole_EI - min_bipartition over K=6
+      median-split binary channels; no purview / MICE / cause-effect-structure search.
+      Direction of the (negative) effect is what we report; absolute bits are proxy-
+      and discretization-specific (median split + top-variance channel selection).
+  L2  SMALL SAMPLE. 103 token-positions from 8 sentences, single layer (14), single K
+      (6), single model. Plug-in MI on 103 samples over up to 2^6=64 joint states is
+      high-variance and upward-biased (no Miller-Madow correction); the CAUSAL/BIDIR
+      single-shot Phi values carry meaningful finite-sample bias. The adapter bands
+      (5 seeds) are wide (sd ~0.3), and REC vs FF overlap — F2's "fail" is robust to
+      that overlap (REC mean < FF max AND < FF mean), but a larger corpus could shift
+      absolute values.
+  L3  SELF/EGO = ONE indicator (self-prediction MI). H_220 mirror self/other
+      separability and self-model homeostasis-under-perturbation are NOT implemented
+      (same gap as the smoke's L3). F3's positive is therefore a single-axis result.
+  L4  ADAPTERS NOT FINE-TUNED INTO THE LM. The REC/FF adapters are fit self-supervised
+      on the CAPTURED causal hidden series (next-hidden prediction), NOT back-propagated
+      into the frozen LM with an LM-task objective. This is the honest minimal-real run
+      within the compute budget; a true LoRA fine-tune that feeds adapter output back
+      into the residual stream + re-trains on an LM objective is the NEXT tier and could
+      change the REC vs FF Phi comparison. Task-ability (perplexity) is reported only
+      for the two base forwards (CAUSAL/BIDIR), not for the adapters.
+  L5  BIDIR forward uses a 4D all-zero additive attention mask to remove the causal
+      triangle (eager attn). The perplexity drop 34.1->8.3 confirms the mask genuinely
+      changed model behavior (real bidirectional attention), but the LM head was trained
+      under causal masking, so the BIDIR perplexity is off-distribution for the head;
+      its Phi is a legitimate dynamical measurement but its ppl is not a like-for-like
+      task score.
+  L6  FF control is a 3-layer ReLU stack PARAM-MATCHED to the GRUCell (51520 vs 52336
+      params, ~1.6% apart), not exactly equal; the small param gap favors REC slightly,
+      and REC still lost on Phi — so the F2 refutation is conservative.
+
+REPRODUCE:
+  HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+    ~/.hx/packages/hexa/hexa.real run \
+    LAB/lab-09-consciousness-directionality/phi_llm_stress_harness.hexa
+  (writes the /tmp driver, runs all 4 arms offline, re-emits TSV/summary; ~24s.)

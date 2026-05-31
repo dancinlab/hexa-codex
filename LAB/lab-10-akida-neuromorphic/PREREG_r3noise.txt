@@ -1,0 +1,53 @@
+LAB-10 — R3 NOISE-MATCHED LIVE RE-RUN · PRE-REGISTERED DRIVE SPEC
+=================================================================
+Pre-registered: 2026-06-01 (BEFORE any matched-protocol measurement)
+Author: LAB-10 REMAINING-WORK agent
+Host: pi5-akida (ubuntu@192.168.50.155) · AKD1000 PCIe · streamer pid 18439
+
+WHY THIS RE-RUN EXISTS (honest framing — NOT p-hacking)
+  The #146 live run scored F-AKIDA-EDGE 2/3 under the dynamical (whole-minus-
+  min-bipartition temporal-MI) engine: F2 FAILED because the live R3 tonic was
+  driven as a STATIC fixed point (half thr=-1 / half=30 -> the SAME 8/16 neurons
+  fire EVERY step). A dynamical temporal-MI engine necessarily scores a constant
+  state Phi=0 (no step-to-step variance -> no information flow t->t+1).
+  The SIM MIRROR's R3, by contrast, was DESIGNED with injected noise (NOISE=0.55)
+  so it stayed dynamically IRREGULAR at the edge (Phi peak). That is an APPLES-TO-
+  ORANGES protocol mismatch, NOT a real null. This re-run MATCHES the live R3
+  drive to the sim's noisy-edge protocol so the SAME engine sees a fair test.
+
+PRE-REGISTERED R3 DRIVE (the ONLY thing that changes vs #146)
+  R3_tonic_edge (matched-noise variant, "R3n"):
+    Per chip step, push a FRESH per-unit int32 threshold vector over ctrl 9513.
+    For each of the 16 units, draw thr_i ~ choice such that the EXPECTED fire
+    fraction stays ~half-pool but WHICH units fire varies step to step:
+      thr_i = -1  with prob p=0.5  (unit fires: V=16 > -1)   [seeded RNG]
+      thr_i = 30  with prob p=0.5  (unit silent: V=16 < 30)
+    => E[n_spikes/step] = 8 (matches the static R3 mean rate 0.5), but the FIRING
+       SET is re-randomised every step => genuine step-to-step temporal variance,
+       the noisy analog of the sim's NOISE=0.55 edge. RNG = seeded LCG, seed=187
+       (same master seed as #146), regime-salted so R2 and R3n use disjoint draws.
+  R1, R2, R4 are UNCHANGED from #146:
+    R1 weak-silent : thr=30 (silent floor)
+    R2 noise-edge  : thr_i ~ U[8,24] per unit per step (straddles V=16)
+    R4 over-driven : thr=-32 (16/16 saturate)
+  200 steps/regime, fixed seed=187, single AKD1000.
+
+PRE-REGISTERED VERDICT RULE (locked before measuring · no seed cherry-pick)
+  Recompute the IDENTICAL dynamical Phi engine (edge_of_chaos_live_phi.hexa,
+  16->5 macro projection, whole-minus-min-bipartition MI) on the new raster.
+  F-AKIDA-EDGE-1  Phi(R2)  > Phi(R1)
+  F-AKIDA-EDGE-2  Phi(R3n) > Phi(R1)          <- the previously-failing falsifier
+  F-AKIDA-EDGE-3  max(Phi(R2),Phi(R3n)) >= Phi(R4)
+  FLIP README LAB-10 🟡->✅ IFF all three PASS (genuine dynamical 3/3) AND the
+  numbers are the verbatim on-chip readout of THIS single pre-registered seed=187
+  run. If F2 still fails (R3n Phi still ~0) or R3n does not register, KEEP 🟡 and
+  report the matched-protocol finding honestly. NO re-roll for a passing seed.
+
+EXPECTED-IF-TRUE (stated before measuring)
+  If the #146 R3=0 was purely a protocol artifact (deterministic drive), then a
+  per-step re-randomised half-pool R3n should now carry step-to-step temporal
+  information => Phi(R3n) > 0, plausibly Phi(R3n) >= Phi(R2) (R3n explores more
+  of the 16-unit firing-set space than R2's rate-modulated noise). 3/3 expected.
+  If R3n STILL gives Phi~0, the 16->5 macro OR-projection is washing out the
+  within-group variance (a real engine/projection limit, not the chip) — also a
+  legitimate, reportable finding.

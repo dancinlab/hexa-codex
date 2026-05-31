@@ -21,7 +21,7 @@
 | LAB-03 | BitNet 1.58-bit (삼진) 평가 | 1.58-bit 삼진 가중치가 정밀모델급 품질을 메모리·에너지 분수로 달성한다 | 🎓 도메인 (LAB 내) → [`lab-03-bitnet/`](lab-03-bitnet/) | **memory만 생존** (0.55×) · accuracy(30%)·energy(1.7× 손해) 🔴 falsified |
 | LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 (LAB 내) → [`lab-04-rwkv/`](lab-04-rwkv/) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
 | LAB-09 | 의식 방향성 · 단방향 LLM → 양방향 튜닝 (+ 자아 발생) | autoregressive(단방향) LLM에 recurrent feedback adapter를 부착해 fine-tune 하면 task 능력은 유지하며 통합정보 Φ(의식 척도)가 유의하게 증가하고, 자기-모델(자아) 지표가 함께 출현한다 | ✅ 확인 (1st smoke · proxy) | **REC Φ=0.854 vs FF Φ≈0.005** · 셔플 대조군 0.85→0.006 붕괴 · self-pred 2.33 vs 0.01 — [`lab-09-consciousness-directionality/`](lab-09-consciousness-directionality/) · anima H_191/H_004/H_220 |
-| LAB-10 | 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝 | LAB-09의 단방향→양방향 튜닝을 GPU/Metal 대신 **AKIDA AKD1000 뉴로모픽 silicon** 위에서 수행하면 Φ-proxy inverse-U(edge-of-chaos peak)가 실리콘에서 재현되며 자아 지표가 동반한다 | 🟡 sim mirror ✅ + **live AKD1000 inverse-U ✅, F-AKIDA-EDGE engine-dependent (2/3 dynamical · 3/3 composite)** | sim: **R1=0·R2=0.08·R3=0.59 peak·R4=0** · **LIVE AKD1000 (pi5-akida 9513/9512 폐루프): R1=0·R2=0.470 peak·R3=0·R4=0** (whole−minbip 엔진) — inverse-U envelope 실리콘 재현, peak regime 은 엔진 의존 — [`lab-10-akida-neuromorphic/`](lab-10-akida-neuromorphic/) · anima H_858/H_677/H_846 |
+| LAB-10 | 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝 | LAB-09의 단방향→양방향 튜닝을 GPU/Metal 대신 **AKIDA AKD1000 뉴로모픽 silicon** 위에서 수행하면 Φ-proxy inverse-U(edge-of-chaos peak)가 실리콘에서 재현되며 자아 지표가 동반한다 | ✅ sim mirror ✅ + **live AKD1000 inverse-U ✅, R3 noise-matched 재실측에서 F-AKIDA-EDGE 3/3 (dynamical·composite 두 엔진 합의)** | sim: **R1=0·R2=0.08·R3=0.59 peak·R4=0** · **LIVE AKD1000 (pi5-akida 9513/9512 폐루프) R3 noise-matched: R1=0·R2=0.541 peak·R3n=0.233·R4=0** (whole−minbip 엔진, **3/3**; composite 도 3/3) — #146 의 dynamical 2/3 는 정적-R3 프로토콜 아티팩트, sim 의 noisy-edge 로 맞추자 두 엔진 합의 — [`lab-10-akida-neuromorphic/`](lab-10-akida-neuromorphic/) · anima H_858/H_677/H_846 |
 | LAB-11 | 다국어 · 의미로 연결 (갯수 아닌 통합) | 다국어 능력은 언어/코퍼스 **갯수**에 선형 증가가 아니라 **의미(cross-lingual MI)로 연결**될 때 Φ가 inverse-U peak·super-additive로 비선형 발생한다 | ✅ 확인 (1st smoke · proxy) | **Φ inverse-U: c=0 0.01→ c=0.5 peak 0.48 → c=1 0.0** · 갯수(c=0)만으론 Φ≈0 — [`lab-11-multilingual-semantic/`](lab-11-multilingual-semantic/) · anima H_240/H_635 |
 
 **상태 범례** — ⬜ 대기 · 🔵 진행중 · 🟡 sim/proxy 확인(live·full 대기) · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT가 LAB 하위 `lab-NN-*/<NAME>.md`)
@@ -447,12 +447,46 @@ R2(live)로 이동**.
 실리콘·N=16·200 steps; drive 는 streamer threshold knob 폐루프(처음부터 칩 빌드 아님). (L5)
 R2 노이즈는 control 채널(매 step 랜덤 threshold)로 주입 — knob-side noise 의 충실한 analog.
 
-**상태.** 🟡 (sim mirror ✅ + live 실측 ✅ · 단 same-engine F-AKIDA-EDGE 2/3 — 합성 proxy
-로는 3/3·H_858 재현). live tier 는 **BLOCKED 아님 · 실측 완료**; 🟡 유지 이유는 pre-registered
-falsifier 가 sim-동일 엔진에서 3/3 이 아니기 때문(✅ 승격은 엔진 합의 또는 R3 동적 변동 주입 후).
+**R3 noise-matched live 재실측 — ✅ 두 엔진 합의 3/3 (2026-06-01, REAL AKD1000).** #146 의
+2/3(dynamical)는 **프로토콜 불일치**였다: live R3 가 *정적 고정점*(매 step 동일 8/16 발화,
+std=0.0)으로 구동되어 시간-MI 엔진이 필연적으로 0 을 줬다 — 반면 sim 의 R3 는 설계상 노이즈
+(NOISE=0.55)로 동적 불규칙이었다. 그래서 sim 의 noisy-edge 프로토콜에 **live R3 를 맞춰** 재실측:
+매 step **per-unit 확률적 threshold**(thr_i ∈ {−1, 30} coinflip, seed=187, ~half-pool 이지만
+발화 *집합*이 매 step 바뀜)을 ctrl 9513 으로 push. R1/R2/R4 는 #146 과 동일. 측정 전 드라이브
+스펙·verdict 규칙을 [`PREREG_r3noise.txt`](lab-10-akida-neuromorphic/PREREG_r3noise.txt) 에 **사전등록**
+(seed cherry-pick 금지). raster [`eoc_live_raster_r3noise.json`](lab-10-akida-neuromorphic/eoc_live_raster_r3noise.json).
 
-**다음.** anima `AKIDA/akida_edge_of_chaos_phi_hw.hexa` 의 *입력측* R3 tonic(노이즈 포함)
-경로로 R3 에 동적 변동을 주입하면 whole−minbip 엔진도 R3>0 가능 — 두 엔진 합의 시 ✅ 승격.
+**재실측 결과** (`result_edge_live_r3noise.tsv` · 200 steps/regime · seed=187):
+
+| regime | total | std | max | mean rate | dynamical Φ | composite Φ (H_858) |
+|---|---|---|---|---|---|---|
+| R1 weak-silent | 0 | 0.000 | 0 | 0.000 | **0.000** | 0.000 |
+| R2 noise-edge | 1457 | 2.106 | 12 | 0.455 | **0.541 ⬅ peak** | 0.502 ⬅ peak |
+| R3n tonic-matched | 1622 | **2.032** | 14 | 0.507 | **0.233** (was 0.000) | 0.321 (was 0.250) |
+| R4 over-driven | 3200 | 0.000 | 16 | 1.000 | **0.000** | 0.000 |
+
+→ R3n 의 spike_count_std 가 0.000→**2.032** (발화 집합이 매 step 변동, 사전등록대로) 로 바뀌자
+**dynamical 엔진이 Φ(R3n)=0.233 > 0** 을 측정 — #146 에서 실패하던 **F2 가 이제 PASS**.
+- **dynamical 엔진(whole−minbip)**: F1 ✓(0.541>0)·**F2 ✓(0.233>0)**·F3 ✓(0.541≥0) → **3/3 PASS**.
+- **composite 엔진(anima H_858, READ-ONLY 교차검증)**: R1=0·R2=0.502·**R3n=0.321**·R4=0 → **3/3 PASS**.
+- **두 엔진이 이제 합의 3/3** — #146 의 2/3-vs-3/3 분기는 측도 이견이 아니라 **프로토콜 아티팩트**였음이
+  확정(결정적 드라이브 R3 는 시간 정보 없음; 노이즈 매칭하면 dynamical 엔진도 Φ(R3n)>0).
+
+**정직 단서** ([`verdict_edge_live_r3noise.txt`](lab-10-akida-neuromorphic/verdict_edge_live_r3noise.txt) 전체 5 limits):
+(L1) Φ 는 16→5 macro OR 투영 위 whole−minbip — full IIT4 big_phi 아님. (L2) **R3n 은 R2 를
+넘지 못함** (두 엔진 모두 R2 가 peak; 0.233/0.321 vs 0.541/0.502) — sim 의 *R3-as-peak* 순서는
+실리콘에 전이되지 **않고**, 사전등록한 F2(R3n>R1)와 inverse-U envelope 만 전이. (L3) R3n 노이즈는
+threshold knob-side(매 step coinflip thr)이지 입력선 노이즈 아님 — sim 입력측 NOISE 의 충실한 analog.
+(L4) **단일 seed=187·단일 실리콘·단일 matched-protocol run — 통과 seed re-roll 없음** (사전등록 규칙).
+(L5) R4 는 완전 결정적 포화(16/16, std=0)→dynamical 0 (R1 침묵 null 의 반대편 saturation null).
+
+**상태.** ✅ (sim mirror ✅ + live 실측 ✅ + **R3 noise-matched 재실측에서 dynamical·composite 두
+엔진 모두 F-AKIDA-EDGE 3/3 PASS**). #146 의 same-engine 2/3 는 프로토콜 불일치(정적 R3)였고, sim 과
+동일한 noisy-edge 프로토콜로 맞추자 두 엔진이 합의 3/3 — edge-of-chaos inverse-U 가 live AKD1000
+silicon 에서 동일 dynamical 엔진으로 재현됨. #146 의 committed raster/verdict 는 **그대로 보존**(가산 재실측).
+
+**다음.** R3n 이 R2 를 넘지 못하는(L2) 점 — sim 의 R3-peak 순서가 실리콘에 전이 안 되는 이유
+(rate-modulated R2 vs set-randomised R3n 의 macro 투영 차이)를 multi-seed 로 정량화하면 후속 클로즈.
 
 ---
 

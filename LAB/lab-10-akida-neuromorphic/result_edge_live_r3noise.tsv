@@ -1,0 +1,5 @@
+regime	steps	total_spikes	spike_std	spike_max	mean_rate	phi_proxy_bits
+R1_weak_silent	200	0	0.0	0	0.0	0.0
+R2_noise_edge	200	1457	2.1057	12	0.455313	0.540823
+R3_tonic_edge	200	1622	2.0317	14	0.506875	0.23296
+R4_over_driven	200	3200	0.0	16	1.0	0.0

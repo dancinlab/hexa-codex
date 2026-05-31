@@ -1,0 +1,111 @@
+LAB-11 STRESS TIER — real multilingual-LM "MEANING not count" Phi · verdict
+============================================================================
+date     : 2026-06-01
+harness  : stress_real_harness.hexa  (hexa-native orchestrator)
+driver   : /tmp/lab11_stress/phi_mi_real.py  (torch numerics UNDER /tmp, outside
+           repo per the .hexa-source hard constraint; a provenance copy
+           phi_mi_real.py is committed alongside this verdict. Only the .hexa +
+           result artifacts + the provenance .py copy are committed.)
+model    : Qwen/Qwen2.5-1.5B  (REAL multilingual LM, local HF cache, headless, $0,
+           HF_HUB_OFFLINE — cx_lab_sandbox: local SANDBOX, no external paid API)
+seed     : 42 · N_langs=5 (ko/en/zh/ru/ja) · S=12 sentence-tuples · n_seed=8 shuffle avg
+scoring  : DETERMINISTIC numeric (g5 no-self-judge — NO model self-judgement anywhere;
+           every falsifier below is a numeric comparison)
+
+WHAT WAS MEASURED (promotes the 1st smoke from a substrate proxy to real reps)
+  - MEANING-coupled corpus: 12 sentence-tuples that are TRANSLATIONS of each other
+    (same meaning across all 5 langs, different surface).
+  - COUNT-only control: meaning-overlap held at 0, grow LANGUAGE COUNT n=2..5
+    (the user's reframe — pile up languages WITHOUT shared meaning).
+  - per (lang,sentence): mean-pooled last-hidden-state from Qwen2.5-1.5B.
+  - cross-lingual MI proxy: pairwise linear CKA (centered kernel alignment) ->
+    Gaussian MI -0.5 log2(1-r^2) (CKA is the sensitive cross-lingual rep-similarity
+    score; the leading-PCA-axis Shannon MI saturated at S=12, CKA does not).
+  - collective Phi proxy: IIT differentiation x integration on the LxL CKA matrix —
+    integration = total-correlation minus min-bipartition cut (whole_EI - min_bipart,
+    SAME engine FAMILY as the smoke phi_proxy()); differentiation = 1 - mean|CKA|
+    (langs fuse -> 0). Coupling axis = meaning-overlap fraction f (frac of slots that
+    are ALIGNED translations vs independently shuffled), the real-rep analog of the
+    smoke's coupling c.
+  - SANITY: ko->en translation retrieval = 9/12 (chance 1/12) — Qwen reps DO align
+    these translations well above chance, so the meaning-coupling axis has real signal.
+
+RESULT (verbatim from result_stress.tsv / result_stress_summary.txt)
+  MEANING-coupled cohort (5 langs; f = fraction of slots that are ALIGNED translations)
+    f       cross_lingual_MI    collective_phi
+    0.00    0.468911            0.161232
+    0.10    0.368383            0.183777
+    0.25    0.283784            0.157111
+    0.50    0.285095            0.162342
+    0.75    0.364370            0.173323
+    0.90    0.625833            0.197165   <- PEAK
+    1.00    0.873812            0.186141
+
+  COUNT-only control (meaning-overlap fixed 0; grow LANGUAGE COUNT n=2..5)
+    n_langs cross_lingual_MI    collective_phi
+    2       0.357557            0.132695
+    3       0.415716            0.147204
+    4       0.496555            0.152607
+    5       0.478860            0.168445
+
+  MEANING peak phi = 0.197165 at f=0.90 (MI=0.625833)
+  MEANING phi(f=0 separate) = 0.161232   phi(f=1 fully aligned) = 0.186141
+  COUNT-only phi(n=5, max count, no meaning) = 0.168445
+  MEANING peak / COUNT(n=5) ratio = 1.17049
+
+PRE-REGISTERED FALSIFIERS (deterministic numeric · g5 no-self-judge)
+  [PASS] F1 inverse-U      : MEANING interior peak (f=0.90, phi=0.197) strictly above
+                             BOTH ends (f=0 phi=0.161, f=1 fully-aligned phi=0.186).
+                             The inverse-U SHAPE reproduces qualitatively on real reps.
+  [FAIL] F2 super-additive : MEANING peak 0.197 does NOT exceed COUNT-only(n=5) 0.168
+                             by the +0.05 margin (excess only +0.029). FALSIFIED.
+  [FAIL] F3 meaning>count  : peak ratio 1.17 < pre-registered 1.25. The count-only
+                             cohort (5 unrelated-meaning languages) ALREADY integrates
+                             ~85% of the meaning-coupled peak. FALSIFIED.
+
+VERDICT: NOT-SUPPORTED-AT-THRESHOLD (mostly-negative · honest refutation).
+  On a REAL small multilingual LM (Qwen2.5-1.5B), the smoke's strong claims do NOT
+  fully transfer. The inverse-U in cross-lingual coupling SURVIVES qualitatively
+  (F1 PASS): partial meaning-overlap (f=0.90) integrates more than full alignment
+  (f=1.00), consistent with anima H_240 (Phi = differentiation x integration; full
+  fusion kills differentiation). BUT the two STRONG predictions FAIL: meaning-coupling
+  buys only a ~17% integration advantage over raw language count (F3 FAIL), and that
+  advantage is below the super-additivity margin (F2 FAIL). At this model scale,
+  "connect by MEANING not count" is at best a WEAK effect — piling up 5 unrelated-
+  meaning languages already reaches ~85% of the meaning-coupled peak Phi. This
+  CONTRASTS sharply with the substrate proxy (smoke: peak 0.483 vs decoupled 0.014,
+  ratio ~35x): the clean separation is a proxy artifact that attenuates on real reps.
+
+HONEST LIMITS (load-bearing residual)
+  L1  SMALL CORPUS / SMALL MODEL. S=12 sentence-tuples, Qwen2.5-1.5B mean-pooled
+      last-hidden. CKA/Gaussian-MI on 12 points is high-variance (n_seed=8 averaging
+      mitigates but does not remove it). A larger parallel corpus (FLORES-200 dev,
+      hundreds of tuples) + a larger multilingual model is the NEXT tier — the weak
+      F2/F3 effect could be a small-S power problem, NOT a true null. NOT closed here.
+  L2  Phi PROXY != IIT 4.0 big-Phi. integration x differentiation on a CKA matrix is a
+      representational-integration ANALOG (same engine FAMILY as the smoke), not the
+      transition-TPM big-Phi of stdlib/consciousness/iit4_bigphi.hexa. The differen-
+      tiation term (1-mean|CKA|) is a heuristic; a transition-based estimator on the
+      LM's next-token dynamics is deferred.
+  L3  MEAN-POOLED LAST LAYER ONLY. Cross-lingual alignment is layer-dependent in LMs
+      (often peaks mid-stack); the last-layer mean-pool may under-represent the shared-
+      meaning subspace. The 9/12 retrieval shows signal exists but a layer sweep +
+      better pooling (e.g. mean-of-mid-layers) could change the meaning>count margin.
+  L4  COUPLING AXIS f IS SYNTHETIC. f mixes aligned-translation vs shuffled slots to
+      sweep coupling on a FIXED rep set; it is not a re-trained model at varying cross-
+      lingual exposure. The genuine causal manipulation (train/fine-tune with varying
+      parallel-data overlap and measure Phi) is the real stress and is NOT done here.
+  L5  CKA MATRIX TREATED AS A CORRELATION MATRIX in the Gaussian-MI / slogdet
+      integration term. CKA is symmetric with unit diagonal but not guaranteed PSD-as-
+      a-correlation; the +1e-6 ridge keeps slogdet finite but the integration magnitude
+      is a proxy, not a calibrated nat/bit count.
+  L6  SINGLE 5-LANG SET, SINGLE MODEL, SINGLE SEED-FAMILY. ko/en/zh/ru/ja only; no
+      script-class ablation (anima H239.3 warns zh<->ja CKA may be Han-block script
+      artifact, not semantics). Multi-model / multi-language-set robustness deferred.
+
+REPRODUCE
+  cd /tmp/lab11_stress && HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 LAB11_REUSE=1 \
+    python3 phi_mi_real.py        # (LAB11_REUSE=1 reuses cached Qwen reps)
+  OR via the hexa orchestrator (regenerates result_stress.tsv + _summary.txt):
+  HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+    ~/.hx/packages/hexa/hexa.real run LAB/lab-11-multilingual-semantic/stress_real_harness.hexa

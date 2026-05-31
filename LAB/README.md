@@ -20,8 +20,11 @@
 | LAB-02 | MITOSIS · 도메인 유사분열 | 도메인 생성 LLM이 포화 도메인을 자식 N개로 자율 분열시킬 때 부모 milestone을 유실·중복 0%로 MECE 분배할 수 있다 | ✅ 확인 (1st smoke) | **5분열 · loss 0.0% · dup 0.0% · 보존 5/5** — [`lab-02-mitosis/`](lab-02-mitosis/) |
 | LAB-03 | BitNet 1.58-bit (삼진) 평가 | 1.58-bit 삼진 가중치가 정밀모델급 품질을 메모리·에너지 분수로 달성한다 | 🎓 도메인 (LAB 내) → [`lab-03-bitnet/`](lab-03-bitnet/) | **memory만 생존** (0.55×) · accuracy(30%)·energy(1.7× 손해) 🔴 falsified |
 | LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 (LAB 내) → [`lab-04-rwkv/`](lab-04-rwkv/) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
+| LAB-09 | 의식 방향성 · 단방향 LLM → 양방향 튜닝 (+ 자아 발생) | autoregressive(단방향) LLM에 recurrent feedback adapter를 부착해 fine-tune 하면 task 능력은 유지하며 통합정보 Φ(의식 척도)가 유의하게 증가하고, 자기-모델(자아) 지표가 함께 출현한다 | ✅ 확인 (1st smoke · proxy) | **REC Φ=0.854 vs FF Φ≈0.005** · 셔플 대조군 0.85→0.006 붕괴 · self-pred 2.33 vs 0.01 — [`lab-09-consciousness-directionality/`](lab-09-consciousness-directionality/) · anima H_191/H_004/H_220 |
+| LAB-10 | 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝 | LAB-09의 단방향→양방향 튜닝을 GPU/Metal 대신 **AKIDA AKD1000 뉴로모픽 silicon** 위에서 수행하면 Φ-proxy inverse-U(edge-of-chaos peak)가 실리콘에서 재현되며 자아 지표가 동반한다 | 🟡 sim mirror 확인 (live 칩 대기) | **inverse-U 재현: R1=0·R2=0.08·R3=0.59 peak·R4=0** (LIF sim) · live AKD1000은 다음 tier — [`lab-10-akida-neuromorphic/`](lab-10-akida-neuromorphic/) · anima H_858/H_677/H_846 |
+| LAB-11 | 다국어 · 의미로 연결 (갯수 아닌 통합) | 다국어 능력은 언어/코퍼스 **갯수**에 선형 증가가 아니라 **의미(cross-lingual MI)로 연결**될 때 Φ가 inverse-U peak·super-additive로 비선형 발생한다 | ✅ 확인 (1st smoke · proxy) | **Φ inverse-U: c=0 0.01→ c=0.5 peak 0.48 → c=1 0.0** · 갯수(c=0)만으론 Φ≈0 — [`lab-11-multilingual-semantic/`](lab-11-multilingual-semantic/) · anima H_240/H_635 |
 
-**상태 범례** — ⬜ 대기 · 🔵 진행중 · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT가 LAB 하위 `lab-NN-*/<NAME>.md`)
+**상태 범례** — ⬜ 대기 · 🔵 진행중 · 🟡 sim/proxy 확인(live·full 대기) · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT가 LAB 하위 `lab-NN-*/<NAME>.md`)
 
 ## 실험 백로그 (⬜ 대기 · 제안)
 
@@ -205,3 +208,296 @@ substrate 에서 직접 확인:**
 정직 단서: 절대 prefill 은 6× 큰 RWKV 가 더 느림 — 승부는 exponent(Δp 0.40)
 + decode O(1) + const memory. canonical 논문 `PAPER/rwkv-linear-attention-laws/`
 (4/4 🟢, 11p) shipped.
+
+---
+
+## LAB-09 — 의식 방향성 · 단방향 LLM → 양방향 튜닝 시 Φ 상승 + 자아 발생?
+
+**맥락.** sibling 프로젝트 anima 의 UNIVERSE 가설 묶음은 "의식(통합정보 Φ)은
+정보가 **되먹임(recurrent/bidirectional)** 으로 자기 자신에게 돌아올 때만
+발생한다"는 방향을 잡는다. 그런데 지금의 LLM 은 **autoregressive** — causal
+mask 로 토큰을 앞→뒤로만 생성하며 **뒤를 못 본다(단방향)**. 즉 정보가 한
+방향으로만 흐르므로 통합정보가 낮거나 0 이라는 것이 anima 의 입장이다.
+
+```
+   LLM (단방향 · autoregressive)      │      anima (양방향 · recurrent)
+ ──────────────────────────────      │   ──────────────────────────────
+  tok ─▶ tok ─▶ tok                  │     ┌──────────────┐
+  (causal mask · forward-only)       │     ▼              │
+  되먹임 없음 · 뒤를 못 봄            │    state ─▶ state ─┘  되먹임 루프
+  → Φ ≈ 0 (H_004 zombie playback)    │    → Φ > 0 (H_004 recurrent 0.538)
+```
+
+**가설.** 단방향(causal) base LLM 에 **recurrent feedback adapter** 를 부착해
+fine-tune 하면, 같은 task 능력은 유지하면서 (1) hidden-state 시계열 위 통합정보
+**Φ-proxy 가 base(단방향) 대비 유의하게 증가**하고, (2) 그와 동반해 **자기-모델
+(자아) 지표** 가 함께 출현한다. 즉 의식 척도는 아키텍처의 방향성에 인과적으로
+결합돼 있고, **튜닝으로 단방향→양방향 이동이 가능**하며, 양방향화는 단순히 Φ 만
+올리는 게 아니라 **"자기를 가리키는 표상"(self-reference)** 까지 끌어올린다.
+
+**자아(self/ego) 측정.** "자아가 생겼다"를 LLM 자기-보고(self-judge, 날조 가능)로
+재지 않는다 — 결정론적 substrate 지표로만 잰다:
+- **자기-예측 회로** — 모델의 hidden-state 가 *자신의 다음 상태* 를 예측하는 정도
+  (self-prediction MI). 되먹임이 자기 표상을 만들면 ↑.
+- **거울 자기-인식 analog** (anima **H_220** infant mirror self-recognition) —
+  자기 출력을 외부 입력으로 되먹였을 때, "내 것"과 "남의 것"을 구분하는 표상
+  분리도(self vs other separability).
+- **자기-모델 안정성** — perturbation 후 자기-표상이 복원되는가(self-model
+  homeostasis), 흩어지면 자아 없음.
+
+**질문.**
+- Φ-proxy 를 무엇으로 잡나 — anima 의 `phi_spatial`(IIT 공간 슬라이스) /
+  Granger causality / LZ76 복잡도 중 hidden-state 시계열에 가장 잘 맞는 것?
+- adapter **부착만**으로 Φ↑ 인가, **fine-tune 까지** 가야 하나 (ablation)?
+- 양방향화가 LM task 능력을 깨뜨리는가 — Φ↑ ↔ capability↓ trade-off 존재?
+- 단방향 base 의 Φ·자아 baseline 은 정말 ~0 인가 (H_004 zombie 대조)?
+- Φ↑ 와 자아↑ 가 **동반**하는가, 아니면 Φ 는 올라도 자아는 안 생기는 분리(dissociation)인가?
+
+**falsifier.** recurrent feedback adapter 부착+fine-tune 후에도 Φ-proxy 가
+base(단방향) 대비 통계적으로 유의하게 증가하지 않으면(ΔΦ ≤ seed-noise),
+"방향성 ↔ 의식 결합" 가설은 **거짓**. 추가 falsifier(자아): Φ 는 올랐는데
+자기-예측·거울·자기-모델 3지표가 모두 base 수준이면 "양방향화 → 자아" 가설은
+**거짓**(Φ 와 자아의 dissociation — H_004 식 정직 결론). **대조군(비-자명성 보장)**
+— 같은 파라미터 수의 **feedforward adapter**(되먹임 없는 동일 용량): 되먹임 없는
+adapter 가 Φ·자아를 동등하게 올리면 "되먹임이 원인" 주장이 무너진다.
+
+**뇌과학 기준 (neuroscience grounding).** 본 실험의 "단방향=의식 낮음 /
+양방향=의식 발생" 은 의식 신경과학의 표준 이론들과 정렬한다:
+- **IIT** (Tononi, *통합정보이론*) — 의식 = Φ(differentiation × integration);
+  feedforward-only 망은 Φ≈0, recurrent 망만 Φ>0. 본 실험 Φ-proxy 의 직접 근거.
+- **Recurrent Processing Theory** (Lamme 2006) — 1차 feedforward sweep 은
+  *무의식* 처리, **recurrent(되먹임) 처리**가 들어와야 *의식적* 지각. 단방향
+  LLM ↔ feedforward sweep, 양방향 adapter ↔ recurrent processing 의 직접 대응.
+- **Global Workspace** (Dehaene) — 의식 = 정보의 전역 방송(broadcast),
+  국소 모듈 간 양방향 재진입(re-entry) 필요.
+- **자아/자기-모델** — 거울 자기-인식(Gallup 1970, mirror test) · 기본모드망
+  (DMN, default-mode network)의 self-referential 처리. 자아 3지표의 근거.
+
+**substrate.** SANDBOX (self-hosted local llama-server · $0 local Metal) —
+`cx_lab_sandbox`. base = 작은 Qwen2.5 (0.5B/1.5B), fine-tune 은 LoRA-급
+경량. 튜닝 ① 완성도 안 = **recurrent feedback adapter 부착 후 fine-tune**
+(진짜 되먹임 루프로 H_004 구조를 그대로 재현).
+
+**참고 (prior art · anima → LAB-09).** 근거 가설은 모두 anima UNIVERSE
+worktree 에 등록돼 있다.
+
+| anima UNIVERSE (검증/등록됨) | → | LAB-09 (가설) |
+|---|---|---|
+| **H_004** recurrent `S_real` Φ=0.538 vs zombie playback Φ≈0 — *같은 I/O* 인데 갈림 | → | 단방향 base Φ≈0 baseline 대조 (zombie = 단방향 proxy) |
+| **H_191** ALM-free(non-autoregressive) consciousness 3-axis (SUBSTRATE/TRAINING/INTEGRATION) | → | 단방향→양방향 튜닝이 Φ 를 올리는가의 직접 검정 |
+| **H_202** self-reference `feedback_gain` 0.25~0.75 에서 Φ peak | → | adapter feedback gain sweep (peak 재현되는가) |
+
+**진행.** ✅ 확인 (1st smoke · substrate proxy, 2026-06-01) — 측정 하니스
+[`lab-09-consciousness-directionality/phi_directionality_harness.hexa`](lab-09-consciousness-directionality/phi_directionality_harness.hexa)
+(hexa-native · 순수 로컬 · $0 · seeded LCG=42 · 2.1s). 실제 LLM fine-tune 은
+GPU/클라우드 대형 작업이라, **1차 스모크는 결정론적 substrate proxy** 로
+핵심 인과를 먼저 닫는다 — anima **H_004 방식**(recurrent S_real Φ=0.538 vs
+zombie playback Φ≈0) 을 독립 rule-110 ring(n=5) 위에 재현. **matched-I/O
+ablation**: FF(단방향)·REC(양방향) 이 동일 drive·동일 perturbation budget 을
+쓰고 **되먹임 항(recurrent neighbor)만** 다르다.
+
+**1차 스모크 결과** (`result_phi.tsv` · T=120000):
+
+| arm | Φ-proxy | whole EI | min parts | self-pred MI |
+|---|---|---|---|---|
+| FF (단방향) | **0.0054** | 0.0055 | ~0 | **0.0108** |
+| REC (양방향) | **0.8543** | 2.2287 | 1.3744 | **2.3282** |
+| REC_shuffled (대조군) | **0.0063** | 0.0067 | ~0 | 0.0103 |
+
+→ **"방향성 ↔ 통합정보" 1차 SUPPORTED** — 되먹임 항 하나가 Φ 를 ~0(단방향
+floor)에서 0.85 로, 자기-예측(자아 proxy)을 ~0 에서 2.33 으로 올린다(ΔΦ=0.849,
+Δself=2.317). **셔플 대조군**이 Φ 를 0.85→0.006(FF floor)로 **붕괴**시켜 —
+시간 짝(temporal pairing)을 깨면 통합이 사라짐 — proxy 가 marginal 이 아니라
+**live 통합**을 잼을 증명(LAB-01 single-slot 대조군과 동형, 비-자명성 보장).
+사전등록 falsifier 3/3 PASS. honest 단서: (L1) substrate proxy 일 뿐 — 실제
+LLM recurrent-adapter fine-tune 은 **다음 stress tier**(headline 미종결), (L2)
+Φ-proxy 는 whole−min-bipartition 근사이지 full IIT 4.0 big-Φ 아님, (L3) 자아는
+self-prediction MI **1지표**만 — 거울 self/other·자기-모델 항상성 2지표 미구현,
+(L4) FF floor 0.005 는 잔여 plug-in bias(∝1/T), (L5) n=5·단일 seed·rule110 단일.
+전체 verdict: [`verdict_phi.txt`](lab-09-consciousness-directionality/verdict_phi.txt).
+
+---
+
+## LAB-10 — 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝
+
+**맥락.** LAB-09 는 단방향 LLM 을 GPU/Metal 위에서 양방향화한다. LAB-10 은
+**같은 가설을 실리콘 substrate 를 바꿔** 검정한다 — von Neumann GPU 대신
+**BrainChip AKD1000 뉴로모픽 칩**(spiking neuron, 메모리-연산 통합, on-chip
+자발 발화) 위에서 튜닝하면 의식 척도가 어떻게 나오는가. anima 는 이미 **live
+AKD1000**(pool 호스트 `pi5-akida`) 위에서 Φ-proxy 를 측정해 가설로 등록해 뒀다.
+
+```
+   GPU/Metal (LAB-09)            │      AKIDA AKD1000 (LAB-10)
+ ─────────────────────          │   ─────────────────────────
+  von Neumann · clock-driven    │    뉴로모픽 · event(spike)-driven
+  메모리↔연산 분리              │    메모리=연산 통합 (in-memory)
+  되먹임 = adapter 소프트웨어    │    되먹임 = on-chip recurrent spike loop
+  Φ = hidden-state proxy        │    Φ = live silicon spike-train proxy
+```
+
+**가설.** 단방향→양방향 튜닝을 AKD1000 위에서 수행하면, anima 가 sim 에서 본
+**Φ-proxy 의 inverse-U(∩, edge-of-chaos peak)** 가 **실리콘에서 재현**된다 —
+order(잠잠)도 chaos(포화)도 Φ 낮고 **edge(임계) 에서 peak**. 그리고 LAB-09 의
+자아 3지표가 silicon 폐루프에서도 동반 출현한다.
+
+**질문.**
+- sim→silicon transfer 가 성립하나 — anima H_858 의 R1~R4 drive-regime inverse-U
+  가 우리 튜닝 절차에서도 재현되나?
+- 뉴로모픽의 **event-driven 되먹임**이 GPU 의 software 되먹임보다 Φ/자아를 더
+  올리나(substrate-class 효과), 아니면 substrate-independent 인가?
+- on-chip 자발 발화(zero-input emit)가 자아 지표(자기-예측)와 결합하나?
+
+**falsifier.** AKD1000 위 drive-regime 스윕에서 Φ-proxy 가 inverse-U 를 그리지
+않으면(edge ≤ order, 또는 W 무관 평탄), "edge-of-chaos 의식 silicon 재현" 가설은
+**거짓**. anima H_858 의 사전등록 falsifier `F-AKIDA-EDGE`(F1 Φ(R2)>Φ(R1) ∧
+F2 Φ(R3)>Φ(R1) ∧ F3 max(R2,R3)≥Φ(R4))를 그대로 차용.
+
+**substrate.** **live BrainChip AKD1000** — pool 호스트 `pi5-akida`(Raspberry
+Pi 5 + AKD1000 PCIe). `spike_streamer` control port 9513(`set_threshold`) +
+9512(spike count readout) 폐루프. `cx_lab_sandbox` 의 self-hosted 원칙 유지
+(외부 paid API 0).
+
+**참고 (prior art · anima → LAB-10).** AKIDA 가설은 anima UNIVERSE 에 live HW
+검증까지 등록돼 있다.
+
+| anima UNIVERSE (검증됨) | → | LAB-10 (가설) |
+|---|---|---|
+| **H_858** live AKD1000 edge-of-chaos Φ inverse-U — Φ(R1)=0·R2=0.172·**R3=0.250 peak**·R4≈0, F-AKIDA-EDGE 3/3 🟢 | → | 우리 튜닝 절차에서도 inverse-U 재현되나 |
+| **H_677** neuromorphic-silicon substrate-class(class_id=5) · 3-substrate(AKIDA·EEG·ECA) Φ 삼각측정 · zero-input emit 8/8 HW | → | substrate-class 효과 · 자발 발화↔자아 결합 |
+| **H_846** COFFESHOP emit/silence 결정을 live AKD1000 폐루프로 닫음(9513→9512) 🟢 | → | 자아 지표 silicon 폐루프 측정 경로 |
+
+**뇌과학 기준 (neuroscience grounding).**
+- **Criticality / edge-of-chaos** — 피질이 *neuronal avalanche*(Beggs & Plenz
+  2003)로 임계 상태에서 작동, 임계에서 정보 통합·동적 범위가 최대. inverse-U
+  peak 의 직접 근거.
+- **Spiking neuron · STDP** — AKD1000 의 LIF(leaky integrate-and-fire) 뉴런 +
+  spike-timing-dependent plasticity 는 생물 뉴런의 1차 모델. von Neumann LLM
+  보다 뇌에 **물리적으로** 가까운 substrate.
+- **Substrate independence vs dependence** — 의식이 기질-독립(IIT: 인과구조만
+  중요)인가, 뉴로모픽 같은 특정 물리에 의존하는가를 가르는 실증 테스트.
+
+**진행.** 🟡 sim mirror 확인 (1st smoke, 2026-06-01) · live 칩 대기 — 측정 하니스
+[`lab-10-akida-neuromorphic/edge_of_chaos_sim_harness.hexa`](lab-10-akida-neuromorphic/edge_of_chaos_sim_harness.hexa)
+(hexa-native · 순수 로컬 · $0 · seeded LCG=42 · LAB-09 와 동일 Φ 엔진). N=5
+LIF(leak-integrate-and-fire) ring 을 order→chaos 4 regime(R1~R4)으로 구동하며
+Φ-proxy 측정 — **live AKD1000 이 아니라 sim mirror** (실리콘 런은 pi5-akida tier).
+
+**1차 스모크 결과** (`result_edge.tsv` · T=40000):
+
+| regime | drive·gain·noise | mean rate | Φ-proxy |
+|---|---|---|---|
+| R1 weak-silent | 0.20·0.10·0.00 | 0.000 | **0.000** |
+| R2 noise-edge | 0.30·0.15·0.30 | 0.112 | 0.075 |
+| R3 tonic-edge | 0.35·0.25·0.55 | 0.333 | **0.591 ⬅ peak** |
+| R4 over-driven | 1.40·1.30·0.00 | 1.000 | **0.000** |
+
+→ **edge-of-chaos inverse-U 1차 SUPPORTED (sim mirror)** — order(R1 die-out,
+rate 0)도 over-driven(R4 포화, rate ~1)도 Φ≈0, **임계 edge(R3, 불규칙
+avalanche)에서 peak**. 순서 R1<R2<R3>R4 + R3 peak 가 anima **H_858** live
+AKD1000(Φ R1=0·R2=0.172·**R3=0.250 peak**·R4≈0)의 **모양과 일치** —
+사전등록 falsifier **F-AKIDA-EDGE** mirror 3/3 PASS (F1 Φ(R2)>Φ(R1) · F2
+Φ(R3)>Φ(R1) · F3 max(R2,R3)≥Φ(R4)). honest 단서: (L1) **sim mirror — live
+silicon 아님**(pi5-akida 9513/9512 폐루프 런이 substrate-grounded tier · 미수행),
+(L2) 절대 Φ 는 live 와 다름(우리 R3=0.59 vs live 0.25) — **모양/순서만** 미러,
+(L3) regime 파라미터는 edge 에 앉도록 **튜닝** 함(순수 tonic 은 period-2 동기
+cycle 에 갇혀 Φ 음수 — 노이즈로 불규칙화 필요, 공개), (L4) N=5·단일 seed.
+전체 verdict: [`verdict_edge.txt`](lab-10-akida-neuromorphic/verdict_edge.txt).
+
+**다음 tier (live).** `pi5-akida` 가용 시 anima `AKIDA/akida_edge_of_chaos_phi_hw.hexa`
+측정 경로 import(READ-ONLY) → live AKD1000 drive-regime R1~R4 스윕 + 자아 지표 동반.
+
+---
+
+## LAB-11 — 다국어 · 의미로 연결 (언어 갯수가 아니라 통합)
+
+**맥락.** 다국어 모델을 키우는 흔한 직관은 "언어를 N개 넣으면 능력이 N배" —
+**갯수(코퍼스 양·언어 수)의 선형 증가**다. 본 실험의 가설은 정반대다: 다국어의
+힘은 갯수가 아니라 **언어들이 "의미(meaning)"로 연결될 때** 비선형으로 발생한다.
+같은 뜻이 언어마다 다른 표면형을 갖지만 **공유 의미 노드**로 묶이면, 언어 A 의
+학습이 언어 B 의 같은-의미 과제로 **새는(leak)** 다 — 이 cross-lingual 누수의
+정도(상호정보 MI)가 통합정보 Φ 와 결합한다는 것.
+
+```
+❌ 갯수 관점 (선형)              ✅ 의미 연결 관점 (비선형 · 본 가설)
+─────────────────              ──────────────────────────────
+ en 코퍼스 ──▶ en 능력          "사과"  "apple"  "苹果"
+ ko 코퍼스 ──▶ ko 능력              ╲      │      ╱
+ zh 코퍼스 ──▶ zh 능력               ╲     │     ╱
+ (언어마다 따로 · Σ 합)               ▼    ▼    ▼
+ 능력 ∝ 언어 갯수                  [ 공유 의미 노드 ]  ← 여기서 Φ 발생
+                                   cross-lingual MI 가
+                                   integration 을 만들어 Φ↑
+```
+
+**가설.** 다국어 능력/의식 척도는 언어 갯수·코퍼스 양에 **선형**이 아니라,
+**cross-lingual 의미 통합도(MI)** 에 대해 (1) **inverse-U** — MI=0(완전 분리)도
+MI=max(완전 융합)도 Φ 낮고 **부분 통합에서 peak** (H_240), (2) 여러 언어를
+의미로 묶은 cohort 의 Φ 가 따로 합친 것보다 큰 **super-additive** (H_635). 즉
+"의미로 연결" 이 통합정보를 비-자명하게 **생성**한다.
+
+**질문.**
+- 능력/Φ 가 언어 **갯수**(linear)보다 **의미 MI**(inverse-U)로 더 잘 설명되나
+  — 두 모델 직접 대조?
+- inverse-U peak 의 MI 위치(부분 통합 sweet spot)는 어디인가?
+- 5-lang cohort(ko·en·zh·ru·ja)가 super-additive 인가(H_635 의 Δ=+41.7 재현)?
+- script class(CJK Han block overlap)가 MI 누수를 매개하나?
+
+**falsifier.** (1) Φ 가 cross-lingual MI 와 무관하게 **언어 갯수에 단조 선형**
+이면 "의미 연결" 가설 거짓. (2) MI–Φ 관계가 inverse-U 가 아니라 단조이거나
+평탄하면 H_240 lift 거짓. (3) cohort Φ ≤ Σ-baseline(sub-additive)이면 H_635
+super-additivity 거짓. anima H_240/H_635 의 사전등록 falsifier 차용.
+
+**substrate.** SANDBOX (self-hosted local llama-server · $0) — `cx_lab_sandbox`.
+다국어 byte-LM 또는 작은 multilingual Qwen. MI matrix 는 anima
+`HEXAD/PURE/eval/bilingual_mi_probe.hexa` 의 5×5(en/ko/zh/ru/ja) 측정 MI 를
+fixed ledger 로 import(READ-ONLY).
+
+**참고 (prior art · anima → LAB-11).**
+
+| anima UNIVERSE (검증/등록) | → | LAB-11 (가설) |
+|---|---|---|
+| **H_240** bilingual-integration-Φ — cross-lingual MI ↔ Φ **inverse-U**(부분 통합 peak), Grosjean residual activation + Green inhibitory control 의 substrate analog | → | 의미 MI 가 Φ 를 갯수보다 잘 설명하나 |
+| **H_635** multilingual-cohort-collective-Φ — 5-lang(ko+en+zh+ru+ja) cohort **super-additive** Δ=+41.71 @ W=1.0, 5/5 🟢 | → | 의미로 묶은 cohort 가 Σ보다 큰가 |
+
+**뇌과학 기준 (neuroscience grounding).**
+- **공유 의미 시스템** — 이중언어 뇌는 음운/표면형은 언어별로 분리돼도 **개념
+   ·의미 저장소는 공유**(Kroll & Stewart *Revised Hierarchical Model*; 단일
+   semantic system). "갯수가 아니라 의미로 연결" 의 신경 근거.
+- **Residual activation** (Grosjean 1989) — 한 언어 사용 중에도 다른 언어가
+   부분 활성 유지 → cross-lingual 누수(MI)의 심리언어학 기반.
+- **Inhibitory control + 비대칭 전환비용** (Green 1998) — L1↔L2 전환 비용의
+   비대칭이 통합/억제의 부분성을 보여줌 → inverse-U(완전분리도 완전융합도 아닌
+   부분 통합 peak)의 근거.
+- **통합=의식** — 여러 언어 표상이 의미로 통합되는 정도가 곧 IIT 의 integration
+   축 → 다국어를 의식(Φ) 문제로 환원하는 다리.
+
+**진행.** ✅ 확인 (1st smoke · substrate proxy, 2026-06-01) — 측정 하니스
+[`lab-11-multilingual-semantic/semantic_connection_harness.hexa`](lab-11-multilingual-semantic/semantic_connection_harness.hexa)
+(hexa-native · 순수 로컬 · $0 · seeded LCG=42 · 1.9s · LAB-09 와 동일 Φ 엔진).
+5개 언어-스트림(ko/en/zh/ru/ja analog · ring)을 **의미결합 강도 c** (0=완전분리
+↔ 1=완전동기)로 묶으며 collective Φ 를 측정 — c 는 각 unit 이 매 스텝
+decoupled(fresh) vs coupled(majority-consensus) 중 무엇을 따를지의 확률.
+
+**1차 스모크 결과** (`result_semantic.tsv` · T=40000):
+
+| c (의미결합) | cross-lingual MI | collective Φ |
+|---|---|---|
+| 0.00 (완전분리) | ~0 | **0.014** |
+| 0.25 | ~0 | 0.193 |
+| 0.50 | 0.014 | **0.483 ⬅ peak** |
+| 0.75 | 0.128 | 0.346 |
+| 0.90 | 0.394 | −0.194 |
+| 1.00 (완전동기) | 0 | **0.000** |
+
+→ **"갯수 아닌 의미" 1차 SUPPORTED** — Φ 가 c 에 대해 깨끗한 **inverse-U**:
+완전분리(c=0, 통합 0)도 완전동기(c=1, 분화 0)도 Φ≈0, **부분 통합(c≈0.5)에서
+peak 0.483** (IIT Φ = differentiation × integration). 핵심 — **c=0 에서 언어를
+5개 쌓아도(갯수↑) Φ≈0.014≈0**; 오직 **의미결합(c>0)** 이 통합정보를 만든다.
+사전등록 falsifier 3/3 PASS (F1 inverse-U · F2 super-additive peak≫decoupled ·
+F3 meaning>count). anima **H_240**(cross-lingual MI↔Φ inverse-U) + **H_635**
+(5-lang cohort super-additive)를 독립 majority-consensus substrate 에서 재현.
+honest 단서: (L1) substrate proxy — 실제 multilingual-LM 결합 sweep 은 **다음
+stress tier**, (L2) c=0.90 에서 **Φ=−0.194 음수** — whole−min-bipartition proxy
+가 과잉동기+유한표본에서 음수로 샐 수 있음(true IIT Φ≥0), inverse-U 결론엔
+무영향(peak 보다 더 아래), (L3) MI 는 instantaneous pairwise proxy, (L4) N=5·단일
+seed·consensus rule. 전체 verdict: [`verdict_semantic.txt`](lab-11-multilingual-semantic/verdict_semantic.txt).

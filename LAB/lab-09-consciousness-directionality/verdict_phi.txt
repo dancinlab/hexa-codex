@@ -1,0 +1,48 @@
+LAB-09 — consciousness directionality proxy · 1st smoke verdict
+================================================================
+date     : 2026-06-01
+harness  : phi_directionality_harness.hexa  (hexa-native · pure local · $0 · seeded LCG=42)
+runtime  : 2.11s user (M-series, local)
+n_units  : 5 (ring) · steps T=120000 · states 2^5=32
+
+RESULT (verbatim from result_phi.tsv)
+  arm                     phi_proxy   whole_EI   min_parts   self_pred_mi   (bits)
+  FF_unidirectional       0.005391    0.005467   0.000075    0.010796
+  REC_bidirectional       0.854292    2.228720   1.374430    2.328180
+  REC_shuffled_control    0.006289    0.006664   0.000375    0.010270
+
+DELTAS
+  delta_phi  (REC - FF)        = 0.848901 bits
+  delta_self (REC - FF)        = 2.317380 bits
+  shuffled_control_band        = 0.000898 bits
+
+PRE-REGISTERED FALSIFIERS (all must hold for SUPPORTED)
+  [PASS] phi_REC > FF beyond control band   (0.8489 >> 0.0009)
+  [PASS] self_pred_REC > FF                 (2.3174 >> 0.01)
+  [PASS] shuffle collapses phi              (REC 0.8543 -> shuffled 0.0063, ~= FF floor)
+
+VERDICT: SUPPORTED (1st smoke) — the recurrent (bidirectional) coupling, and
+nothing else (matched drive stream, same perturbation budget), raises both the
+integrated-information Phi-proxy and the conditional self-prediction proxy from
+~0 (unidirectional floor) to a large positive value. The shuffled control
+collapsing Phi back to the FF floor proves the proxy measures LIVE temporal
+integration, not marginal structure (non-trivial test, cf. LAB-01 single-slot).
+
+ALIGNMENT: reproduces anima H_004's structure (recurrent S_real Phi=0.538 vs
+zombie playback Phi~0) on an independent rule-110 ring substrate, and matches
+the LAB-09 directionality hypothesis (unidirectional Phi~0, bidirectional Phi>0).
+
+HONEST LIMITS (load-bearing residual)
+  L1  SUBSTRATE PROXY, not a tuned LLM. This smoke demonstrates the directionality
+      -> integration coupling on a rule-110 ring; the actual LLM recurrent-adapter
+      fine-tune (the LAB-09 headline) is the NEXT stress tier, not closed here.
+  L2  Phi-proxy = whole_EI - min_bipartition(parts), a tractable integration proxy,
+      NOT full IIT 4.0 big-Phi (no purview/MICE search). Direction of effect is
+      robust; absolute bits are proxy-specific.
+  L3  Self/ego measured by ONE indicator (conditional self-prediction MI). The two
+      other promised indicators (mirror self/other separability, self-model
+      homeostasis under perturbation) are NOT yet implemented.
+  L4  FF floor (Phi=0.0054, self=0.0108) is residual finite-sample plug-in MI bias,
+      shrinks ~1/T; it is NOT zero, only negligible vs the REC signal at T=120000.
+  L5  n=5, single seed, single rule (110). Multi-seed / multi-rule robustness and a
+      Miller-Madow bias correction are deferred to the stress tier.

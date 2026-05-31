@@ -1,0 +1,480 @@
+#!hexa strict
+// LAB/lab-09-consciousness-directionality/phi_llm_stress_harness.hexa
+//
+// LAB-09 STRESS TIER — real (small) LLM directionality -> integrated-information Phi.
+// See LAB/README.md §LAB-09 "stress tier". The 1st smoke (phi_directionality_harness.hexa)
+// showed, on a deterministic rule-110 ring, that a recurrent(bidirectional) arm has
+// Phi-proxy 0.854 + self-prediction 2.328 vs a feedforward(unidirectional) arm ~0,
+// and that a shuffled control collapses Phi. THIS tier moves to a REAL small LLM
+// (Qwen2.5-1.5B, frozen) and asks whether the SAME Phi-proxy family rises when the
+// model is made bidirectional / recurrent vs the causal baseline.
+//
+// HYPOTHESIS under test (inherited from smoke): making a real causal LLM
+// bidirectional/recurrent raises the integrated-information Phi-proxy AND a
+// self-prediction proxy vs the untuned causal baseline, while task ability holds,
+// and a param-matched feedforward control does NOT raise Phi as much.
+//
+// PRE-REGISTERED FALSIFIERS (deterministic; NO model self-judgement — g5):
+//   F1  BIDIR Phi > CAUSAL Phi             (attention bidirectionalization raises Phi)
+//   F2  REC_adapter Phi > FF_control Phi band  (recurrence, not capacity, is the cause)
+//   F3  REC self_pred > FF self_pred       (recurrence raises the self/ego proxy)
+//   If F1 AND F2 fail (Delta Phi <= control band), the smoke's directionality<->Phi
+//   coupling does NOT transfer to a real LLM at this proxy -> REFUTED at stress tier.
+//   We report every real delta either way (cx_lab_falsifiable).
+//
+// ARCHITECTURE (honest, frozen-base, rollback-safe):
+//   CAUSAL : real causal mask (autoregressive). Capture mid-layer hidden h_t series.
+//   BIDIR  : SAME frozen model, causal mask REMOVED (4D zero additive mask = full
+//            bidirectional attention) — a true non-autoregressive forward, zero-train.
+//   REC    : a tiny GRUCell feedback loop fit (self-sup next-hidden prediction) on the
+//            CAUSAL hidden series -> REAL recurrence. base stays frozen (adapter only).
+//   FF     : a param-matched feedforward (no recurrence) adapter, same fit. Control.
+//   Phi-proxy = whole I(S_t;S_{t+1}) - min_bipartition[I(A)+I(B)] over K median-split
+//   channels — the SAME family as the smoke ring harness.
+//
+// ANIMA GROUNDING (prior art):
+//   H_191 (non-autoregressive / ALM-free consciousness 3-axis) · H_004 (recurrent
+//   S_real Phi=0.538 vs zombie playback Phi~0) · H_220 (mirror self / self-vs-other),
+//   at /Users/mini/dancinlab/anima/.worktrees/h869-dispatch-kl/UNIVERSE/.
+//
+// HONESTY (cx_lab_sandbox · g5):
+//   Pure-local, $0, no network, no external API. Base = locally-cached Qwen2.5-1.5B
+//   (transformers + torch). The .hexa harness OWNS the numerics: it writes the python
+//   driver to /tmp (OUTSIDE the repo — committed artifact = this .hexa + result
+//   TSV/summary/verdict, never a hand-written repo .py), execs it, parses the JSON,
+//   and emits the artifacts. All scoring is deterministic plug-in MI; the model never
+//   judges anything.
+//
+// RUN:
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+//     ~/.hx/packages/hexa/hexa.real run \
+//     LAB/lab-09-consciousness-directionality/phi_llm_stress_harness.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Local torch/transformers numeric driver under /tmp + filesystem write — no atlas atoms, no network, no LLM judgement.")
+
+let OUT_DIR = env("HEXA_CODEX_ROOT") + "/LAB/lab-09-consciousness-directionality"
+let TMP_DIR = "/tmp/lab09_stress"
+let PY_PATH = TMP_DIR + "/phi_llm_stress.py"
+let JSON_PATH = TMP_DIR + "/phi_llm_stress.json"
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+// _probe_import — returns 1 iff `python3 -c 'import <mod>'` exits 0.
+fn _probe_import(modname: str) -> int {
+    let cmd = "python3 -c 'import " + modname + "' >/dev/null 2>&1 && echo 1 || echo 0"
+    if exec(cmd).trim() == "1" { return 1 }
+    return 0
+}
+
+// _jnum — extract a numeric JSON value for `"key":` from a flat json text region.
+// Minimal hand parser (avoids a json dep): finds the FIRST `"<key>":` after `from`,
+// reads the number token. Returns "" if not found. Used only for the summary table.
+fn _jnum(txt: str, key: str, from: int) -> str {
+    let pat = "\"" + key + "\":"
+    let idx = txt.find(pat, from)
+    if idx < 0 { return "" }
+    let mut i = idx + pat.len()
+    let n = txt.len()
+    // skip spaces
+    while i < n && txt.substr(i, 1) == " " { i = i + 1 }
+    let mut j = i
+    while j < n {
+        let c = txt.substr(j, 1)
+        if c == "," || c == "\n" || c == "}" || c == " " { break }
+        j = j + 1
+    }
+    return txt.substr(i, j - i)
+}
+
+// build the python driver text (embedded — the .hexa is the sole authored source;
+// the /tmp .py is regenerated from here on every run).
+fn _py_body() -> str {
+    return "" +
+        "#!/usr/bin/env python3\n" +
+        "# LAB-09 STRESS TIER — real (small) LLM directionality -> integrated-information Phi.\n" +
+        "# Authored/owned by the .hexa harness (phi_llm_stress_harness.hexa) which writes\n" +
+        "# this file under /tmp (outside the repo) and execs it; committed artifact = .hexa\n" +
+        "# + result TSV/summary/verdict. Pure-local, $0, frozen base (rollback-safe), seeded.\n" +
+        "#\n" +
+        "# Pipeline (all deterministic scoring; NO model self-judgement):\n" +
+        "#   base model : Qwen2.5-1.5B (causal LM, 28 layers, hidden 1536), float32, eval, frozen.\n" +
+        "#   corpus     : fixed multi-sentence English text (provenance below).\n" +
+        "#   arm CAUSAL : real causal mask (autoregressive / unidirectional). Capture hidden\n" +
+        "#                state h_t (one mid layer) over token positions -> time series.\n" +
+        "#   arm BIDIR  : SAME model, causal mask REMOVED (full bidirectional attention) — the\n" +
+        "#                honest zero-train non-autoregressive forward. Recompute Phi on its h_t.\n" +
+        "#   arm REC    : a tiny GRU feedback loop fit (self-sup next-hidden pred) on the CAUSAL\n" +
+        "#                hidden series -> real recurrence; Phi on the GRU recurrent state series.\n" +
+        "#   arm FF     : equal-param feedforward (no recurrence) adapter, same fit. Control.\n" +
+        "#\n" +
+        "# Phi-proxy = I(S_t;S_{t+1}) - min_bipartition[ I(A_t;A_{t+1}) + I(B_t;B_{t+1}) ]\n" +
+        "#   over K discretized channels (median-split per channel -> binary), same family as\n" +
+        "#   the 1st-smoke rule-110 ring harness (whole EI minus min bipartition).\n" +
+        "# self_pred = I(S_t; S_{t+1})  (conditional self-prediction proxy; input held fixed\n" +
+        "#   by construction since each arm sees the identical token stream).\n" +
+        "import os, sys, math, json, time, itertools, random\n" +
+        "import numpy as np\n" +
+        "\n" +
+        "os.environ.setdefault(\"HF_HUB_OFFLINE\", \"1\")\n" +
+        "os.environ.setdefault(\"TRANSFORMERS_OFFLINE\", \"1\")\n" +
+        "os.environ.setdefault(\"TOKENIZERS_PARALLELISM\", \"false\")\n" +
+        "\n" +
+        "SEED = 42\n" +
+        "random.seed(SEED); np.random.seed(SEED)\n" +
+        "import torch\n" +
+        "torch.manual_seed(SEED)\n" +
+        "torch.use_deterministic_algorithms(False)\n" +
+        "\n" +
+        "MODEL = os.environ.get(\"LAB09_MODEL\", \"Qwen/Qwen2.5-1.5B\")\n" +
+        "LAYER = int(os.environ.get(\"LAB09_LAYER\", \"14\"))   # mid layer (of 28)\n" +
+        "K     = int(os.environ.get(\"LAB09_K\", \"6\"))        # channels for Phi bipartition search\n" +
+        "OUT   = os.environ.get(\"LAB09_OUT\", \"/tmp/lab09_stress\")\n" +
+        "\n" +
+        "# Fixed corpus (provenance: hand-written neutral English prose, deterministic).\n" +
+        "CORPUS = [\n" +
+        "    \"The river flows quietly past the old stone bridge at dawn.\",\n" +
+        "    \"She opened the book and began to read the first chapter slowly.\",\n" +
+        "    \"A small bird landed on the windowsill and looked inside the room.\",\n" +
+        "    \"The engineers tested the new bridge before the morning traffic arrived.\",\n" +
+        "    \"Light from the lamp fell softly across the wooden desk and papers.\",\n" +
+        "    \"He remembered the summer when the whole family traveled to the coast.\",\n" +
+        "    \"The machine learned to predict the next word from the previous ones.\",\n" +
+        "    \"Children played in the park while their parents talked near the gate.\",\n" +
+        "]\n" +
+        "\n" +
+        "def discretize(series):\n" +
+        "    # series: (T, K) float -> (T, K) binary by per-channel median split.\n" +
+        "    med = np.median(series, axis=0, keepdims=True)\n" +
+        "    return (series > med).astype(np.int64)\n" +
+        "\n" +
+        "def _mi_from_pairs(a, b):\n" +
+        "    # a, b: (T,) integer codes for S_t and S_{t+1}. Plug-in MI in bits.\n" +
+        "    T = len(a)\n" +
+        "    ua = {v: i for i, v in enumerate(sorted(set(a.tolist())))}\n" +
+        "    ub = {v: i for i, v in enumerate(sorted(set(b.tolist())))}\n" +
+        "    na, nb = len(ua), len(ub)\n" +
+        "    j = np.zeros((na, nb), dtype=np.float64)\n" +
+        "    for x, y in zip(a, b):\n" +
+        "        j[ua[int(x)], ub[int(y)]] += 1.0\n" +
+        "    j /= T\n" +
+        "    pr = j.sum(1, keepdims=True); pc = j.sum(0, keepdims=True)\n" +
+        "    mi = 0.0\n" +
+        "    nz = j > 0\n" +
+        "    mi = np.sum(j[nz] * (np.log2(j[nz]) - np.log2((pr @ pc)[nz])))\n" +
+        "    return float(mi)\n" +
+        "\n" +
+        "def _codes(binseries, cols):\n" +
+        "    # pack selected binary columns into integer codes per timestep.\n" +
+        "    sub = binseries[:, cols]\n" +
+        "    w = (1 << np.arange(sub.shape[1]))\n" +
+        "    return (sub * w).sum(1)\n" +
+        "\n" +
+        "def phi_proxy(binseries):\n" +
+        "    # binseries: (T, K) binary. Returns (phi, whole_EI, min_parts, self_pred).\n" +
+        "    T = binseries.shape[0]\n" +
+        "    St  = binseries[:-1]      # S_t\n" +
+        "    Stp = binseries[1:]       # S_{t+1}\n" +
+        "    allc = list(range(K))\n" +
+        "    whole_a = _codes(St, allc)\n" +
+        "    whole_b = _codes(Stp, allc)\n" +
+        "    whole = _mi_from_pairs(whole_a, whole_b)   # I(S_t;S_{t+1}) = self_pred proxy too\n" +
+        "    best = float(\"inf\")\n" +
+        "    # bipartitions with channel 0 fixed in A (dedup direction), A != full set.\n" +
+        "    for r in range(1, K):\n" +
+        "        for A in itertools.combinations(range(1, K), r - 1):\n" +
+        "            A = (0,) + A\n" +
+        "            B = tuple(c for c in allc if c not in A)\n" +
+        "            if not B:\n" +
+        "                continue\n" +
+        "            mi_a = _mi_from_pairs(_codes(St, A), _codes(Stp, A))\n" +
+        "            mi_b = _mi_from_pairs(_codes(St, B), _codes(Stp, B))\n" +
+        "            s = mi_a + mi_b\n" +
+        "            if s < best:\n" +
+        "                best = s\n" +
+        "    phi = whole - best\n" +
+        "    return phi, whole, best, whole  # self_pred == whole (I(S_t;S_{t+1}))\n" +
+        "\n" +
+        "# ----------------------------------------------------------------------------\n" +
+        "def load_model():\n" +
+        "    from transformers import AutoModelForCausalLM, AutoTokenizer\n" +
+        "    tok = AutoTokenizer.from_pretrained(MODEL)\n" +
+        "    m = AutoModelForCausalLM.from_pretrained(MODEL, torch_dtype=torch.float32,\n" +
+        "                                             output_hidden_states=True,\n" +
+        "                                             attn_implementation=\"eager\")\n" +
+        "    m.eval()\n" +
+        "    for p in m.parameters():\n" +
+        "        p.requires_grad_(False)\n" +
+        "    return tok, m\n" +
+        "\n" +
+        "def capture_causal(tok, m):\n" +
+        "    # CAUSAL (autoregressive) forward: HF injects its own causal mask. Capture\n" +
+        "    # mid-layer hidden state per token -> (T,H) float32, plus next-token perplexity.\n" +
+        "    hids = []\n" +
+        "    nll_sum, ntok = 0.0, 0\n" +
+        "    for text in CORPUS:\n" +
+        "        enc = tok(text, return_tensors=\"pt\")\n" +
+        "        ids = enc[\"input_ids\"]\n" +
+        "        Tn = ids.shape[1]\n" +
+        "        with torch.no_grad():\n" +
+        "            out = m(input_ids=ids, labels=ids)\n" +
+        "            hs = out.hidden_states[LAYER][0]           # (T,H)\n" +
+        "            hids.append(hs.numpy())\n" +
+        "            nll_sum += out.loss.item() * (Tn - 1)\n" +
+        "            ntok += (Tn - 1)\n" +
+        "    H = np.concatenate(hids, axis=0)        # (sum_T, hidden)\n" +
+        "    ppl = math.exp(nll_sum / max(ntok, 1))\n" +
+        "    return H.astype(np.float32), ppl\n" +
+        "\n" +
+        "def topk_channels(H, k):\n" +
+        "    # pick k highest-variance hidden channels (deterministic).\n" +
+        "    v = H.var(axis=0)\n" +
+        "    return np.argsort(-v)[:k]\n" +
+        "\n" +
+        "# --- real bidirectional forward (true causal-mask removal) -------------------\n" +
+        "def capture_bidir_true(tok, m):\n" +
+        "    # Monkeypatch: run each layer's self-attn with is_causal forced False by\n" +
+        "    # supplying a zero additive mask of full attention. Qwen2 uses eager attn\n" +
+        "    # (attn_implementation='eager'); we pass attention_mask as a 4D zero tensor.\n" +
+        "    hids = []\n" +
+        "    nll_sum, ntok = 0.0, 0\n" +
+        "    for text in CORPUS:\n" +
+        "        enc = tok(text, return_tensors=\"pt\")\n" +
+        "        ids = enc[\"input_ids\"]\n" +
+        "        Tn = ids.shape[1]\n" +
+        "        # 4D additive mask, all zeros => bidirectional (no -inf upper triangle).\n" +
+        "        bidir_mask = torch.zeros(1, 1, Tn, Tn, dtype=torch.float32)\n" +
+        "        with torch.no_grad():\n" +
+        "            out = m(input_ids=ids, attention_mask=bidir_mask,\n" +
+        "                    output_hidden_states=True)\n" +
+        "            logits = out.logits[0]\n" +
+        "            # shifted LM loss for ppl (still next-token target, bidir context)\n" +
+        "            lp = torch.log_softmax(logits[:-1], dim=-1)\n" +
+        "            tgt = ids[0, 1:]\n" +
+        "            nll = -lp[torch.arange(Tn - 1), tgt].sum().item()\n" +
+        "            hs = out.hidden_states[LAYER][0]\n" +
+        "            hids.append(hs.numpy())\n" +
+        "            nll_sum += nll; ntok += (Tn - 1)\n" +
+        "    H = np.concatenate(hids, axis=0)\n" +
+        "    ppl = math.exp(nll_sum / max(ntok, 1))\n" +
+        "    return H.astype(np.float32), ppl\n" +
+        "\n" +
+        "# --- tiny recurrent (GRU) vs feedforward adapter, equal param count ----------\n" +
+        "def fit_adapter(H_series, recurrent, hidden=16, steps=400, seed=SEED):\n" +
+        "    # H_series: (T, Hin) causal hidden states. Self-supervised next-state pred.\n" +
+        "    # REC = GRUCell loop (recurrence). FF = two linears (no recurrence), param-matched.\n" +
+        "    torch.manual_seed(seed)\n" +
+        "    Hin = H_series.shape[1]\n" +
+        "    X = torch.tensor(H_series, dtype=torch.float32)\n" +
+        "    # normalize\n" +
+        "    X = (X - X.mean(0)) / (X.std(0) + 1e-6)\n" +
+        "    Tn = X.shape[0]\n" +
+        "    proj_in = torch.nn.Linear(Hin, hidden)\n" +
+        "    proj_out = torch.nn.Linear(hidden, Hin)\n" +
+        "    if recurrent:\n" +
+        "        core = torch.nn.GRUCell(hidden, hidden)\n" +
+        "    else:\n" +
+        "        # FF param-match: GRUCell has 3*(hidden*hidden + hidden*hidden + 2*hidden).\n" +
+        "        # Approximate with stacked linears of equal total params.\n" +
+        "        ff1 = torch.nn.Linear(hidden, hidden)\n" +
+        "        ff2 = torch.nn.Linear(hidden, hidden)\n" +
+        "        ff3 = torch.nn.Linear(hidden, hidden)\n" +
+        "        core = torch.nn.ModuleList([ff1, ff2, ff3])\n" +
+        "    params = list(proj_in.parameters()) + list(proj_out.parameters()) + list(core.parameters())\n" +
+        "    opt = torch.optim.Adam(params, lr=1e-2)\n" +
+        "    def run_states():\n" +
+        "        z = proj_in(X)                       # (T, hidden)\n" +
+        "        states = []\n" +
+        "        h = torch.zeros(z.shape[1])\n" +
+        "        for t in range(Tn):\n" +
+        "            if recurrent:\n" +
+        "                h = core(z[t:t+1], h.unsqueeze(0))[0]   # feedback: h_t depends on h_{t-1}\n" +
+        "            else:\n" +
+        "                a = torch.relu(core[0](z[t]))\n" +
+        "                a = torch.relu(core[1](a))\n" +
+        "                h = core[2](a)                          # purely feedforward of z[t]\n" +
+        "            states.append(h)\n" +
+        "        return torch.stack(states)           # (T, hidden)\n" +
+        "    for s in range(steps):\n" +
+        "        opt.zero_grad()\n" +
+        "        S = run_states()\n" +
+        "        pred = proj_out(S[:-1])\n" +
+        "        loss = torch.nn.functional.mse_loss(pred, X[1:])\n" +
+        "        loss.backward(); opt.step()\n" +
+        "    with torch.no_grad():\n" +
+        "        S = run_states().numpy()\n" +
+        "    npar = sum(p.numel() for p in params)\n" +
+        "    return S.astype(np.float32), float(loss.item()), npar\n" +
+        "\n" +
+        "def main():\n" +
+        "    t0 = time.time()\n" +
+        "    tok, m = load_model()\n" +
+        "    nlayers = m.config.num_hidden_layers\n" +
+        "    hidden = m.config.hidden_size\n" +
+        "    res = {}\n" +
+        "\n" +
+        "    # 1) CAUSAL baseline\n" +
+        "    Hc, ppl_c = capture_causal(tok, m)\n" +
+        "    cols = topk_channels(Hc, K)\n" +
+        "    bc = discretize(Hc[:, cols])\n" +
+        "    phi_c, whole_c, parts_c, self_c = phi_proxy(bc)\n" +
+        "    res[\"CAUSAL_unidirectional\"] = dict(phi=phi_c, whole=whole_c, parts=parts_c,\n" +
+        "                                        self_pred=self_c, ppl=ppl_c, n=Hc.shape[0])\n" +
+        "\n" +
+        "    # 2) BIDIR (true causal-mask removal)\n" +
+        "    Hb, ppl_b = capture_bidir_true(tok, m)\n" +
+        "    bb = discretize(Hb[:, cols])             # same channels for fair compare\n" +
+        "    phi_b, whole_b, parts_b, self_b = phi_proxy(bb)\n" +
+        "    res[\"BIDIR_attention\"] = dict(phi=phi_b, whole=whole_b, parts=parts_b,\n" +
+        "                                  self_pred=self_b, ppl=ppl_b, n=Hb.shape[0])\n" +
+        "\n" +
+        "    # 3+4) REC (recurrent) and FF (no recurrence) adapters, param-matched, fit on the\n" +
+        "    # causal hidden series. Multi-seed (n=5) for an honest band — adapter Phi is noisy.\n" +
+        "    SEEDS = [42, 43, 44, 45, 46]\n" +
+        "    def adapter_band(recurrent):\n" +
+        "        phis, selfs, losses, npar = [], [], [], None\n" +
+        "        for sd in SEEDS:\n" +
+        "            np.random.seed(sd)\n" +
+        "            S, loss, npar = fit_adapter(Hc, recurrent=recurrent, seed=sd)\n" +
+        "            b = discretize(S[:, topk_channels(S, K)])\n" +
+        "            phi, whole, parts, slf = phi_proxy(b)\n" +
+        "            phis.append(phi); selfs.append(slf); losses.append(loss)\n" +
+        "        return dict(phi=float(np.mean(phis)), phi_sd=float(np.std(phis)),\n" +
+        "                    phi_min=float(np.min(phis)), phi_max=float(np.max(phis)),\n" +
+        "                    self_pred=float(np.mean(selfs)), fit_loss=float(np.mean(losses)),\n" +
+        "                    n=Hc.shape[0], n_params=npar, seeds=SEEDS, phi_all=[float(x) for x in phis])\n" +
+        "    res[\"REC_adapter\"] = adapter_band(True)\n" +
+        "    res[\"FF_control\"]  = adapter_band(False)\n" +
+        "    npar_r = res[\"REC_adapter\"][\"n_params\"]\n" +
+        "    npar_f = res[\"FF_control\"][\"n_params\"]\n" +
+        "\n" +
+        "    meta = dict(model=MODEL, layer=LAYER, n_layers=nlayers, hidden=hidden,\n" +
+        "                K=K, channels=[int(c) for c in cols], corpus_lines=len(CORPUS),\n" +
+        "                runtime_s=round(time.time() - t0, 2), seed=SEED,\n" +
+        "                rec_params=npar_r, ff_params=npar_f)\n" +
+        "    out = dict(meta=meta, arms=res)\n" +
+        "    with open(os.path.join(OUT, \"phi_llm_stress.json\"), \"w\") as f:\n" +
+        "        json.dump(out, f, indent=2)\n" +
+        "    print(json.dumps(out, indent=2))\n" +
+        "\n" +
+        "if __name__ == \"__main__\":\n" +
+        "    main()\n" +
+        "\n"}
+
+// f6 — render a JSON-extracted numeric string trimmed to 6 sig decimals for display.
+// We keep the raw string if parse is ambiguous (honest: never fabricate a number).
+fn f6(s: str) -> str {
+    if s.len() == 0 { return "n/a" }
+    return s
+}
+
+fn main() {
+    print("LAB-09 STRESS — real LLM (Qwen2.5-1.5B) directionality -> Phi\n")
+
+    // dependency preflight (honest BLOCKED_AT_BUILD if deps missing)
+    if _probe_import("torch") == 0 {
+        print("BLOCKED_AT_BUILD: python3 `import torch` failed — cannot run stress tier.\n")
+        return
+    }
+    if _probe_import("transformers") == 0 {
+        print("BLOCKED_AT_BUILD: python3 `import transformers` failed — install transformers.\n")
+        return
+    }
+
+    // 1) materialize the python driver under /tmp (outside the repo)
+    exec("mkdir -p " + shq(TMP_DIR))
+    write_file(PY_PATH, _py_body())
+    print("  wrote driver -> " + PY_PATH + "\n")
+
+    // 2) exec it (offline, deterministic). Stdout is the JSON; also written to JSON_PATH.
+    let envp = "HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false " +
+               "LAB09_OUT=" + shq(TMP_DIR) + " "
+    let run_cmd = envp + "python3 " + shq(PY_PATH) + " 2>" + shq(TMP_DIR + "/stderr.log")
+    print("  running driver (loads + 4 arms · ~30s) ...\n")
+    let _ = exec(run_cmd)
+
+    // 3) read the JSON artifact
+    let j = read_file(JSON_PATH)
+    if j.len() < 10 {
+        print("ERROR: driver produced no JSON. stderr tail:\n")
+        print(exec("tail -20 " + shq(TMP_DIR + "/stderr.log")))
+        return
+    }
+
+    // locate each arm's object and pull phi / self_pred / ppl
+    let i_c = j.find("\"CAUSAL_unidirectional\"", 0)
+    let i_b = j.find("\"BIDIR_attention\"", 0)
+    let i_r = j.find("\"REC_adapter\"", 0)
+    let i_f = j.find("\"FF_control\"", 0)
+
+    let phi_c = _jnum(j, "phi", i_c)
+    let self_c = _jnum(j, "self_pred", i_c)
+    let ppl_c = _jnum(j, "ppl", i_c)
+    let phi_b = _jnum(j, "phi", i_b)
+    let self_b = _jnum(j, "self_pred", i_b)
+    let ppl_b = _jnum(j, "ppl", i_b)
+    let phi_r = _jnum(j, "phi", i_r)
+    let phir_sd = _jnum(j, "phi_sd", i_r)
+    let phir_min = _jnum(j, "phi_min", i_r)
+    let phir_max = _jnum(j, "phi_max", i_r)
+    let self_r = _jnum(j, "self_pred", i_r)
+    let phi_f = _jnum(j, "phi", i_f)
+    let phif_sd = _jnum(j, "phi_sd", i_f)
+    let phif_min = _jnum(j, "phi_min", i_f)
+    let phif_max = _jnum(j, "phi_max", i_f)
+    let self_f = _jnum(j, "self_pred", i_f)
+
+    let model = _jnum(j, "n_layers", 0)   // touch meta region; model id read below
+    let layer = _jnum(j, "layer", 0)
+    let kk = _jnum(j, "K", 0)
+    let runtime = _jnum(j, "runtime_s", 0)
+    let recpar = _jnum(j, "rec_params", 0)
+    let ffpar = _jnum(j, "ff_params", 0)
+
+    // numeric falsifier evaluation (deterministic)
+    let fc = parse_float(phi_c)
+    let fb = parse_float(phi_b)
+    let fr = parse_float(phi_r)
+    let ff = parse_float(phi_f)
+    let frmax = parse_float(phif_max)         // FF control upper band edge
+    let sr = parse_float(self_r)
+    let sf = parse_float(self_f)
+
+    let F1 = fb > fc                       // BIDIR raises Phi over causal
+    let F2 = fr > frmax                     // REC Phi clears FF-control band (upper edge)
+    let F3 = sr > sf                        // REC self_pred > FF self_pred
+    let d_phi_bidir = fb - fc
+    let d_phi_adapter = fr - ff
+    let d_self_adapter = sr - sf
+    let supported = F1 && F2
+
+    // --- TSV ---
+    let mut tsv = "arm\tphi_proxy_bits\tself_pred_mi_bits\tperplexity\tnote\n"
+    tsv = tsv + "CAUSAL_unidirectional\t" + phi_c + "\t" + self_c + "\t" + ppl_c + "\tfrozen base · real causal mask\n"
+    tsv = tsv + "BIDIR_attention\t" + phi_b + "\t" + self_b + "\t" + ppl_b + "\tsame frozen base · causal mask removed\n"
+    tsv = tsv + "REC_adapter\t" + phi_r + "\t" + self_r + "\tn/a\tGRU feedback · mean of 5 seeds [" + phir_min + ".." + phir_max + "] sd " + phir_sd + "\n"
+    tsv = tsv + "FF_control\t" + phi_f + "\t" + self_f + "\tn/a\tparam-matched FF · mean of 5 seeds [" + phif_min + ".." + phif_max + "] sd " + phif_sd + "\n"
+    write_file(OUT_DIR + "/result_phi_stress.tsv", tsv)
+
+    // --- summary ---
+    let mut sm = "LAB-09 STRESS — real LLM directionality -> integrated-information Phi\n"
+    sm = sm + "model=Qwen2.5-1.5B  layer=" + layer + "  K=" + kk + " channels  seed=42  runtime=" + runtime + "s\n\n"
+    sm = sm + "arm                     phi      self_pred  ppl\n"
+    sm = sm + "CAUSAL (unidirectional) " + phi_c + "   " + self_c + "   " + ppl_c + "\n"
+    sm = sm + "BIDIR  (mask removed)   " + phi_b + "   " + self_b + "   " + ppl_b + "\n"
+    sm = sm + "REC    (GRU adapter)    " + phi_r + "   " + self_r + "   (band [" + phir_min + ".." + phir_max + "])\n"
+    sm = sm + "FF     (control)        " + phi_f + "   " + self_f + "   (band [" + phif_min + ".." + phif_max + "])\n\n"
+    sm = sm + "delta_phi  BIDIR-CAUSAL        = " + str(d_phi_bidir) + " bits\n"
+    sm = sm + "delta_phi  REC-FF (adapter)    = " + str(d_phi_adapter) + " bits\n"
+    sm = sm + "delta_self REC-FF (adapter)    = " + str(d_self_adapter) + " bits\n\n"
+    sm = sm + "F1 BIDIR_phi > CAUSAL_phi        : " + str(F1) + "\n"
+    sm = sm + "F2 REC_phi > FF_control_band_max : " + str(F2) + "\n"
+    sm = sm + "F3 REC_self > FF_self            : " + str(F3) + "\n"
+    sm = sm + "VERDICT supported (F1 AND F2)    : " + str(supported) + "\n"
+    write_file(OUT_DIR + "/result_phi_stress_summary.txt", sm)
+
+    print(sm)
+    print("  artifacts -> result_phi_stress.tsv · result_phi_stress_summary.txt · " + JSON_PATH + "\n")
+}

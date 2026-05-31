@@ -1,0 +1,17 @@
+LAB-09 STRESS — real LLM directionality -> integrated-information Phi
+model=Qwen2.5-1.5B  layer=14  K=6 channels  seed=42  runtime=23.99s
+
+arm                     phi      self_pred  ppl
+CAUSAL (unidirectional) 2.8477363469573813   3.9074609119958468   34.11291660275063
+BIDIR  (mask removed)   2.443552109234064   3.3968721878189365   8.316949567569804
+REC    (GRU adapter)    0.4868993469543567   2.8228932829707056   (band [0.282114112085611..1.0617642448335607])
+FF     (control)        0.5819390967185233   1.449543683436716   (band [0.0618653783232026..1.122299750005126])
+
+delta_phi  BIDIR-CAUSAL        = -0.404184 bits
+delta_phi  REC-FF (adapter)    = -0.0950397 bits
+delta_self REC-FF (adapter)    = 1.37335 bits
+
+F1 BIDIR_phi > CAUSAL_phi        : false
+F2 REC_phi > FF_control_band_max : false
+F3 REC_self > FF_self            : true
+VERDICT supported (F1 AND F2)    : false

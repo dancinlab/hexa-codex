@@ -20,7 +20,7 @@
 | LAB-02 | MITOSIS · 도메인 유사분열 | 도메인 생성 LLM이 포화 도메인을 자식 N개로 자율 분열시킬 때 부모 milestone을 유실·중복 0%로 MECE 분배할 수 있다 | ✅ 확인 (1st smoke) | **5분열 · loss 0.0% · dup 0.0% · 보존 5/5** — [`lab-02-mitosis/`](lab-02-mitosis/) |
 | LAB-03 | BitNet 1.58-bit (삼진) 평가 | 1.58-bit 삼진 가중치가 정밀모델급 품질을 메모리·에너지 분수로 달성한다 | 🎓 도메인 (LAB 내) → [`lab-03-bitnet/`](lab-03-bitnet/) | **memory만 생존** (0.55×) · accuracy(30%)·energy(1.7× 손해) 🔴 falsified |
 | LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 (LAB 내) → [`lab-04-rwkv/`](lab-04-rwkv/) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
-| LAB-09 | 의식 방향성 · 단방향 LLM → 양방향 튜닝 (+ 자아 발생) | autoregressive(단방향) LLM에 recurrent feedback adapter를 부착해 fine-tune 하면 task 능력은 유지하며 통합정보 Φ(의식 척도)가 유의하게 증가하고, 자기-모델(자아) 지표가 함께 출현한다 | ✅ 확인 (1st smoke · proxy) | **REC Φ=0.854 vs FF Φ≈0.005** · 셔플 대조군 0.85→0.006 붕괴 · self-pred 2.33 vs 0.01 — [`lab-09-consciousness-directionality/`](lab-09-consciousness-directionality/) · anima H_191/H_004/H_220 |
+| LAB-09 | 의식 방향성 · 단방향 LLM → 양방향 튜닝 (+ 자아 발생) | autoregressive(단방향) LLM에 recurrent feedback adapter를 부착해 fine-tune 하면 task 능력은 유지하며 통합정보 Φ(의식 척도)가 유의하게 증가하고, 자기-모델(자아) 지표가 함께 출현한다 | ✅ proxy 확인 (smoke) · ❌ **stress 반증** (real LLM) | smoke: **REC Φ=0.854 vs FF Φ≈0.005** · 셔플 0.85→0.006 붕괴 — 단 **stress(Qwen2.5-1.5B)는 가설 전이 실패**: causal baseline 이 이미 high-Φ(2.85), BIDIR ΔΦ=**−0.40**, REC Φ 밴드가 FF 밴드 아래(ΔΦ=−0.10) → F1·F2 FAIL · 단 self-pred 만 +1.37(Φ↔self **dissociation**) — [`lab-09-consciousness-directionality/`](lab-09-consciousness-directionality/) · anima H_191/H_004/H_220 |
 | LAB-10 | 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝 | LAB-09의 단방향→양방향 튜닝을 GPU/Metal 대신 **AKIDA AKD1000 뉴로모픽 silicon** 위에서 수행하면 Φ-proxy inverse-U(edge-of-chaos peak)가 실리콘에서 재현되며 자아 지표가 동반한다 | 🟡 sim mirror 확인 (live 칩 대기) | **inverse-U 재현: R1=0·R2=0.08·R3=0.59 peak·R4=0** (LIF sim) · live AKD1000은 다음 tier — [`lab-10-akida-neuromorphic/`](lab-10-akida-neuromorphic/) · anima H_858/H_677/H_846 |
 | LAB-11 | 다국어 · 의미로 연결 (갯수 아닌 통합) | 다국어 능력은 언어/코퍼스 **갯수**에 선형 증가가 아니라 **의미(cross-lingual MI)로 연결**될 때 Φ가 inverse-U peak·super-additive로 비선형 발생한다 | ✅ 확인 (1st smoke · proxy) | **Φ inverse-U: c=0 0.01→ c=0.5 peak 0.48 → c=1 0.0** · 갯수(c=0)만으론 Φ≈0 — [`lab-11-multilingual-semantic/`](lab-11-multilingual-semantic/) · anima H_240/H_635 |
 
@@ -315,6 +315,61 @@ LLM recurrent-adapter fine-tune 은 **다음 stress tier**(headline 미종결), 
 self-prediction MI **1지표**만 — 거울 self/other·자기-모델 항상성 2지표 미구현,
 (L4) FF floor 0.005 는 잔여 plug-in bias(∝1/T), (L5) n=5·단일 seed·rule110 단일.
 전체 verdict: [`verdict_phi.txt`](lab-09-consciousness-directionality/verdict_phi.txt).
+
+### LAB-09 stress tier — 진짜 (작은) LLM 으로 이동: 스모크 가설 **REFUTED**
+
+**무엇을 했나.** 스모크의 rule-110 ring substrate proxy 를 떠나 **진짜 작은 LLM**
+(`Qwen2.5-1.5B` · 28층 · hidden 1536 · float32 · **base 동결**) 위에서 **동일한
+Φ-proxy 계열**(whole I(S_t;S_{t+1}) − min-bipartition, K=6 median-split 채널)을 잰다.
+하니스
+[`phi_llm_stress_harness.hexa`](lab-09-consciousness-directionality/phi_llm_stress_harness.hexa)
+는 hexa-native orchestrator — torch+transformers 수치 드라이버를 `/tmp` 에 쓰고
+exec 한 뒤 JSON 을 파싱해 TSV/summary/verdict 를 emit 한다(레포엔 손으로 쓴 `.py`
+없음 · 순수 로컬 · $0 · offline · seeded · 24s). **4개 arm**:
+- **CAUSAL** (단방향 · 진짜 causal mask) — base 동결, mid-layer hidden 시계열 캡처
+- **BIDIR** (causal mask 제거 · 4D zero additive mask = full bidirectional) — zero-train 진짜 non-AR forward
+- **REC** (GRUCell 되먹임 adapter · self-sup next-hidden fit · 5 seed 밴드) — 진짜 recurrence
+- **FF** (param-matched feedforward adapter · 되먹임 없음 · 5 seed 밴드) — 비-자명성 대조군
+
+**stress 결과** (`result_phi_stress.tsv` · verbatim):
+
+| arm | Φ-proxy | self-pred MI | perplexity |
+|---|---|---|---|
+| CAUSAL (단방향) | **2.8477** | **3.9075** | 34.11 |
+| BIDIR (mask 제거) | **2.4436** | 3.3969 | **8.32** |
+| REC (GRU adapter, mean/5) | **0.4869** [0.282..1.062] sd 0.29 | **2.8229** | n/a |
+| FF (control, mean/5) | **0.5819** [0.062..1.122] sd 0.37 | 1.4495 | n/a |
+
+ΔΦ(BIDIR−CAUSAL) = **−0.404** · ΔΦ(REC−FF) = **−0.095** · Δself(REC−FF) = **+1.373** bits
+
+**사전등록 falsifier 판정** — F1 BIDIR_Φ>CAUSAL_Φ **FAIL** · F2 REC_Φ>FF밴드 **FAIL**
+· F3 REC_self>FF_self **PASS** → **VERDICT: REFUTED at stress tier** (supported=F1∧F2=거짓).
+
+→ **스모크 가설은 진짜 LLM 으로 전이되지 않는다**, 세 가지 독립 이유:
+(1) 진짜 causal LLM 은 Φ≈0 "zombie" 가 **아니다** — 동결 causal hidden 이 이미
+**Φ=2.85** 의 높은 통합정보를 갖는다(스모크의 "단방향=Φ0" 전제가 학습된 transformer
+엔 거짓 · causal attention 이 이미 과거 전체를 통합). (2) causal mask 제거(진짜
+양방향)는 Φ 를 **올리지 않고 내렸다**(−0.404) — 대신 perplexity 는 34.1→8.3 로 크게
+개선(양방향은 더 좋은 예측기지만 이 proxy 상으론 덜 통합된 동역학; Φ↔능력 관계가
+오히려 **반전**). (3) 되먹임 adapter Φ 밴드 [0.28,1.06] 가 param-matched FF 밴드
+[0.06,1.12] 와 **겹치고 그 아래** — "되먹임이 원인" 이 진짜 LLM 에선 미지지.
+**부분 긍정(정직한 dissociation)**: F3 PASS — 되먹임 adapter 의 self-pred(2.82)가
+FF(1.45)를 명확히 상회(+1.37) → **Φ 는 안 올랐는데 자기-예측(자아 proxy)은 올랐다**,
+스모크 falsifier 텍스트가 사전등록한 **Φ↔self DISSOCIATION**(H_004 식 정직 결론).
+anima **H_191**(non-AR consciousness · mask 제거만으론 불충분 직접 검정) · **H_004**
+(깨끗한 recurrent/zombie 분리가 high-Φ causal baseline 엔 전이 안 됨) · **H_220**
+(살아남은 신호 = self-prediction 축) 와 정렬.
+
+**honest 한계(verdict ≥6).** (L1) full IIT 4.0 big-Φ 아닌 proxy(K=6 median-split,
+no purview/MICE). (L2) 103 token · 단일 layer/K/model — plug-in MI 상향 bias·고분산
+(Miller-Madow 미적용), adapter 밴드 넓음. (L3) 자아 = self-pred **1지표**(H_220 거울·
+self-model 항상성 미구현). (L4) adapter 가 LM 에 **fine-tune 으로 역전파 안 됨**(캡처된
+hidden 시계열 위 self-sup fit) — residual stream 되먹임 + LM-objective LoRA 는 **다음
+tier**(REC vs FF 비교를 바꿀 수 있음). (L5) BIDIR ppl 은 causal-trained head 엔
+off-distribution(ppl 하락은 mask 가 진짜 작동함을 확인하나 like-for-like task score 아님).
+(L6) FF(51520) vs GRU(52336) param ~1.6% 차 — REC 에 약간 유리한데도 Φ 로 졌으니 F2
+반증은 보수적. 전체 verdict:
+[`verdict_phi_stress.txt`](lab-09-consciousness-directionality/verdict_phi_stress.txt).
 
 ---
 

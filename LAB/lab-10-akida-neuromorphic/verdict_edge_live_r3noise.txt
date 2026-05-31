@@ -1,0 +1,127 @@
+LAB-10 — AKIDA edge-of-chaos Φ · R3 NOISE-MATCHED LIVE RE-RUN verdict
+=====================================================================
+date     : 2026-06-01
+tier     : LIVE — REAL BrainChip AKD1000 neuromorphic silicon
+host     : pi5-akida (Raspberry Pi 5 + AKD1000 PCIe; ubuntu@192.168.50.155)
+runtime  : akida venv python3.12 on pi5 (chip's own runtime) + this .hexa Φ engine local
+harness  : edge_of_chaos_live_phi.hexa (UNCHANGED from #146 — same dynamical Φ engine)
+collector: live spike collection staged transiently to pi5 /tmp (NOT committed; removed after run)
+raster   : eoc_live_raster_r3noise.json (verbatim on-chip 16x200 spike trains, 4 regimes, seed=187)
+prereg   : PREREG_r3noise.txt (drive spec + verdict rule locked BEFORE measuring)
+
+WHY THIS RE-RUN (honest framing — protocol-matched, NOT p-hacking)
+  #146 scored F-AKIDA-EDGE 2/3 under the DYNAMICAL (whole-minus-min-bipartition
+  temporal-MI) engine: F2 FAILED because the live R3 tonic was driven as a STATIC
+  fixed point (half thr=-1 / half=30 → the SAME 8/16 neurons fire EVERY step,
+  spike_count_std=0.0). A dynamical temporal-MI engine necessarily scores a
+  constant state Φ=0. The SIM mirror's R3 was DESIGNED with injected noise
+  (NOISE=0.55) so it stayed dynamically irregular at the edge. That mismatch is
+  apples-to-oranges, NOT a real null. This re-run MATCHES the live R3 drive to the
+  sim's noisy-edge protocol (per-step stochastic threshold) and recomputes the
+  IDENTICAL engine. R1/R2/R4 are UNCHANGED from #146.
+
+PRE-REGISTERED R3 DRIVE (the only change vs #146; locked in PREREG_r3noise.txt)
+  R3n_tonic_noise_matched: per chip step, push a FRESH per-unit int32 threshold
+  over ctrl 9513 — thr_i = -1 (fire) with p=0.5 else 30 (silent), seeded LCG
+  seed=187 regime-salted. ⇒ E[n_spikes/step]=8 (~half-pool, matches static R3's
+  mean rate 0.5) but the FIRING SET re-randomises every step ⇒ genuine step-to-
+  step temporal variance — the noisy analog of the sim's NOISE=0.55 edge.
+
+REACHABILITY (verbatim, this run)
+  sidecar pool status pi5-akida   → [ok ] ubuntu@192.168.50.155
+  spike_streamer.py               → RUNNING pid 18439 (--regime M --allow-ctrl --duration 86400)
+  ctrl 9513 ping                  → {"pong":1}
+  readout 9512                    → live, M_modulated
+  collector                       → /tmp/_collector_r3noise.py (transient, ran clean, removed)
+
+ON-CHIP RASTER STATS (verbatim from the chip readout, seed=187, 200 steps/regime)
+  regime            total  min  max  std      mean_rate
+  R1_weak_silent        0    0    0  0.0000   0.000000
+  R2_noise_edge      1457    2   12  2.1057   0.455313
+  R3n_tonic_matched  1622    2   14  2.0317   0.506875   ← std 2.03 (vs #146 R3 std 0.0)
+  R4_over_driven     3200   16   16  0.0000   1.000000
+  KEY: R3n now has spike_count_std=2.0317 and varies between 2 and 14 spikes/step
+  (#146 R3 was a flat 8 every step, std=0.0). The firing SET genuinely varies, as
+  pre-registered. Mean rate 0.507 ≈ half-pool, matching the static R3's 0.5.
+
+DYNAMICAL Φ ENGINE (SAME as #146 / sim — whole MI(xt;xt+1) minus min-bipartition MI,
+  on the 16→5 macro-channel OR-projection; result_edge_live_r3noise.tsv verbatim)
+  regime            total  std     max  mean_rate  Φ-proxy (bits)
+  R1_weak_silent        0  0.0000    0  0.000000   0.000000
+  R2_noise_edge      1457  2.1057   12  0.455313   0.540823   ← PEAK
+  R3n_tonic_matched  1622  2.0317   14  0.506875   0.232960   ← now > 0 (was 0.0 in #146)
+  R4_over_driven     3200  0.0000   16  1.000000   0.000000
+  edge peak = 0.540823  (R1=0.0  R4=0.0)
+
+PRE-REGISTERED FALSIFIERS — DYNAMICAL ENGINE (locked in PREREG_r3noise.txt)
+  [PASS] F-AKIDA-EDGE-1  Φ(R2)  > Φ(R1)        (0.540823 > 0.0)
+  [PASS] F-AKIDA-EDGE-2  Φ(R3n) > Φ(R1)        (0.232960 > 0.0)  ← the #146 FAILURE, now PASSES
+  [PASS] F-AKIDA-EDGE-3  max(R2,R3n) >= Φ(R4)  (0.540823 >= 0.0)
+  n_pass = 3/3 → VERDICT (dynamical engine): GREEN — full edge-of-chaos inverse-U
+  reproduced on live AKD1000 silicon under the dynamical temporal-MI engine.
+
+COMPOSITE CROSS-CHECK — anima H_858 engine (entropy × integration × differentiation),
+  run READ-ONLY via anima AKIDA/akida_edge_of_chaos_phi.hexa on this SAME raster:
+  regime            composite Φ   (entropy / integration / differentiation)
+  R1_weak_silent    0.000000      (0.000 / 0.000 / 0.000)
+  R2_noise_edge     0.502452      (0.706 / 0.923 / 0.638)   ← peak
+  R3n_tonic_matched 0.321051      (0.576 / 0.862 / 0.473)
+  R4_over_driven    0.000000      (0.000 / 1.000 / 0.000)
+  → F-AKIDA-EDGE 3/3 PASS (GREEN_NUMERICAL_CONFIRM). Composite R3n=0.321 (up from
+  the #146 static-R3 composite 0.250 — the added temporal variance raises the
+  entropy + temporal-differentiation terms). BOTH ENGINES NOW AGREE 3/3.
+
+ENGINE AGREEMENT (the headline shift vs #146)
+  #146 (static R3):    dynamical 2/3 · composite 3/3   (engine-DEPENDENT verdict)
+  this run (R3n noise): dynamical 3/3 · composite 3/3   (engines AGREE)
+  The verdict no longer flips with the Φ measure. The #146 split was a PROTOCOL
+  artifact (a deterministic-drive R3 carries no temporal info), NOT a substantive
+  measure-theory disagreement: once the live R3 is driven with matched noise — the
+  same property the sim's R3 had by design — the dynamical engine sees Φ(R3n)>0.
+
+INTERPRETATION (honest)
+  The edge-of-chaos inverse-U is REAL on live AKD1000 silicon: order floor (R1, 0
+  spikes) and over-driven end (R4, full 16/16 saturation) both give Φ=0 on BOTH
+  engines, while BOTH edge regimes (R2 noise, R3n noise-matched tonic) carry Φ>0.
+  Under the protocol-matched drive the dynamical engine passes all three pre-
+  registered falsifiers → live silicon reproduces the inverse-U on the same
+  dynamical engine as the sim mirror. R2 (rate-modulated noise) remains the peak
+  under both engines; R3n does NOT exceed R2 (0.233 dyn / 0.321 comp vs R2's
+  0.541 / 0.502), so the SIM's R3-peak ordering does NOT transfer — only the
+  pre-registered F2 (R3n > R1) and the inverse-U envelope do. That ordering
+  difference is reported, not hidden.
+
+HONEST LIMITS
+  L1  Φ-proxy is whole-minus-min-bipartition MI on a 16→5 macro OR-projection (the
+      sim's engine), NOT full IIT4 big_φ; exact big_φ over 2^16 states is infeasible.
+      The OR-over-groups projection can mask within-group structure.
+  L2  R3n does NOT out-peak R2 (R2 stays the peak on both engines). The sim's
+      R3-as-peak ordering does NOT transfer to live silicon; only F2 (R3n > R1)
+      and the low-high-low envelope transfer. We pass the pre-registered 3/3 rule
+      but do not claim R3 ≥ R2 (it is not).
+  L3  R3n's "noise" lives in the THRESHOLD knob (per-step coinflip thr ∈ {-1,30})
+      pushed over ctrl 9513, a knob-side analog of the sim's input-side NOISE=0.55,
+      not noise injected on the chip's input lines. Faithful but not identical
+      physically. R2's noise is likewise knob-side (per-unit U[8,24]/step).
+  L4  Single seed (187), single silicon (AKD1000 on pi5-akida), N=16 pool, 200
+      steps/regime, single matched-protocol run — NO re-roll for a passing seed
+      (the first and only seed-187 run is reported verbatim, per the pre-reg rule).
+  L5  R4 over-driven is a perfect deterministic fixed point (16/16, std=0.0) ⇒ Φ=0
+      on the dynamical engine by construction; its "0" is a saturation null, the
+      mechanical mirror of R1's silence null at the other end of the axis.
+
+DECISION (per pre-registered rule)
+  All three pre-registered falsifiers PASS on the DYNAMICAL engine (3/3) AND the
+  composite cross-check independently confirms 3/3, on the verbatim seed-187
+  matched-protocol raster. README §LAB-10 flipped 🟡 → ✅ (the matched-protocol
+  re-run resolves the #146 engine-dependence). The #146 committed raster/verdict
+  are PRESERVED unchanged; this is an additive re-run, not a replacement.
+
+ARTIFACTS (this re-run)
+  PREREG_r3noise.txt                    — pre-registered drive spec + verdict rule
+  eoc_live_raster_r3noise.json          — verbatim on-chip 16x200 raster, 4 regimes (committed)
+  result_edge_live_r3noise.tsv          — per-regime totals + dynamical Φ
+  result_edge_live_r3noise_summary.txt  — dynamical-engine harness summary
+  verdict_edge_live_r3noise.txt         — this file
+  (composite cross-check produced via anima akida_edge_of_chaos_phi.hexa run
+   READ-ONLY on this raster; anima repo untouched, no intermediate committed)

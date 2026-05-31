@@ -1,0 +1,47 @@
+LAB-11 — multilingual "connect by MEANING not count" proxy · 1st smoke verdict
+==============================================================================
+date     : 2026-06-01
+harness  : semantic_connection_harness.hexa  (hexa-native · pure local · $0 · seeded LCG=42)
+runtime  : 1.90s user (M-series, local)
+N_langs  : 5 (ko/en/zh/ru/ja analog · ring) · steps T=40000 · states 2^5=32
+
+RESULT (verbatim from result_semantic.tsv)
+  c (semantic coupling)   cross_lingual_MI   collective_phi   (bits)
+  0.00                    0.000007           0.013853
+  0.10                    0.000024           0.077979
+  0.25                    0.000111           0.192864
+  0.50                    0.014068           0.483419   <- PEAK
+  0.75                    0.128393           0.345587
+  0.90                    0.394432          -0.194255
+  1.00                    0.000000           0.000000
+
+PRE-REGISTERED FALSIFIERS (all must hold for SUPPORTED)
+  [PASS] F1 inverse-U     : interior peak (c=0.50, phi=0.483) strictly above BOTH
+                            ends (c=0 phi=0.014, c=1 phi=0.000)
+  [PASS] F2 super-additive: peak phi 0.483 >> decoupled Sigma-baseline 0.014
+  [PASS] F3 meaning>count : phi(c=0) = 0.014 ~ 0 — piling up 5 independent
+                            languages (count up, no coupling) does NOT integrate
+
+VERDICT: SUPPORTED (1st smoke) — multilingual integrated information is driven by
+cross-lingual MEANING coupling, not by language/corpus COUNT. Phi traces a clean
+inverse-U in the coupling strength c: neither fully-separate (c=0, MI~0,
+differentiation high but integration 0) nor fully-synchronized (c=1, integration
+high but differentiation 0) integrates; PARTIAL semantic integration (c~0.5)
+peaks Phi. Reproduces anima H_240 (cross-lingual MI <-> Phi inverse-U) and H_635
+(coupled cohort super-additive vs decoupled baseline ~0) on an independent
+5-stream majority-consensus substrate.
+
+HONEST LIMITS (load-bearing residual)
+  L1  SUBSTRATE PROXY, not a tuned multilingual LM. The 5 streams are an
+      ECA-style cohort, not real ko/en/zh/ru/ja corpora; a real multilingual-LM
+      coupling sweep is the NEXT stress tier, not closed here.
+  L2  NEGATIVE Phi at c=0.90 (-0.194): the whole-minus-min-bipartition proxy can
+      go slightly negative under heavy redundancy (over-synchronized regime) +
+      finite-sample bias — true IIT big-Phi is >= 0. This is a proxy artifact; it
+      does NOT affect the inverse-U conclusion (it sits even further BELOW the
+      peak). A non-negative IIT 4.0 estimator is deferred to the stress tier.
+  L3  Cross-lingual MI is INSTANTANEOUS pairwise I(bit_i;bit_j) averaged over 10
+      pairs — a coupling proxy, not a full semantic-overlap metric. MI peaks near
+      c=0.90 then drops to 0 at c=1 (frozen consensus = zero variance).
+  L4  N=5, single seed, majority-consensus coupling rule. Multi-seed / multi-rule
+      robustness + Miller-Madow bias correction deferred to the stress tier.

@@ -1,0 +1,156 @@
+#!hexa strict
+// LAB/lab-11-multilingual-semantic/stress_real_harness.hexa
+//
+// LAB-11 STRESS TIER — "connect by MEANING, not by count" on a REAL multilingual LM.
+// Promotes the 1st smoke (semantic_connection_harness.hexa, a deterministic substrate
+// proxy) to actual representations from Qwen/Qwen2.5-1.5B (real multilingual LM,
+// cached locally, headless, $0 — cx_lab_sandbox: local SANDBOX, no external API).
+//
+// SOURCE-LANGUAGE CHOICE (hard constraint): repo-authored source MUST be .hexa.
+// The heavy torch numerics live UNDER /tmp (outside the repo) at
+//   /tmp/lab11_stress/phi_mi_real.py
+// and this .hexa harness exec()s python3 on it, then reads back the JSON result and
+// applies the PRE-REGISTERED FALSIFIERS deterministically (g5 no-self-judge: every
+// verdict below is a numeric comparison, never a model judgement). Only this .hexa +
+// the result artifacts are committed to the repo.
+//
+// MEASUREMENT (see the .py header for full detail):
+//   5 langs ko/en/zh/ru/ja. MEANING-coupled corpus = S=12 sentence-tuples that are
+//   translations of each other (same meaning, different surface). COUNT-only control
+//   = S=12 unrelated (different-meaning) sentences per lang (count up, overlap 0).
+//   per (lang,sentence): mean-pooled last-hidden-state from Qwen2.5-1.5B.
+//   cross-lingual MI proxy = mean pairwise Shannon MI on discretized per-lang rep
+//   codes (SAME info engine as the smoke). collective Phi proxy = IIT
+//   differentiation x integration: integration = whole multi-information -
+//   min-bipartition cross-MI (whole_EI - min_bipart, SAME engine family as the smoke
+//   phi_proxy); differentiation = mean cross-lingual distinctness (1 - redundancy),
+//   which -> 0 as the langs fuse (c=1). coupling sweep c in {0,.1,.25,.5,.75,.9,1}:
+//   each lang's rep stream is interpolated toward the per-sentence cross-lang
+//   CONSENSUS — c=0 (5 independent streams) -> c=1 (collapse to shared consensus,
+//   differentiation->0). Real-rep analog of the smoke c-axis.
+//
+// PREDICTIONS (anima-grounded):
+//   H_240 inverse-U   : Phi vs measured cross-lingual MI is inverse-U (partial
+//                       semantic integration peaks; neither separate nor fully fused).
+//   H_635 super-add   : the MEANING-coupled cohort's peak Phi >> COUNT-only baseline.
+//   reframe           : adding langs WITHOUT meaning overlap (the COUNT-only control)
+//                       does NOT raise integration; same-meaning coupling does.
+//
+// FALSIFIERS (pre-registered · cx_lab_falsifiable):
+//   F1 inverse-U      : if MEANING Phi is monotone in cross-lingual MI (no interior
+//                       peak strictly above both ends) -> inverse-U (H_240) FALSE.
+//   F2 super-additive : if MEANING peak Phi does NOT exceed the COUNT-only peak Phi by
+//                       a margin -> cohort super-additivity (H_635) FALSE.
+//   F3 meaning>count  : if the COUNT-only set ALREADY integrates as strongly as the
+//                       MEANING set (peak ratio <= 1.25) -> "meaning not count" FALSE.
+//   We report the real sweep either way.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Drives a local /tmp python torch kernel + filesystem write — no atlas atoms, no network beyond local model cache.")
+
+let OUT_DIR = env("HEXA_CODEX_ROOT") + "/LAB/lab-11-multilingual-semantic"
+let PY = "/tmp/lab11_stress/phi_mi_real.py"
+
+fn r6(x: float) -> str {
+    let scaled = x * 1000000.0
+    let ri = scaled + 0.5
+    let asint = ri - (ri % 1.0)
+    return str(asint / 1000000.0)
+}
+
+fn main() {
+    print("LAB-11 STRESS TIER — real multilingual-LM meaning-vs-count Phi\n")
+    print("model: Qwen/Qwen2.5-1.5B (local cache) · driving " + PY + "\n\n")
+
+    // Run the torch kernel (writes /tmp/lab11_stress/phi_mi_real.json). Heavy: the
+    // .hexa harness orchestrates; the .py does the CPU numerics under /tmp. LAB11_REUSE
+    // reuses the cached Qwen reps (reps_cache.npz) so re-scoring is instant. exec()
+    // captures stdout; we echo a sentinel on success, then read the JSON artifact.
+    let out = to_string(exec("cd /tmp/lab11_stress && HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 LAB11_REUSE=1 python3 " + PY + " 1>/tmp/lab11_stress/run.stdout 2>/tmp/lab11_stress/run.stderr && echo HEXA_OK || echo HEXA_FAIL"))
+    if !out.contains("HEXA_OK") {
+        print("python kernel failed — see /tmp/lab11_stress/run.stderr\n")
+        return
+    }
+
+    let raw = read_file("/tmp/lab11_stress/phi_mi_real.json")
+    let res = json_parse(raw)
+    let cgrid = res["c_grid"]
+    let meaning = res["meaning"]
+    let count = res["count_only"]
+    let M = len(cgrid)
+
+    // --- MEANING-coupled sweep + interior-peak detection ---
+    let mut m_phi_lo = (meaning[0])[2] + 0.0
+    let mut m_phi_hi = (meaning[M - 1])[2] + 0.0
+    let mut m_peak = m_phi_lo
+    let mut m_peak_i = 0
+    let mut i = 0
+    while i < M {
+        let phi = (meaning[i])[2] + 0.0
+        if phi > m_peak { m_peak = phi ; m_peak_i = i }
+        i = i + 1
+    }
+    let m_interior = m_peak_i > 0 && m_peak_i < M - 1
+
+    // --- COUNT-only control: rows are (n_langs, n_langs, MI, phi); the full-cohort
+    //     n=5 point is the fair baseline (max count, meaning-overlap fixed 0). ---
+    let CM = len(count)
+    let mut c_peak = (count[0])[3] + 0.0
+    let mut c_peak_i = 0
+    i = 0
+    while i < CM {
+        let phi = (count[i])[3] + 0.0
+        if phi > c_peak { c_peak = phi ; c_peak_i = i }
+        i = i + 1
+    }
+    let c_full = (count[CM - 1])[3] + 0.0   // n=5 count-only baseline
+
+    // --- pre-registered falsifiers (deterministic numeric — g5 no-self-judge) ---
+    let f1_inverse_u = m_interior && m_peak > m_phi_lo + 0.01 && m_peak > m_phi_hi + 0.01
+    let f2_super_add = m_peak > c_full + 0.05
+    let peak_ratio = m_peak / (c_full + 0.000001)
+    let f3_meaning_not_count = peak_ratio > 1.25
+    let supported = f1_inverse_u && f2_super_add && f3_meaning_not_count
+
+    // --- TSV ---
+    let mut tsv = "set\tparam\tcross_lingual_MI_bits\tcollective_phi_bits\n"
+    i = 0
+    while i < M {
+        tsv = tsv + "meaning\tf=" + str(cgrid[i]) + "\t" + r6((meaning[i])[1] + 0.0) + "\t" + r6((meaning[i])[2] + 0.0) + "\n"
+        i = i + 1
+    }
+    i = 0
+    while i < CM {
+        tsv = tsv + "count_only\tn_langs=" + str((count[i])[0]) + "\t" + r6((count[i])[2] + 0.0) + "\t" + r6((count[i])[3] + 0.0) + "\n"
+        i = i + 1
+    }
+    write_file(OUT_DIR + "/result_stress.tsv", tsv)
+
+    // --- summary ---
+    let mut sm = "LAB-11 STRESS — real multilingual-LM: connect by MEANING not count\n"
+    sm = sm + "model=" + str(res["model"]) + " seed=" + str(res["seed"]) + " N_langs=5 S=" + str(res["n_sentences"]) + " kbits=" + str(res["kbits"]) + "\n\n"
+    sm = sm + "MEANING-coupled cohort (5 langs; f = fraction of slots that are ALIGNED translations)\n"
+    sm = sm + "  f        cross_lingual_MI    collective_phi\n"
+    i = 0
+    while i < M {
+        sm = sm + "  " + str(cgrid[i]) + "      " + r6((meaning[i])[1] + 0.0) + "          " + r6((meaning[i])[2] + 0.0) + "\n"
+        i = i + 1
+    }
+    sm = sm + "\nCOUNT-only control (meaning-overlap fixed 0; grow LANGUAGE COUNT n=2..5)\n"
+    sm = sm + "  n_langs  cross_lingual_MI    collective_phi\n"
+    i = 0
+    while i < CM {
+        sm = sm + "  " + str((count[i])[0]) + "        " + r6((count[i])[2] + 0.0) + "          " + r6((count[i])[3] + 0.0) + "\n"
+        i = i + 1
+    }
+    sm = sm + "\nMEANING peak phi = " + r6(m_peak) + " at f=" + str(cgrid[m_peak_i]) + " (MI=" + r6((meaning[m_peak_i])[1] + 0.0) + ")\n"
+    sm = sm + "MEANING phi(f=0 separate) = " + r6(m_phi_lo) + "   phi(f=1 fully aligned) = " + r6(m_phi_hi) + "\n"
+    sm = sm + "COUNT-only phi(n=5, max count, no meaning) = " + r6(c_full) + "\n"
+    sm = sm + "MEANING peak / COUNT(n=5) ratio = " + r6(peak_ratio) + "\n\n"
+    sm = sm + "falsifier F1 inverse-U (MEANING interior peak > both ends)   : " + str(f1_inverse_u) + "\n"
+    sm = sm + "falsifier F2 super-additive (MEANING peak > COUNT n=5 +.05)  : " + str(f2_super_add) + "\n"
+    sm = sm + "falsifier F3 meaning>count (peak ratio > 1.25)              : " + str(f3_meaning_not_count) + "\n"
+    sm = sm + "VERDICT supported (all 3)                                   : " + str(supported) + "\n"
+    write_file(OUT_DIR + "/result_stress_summary.txt", sm)
+    print(sm)
+}

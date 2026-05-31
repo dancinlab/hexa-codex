@@ -1,0 +1,301 @@
+#!hexa strict
+// LAB/lab-10-akida-neuromorphic/edge_of_chaos_live_phi.hexa
+//
+// LAB-10 — AKIDA neuromorphic edge-of-chaos Phi inverse-U, LIVE-SILICON TIER.
+// See LAB/README.md LAB-10. Headline (substrate-grounded) sibling of the SIM
+// MIRROR edge_of_chaos_sim_harness.hexa.
+//
+// WHAT THIS IS:
+//   The order->chaos drive-regime R1..R4 sweep run on REAL BrainChip AKD1000
+//   silicon (pool host pi5-akida). On-chip spikes were driven via the live
+//   spike_streamer closed loop — set_threshold over ctrl port 9513, per-step
+//   16-neuron spike trains read from readout port 9512 — and persisted to a
+//   raster JSON. THIS .hexa harness owns the Phi-proxy + the pre-registered
+//   F-AKIDA-EDGE verdict, computed with the SAME engine as the SIM MIRROR
+//   (whole effective-info minus min-bipartition mutual information).
+//
+//   The live spike collection is the chip's own python runtime on pi5
+//   (akida SDK = python; this repo is .hexa-authored, so the collector is
+//   staged transiently to pi5 /tmp and is NOT committed here — only its
+//   raster-JSON output crosses back, exactly as anima's spec dual-companions).
+//
+// CHIP / DRIVE (live):
+//   chip   = InputData(1,1,16) -> FullyConnected(units=16, weights=ones,
+//            act_bits=1) @ BackendType.Hardware (the streamer's on-chip model).
+//   drive  = weak-ones input, per-unit integrated potential V = sum(input) = 16.
+//   knob   = per-unit int32 threshold (the LIF's only live free variable);
+//            a unit fires iff V > thr. The order->chaos axis is spanned purely
+//            by the threshold vector pushed over 9513:
+//     R1 weak-silent : thr=30          (16>30 false)        -> ORDER floor (silent)
+//     R2 noise-edge  : thr~U[8,24]/step (straddles V=16)    -> EDGE (event-driven)
+//     R3 tonic-edge  : half thr=-1 / half=30                -> EDGE (det. 8/16 pool)
+//     R4 over-driven : thr=-32         (16>-32 true)        -> OVER-DRIVEN (16/16 sat)
+//
+// PHI ENGINE (SAME as the sim mirror — whole EI minus min-bipartition MI):
+//   The sim runs phi_proxy on a 5-unit ring. The live chip has 16 neurons;
+//   exact min-bipartition over 2^16 states is infeasible (same reason anima
+//   uses a composite proxy). To apply the IDENTICAL engine, the 16-neuron
+//   per-step spike vector is projected onto N=5 macro-channels (5 contiguous
+//   groups of the 16 units; macro-bit = OR over the group = "any unit in the
+//   group spiked this step"). The state at t (xt) and t+1 (xn) are the 5-bit
+//   macro-codes; phi_proxy = whole MI(xt;xn over all 5) minus the minimum
+//   bipartition MI sum — byte-for-byte the sim's mi_subset / phi_proxy.
+//
+// FALSIFIER (pre-registered, anima F-AKIDA-EDGE; mirrors the sim mirror):
+//   F1  Phi(R2) > Phi(R1)
+//   F2  Phi(R3) > Phi(R1)
+//   F3  max(Phi(R2),Phi(R3)) >= Phi(R4)
+//   PASS(all 3) => live silicon reproduces the edge-of-chaos inverse-U.
+//   any FAIL    => closed-negative (sim->silicon transfer absent · publishable).
+//
+// HONESTY (g5 · cx_lab_falsifiable · a_blue_closed):
+//   Phi-proxy = whole-minus-min-bipartition MI on a 16->5 macro projection;
+//   it is the same engine as the sim, NOT full IIT4 big_phi. Real on-chip
+//   numbers only — no fabricated PASS.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numeric Phi kernel over a live raster JSON — no atlas atoms, no network from hexa.")
+
+let N = 5                  // macro-channels (same engine arity as the sim ring)
+let RAW_N = 16             // live AKD1000 LIF pool size
+let OUT_DIR = env("HEXA_CODEX_ROOT") + "/LAB/lab-10-akida-neuromorphic"
+
+// ── Phi engine (VERBATIM from edge_of_chaos_sim_harness.hexa) ──────────────
+
+fn popcount(mask: int) -> int {
+    let mut c = 0
+    let mut u = 0
+    while u < N { if (mask >> u) % 2 == 1 { c = c + 1 } ; u = u + 1 }
+    return c
+}
+
+fn subcode(code: int, mask: int) -> int {
+    let mut acc = 0
+    let mut pos = 0
+    let mut u = 0
+    while u < N {
+        if (mask >> u) % 2 == 1 {
+            let bit = (code >> u) % 2
+            acc = acc + (bit << pos)
+            pos = pos + 1
+        }
+        u = u + 1
+    }
+    return acc
+}
+
+fn entropy(counts: [int], total: int) -> float {
+    let mut h = 0.0
+    let mut i = 0
+    let n = len(counts)
+    let tf = total + 0.0
+    while i < n {
+        let c = counts[i]
+        if c > 0 {
+            let p = c / tf
+            h = h - p * log2(p)
+        }
+        i = i + 1
+    }
+    return h
+}
+
+fn mi_subset(xt: [int], xn: [int], mask: int, t_steps: int) -> float {
+    let k = 1 << popcount(mask)
+    let mut joint = []
+    let mut z = 0
+    while z < k * k { joint.push(0) ; z = z + 1 }
+    let mut s = 0
+    while s < t_steps {
+        let a = subcode(xt[s], mask)
+        let b = subcode(xn[s], mask)
+        joint[a * k + b] = joint[a * k + b] + 1
+        s = s + 1
+    }
+    let mut rows = []
+    let mut cols = []
+    let mut r = 0
+    while r < k { rows.push(0) ; cols.push(0) ; r = r + 1 }
+    let mut a = 0
+    while a < k {
+        let mut b = 0
+        while b < k {
+            let c = joint[a * k + b]
+            rows[a] = rows[a] + c
+            cols[b] = cols[b] + c
+            b = b + 1
+        }
+        a = a + 1
+    }
+    return entropy(rows, t_steps) + entropy(cols, t_steps) - entropy(joint, t_steps)
+}
+
+fn phi_proxy(xt: [int], xn: [int], t_steps: int) -> float {
+    let whole = mi_subset(xt, xn, 31, t_steps)
+    let mut best = 1000000.0
+    let mut mask = 1
+    while mask < 31 {
+        if mask % 2 == 1 {
+            let sum = mi_subset(xt, xn, mask, t_steps) + mi_subset(xt, xn, 31 - mask, t_steps)
+            if sum < best { best = sum }
+        }
+        mask = mask + 1
+    }
+    return whole - best
+}
+
+// ── 16 -> 5 macro projection ───────────────────────────────────────────────
+//
+// Group the 16 raw neurons into 5 contiguous bins; macro-bit b = OR over the
+// units in bin b (= "any unit in this group spiked this step"). Bins (size
+// 16/5): [0,1,2] [3,4,5] [6,7,8,9] [10,11,12] [13,14,15] — covers all 16.
+fn macro_bin(neuron: int) -> int {
+    if neuron <= 2 { return 0 }
+    if neuron <= 5 { return 1 }
+    if neuron <= 9 { return 2 }
+    if neuron <= 12 { return 3 }
+    return 4
+}
+
+// build the 5-bit macro state for one step from the 16-neuron spike column.
+fn macro_state(col: [int]) -> int {
+    let mut bits = [0, 0, 0, 0, 0]
+    let mut i = 0
+    while i < RAW_N {
+        if col[i] == 1 {
+            let b = macro_bin(i)
+            bits[b] = 1
+        }
+        i = i + 1
+    }
+    let mut code = 0
+    let mut j = 0
+    while j < N { code = code + (bits[j] << j) ; j = j + 1 }
+    return code
+}
+
+fn r6(x: float) -> str {
+    let scaled = x * 1000000.0
+    let ri = scaled + 0.5
+    let asint = ri - (ri % 1.0)
+    return str(asint / 1000000.0)
+}
+
+fn mean_rate_from_total(total: int, t_steps: int) -> float {
+    return (total + 0.0) / ((t_steps * RAW_N) + 0.0)
+}
+
+// read regime block -> (phi, mean_rate, total, std, max). matrix is 16 x T.
+fn phi_for_regime(reg: map) -> map {
+    let matrix = reg["spike_matrix_16xT"]   // [16][T]
+    let t_steps = len(matrix[0])
+    // build per-step macro state columns
+    let mut mstates = []
+    let mut s = 0
+    while s < t_steps {
+        let mut col = []
+        let mut i = 0
+        while i < RAW_N { col.push(matrix[i][s]) ; i = i + 1 }
+        mstates.push(macro_state(col))
+        s = s + 1
+    }
+    // xt = state at t, xn = state at t+1 (last step pairs with itself, as the
+    // sim's evolve_lif also produces aligned (sp, nxt) pairs; here we shift by 1
+    // and use t_steps-1 transition pairs to stay strictly causal).
+    let pairs = t_steps - 1
+    let mut xt = []
+    let mut xn = []
+    let mut p = 0
+    while p < pairs {
+        xt.push(mstates[p])
+        xn.push(mstates[p + 1])
+        p = p + 1
+    }
+    let phi = phi_proxy(xt, xn, pairs)
+    let total = reg["total_spikes"]
+    let rate = mean_rate_from_total(total, t_steps)
+    return #{
+        "phi": phi,
+        "mean_rate": rate,
+        "total_spikes": total,
+        "spike_count_std": reg["spike_count_std"] + 0.0,
+        "spike_count_max": reg["spike_count_max"],
+        "steps": t_steps,
+        "transition_pairs": pairs,
+    }
+}
+
+fn _arg_after(a: [string], f: string) -> string {
+    let mut i = 0
+    while i < len(a) {
+        if a[i] == f && i + 1 < len(a) { return a[i + 1] }
+        i = i + 1
+    }
+    return ""
+}
+
+fn main() {
+    let a = args()
+    let result_path = _arg_after(a, "--result")
+    if result_path == "" {
+        println("usage: hexa run edge_of_chaos_live_phi.hexa --result <live_raster.json> [--out <dir>]")
+        exit(2)
+    }
+    let out_dir = if _arg_after(a, "--out") == "" { OUT_DIR } else { _arg_after(a, "--out") }
+
+    let raw = to_string(read_file(result_path))
+    let parsed = json_parse(raw)
+    let regs = parsed["regimes"]
+
+    let r1 = phi_for_regime(regs["R1_weak_silent"])
+    let r2 = phi_for_regime(regs["R2_zero_noise"])
+    let r3 = phi_for_regime(regs["R3_tonic_zero_input"])
+    let r4 = phi_for_regime(regs["R4_recurrent_selfsustained"])
+
+    let p1 = r1["phi"] + 0.0
+    let p2 = r2["phi"] + 0.0
+    let p3 = r3["phi"] + 0.0
+    let p4 = r4["phi"] + 0.0
+
+    let f1 = p2 > p1
+    let f2 = p3 > p1
+    let edge_max = if p2 > p3 { p2 } else { p3 }
+    let f3 = edge_max >= p4
+    let supported = f1 && f2 && f3
+
+    print("LAB-10 AKIDA edge-of-chaos LIVE-SILICON — AKD1000 (pi5-akida) · 16->5 macro · same engine as sim\n")
+    print("source raster: " + result_path + "\n\n")
+
+    let RLBL = ["R1_weak_silent", "R2_noise_edge", "R3_tonic_edge", "R4_over_driven"]
+    let blocks = [r1, r2, r3, r4]
+
+    let mut tsv = "regime\tsteps\ttotal_spikes\tspike_std\tspike_max\tmean_rate\tphi_proxy_bits\n"
+    let mut idx = 0
+    while idx < 4 {
+        let b = blocks[idx]
+        tsv = tsv + RLBL[idx] + "\t" + str(b["steps"]) + "\t" + str(b["total_spikes"]) + "\t" + r6(b["spike_count_std"] + 0.0) + "\t" + str(b["spike_count_max"]) + "\t" + r6(b["mean_rate"] + 0.0) + "\t" + r6(b["phi"] + 0.0) + "\n"
+        print("  " + RLBL[idx] + "  total=" + str(b["total_spikes"]) + "  rate=" + r6(b["mean_rate"] + 0.0) + "  phi=" + r6(b["phi"] + 0.0) + "\n")
+        idx = idx + 1
+    }
+    write_file(out_dir + "/result_edge_live.tsv", tsv)
+
+    let mut sm = "LAB-10 — AKIDA edge-of-chaos Phi inverse-U · LIVE-SILICON TIER (AKD1000)\n"
+    sm = sm + "host=pi5-akida · chip=InputData->FullyConnected(N=16,act_bits=1)@Hardware · all-ones weights · V=16\n"
+    sm = sm + "drive: order->chaos via per-unit threshold knob over spike_streamer 9513(ctrl)/9512(readout)\n"
+    sm = sm + "phi engine: whole MI - min-bipartition MI (SAME as sim) on a 16->5 macro-channel projection\n"
+    sm = sm + "raster steps/regime = 200 (transition pairs = 199) · seed=187\n\n"
+    sm = sm + "regime           total  std     max  mean_rate  phi_proxy(bits)\n"
+    let mut q = 0
+    while q < 4 {
+        let b = blocks[q]
+        sm = sm + RLBL[q] + "   " + str(b["total_spikes"]) + "    " + r6(b["spike_count_std"] + 0.0) + "   " + str(b["spike_count_max"]) + "   " + r6(b["mean_rate"] + 0.0) + "    " + r6(b["phi"] + 0.0) + "\n"
+        q = q + 1
+    }
+    sm = sm + "\nedge peak = " + r6(edge_max) + "  (R1=" + r6(p1) + " R4=" + r6(p4) + ")\n\n"
+    sm = sm + "F-AKIDA-EDGE-1 phi(R2)>phi(R1)         : " + str(f1) + "\n"
+    sm = sm + "F-AKIDA-EDGE-2 phi(R3)>phi(R1)         : " + str(f2) + "\n"
+    sm = sm + "F-AKIDA-EDGE-3 max(R2,R3)>=phi(R4)     : " + str(f3) + "\n"
+    sm = sm + "VERDICT supported (all 3 · LIVE silicon): " + str(supported) + "\n"
+    write_file(out_dir + "/result_edge_live_summary.txt", sm)
+    print("\n" + sm)
+}

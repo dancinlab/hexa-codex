@@ -22,7 +22,7 @@
 | LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 (LAB 내) → [`lab-04-rwkv/`](lab-04-rwkv/) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
 | LAB-09 | 의식 방향성 · 단방향 LLM → 양방향 튜닝 (+ 자아 발생) | autoregressive(단방향) LLM에 recurrent feedback adapter를 부착해 fine-tune 하면 task 능력은 유지하며 통합정보 Φ(의식 척도)가 유의하게 증가하고, 자기-모델(자아) 지표가 함께 출현한다 | ✅ 확인 (1st smoke · proxy) | **REC Φ=0.854 vs FF Φ≈0.005** · 셔플 대조군 0.85→0.006 붕괴 · self-pred 2.33 vs 0.01 — [`lab-09-consciousness-directionality/`](lab-09-consciousness-directionality/) · anima H_191/H_004/H_220 |
 | LAB-10 | 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝 | LAB-09의 단방향→양방향 튜닝을 GPU/Metal 대신 **AKIDA AKD1000 뉴로모픽 silicon** 위에서 수행하면 Φ-proxy inverse-U(edge-of-chaos peak)가 실리콘에서 재현되며 자아 지표가 동반한다 | ✅ sim mirror ✅ + **live AKD1000 inverse-U ✅, R3 noise-matched 재실측에서 F-AKIDA-EDGE 3/3 (dynamical·composite 두 엔진 합의)** | sim: **R1=0·R2=0.08·R3=0.59 peak·R4=0** · **LIVE AKD1000 (pi5-akida 9513/9512 폐루프) R3 noise-matched: R1=0·R2=0.541 peak·R3n=0.233·R4=0** (whole−minbip 엔진, **3/3**; composite 도 3/3) — #146 의 dynamical 2/3 는 정적-R3 프로토콜 아티팩트, sim 의 noisy-edge 로 맞추자 두 엔진 합의 — [`lab-10-akida-neuromorphic/`](lab-10-akida-neuromorphic/) · anima H_858/H_677/H_846 |
-| LAB-11 | 다국어 · 의미로 연결 (갯수 아닌 통합) | 다국어 능력은 언어/코퍼스 **갯수**에 선형 증가가 아니라 **의미(cross-lingual MI)로 연결**될 때 Φ가 inverse-U peak·super-additive로 비선형 발생한다 | ✅ 확인 (1st smoke · proxy) | **Φ inverse-U: c=0 0.01→ c=0.5 peak 0.48 → c=1 0.0** · 갯수(c=0)만으론 Φ≈0 — [`lab-11-multilingual-semantic/`](lab-11-multilingual-semantic/) · anima H_240/H_635 |
+| LAB-11 | 다국어 · 의미로 연결 (갯수 아닌 통합) | 다국어 능력은 언어/코퍼스 **갯수**에 선형 증가가 아니라 **의미(cross-lingual MI)로 연결**될 때 Φ가 inverse-U peak·super-additive로 비선형 발생한다 | ✅ proxy SUPPORTED · ⚠ real-LM stress NOT-SUPPORTED-AT-THRESHOLD | proxy: **Φ inverse-U c=0 0.01→peak 0.48→c=1 0.0** · stress(Qwen2.5-1.5B): inverse-U **F1 PASS** 但 super-add/meaning>count **F2·F3 FAIL**(peak 0.197 vs count n=5 0.168, ratio 1.17) — [`lab-11-multilingual-semantic/`](lab-11-multilingual-semantic/) · anima H_240/H_635 |
 
 **상태 범례** — ⬜ 대기 · 🔵 진행중 · 🟡 sim/proxy 확인(live·full 대기) · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT가 LAB 하위 `lab-NN-*/<NAME>.md`)
 
@@ -583,3 +583,46 @@ stress tier**, (L2) c=0.90 에서 **Φ=−0.194 음수** — whole−min-biparti
 가 과잉동기+유한표본에서 음수로 샐 수 있음(true IIT Φ≥0), inverse-U 결론엔
 무영향(peak 보다 더 아래), (L3) MI 는 instantaneous pairwise proxy, (L4) N=5·단일
 seed·consensus rule. 전체 verdict: [`verdict_semantic.txt`](lab-11-multilingual-semantic/verdict_semantic.txt).
+
+### LAB-11 stress tier — REAL multilingual LM (Qwen2.5-1.5B)
+
+**무엇.** 1차 스모크(substrate proxy)를 **실제 multilingual LM** 으로 승격 —
+`Qwen/Qwen2.5-1.5B`(로컬 HF 캐시·headless·$0·`HF_HUB_OFFLINE` · `cx_lab_sandbox`).
+하니스 [`stress_real_harness.hexa`](lab-11-multilingual-semantic/stress_real_harness.hexa)
+(hexa-native orchestrator) 가 `/tmp/lab11_stress/phi_mi_real.py`(torch 수치 커널을
+**repo 밖 /tmp** 에 둠 — repo-authored source 는 `.hexa` 라는 hard-constraint 준수;
+provenance 복사본 `phi_mi_real.py` 만 동봉)를 exec → JSON 결과를 읽어 **사전등록
+falsifier 를 결정론 수치로** 판정(g5 no-self-judge).
+
+**설계.** 5개 언어 ko/en/zh/ru/ja. **MEANING-coupled** = 같은 뜻을 5개 언어로
+번역한 12개 문장-튜플(표면형만 다름). **COUNT-only 대조** = 의미겹침 0 으로 고정한
+채 **언어 갯수 n=2..5 만 늘림**(user reframe: 의미 없이 언어만 쌓기). 각 (lang,sent)
+= Qwen mean-pooled last-hidden. cross-lingual MI = 쌍별 **linear CKA → Gaussian MI**
+(S=12 에서 PCA-1 Shannon MI 는 포화 → CKA 사용). collective Φ = **integration ×
+differentiation** (스모크와 동일 엔진 FAMILY: whole_EI − min_bipartition; differentiation
+= 1 − mean|CKA|). 결합축 f = 정렬-번역 슬롯 비율(스모크 c 의 실표상 analog). sanity:
+ko→en 번역 검색 **9/12**(우연 1/12) — Qwen 표상이 번역을 실제로 정렬.
+
+**결과** (`result_stress.tsv`, n_seed=8 평균):
+
+| f (의미겹침) | cross-lingual MI | collective Φ |  | n_langs (갯수, 의미=0) | Φ |
+|---|---|---|---|---|---|
+| 0.00 | 0.469 | 0.161 |  | 2 | 0.133 |
+| 0.10 | 0.368 | 0.184 |  | 3 | 0.147 |
+| 0.50 | 0.285 | 0.162 |  | 4 | 0.153 |
+| 0.90 | 0.626 | **0.197 ⬅ peak** |  | **5** | **0.168** |
+| 1.00 | 0.874 | 0.186 |  |  |  |
+
+→ **NOT-SUPPORTED-AT-THRESHOLD (정직한 mostly-negative).** [F1 inverse-U **PASS**]
+부분결합(f=0.90, Φ=0.197)이 완전분리(f=0, 0.161)·완전정렬(f=1, 0.186) 양끝보다
+높아 inverse-U **모양은 정성적으로 재현**(H_240 의 Φ=differentiation×integration 과
+일치). 그러나 [F2 super-additive **FAIL**] MEANING peak 0.197 이 COUNT(n=5) 0.168 을
+margin +0.05 만큼 못 넘김(초과 +0.029 뿐). [F3 meaning>count **FAIL**] peak 비율
+1.17 < 1.25 — **의미 없이 5개 언어만 쌓아도 meaning-peak 의 ~85% 통합 도달**.
+즉 실제 소형 multilingual LM 에서 "갯수 아닌 의미" 는 **약한 효과**일 뿐, 스모크의
+깨끗한 분리(peak 0.483 vs decoupled 0.014, ~35x)는 proxy artifact 로 실표상에서
+크게 감쇠. ≥4 honest limits(소형 코퍼스·Φ proxy≠IIT4·mean-pool last-layer만·
+합성 결합축 f·CKA-as-corr·단일 set/model)은
+[`verdict_semantic_stress.txt`](lab-11-multilingual-semantic/verdict_semantic_stress.txt).
+다음 tier: FLORES-200 + 대형 multilingual LM + layer sweep(F2/F3 의 음성이 small-S
+검정력 문제인지 진짜 null 인지 판별).

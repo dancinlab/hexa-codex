@@ -1,0 +1,5 @@
+regime	drive	gain	noise	mean_rate	phi_proxy_bits
+R1_weak_silent	0.2	0.1	0.0	0.0	0.0
+R2_noise_edge	0.3	0.15	0.3	0.11244	0.075347
+R3_tonic_edge	0.35	0.25	0.55	0.333195	0.590696
+R4_over_driven	1.4	1.3	0.0	0.999975	0.0

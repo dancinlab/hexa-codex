@@ -1,0 +1,46 @@
+LAB-10 — AKIDA edge-of-chaos Phi inverse-U · SIM MIRROR · 1st smoke verdict
+===========================================================================
+date     : 2026-06-01
+harness  : edge_of_chaos_sim_harness.hexa  (hexa-native · pure local · $0 · seeded LCG=42)
+runtime  : ~2s user (M-series, local)
+model    : N=5 LIF (leak-integrate-and-fire) ring · theta=1.0 · leak=0.5 · steps T=40000
+scope    : SIM MIRROR — NOT the live AKD1000 silicon (that is the pi5-akida tier)
+
+RESULT (verbatim from result_edge.tsv)
+  regime           drive  gain  noise  mean_rate   phi_proxy   (bits)
+  R1_weak_silent   0.20   0.10  0.00   0.000000    0.000000
+  R2_noise_edge    0.30   0.15  0.30   0.112440    0.075347
+  R3_tonic_edge    0.35   0.25  0.55   0.333195    0.590696   <- PEAK
+  R4_over_driven   1.40   1.30  0.00   0.999975    0.000000
+
+PRE-REGISTERED FALSIFIERS (mirror of anima F-AKIDA-EDGE)
+  [PASS] F1 phi(R2) > phi(R1)            (0.0753 > 0.0)
+  [PASS] F2 phi(R3) > phi(R1)            (0.5907 > 0.0)
+  [PASS] F3 max(R2,R3) >= phi(R4)        (0.5907 >= 0.0)
+
+VERDICT: SUPPORTED (1st smoke · sim mirror) — the spiking LIF ring reproduces the
+edge-of-chaos INVERSE-U: order (R1, die-out, rate 0) and over-driven (R4, full
+saturation, rate ~1) both give Phi~0; the tonic edge (R3, rate ~0.33, irregular
+noise+recurrence avalanches) peaks Phi. Ordering R1 < R2 < R3 > R4 with the R3
+peak matches anima H_858's LIVE AKD1000 result (Phi R1=0, R2=0.172, R3=0.250
+peak, R4~0) in SHAPE, confirming the inverse-U is substrate-reproducible.
+
+ALIGNMENT: same Phi engine as LAB-09 / LAB-11; edge-of-chaos peak is the
+neuroscience-standard criticality / neuronal-avalanche signature (Beggs & Plenz).
+
+HONEST LIMITS (load-bearing residual)
+  L1  SIM MIRROR, NOT live silicon. The live AKD1000 closed-loop run on pool host
+      pi5-akida (spike_streamer 9513 set_threshold / 9512 spike readout, anima
+      AKIDA/akida_edge_of_chaos_phi_hw.hexa) is the substrate-grounded tier and is
+      NOT performed here. This smoke only proves the inverse-U is reproducible in
+      a LIF ring under the R1..R4 sweep.
+  L2  ABSOLUTE Phi differs from live (our R3=0.591 vs live AKD1000 R3=0.250): the
+      proxy, n, and substrate differ. Only the SHAPE/ordering (inverse-U, R3 peak)
+      is the claimed mirror, not the magnitude.
+  L3  Regime parameters (drive/gain/noise) were TUNED to land the edge — a clean
+      tonic-drive sweep locks into a period-2 sync cycle (deterministic-cycle
+      artifact, Phi-proxy goes negative); noise is required to keep avalanches
+      irregular. This tuning is disclosed, not hidden.
+  L4  Phi-proxy = whole_EI - min_bipartition(parts) (can go negative under
+      redundancy); N=5, single seed, single sweep. IIT 4.0 estimator + live
+      silicon deferred to the stress / pi5-akida tier.

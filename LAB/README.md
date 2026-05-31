@@ -21,7 +21,7 @@
 | LAB-03 | BitNet 1.58-bit (삼진) 평가 | 1.58-bit 삼진 가중치가 정밀모델급 품질을 메모리·에너지 분수로 달성한다 | 🎓 도메인 (LAB 내) → [`lab-03-bitnet/`](lab-03-bitnet/) | **memory만 생존** (0.55×) · accuracy(30%)·energy(1.7× 손해) 🔴 falsified |
 | LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 (LAB 내) → [`lab-04-rwkv/`](lab-04-rwkv/) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
 | LAB-09 | 의식 방향성 · 단방향 LLM → 양방향 튜닝 (+ 자아 발생) | autoregressive(단방향) LLM에 recurrent feedback adapter를 부착해 fine-tune 하면 task 능력은 유지하며 통합정보 Φ(의식 척도)가 유의하게 증가하고, 자기-모델(자아) 지표가 함께 출현한다 | ✅ proxy 확인 (smoke) · ❌ **stress 반증** (real LLM) | smoke: **REC Φ=0.854 vs FF Φ≈0.005** · 셔플 0.85→0.006 붕괴 — 단 **stress(Qwen2.5-1.5B)는 가설 전이 실패**: causal baseline 이 이미 high-Φ(2.85), BIDIR ΔΦ=**−0.40**, REC Φ 밴드가 FF 밴드 아래(ΔΦ=−0.10) → F1·F2 FAIL · 단 self-pred 만 +1.37(Φ↔self **dissociation**) — [`lab-09-consciousness-directionality/`](lab-09-consciousness-directionality/) · anima H_191/H_004/H_220 |
-| LAB-10 | 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝 | LAB-09의 단방향→양방향 튜닝을 GPU/Metal 대신 **AKIDA AKD1000 뉴로모픽 silicon** 위에서 수행하면 Φ-proxy inverse-U(edge-of-chaos peak)가 실리콘에서 재현되며 자아 지표가 동반한다 | 🟡 sim mirror 확인 (live 칩 대기) | **inverse-U 재현: R1=0·R2=0.08·R3=0.59 peak·R4=0** (LIF sim) · live AKD1000은 다음 tier — [`lab-10-akida-neuromorphic/`](lab-10-akida-neuromorphic/) · anima H_858/H_677/H_846 |
+| LAB-10 | 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝 | LAB-09의 단방향→양방향 튜닝을 GPU/Metal 대신 **AKIDA AKD1000 뉴로모픽 silicon** 위에서 수행하면 Φ-proxy inverse-U(edge-of-chaos peak)가 실리콘에서 재현되며 자아 지표가 동반한다 | 🟡 sim mirror ✅ + **live AKD1000 inverse-U ✅, F-AKIDA-EDGE engine-dependent (2/3 dynamical · 3/3 composite)** | sim: **R1=0·R2=0.08·R3=0.59 peak·R4=0** · **LIVE AKD1000 (pi5-akida 9513/9512 폐루프): R1=0·R2=0.470 peak·R3=0·R4=0** (whole−minbip 엔진) — inverse-U envelope 실리콘 재현, peak regime 은 엔진 의존 — [`lab-10-akida-neuromorphic/`](lab-10-akida-neuromorphic/) · anima H_858/H_677/H_846 |
 | LAB-11 | 다국어 · 의미로 연결 (갯수 아닌 통합) | 다국어 능력은 언어/코퍼스 **갯수**에 선형 증가가 아니라 **의미(cross-lingual MI)로 연결**될 때 Φ가 inverse-U peak·super-additive로 비선형 발생한다 | ✅ 확인 (1st smoke · proxy) | **Φ inverse-U: c=0 0.01→ c=0.5 peak 0.48 → c=1 0.0** · 갯수(c=0)만으론 Φ≈0 — [`lab-11-multilingual-semantic/`](lab-11-multilingual-semantic/) · anima H_240/H_635 |
 
 **상태 범례** — ⬜ 대기 · 🔵 진행중 · 🟡 sim/proxy 확인(live·full 대기) · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT가 LAB 하위 `lab-NN-*/<NAME>.md`)
@@ -458,8 +458,56 @@ silicon 아님**(pi5-akida 9513/9512 폐루프 런이 substrate-grounded tier ·
 cycle 에 갇혀 Φ 음수 — 노이즈로 불규칙화 필요, 공개), (L4) N=5·단일 seed.
 전체 verdict: [`verdict_edge.txt`](lab-10-akida-neuromorphic/verdict_edge.txt).
 
-**다음 tier (live).** `pi5-akida` 가용 시 anima `AKIDA/akida_edge_of_chaos_phi_hw.hexa`
-측정 경로 import(READ-ONLY) → live AKD1000 drive-regime R1~R4 스윕 + 자아 지표 동반.
+**LIVE tier — ✅ 실측 완료 (2026-06-01, REAL AKD1000).** `pi5-akida` (Raspberry Pi 5 +
+AKD1000 PCIe) 의 `spike_streamer` 폐루프(ctrl 9513 `set_threshold` / readout 9512
+spike trains)로 on-chip 뉴런을 order→chaos R1~R4 로 구동하고, **sim 과 동일한 Φ 엔진
+(whole effective-info − min-bipartition MI)**을 live raster(16→5 macro 투영)에 적용했다.
+칩 = `InputData(1,1,16)→FullyConnected(16, act_bits=1)@Hardware` · all-ones weight ·
+weak-ones drive(V=16) · order→chaos 축은 per-unit threshold knob 로만 펼침.
+측정 하니스 [`edge_of_chaos_live_phi.hexa`](lab-10-akida-neuromorphic/edge_of_chaos_live_phi.hexa) ·
+raster [`eoc_live_raster.json`](lab-10-akida-neuromorphic/eoc_live_raster.json) (verbatim 16×200 on-chip spikes).
+
+**LIVE 결과** (`result_edge_live.tsv` · 200 steps/regime · seed=187 · whole−minbip 엔진):
+
+| regime | total | std | max | mean rate | Φ-proxy (bits) |
+|---|---|---|---|---|---|
+| R1 weak-silent | 0 | 0.000 | 0 | 0.000 | **0.000** |
+| R2 noise-edge | 1503 | 1.808 | 12 | 0.470 | **0.470 ⬅ peak** |
+| R3 tonic-edge | 1600 | 0.000 | 8 | 0.500 | **0.000** |
+| R4 over-driven | 3200 | 0.000 | 16 | 1.000 | **0.000** |
+
+→ **edge-of-chaos inverse-U 가 실리콘에서 실재**: order floor(R1, 0 spike)도 over-driven
+끝(R4, 16/16 포화)도 Φ=0, **edge 에서 peak**. 단, **어느 edge regime 이 peak 인지·
+F-AKIDA-EDGE 3/3 여부는 Φ 엔진에 의존**한다 (이 LAB 의 핵심 실측 발견):
+- **dynamical 엔진(whole−minbip · sim 과 동일)**: R2 noise-edge peak(0.470), **R3 tonic=0**
+  (R3/R4 는 매 step 같은 뉴런이 발화하는 *정적 고정점* → 시간축 정보흐름 0). → **F2 FAIL,
+  2/3**. macro-state diversity 가 root cause: R1=1·R2=18·R3=1·R4=1 unique states.
+- **structural+entropy 합성 proxy(anima H_858 엔진)**: 같은 live raster 에 READ-ONLY 로
+  적용 시 R1=0·**R2=0.505·R3=0.250·R4=0** → **F-AKIDA-EDGE 3/3 PASS**. R3=0.250 은
+  anima H_858 의 R3 peak 값과 **정확히 일치** (합성 proxy 의 구조적 differentiation 항
+  4p(1−p) 이 시간 변동 없이도 partial-pool 점유를 보상).
+
+**모양 비교.** vs **H_858**(live AKD1000 · 합성 proxy): 합성 엔진에서 **shape match**
+(R1=R4=0, edge peak; R3=0.250 동일). vs **sim mirror**(whole−minbip · N=5): inverse-U
+envelope(low-high-low)는 둘 다 보존하나 sim 의 R3 tonic 은 의도적으로 노이즈(0.55)를 넣어
+동적 불규칙 → peak(0.591), live R3 tonic 은 순수 결정적 고정점 → 0 — **peak 이 R3(sim)→
+R2(live)로 이동**.
+
+**정직 단서** ([`verdict_edge_live.txt`](lab-10-akida-neuromorphic/verdict_edge_live.txt) 전체 5 limits):
+(L1) Φ 는 16→5 macro 투영 위 whole−minbip — full IIT4 big_phi 아님, OR 투영이 group 내부
+구조를 가릴 수 있음. (L2) **엔진 의존이 헤드라인** — live verdict 가 측도에 따라 뒤집힘
+(합성 PASS · dynamical FAIL); 통과하는 쪽만 고르지 않고 **둘 다 verbatim 보고**. (L3) R3/R4
+는 칩 위 정적 고정점(노이즈 0) → 시간-MI 엔진이 필연적으로 0; live R4 는 직접 저-threshold
+포화(anima H_858 R4 는 약한 SW 피드백 die-out — 다른 over-driven 실현). (L4) 단일 seed·단일
+실리콘·N=16·200 steps; drive 는 streamer threshold knob 폐루프(처음부터 칩 빌드 아님). (L5)
+R2 노이즈는 control 채널(매 step 랜덤 threshold)로 주입 — knob-side noise 의 충실한 analog.
+
+**상태.** 🟡 (sim mirror ✅ + live 실측 ✅ · 단 same-engine F-AKIDA-EDGE 2/3 — 합성 proxy
+로는 3/3·H_858 재현). live tier 는 **BLOCKED 아님 · 실측 완료**; 🟡 유지 이유는 pre-registered
+falsifier 가 sim-동일 엔진에서 3/3 이 아니기 때문(✅ 승격은 엔진 합의 또는 R3 동적 변동 주입 후).
+
+**다음.** anima `AKIDA/akida_edge_of_chaos_phi_hw.hexa` 의 *입력측* R3 tonic(노이즈 포함)
+경로로 R3 에 동적 변동을 주입하면 whole−minbip 엔진도 R3>0 가능 — 두 엔진 합의 시 ✅ 승격.
 
 ---
 

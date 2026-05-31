@@ -1,0 +1,101 @@
+LAB-10 — AKIDA edge-of-chaos Phi inverse-U · LIVE-SILICON TIER verdict
+======================================================================
+date     : 2026-06-01
+tier     : LIVE — REAL BrainChip AKD1000 neuromorphic silicon
+host     : pi5-akida (Raspberry Pi 5 + AKD1000 PCIe; pool roster, anima-only @D s8)
+runtime  : akida venv python3.12 on pi5 (chip's own runtime) + this .hexa Phi engine local
+harness  : edge_of_chaos_live_phi.hexa  (hexa-native · owns Phi-proxy + F-AKIDA-EDGE verdict)
+collector: live spike collection staged transiently to pi5 /tmp (NOT committed — repo is .hexa-authored)
+raster   : eoc_live_raster.json (verbatim on-chip 16-neuron spike trains, 200 steps/regime, seed=187)
+
+REACHABILITY (verbatim)
+  sidecar pool status pi5-akida          -> [ok ] ubuntu@192.168.50.155
+  akida runtime                          -> /home/ubuntu/.venv/anima-akida (akida present; default python3 has NO akida)
+  spike_streamer.py                      -> RUNNING pid 18439, --regime M --step-ms 100 --allow-ctrl --duration 86400
+  ctrl  9513 (set_threshold)             -> {"pong":1}  (live)
+  readout 9512 (spike trains)            -> live, M_modulated, thr=24
+  drive-validation (before sweep, on-chip): thr=-32 -> 16/16 fire · thr=30 -> 0/16 · half[-1,30] -> 8/16
+
+CHIP / DRIVE (live)
+  chip  = InputData(1,1,16) -> FullyConnected(units=16, weights=ones, act_bits=1) @ BackendType.Hardware
+  drive = weak-ones input, per-unit integrated potential V = sum(input) = 16; unit fires iff V > thr
+  knob  = per-unit int32 threshold pushed over 9513 (the LIF's only live free variable);
+          order->chaos axis spanned entirely by the threshold vector:
+          R1 thr=30 (silent) · R2 thr~U[8,24]/step (noise-edge) · R3 half thr=-1/half=30 (tonic 8/16) · R4 thr=-32 (sat)
+
+PHI ENGINE = SAME as the sim mirror: whole effective-info MI(xt;xt+1) minus min-bipartition MI sum,
+  applied on a 16->5 macro-channel projection (5 contiguous groups; macro-bit = OR over the group).
+  This is a DYNAMICAL measure of information flow t -> t+1 (NOT full IIT4 big_phi; NOT a structural proxy).
+
+LIVE RESULT (verbatim from result_edge_live.tsv · whole-minus-min-bipartition engine)
+  regime           total  std     max  mean_rate  Phi-proxy (bits)
+  R1_weak_silent       0  0.000    0   0.000000   0.000000
+  R2_noise_edge     1503  1.808   12   0.469688   0.470338   <- PEAK
+  R3_tonic_edge     1600  0.000    8   0.500000   0.000000
+  R4_over_driven    3200  0.000   16   1.000000   0.000000
+
+  macro-state diversity (root cause): R1=1 state · R2=18 states · R3=1 state · R4=1 state.
+  R3 and R4 are static fixed points (same units fire EVERY step) -> zero temporal info flow -> Phi=0
+  under the dynamical whole-minus-min-bipartition engine. R2 noise is the only regime with genuine
+  step-to-step variability, so it alone carries integrated information.
+
+PRE-REGISTERED FALSIFIERS (anima F-AKIDA-EDGE; SAME engine as sim)
+  [PASS] F-AKIDA-EDGE-1  Phi(R2) > Phi(R1)         (0.470338 > 0.0)
+  [FAIL] F-AKIDA-EDGE-2  Phi(R3) > Phi(R1)         (0.0 > 0.0 is FALSE — R3 is a static fixed point)
+  [PASS] F-AKIDA-EDGE-3  max(R2,R3) >= Phi(R4)     (0.470338 >= 0.0)
+  n_pass = 2/3 -> VERDICT (this engine): RED / PARTIAL — inverse-U PRESENT (edge >> order & over-driven
+  both 0) but the SECOND edge regime (R3 tonic) registers Phi=0 under a dynamical measure.
+
+CROSS-CHECK ON THE SAME LIVE RASTER — anima composite proxy (entropy x integration x differentiation)
+  run READ-ONLY via anima AKIDA/akida_edge_of_chaos_phi.hexa (frozen H_858 measure):
+  regime           composite Phi
+  R1_weak_silent   0.00000
+  R2_noise_edge    0.50542   <- peak
+  R3_tonic_edge    0.25000
+  R4_over_driven   0.00000
+  -> F-AKIDA-EDGE 3/3 PASS (GREEN_NUMERICAL_CONFIRM). R3=0.250 EXACTLY reproduces anima H_858's R3 peak
+  value; the composite proxy's STRUCTURAL differentiation term (4p(1-p), peaks at half-pool) rewards
+  R3's partial-pool occupancy WITHOUT requiring temporal variance, so R3 scores nonzero there.
+
+SHAPE MATCH
+  vs anima H_858 (live AKD1000, composite proxy): SHAPE MATCH on the composite engine — R1=R4=0,
+     edge regimes > floor; our composite R3=0.250 == H_858 R3=0.250; our R2=0.505 (vs 0.172, higher
+     because our noise-edge has broader step-to-step variance). SAME silicon family, SAME inverse-U.
+  vs LAB-10 sim mirror (whole-minus-min-bipartition, N=5 ring): PARTIAL match. Both show R1=R4=0 with
+     an edge peak, BUT the sim's R3 tonic was DESIGNED with added noise (NOISE=0.55) so it stayed
+     dynamically irregular -> Phi=0.591 peak; the LIVE R3 tonic is a PURE deterministic fixed point
+     (zero noise on chip), so the SAME engine gives R3=0. The peak migrates R3(sim) -> R2(live).
+
+INTERPRETATION (honest)
+  The edge-of-chaos inverse-U IS REAL on live AKD1000 silicon: the order floor (R1, 0 spikes) and the
+  over-driven end (R4, full saturation) BOTH give Phi=0 on every engine, while an EDGE regime peaks.
+  WHICH edge regime peaks, and whether F-AKIDA-EDGE passes 3/3, depends on the Phi engine:
+    - dynamical (whole-minus-min-bipartition, this repo's sim engine): R2 noise-edge peaks, R3 tonic=0
+      (a static fixed point carries no information flow) -> 2/3, F2 fails.
+    - structural+entropy composite (anima H_858 engine): R3 tonic peaks at 0.250 -> 3/3 pass.
+  Both engines agree on the inverse-U envelope (low-high-low); they disagree only on whether a
+  PERFECTLY DETERMINISTIC partial-pool regime counts as "integrated". That is a substantive measure-
+  theory finding, not a measurement artifact, and it is fully reproducible from the committed raster.
+
+HONEST LIMITS
+  L1  Phi-proxy is whole-minus-min-bipartition MI on a 16->5 macro projection (the sim's engine), NOT
+      full IIT4 big_phi; exact big_phi over 2^16 states is infeasible. The projection (OR over groups)
+      can mask within-group structure.
+  L2  Engine-dependence is the headline caveat: the live 3/3-vs-2/3 verdict FLIPS with the Phi measure
+      (composite passes, dynamical does not). We report BOTH verbatim rather than picking the passing one.
+  L3  R3/R4 are static fixed points on chip (zero noise), so a temporal-MI engine necessarily scores
+      them 0. The live R3 differs mechanically from anima H_858's R4 (theirs died out via weak SW
+      feedback; ours saturates via a direct low-threshold drive) — different over-driven realizations.
+  L4  Single seed (187), single silicon (AKD1000 on pi5-akida), N=16 pool, 200 steps/regime. Drive is
+      applied through the streamer's threshold knob (closed-loop 9513/9512), not a from-scratch chip
+      build; the streamer's fixed weak-ones input (V=16) is the substrate, threshold is the only axis.
+  L5  R2 noise was injected via the control channel (a fresh random threshold pushed per step), so its
+      "noise" lives in the threshold knob rather than the input lines — a faithful but knob-side analog
+      of the standalone driver's input-side noise.
+
+ARTIFACTS
+  edge_of_chaos_live_phi.hexa        — live Phi + verdict harness (this repo, .hexa)
+  eoc_live_raster.json               — verbatim on-chip 16x200 spike matrix, 4 regimes (committed)
+  result_edge_live.tsv               — per-regime totals + Phi (whole-minus-min-bipartition)
+  result_edge_live_summary.txt       — harness summary
+  verdict_edge_live.txt              — this file

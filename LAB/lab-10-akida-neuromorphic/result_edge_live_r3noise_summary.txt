@@ -1,0 +1,18 @@
+LAB-10 — AKIDA edge-of-chaos Phi inverse-U · LIVE-SILICON TIER (AKD1000)
+host=pi5-akida · chip=InputData->FullyConnected(N=16,act_bits=1)@Hardware · all-ones weights · V=16
+drive: order->chaos via per-unit threshold knob over spike_streamer 9513(ctrl)/9512(readout)
+phi engine: whole MI - min-bipartition MI (SAME as sim) on a 16->5 macro-channel projection
+raster steps/regime = 200 (transition pairs = 199) · seed=187
+
+regime           total  std     max  mean_rate  phi_proxy(bits)
+R1_weak_silent   0    0.0   0   0.0    0.0
+R2_noise_edge   1457    2.1057   12   0.455313    0.540823
+R3_tonic_edge   1622    2.0317   14   0.506875    0.23296
+R4_over_driven   3200    0.0   16   1.0    0.0
+
+edge peak = 0.540823  (R1=0.0 R4=0.0)
+
+F-AKIDA-EDGE-1 phi(R2)>phi(R1)         : true
+F-AKIDA-EDGE-2 phi(R3)>phi(R1)         : true
+F-AKIDA-EDGE-3 max(R2,R3)>=phi(R4)     : true
+VERDICT supported (all 3 · LIVE silicon): true

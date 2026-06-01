@@ -1,0 +1,16 @@
+LAB-12 RIGOROUS — interventional EI (Hoel) + grouping search · SIM
+seed=42 N=6 states=64 samp/state=6000 (memoryless-reset Markov closure)
+EI = MI under UNIFORM intervention · CE = max_grouping EI_macro - EI_micro · groupings: pairOR/AND/XOR · triMAJ/OR/AND
+
+regime           EI_micro   EI_macro*  best_grouping  CE
+R1_weak_silent   0.0   0.0   pairOR   0.0
+R2_noise_edge   0.0   0.0   pairOR   0.0
+R3_tonic_edge   1.20458   0.617713   triOR   -0.586864
+R4_over_driven   0.0   0.0   pairOR   0.0
+
+edge_peak = R3_tonic_edge  CE_edge = -0.586864  (R1 CE=0.0  R4 CE=0.0)
+
+falsifier F1 CE(edge) > 0       : false
+falsifier F2 CE(edge) > CE(R1)  : false
+falsifier F3 CE(edge) > CE(R4)  : false
+VERDICT supported (edge-specific causal emergence · interventional · F1∧F2∧F3) : false

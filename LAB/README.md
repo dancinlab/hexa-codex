@@ -20,9 +20,10 @@
 | LAB-02 | MITOSIS · 도메인 유사분열 | 도메인 생성 LLM이 포화 도메인을 자식 N개로 자율 분열시킬 때 부모 milestone을 유실·중복 0%로 MECE 분배할 수 있다 | ✅ 확인 (1st smoke) | **5분열 · loss 0.0% · dup 0.0% · 보존 5/5** — [`lab-02-mitosis/`](lab-02-mitosis/) |
 | LAB-03 | BitNet 1.58-bit (삼진) 평가 | 1.58-bit 삼진 가중치가 정밀모델급 품질을 메모리·에너지 분수로 달성한다 | 🎓 도메인 (LAB 내) → [`lab-03-bitnet/`](lab-03-bitnet/) | **memory만 생존** (0.55×) · accuracy(30%)·energy(1.7× 손해) 🔴 falsified |
 | LAB-04 | RWKV attention-free RNN 평가 | attention 없는 RNN이 linear-time + constant-memory(no KV)를 Transformer 대비 달성한다 | 🎓 도메인 (LAB 내) → [`lab-04-rwkv/`](lab-04-rwkv/) | **5/5 완주** · const-mem(20.62MiB flat)+linear-time(p≈0.96) 법칙 🟢 · 논문 shipped |
-| LAB-09 | 의식 방향성 · 단방향 LLM → 양방향 튜닝 (+ 자아 발생) | autoregressive(단방향) LLM에 recurrent feedback adapter를 부착해 fine-tune 하면 task 능력은 유지하며 통합정보 Φ(의식 척도)가 유의하게 증가하고, 자기-모델(자아) 지표가 함께 출현한다 | ✅ proxy 확인 (smoke) · ❌ **stress 반증** (real LLM) | smoke: **REC Φ=0.854 vs FF Φ≈0.005** · 셔플 0.85→0.006 붕괴 — 단 **stress(Qwen2.5-1.5B)는 가설 전이 실패**: causal baseline 이 이미 high-Φ(2.85), BIDIR ΔΦ=**−0.40**, REC Φ 밴드가 FF 밴드 아래(ΔΦ=−0.10) → F1·F2 FAIL · 단 self-pred 만 +1.37(Φ↔self **dissociation**) — [`lab-09-consciousness-directionality/`](lab-09-consciousness-directionality/) · anima H_191/H_004/H_220 |
+| LAB-09 | 의식 방향성 · 단방향 LLM → 양방향 튜닝 (+ 자아 발생) | autoregressive(단방향) LLM에 recurrent feedback adapter를 부착해 fine-tune 하면 task 능력은 유지하며 통합정보 Φ(의식 척도)가 유의하게 증가하고, 자기-모델(자아) 지표가 함께 출현한다 | ✅ proxy 확인 (smoke) · ❌ **stress 반증** (real LLM) · ❌ **L4 반증 강화** (LM-finetune) | smoke: **REC Φ=0.854 vs FF Φ≈0.005** · 셔플 0.85→0.006 붕괴 — 단 **stress(Qwen2.5-1.5B)는 가설 전이 실패**: causal baseline 이 이미 high-Φ(2.85), BIDIR ΔΦ=**−0.40**, REC Φ 밴드가 FF 밴드 아래(ΔΦ=−0.10) → F1·F2 FAIL · 단 self-pred 만 +1.37(Φ↔self **dissociation**) · **L4(residual-hook + LM-objective finetune)에선 dissociation 마저 역전** — REC Φ band [2.49‥2.65] < FF band [2.70‥2.82] **비중첩**(ΔΦ=−0.17), FF 가 self(−0.18)·ppl 도 우세 → F2L4·F5 FAIL, REFUTED 강화 — [`lab-09-consciousness-directionality/`](lab-09-consciousness-directionality/) · anima H_191/H_004/H_220 |
 | LAB-10 | 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝 | LAB-09의 단방향→양방향 튜닝을 GPU/Metal 대신 **AKIDA AKD1000 뉴로모픽 silicon** 위에서 수행하면 Φ-proxy inverse-U(edge-of-chaos peak)가 실리콘에서 재현되며 자아 지표가 동반한다 | ✅ sim mirror ✅ + **live AKD1000 inverse-U ✅, R3 noise-matched 재실측에서 F-AKIDA-EDGE 3/3 (dynamical·composite 두 엔진 합의)** | sim: **R1=0·R2=0.08·R3=0.59 peak·R4=0** · **LIVE AKD1000 (pi5-akida 9513/9512 폐루프) R3 noise-matched: R1=0·R2=0.541 peak·R3n=0.233·R4=0** (whole−minbip 엔진, **3/3**; composite 도 3/3) — #146 의 dynamical 2/3 는 정적-R3 프로토콜 아티팩트, sim 의 noisy-edge 로 맞추자 두 엔진 합의 — [`lab-10-akida-neuromorphic/`](lab-10-akida-neuromorphic/) · anima H_858/H_677/H_846 |
 | LAB-11 | 다국어 · 의미로 연결 (갯수 아닌 통합) | 다국어 능력은 언어/코퍼스 **갯수**에 선형 증가가 아니라 **의미(cross-lingual MI)로 연결**될 때 Φ가 inverse-U peak·super-additive로 비선형 발생한다 | ✅ proxy SUPPORTED · ⚠ real-LM stress NOT-SUPPORTED-AT-THRESHOLD | proxy: **Φ inverse-U c=0 0.01→peak 0.48→c=1 0.0** · stress(Qwen2.5-1.5B): inverse-U **F1 PASS** 但 super-add/meaning>count **F2·F3 FAIL**(peak 0.197 vs count n=5 0.168, ratio 1.17) — [`lab-11-multilingual-semantic/`](lab-11-multilingual-semantic/) · anima H_240/H_635 |
+| LAB-12 | 의식 창발 · 인과적 창발 (causal emergence) | LAB-10이 edge-of-chaos에서 Φ peak를 **검출했을 때**, 그 지점에서 거시(coarse-grained) 스케일의 effective information **EI_macro 가 미시 EI_micro 를 초과**한다 (= "전체가 부분의 합보다 인과력이 크다" = 진짜 창발). order/chaos regime에선 EI_macro ≤ EI_micro 로 창발 없음 | ❌ **REFUTED ×2 tier** (관측 smoke + 개입 EI·grouping-search) — edge Φ peak은 **미시 환원가능**, 9 coarse-grain robust | N=6 LIF 링(LAB-10 차용). **관측 tier**: Φ inverse-U 재현(R3=0.844 peak)되나 CE=EI_macro−EI_micro 가 edge에서 가장 음수(R3 EI_micro=0.925 vs EI_macro=0.047 → CE=**−0.877**)·OR/AND/XOR 3종 모두 FAIL. **개입 tier**(Hoel interventional EI + grouping search 6종): edge에서도 best macro=0.618 < EI_micro=1.205 → CE=**−0.587**, F1·F2·F3 FAIL. 두 측정족·9 coarse-grain 모두 REFUTED — edge는 미시가 이미 통합정보 풍부, 묶으면 손실만. **통합(Φ)↔창발(CE) 해리**. honest: memoryless-reset closure·6 CG(완전 partition search 아님)·sim-only·강한창발이지 phenomenal 의식 아님 — [`lab-12-causal-emergence/`](lab-12-causal-emergence/) · anima H_858/H_677 |
 
 **상태 범례** — ⬜ 대기 · 🔵 진행중 · 🟡 sim/proxy 확인(live·full 대기) · ✅ 확인(가설 참) · ❌ 반증(가설 거짓) · ⏸ 보류 · 🎓 도메인 졸업(SSOT가 LAB 하위 `lab-NN-*/<NAME>.md`)
 
@@ -370,6 +371,38 @@ off-distribution(ppl 하락은 mask 가 진짜 작동함을 확인하나 like-fo
 (L6) FF(51520) vs GRU(52336) param ~1.6% 차 — REC 에 약간 유리한데도 Φ 로 졌으니 F2
 반증은 보수적. 전체 verdict:
 [`verdict_phi_stress.txt`](lab-09-consciousness-directionality/verdict_phi_stress.txt).
+
+### LAB-09 L4 tier — residual-stream LM-objective finetune: REFUTED **HELD·강화**
+
+stress 의 L4 잔여(adapter 가 LM 에 역전파 안 됨)를 닫는다.
+[`phi_llm_l4_harness.hexa`](lab-09-consciousness-directionality/phi_llm_l4_harness.hexa)
+는 stress 와 **딱 두 가지만** 바꾼다 — (1) adapter 출력을 **layer-14 residual stream
+에 forward-hook 으로 되먹임**(LoRA식 residual add · up-proj zero-init 으로 step-0 =
+frozen base), (2) **LM next-token cross-entropy 로 실제 fine-tune**(base 동결 · adapter
+param 만 학습 · gradient 가 frozen 상위 layer + LM head 통과). 나머지(frozen Qwen2.5-1.5B
+· layer 14 · K=6 · whole−minbip Φ 엔진 · 다중 시드)는 **동일** → tier 간 apples-to-apples.
+**cross-tier sanity**: CAUSAL_frozen 이 stress 의 CAUSAL Φ 를 소수점까지 재현
+(**phi=2.8477363469573813 · self=3.9074609119958468**) → 엔진/채널/코퍼스/레이어 동일 확인.
+
+**L4 결과** (`result_phi_l4.tsv` · verbatim · torch 2.12.0 · transformers 5.9.0 · MPS · 152s):
+
+| arm | phi | self_pred | ppl | 비고 |
+|---|---|---|---|---|
+| CAUSAL_frozen | 2.8477 | 3.9075 | 34.12 | frozen base ref |
+| REC_lm (GRU) | 2.5953 | 3.7822 | 1.595 | band [2.4898‥2.6531] |
+| FF_lm (control) | **2.7613** | **3.9634** | **1.130** | band [2.7047‥2.8172] |
+
+ΔΦ REC−FF=**−0.166** · Δself REC−FF=**−0.181** · Δppl REC−base=−32.5 · Δppl FF−base=−33.0.
+F2L4 REC_phi>FF_band_max **FAIL**(REC max 2.6531 < FF min 2.7047 — **밴드 비중첩, FF 우세**)
+· F4 둘 다 ppl<base **PASS**(둘 다 LM 과제 학습) · F5 REC_self>FF_self **FAIL** →
+**VERDICT: REFUTED — HELD·강화**. 강한 프로토콜에서도 recurrence 가 용량을 못 넘고,
+오히려 **param-matched FF 가 모든 시드에서 Φ·self·ppl 전부 우세**(stress 의 겹치던 밴드가
+L4 에선 FF 쪽으로 깨끗이 분리). stress 의 유일한 긍정 F3(self 축)도 **L4 에서 역전**(F5 FAIL)
+— 그 self 우위는 self-sup fit 의 아티팩트였음. honest 한계: (M1) ppl~1.1–1.6 = 8문장
+**암기 regime**(REC vs FF Φ 비교는 유효하나 절대값은 overfit-specific · held-out split 이
+다음 tier) · (M2) proxy big-Φ 아님 · (M3) 단일 주입 site(layer 14)·width(16)·model.
+전체 verdict:
+[`verdict_phi_l4.txt`](lab-09-consciousness-directionality/verdict_phi_l4.txt).
 
 ---
 

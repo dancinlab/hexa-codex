@@ -1,0 +1,450 @@
+#!hexa strict
+// LAB/lab-09-consciousness-directionality/phi_llm_l4_harness.hexa
+//
+// LAB-09 L4 TIER — residual-stream LM-objective finetune of REC vs FF adapters.
+// See LAB/README.md §LAB-09 and verdict_phi_stress.txt limit L4. The STRESS tier
+// (phi_llm_stress_harness.hexa) fit the REC(GRU)/FF adapters SELF-SUPERVISED on a
+// CAPTURED causal hidden series (next-hidden MSE), NOT back-propagated into the LM,
+// and found REFUTED: F2 (REC_phi > FF_control_band) FAILED — recurrence did not beat
+// param-matched capacity on the Phi-proxy. The stress verdict's L4 residual said:
+//   "a true LoRA fine-tune that feeds adapter output back into the residual stream +
+//    re-trains on an LM objective is the NEXT tier and could change the REC vs FF Phi
+//    comparison. Task-ability (perplexity) is reported only for the two base forwards."
+// THIS tier closes that gap.
+//
+// WHAT CHANGES vs stress (the only two load-bearing differences):
+//   (1) INJECTION : each adapter's output is added back into the layer-14 residual
+//                   stream via a forward hook (LoRA-style residual add, up-proj
+//                   zero-init so step-0 == frozen base), so it actually participates
+//                   in the model's forward computation — not a detached side-fit.
+//   (2) OBJECTIVE : adapters are trained on the LM next-token cross-entropy (labels),
+//                   base FROZEN (requires_grad=False), only adapter params optimized.
+//                   Gradients flow through the frozen upper layers + LM head into the
+//                   adapter. We THEN report perplexity for REC and FF (the stress gap).
+//   Everything else (Qwen2.5-1.5B frozen base, layer 14, K=6 median-split channels,
+//   the whole_EI - min_bipartition Phi-proxy, multi-seed band) is IDENTICAL to stress
+//   so the REC-vs-FF Phi comparison is apples-to-apples across tiers.
+//
+// PRE-REGISTERED FALSIFIERS (deterministic; NO model self-judgement — g5):
+//   F2L4  REC_phi > FF_control_phi_band_max   (recurrence beats capacity on Phi WHEN
+//                                              LM-fine-tuned into the residual stream)
+//   F4    REC_ppl < CAUSAL_ppl AND FF_ppl < CAUSAL_ppl  (both adapters actually LEARNED
+//                                              the LM task — finetune-did-something sanity)
+//   F5    REC_self_pred > FF_self_pred         (stress F3 carry-over: self/ego proxy axis)
+//   HEADLINE: supported = F2L4. If F2L4 FAILS again under this stronger protocol, the
+//   stress REFUTED HOLDS at L4 — recurrence is still not the cause of integrated
+//   information on a real LLM, even when fed back through an LM objective. If F2L4
+//   PASSES, the stress refutation was an artifact of the weak self-sup fit and L4
+//   overturns it. We report every real delta either way (cx_lab_falsifiable).
+//
+// HONESTY (cx_lab_sandbox · g5):
+//   Pure-local, $0, no network, no external API. Base = locally-cached Qwen2.5-1.5B.
+//   The .hexa harness OWNS the numerics: it writes the python driver to /tmp (OUTSIDE
+//   the repo — committed artifact = this .hexa + result TSV/summary/verdict, plus a
+//   provenance .py copy alongside), execs it via the lab09 venv python, parses JSON,
+//   emits artifacts. All scoring is deterministic plug-in MI; the model judges nothing.
+//
+// RUN (torch + transformers live in ~/.venv-lab09):
+//   HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+//     LAB09_PYTHON="$HOME/.venv-lab09/bin/python" \
+//     ~/.hx/packages/hexa/hexa.real run \
+//     LAB/lab-09-consciousness-directionality/phi_llm_l4_harness.hexa
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Local torch/transformers numeric driver under /tmp + filesystem write — no atlas atoms, no network, no LLM judgement.")
+
+let OUT_DIR = env("HEXA_CODEX_ROOT") + "/LAB/lab-09-consciousness-directionality"
+let TMP_DIR = "/tmp/lab09_l4"
+let PY_PATH = TMP_DIR + "/phi_llm_l4.py"
+let JSON_PATH = TMP_DIR + "/phi_llm_l4.json"
+
+fn shq(s: str) -> str {
+    return "'" + s.replace("'", "'\\''") + "'"
+}
+
+fn py_bin() -> str {
+    let p = env("LAB09_PYTHON")
+    if p.len() > 0 { return p }
+    return env("HOME") + "/.venv-lab09/bin/python"
+}
+
+// _probe_import — returns 1 iff `<py> -c 'import <mod>'` exits 0.
+fn _probe_import(py: str, modname: str) -> int {
+    let cmd = shq(py) + " -c 'import " + modname + "' >/dev/null 2>&1 && echo 1 || echo 0"
+    if exec(cmd).trim() == "1" { return 1 }
+    return 0
+}
+
+// _jnum — extract a numeric JSON value for `"key":` after `from`. Minimal hand parser.
+fn _jnum(txt: str, key: str, from: int) -> str {
+    let pat = "\"" + key + "\":"
+    let idx = txt.find(pat, from)
+    if idx < 0 { return "" }
+    let mut i = idx + pat.len()
+    let n = txt.len()
+    while i < n && txt.substr(i, 1) == " " { i = i + 1 }
+    let mut j = i
+    while j < n {
+        let c = txt.substr(j, 1)
+        if c == "," || c == "\n" || c == "}" || c == " " { break }
+        j = j + 1
+    }
+    return txt.substr(i, j - i)
+}
+
+// build the python driver text (embedded — the .hexa is the sole authored source).
+fn _py_body() -> str {
+    return "" +
+        "#!/usr/bin/env python3\n" +
+        "# LAB-09 L4 TIER — residual-stream LM-objective finetune of REC vs FF adapters.\n" +
+        "# Authored/owned by phi_llm_l4_harness.hexa which writes this file under /tmp and\n" +
+        "# execs it. Committed artifact = the .hexa + result TSV/summary/verdict + a\n" +
+        "# provenance copy of this .py. Pure-local, $0, frozen base (rollback-safe), seeded.\n" +
+        "#\n" +
+        "# Arms (all share Qwen2.5-1.5B frozen base, layer 14, K=6 Phi engine):\n" +
+        "#   CAUSAL_frozen : no adapter, frozen base. Reference Phi + ppl.\n" +
+        "#   REC_lm        : GRUCell adapter injected at layer-14 residual, LM-finetuned.\n" +
+        "#   FF_lm         : param-matched feedforward adapter, same injection + LM finetune.\n" +
+        "# Phi-proxy = I(S_t;S_{t+1}) - min_bipartition[I(A)+I(B)] over K median-split\n" +
+        "#   channels (whole_EI minus min bipartition) — SAME family as smoke + stress.\n" +
+        "import os, sys, math, json, time, itertools, random\n" +
+        "import numpy as np\n" +
+        "\n" +
+        "os.environ.setdefault(\"HF_HUB_OFFLINE\", \"1\")\n" +
+        "os.environ.setdefault(\"TRANSFORMERS_OFFLINE\", \"1\")\n" +
+        "os.environ.setdefault(\"TOKENIZERS_PARALLELISM\", \"false\")\n" +
+        "\n" +
+        "SEED = 42\n" +
+        "random.seed(SEED); np.random.seed(SEED)\n" +
+        "import torch\n" +
+        "torch.manual_seed(SEED)\n" +
+        "torch.use_deterministic_algorithms(False)\n" +
+        "\n" +
+        "MODEL = os.environ.get(\"LAB09_MODEL\", \"Qwen/Qwen2.5-1.5B\")\n" +
+        "LAYER = int(os.environ.get(\"LAB09_LAYER\", \"14\"))   # inject + capture layer (of 28)\n" +
+        "K     = int(os.environ.get(\"LAB09_K\", \"6\"))        # channels for Phi bipartition search\n" +
+        "ADIM  = int(os.environ.get(\"LAB09_ADIM\", \"16\"))    # adapter bottleneck width\n" +
+        "STEPS = int(os.environ.get(\"LAB09_STEPS\", \"80\"))   # LM-objective finetune steps\n" +
+        "LR    = float(os.environ.get(\"LAB09_LR\", \"0.01\"))\n" +
+        "SEEDS = [int(x) for x in os.environ.get(\"LAB09_SEEDS\", \"42,43,44\").split(\",\")]\n" +
+        "OUT   = os.environ.get(\"LAB09_OUT\", \"/tmp/lab09_l4\")\n" +
+        "DEV   = \"mps\" if torch.backends.mps.is_available() else \"cpu\"\n" +
+        "\n" +
+        "# Fixed corpus (provenance: hand-written neutral English prose, deterministic) —\n" +
+        "# IDENTICAL to the stress tier for cross-tier comparability.\n" +
+        "CORPUS = [\n" +
+        "    \"The river flows quietly past the old stone bridge at dawn.\",\n" +
+        "    \"She opened the book and began to read the first chapter slowly.\",\n" +
+        "    \"A small bird landed on the windowsill and looked inside the room.\",\n" +
+        "    \"The engineers tested the new bridge before the morning traffic arrived.\",\n" +
+        "    \"Light from the lamp fell softly across the wooden desk and papers.\",\n" +
+        "    \"He remembered the summer when the whole family traveled to the coast.\",\n" +
+        "    \"The machine learned to predict the next word from the previous ones.\",\n" +
+        "    \"Children played in the park while their parents talked near the gate.\",\n" +
+        "]\n" +
+        "\n" +
+        "# ---- Phi engine (verbatim from stress tier; deterministic plug-in MI) --------\n" +
+        "def discretize(series):\n" +
+        "    med = np.median(series, axis=0, keepdims=True)\n" +
+        "    return (series > med).astype(np.int64)\n" +
+        "\n" +
+        "def _mi_from_pairs(a, b):\n" +
+        "    T = len(a)\n" +
+        "    ua = {v: i for i, v in enumerate(sorted(set(a.tolist())))}\n" +
+        "    ub = {v: i for i, v in enumerate(sorted(set(b.tolist())))}\n" +
+        "    na, nb = len(ua), len(ub)\n" +
+        "    j = np.zeros((na, nb), dtype=np.float64)\n" +
+        "    for x, y in zip(a, b):\n" +
+        "        j[ua[int(x)], ub[int(y)]] += 1.0\n" +
+        "    j /= T\n" +
+        "    pr = j.sum(1, keepdims=True); pc = j.sum(0, keepdims=True)\n" +
+        "    nz = j > 0\n" +
+        "    mi = np.sum(j[nz] * (np.log2(j[nz]) - np.log2((pr @ pc)[nz])))\n" +
+        "    return float(mi)\n" +
+        "\n" +
+        "def _codes(binseries, cols):\n" +
+        "    sub = binseries[:, cols]\n" +
+        "    w = (1 << np.arange(sub.shape[1]))\n" +
+        "    return (sub * w).sum(1)\n" +
+        "\n" +
+        "def phi_proxy(binseries):\n" +
+        "    T = binseries.shape[0]\n" +
+        "    St  = binseries[:-1]; Stp = binseries[1:]\n" +
+        "    allc = list(range(K))\n" +
+        "    whole = _mi_from_pairs(_codes(St, allc), _codes(Stp, allc))\n" +
+        "    best = float(\"inf\")\n" +
+        "    for r in range(1, K):\n" +
+        "        for A in itertools.combinations(range(1, K), r - 1):\n" +
+        "            A = (0,) + A\n" +
+        "            B = tuple(c for c in allc if c not in A)\n" +
+        "            if not B:\n" +
+        "                continue\n" +
+        "            s = _mi_from_pairs(_codes(St, A), _codes(Stp, A)) + \\\n" +
+        "                _mi_from_pairs(_codes(St, B), _codes(Stp, B))\n" +
+        "            if s < best:\n" +
+        "                best = s\n" +
+        "    return whole - best, whole, best, whole\n" +
+        "\n" +
+        "def topk_channels(H, k):\n" +
+        "    return np.argsort(-H.var(axis=0))[:k]\n" +
+        "\n" +
+        "# ---- model -------------------------------------------------------------------\n" +
+        "def load_model():\n" +
+        "    from transformers import AutoModelForCausalLM, AutoTokenizer\n" +
+        "    tok = AutoTokenizer.from_pretrained(MODEL)\n" +
+        "    if tok.pad_token is None:\n" +
+        "        tok.pad_token = tok.eos_token\n" +
+        "    m = AutoModelForCausalLM.from_pretrained(MODEL, torch_dtype=torch.float32,\n" +
+        "                                             output_hidden_states=True)\n" +
+        "    m.eval()\n" +
+        "    for p in m.parameters():\n" +
+        "        p.requires_grad_(False)\n" +
+        "    return tok, m.to(DEV)\n" +
+        "\n" +
+        "# ---- adapter: REC(GRUCell) vs FF(3 linears), param-matched (stress scheme) ----\n" +
+        "class Adapter(torch.nn.Module):\n" +
+        "    def __init__(self, H, adim, recurrent):\n" +
+        "        super().__init__()\n" +
+        "        self.recurrent = recurrent\n" +
+        "        self.proj_in = torch.nn.Linear(H, adim)\n" +
+        "        self.proj_out = torch.nn.Linear(adim, H)\n" +
+        "        if recurrent:\n" +
+        "            self.core = torch.nn.GRUCell(adim, adim)\n" +
+        "        else:\n" +
+        "            self.core = torch.nn.ModuleList([torch.nn.Linear(adim, adim) for _ in range(3)])\n" +
+        "        # LoRA-style: zero-init the up-projection so step-0 contribution == 0\n" +
+        "        torch.nn.init.zeros_(self.proj_out.weight); torch.nn.init.zeros_(self.proj_out.bias)\n" +
+        "    def forward(self, h):                      # h: (B,T,H)\n" +
+        "        z = self.proj_in(h)                    # (B,T,adim)\n" +
+        "        if self.recurrent:\n" +
+        "            B, T, A = z.shape\n" +
+        "            ht = torch.zeros(B, A, device=z.device, dtype=z.dtype)\n" +
+        "            outs = []\n" +
+        "            for t in range(T):\n" +
+        "                ht = self.core(z[:, t, :], ht)        # feedback: h_t <- h_{t-1}\n" +
+        "                outs.append(ht)\n" +
+        "            s = torch.stack(outs, dim=1)              # (B,T,adim)\n" +
+        "        else:\n" +
+        "            a = torch.relu(self.core[0](z))\n" +
+        "            a = torch.relu(self.core[1](a))\n" +
+        "            s = self.core[2](a)                       # purely feedforward of z\n" +
+        "        return self.proj_out(s)                       # (B,T,H) residual delta\n" +
+        "\n" +
+        "def _layer_module(m):\n" +
+        "    return m.model.layers[LAYER]\n" +
+        "\n" +
+        "def make_hook(adapter, capture_list=None):\n" +
+        "    # forward hook on a Qwen2DecoderLayer. Under transformers 5.x the layer output\n" +
+        "    # is a plain Tensor (B,T,H); under 4.x it was a tuple. Handle both.\n" +
+        "    def hook(mod, args, output):\n" +
+        "        if isinstance(output, tuple):\n" +
+        "            h = output[0]; new = h + adapter(h)\n" +
+        "            if capture_list is not None:\n" +
+        "                capture_list.append(new.detach().float().cpu().numpy()[0])\n" +
+        "            return (new,) + tuple(output[1:])\n" +
+        "        h = output; new = h + adapter(h)\n" +
+        "        if capture_list is not None:\n" +
+        "            capture_list.append(new.detach().float().cpu().numpy()[0])\n" +
+        "        return new\n" +
+        "    return hook\n" +
+        "\n" +
+        "def batch_encode(tok):\n" +
+        "    enc = tok(CORPUS, return_tensors=\"pt\", padding=True)\n" +
+        "    ids = enc[\"input_ids\"].to(DEV); am = enc[\"attention_mask\"].to(DEV)\n" +
+        "    labels = ids.clone(); labels[am == 0] = -100\n" +
+        "    return ids, am, labels\n" +
+        "\n" +
+        "def train_adapter_lm(tok, m, recurrent, seed):\n" +
+        "    # Inject adapter at layer-14 residual; train on LM CE (labels), base frozen.\n" +
+        "    torch.manual_seed(seed); np.random.seed(seed)\n" +
+        "    H = m.config.hidden_size\n" +
+        "    ad = Adapter(H, ADIM, recurrent).to(DEV)\n" +
+        "    npar = sum(p.numel() for p in ad.parameters())\n" +
+        "    handle = _layer_module(m).register_forward_hook(make_hook(ad))\n" +
+        "    ids, am, labels = batch_encode(tok)\n" +
+        "    opt = torch.optim.Adam(ad.parameters(), lr=LR)\n" +
+        "    last = float(\"nan\")\n" +
+        "    for s in range(STEPS):\n" +
+        "        opt.zero_grad()\n" +
+        "        out = m(input_ids=ids, attention_mask=am, labels=labels)\n" +
+        "        out.loss.backward(); opt.step()\n" +
+        "        last = float(out.loss.item())\n" +
+        "    handle.remove()\n" +
+        "    return ad, npar, last\n" +
+        "\n" +
+        "def capture(tok, m, adapter):\n" +
+        "    # per-sentence forward (batch=1, no padding) with adapter hook ACTIVE; capture\n" +
+        "    # the adapter-modified layer-14 residual + next-token perplexity. adapter=None\n" +
+        "    # => frozen reference (no hook).\n" +
+        "    caps = [] if adapter is not None else None\n" +
+        "    handle = _layer_module(m).register_forward_hook(make_hook(adapter, caps)) if adapter is not None else None\n" +
+        "    hids = []; nll_sum = 0.0; ntok = 0\n" +
+        "    for text in CORPUS:\n" +
+        "        enc = tok(text, return_tensors=\"pt\")\n" +
+        "        ids = enc[\"input_ids\"].to(DEV); Tn = ids.shape[1]\n" +
+        "        with torch.no_grad():\n" +
+        "            out = m(input_ids=ids, labels=ids)\n" +
+        "            nll_sum += float(out.loss.item()) * (Tn - 1); ntok += (Tn - 1)\n" +
+        "            if adapter is None:\n" +
+        "                hids.append(out.hidden_states[LAYER][0].float().cpu().numpy())\n" +
+        "    if adapter is not None:\n" +
+        "        handle.remove(); hids = caps\n" +
+        "    Hm = np.concatenate(hids, axis=0).astype(np.float32)\n" +
+        "    ppl = math.exp(nll_sum / max(ntok, 1))\n" +
+        "    return Hm, ppl\n" +
+        "\n" +
+        "def phi_of(H):\n" +
+        "    b = discretize(H[:, topk_channels(H, K)])\n" +
+        "    phi, whole, parts, slf = phi_proxy(b)\n" +
+        "    return phi, slf\n" +
+        "\n" +
+        "def adapter_band(tok, m, recurrent):\n" +
+        "    phis, selfs, ppls, losses, npar = [], [], [], [], None\n" +
+        "    for sd in SEEDS:\n" +
+        "        ad, npar, loss = train_adapter_lm(tok, m, recurrent, sd)\n" +
+        "        Hm, ppl = capture(tok, m, ad)\n" +
+        "        phi, slf = phi_of(Hm)\n" +
+        "        phis.append(phi); selfs.append(slf); ppls.append(ppl); losses.append(loss)\n" +
+        "    return dict(phi=float(np.mean(phis)), phi_sd=float(np.std(phis)),\n" +
+        "                phi_min=float(np.min(phis)), phi_max=float(np.max(phis)),\n" +
+        "                self_pred=float(np.mean(selfs)), ppl=float(np.mean(ppls)),\n" +
+        "                fit_loss=float(np.mean(losses)), n_params=npar, seeds=SEEDS,\n" +
+        "                phi_all=[float(x) for x in phis], ppl_all=[float(x) for x in ppls])\n" +
+        "\n" +
+        "def main():\n" +
+        "    t0 = time.time()\n" +
+        "    tok, m = load_model()\n" +
+        "    res = {}\n" +
+        "    # 1) CAUSAL frozen reference (no adapter)\n" +
+        "    Hc, ppl_c = capture(tok, m, None)\n" +
+        "    phi_c, self_c = phi_of(Hc)\n" +
+        "    res[\"CAUSAL_frozen\"] = dict(phi=phi_c, self_pred=self_c, ppl=ppl_c, n=int(Hc.shape[0]))\n" +
+        "    # 2) REC and FF, residual-injected + LM-finetuned, multi-seed band\n" +
+        "    res[\"REC_lm\"] = adapter_band(tok, m, True)\n" +
+        "    res[\"FF_lm\"]  = adapter_band(tok, m, False)\n" +
+        "    meta = dict(model=MODEL, layer=LAYER, n_layers=m.config.num_hidden_layers,\n" +
+        "                hidden=m.config.hidden_size, K=K, adim=ADIM, steps=STEPS, lr=LR,\n" +
+        "                device=DEV, corpus_lines=len(CORPUS), seed=SEED, seeds=SEEDS,\n" +
+        "                rec_params=res[\"REC_lm\"][\"n_params\"], ff_params=res[\"FF_lm\"][\"n_params\"],\n" +
+        "                runtime_s=round(time.time() - t0, 2))\n" +
+        "    out = dict(meta=meta, arms=res)\n" +
+        "    with open(os.path.join(OUT, \"phi_llm_l4.json\"), \"w\") as f:\n" +
+        "        json.dump(out, f, indent=2)\n" +
+        "    print(json.dumps(out, indent=2))\n" +
+        "\n" +
+        "if __name__ == \"__main__\":\n" +
+        "    main()\n" +
+        "\n"}
+
+fn main() {
+    print("LAB-09 L4 — residual-stream LM-objective finetune · REC vs FF · Qwen2.5-1.5B\n")
+    let py = py_bin()
+    print("  python = " + py + "\n")
+
+    // dependency preflight (honest BLOCKED_AT_BUILD if deps missing)
+    if _probe_import(py, "torch") == 0 {
+        print("BLOCKED_AT_BUILD: `import torch` failed under " + py + " — run venv install.\n")
+        return
+    }
+    if _probe_import(py, "transformers") == 0 {
+        print("BLOCKED_AT_BUILD: `import transformers` failed under " + py + ".\n")
+        return
+    }
+
+    // 1) materialize the python driver under /tmp + a provenance copy in the repo dir
+    exec("mkdir -p " + shq(TMP_DIR))
+    write_file(PY_PATH, _py_body())
+    write_file(OUT_DIR + "/phi_mi_l4.py", _py_body())   // provenance copy (committed)
+    print("  wrote driver -> " + PY_PATH + " (+ provenance copy phi_mi_l4.py)\n")
+
+    // 2) exec it (offline, deterministic). Stdout is the JSON; also written to JSON_PATH.
+    let envp = "HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TOKENIZERS_PARALLELISM=false " +
+               "LAB09_OUT=" + shq(TMP_DIR) + " "
+    let run_cmd = envp + shq(py) + " " + shq(PY_PATH) + " 2>" + shq(TMP_DIR + "/stderr.log")
+    print("  running driver (load + frozen ref + 2 arms x " + str(3) + " seeds finetune) ...\n")
+    let _ = exec(run_cmd)
+
+    // 3) read the JSON artifact
+    let j = read_file(JSON_PATH)
+    if j.len() < 10 {
+        print("ERROR: driver produced no JSON. stderr tail:\n")
+        print(exec("tail -25 " + shq(TMP_DIR + "/stderr.log")))
+        return
+    }
+
+    let i_c = j.find("\"CAUSAL_frozen\"", 0)
+    let i_r = j.find("\"REC_lm\"", 0)
+    let i_f = j.find("\"FF_lm\"", 0)
+
+    let phi_c = _jnum(j, "phi", i_c)
+    let self_c = _jnum(j, "self_pred", i_c)
+    let ppl_c = _jnum(j, "ppl", i_c)
+    let phi_r = _jnum(j, "phi", i_r)
+    let phir_sd = _jnum(j, "phi_sd", i_r)
+    let phir_min = _jnum(j, "phi_min", i_r)
+    let phir_max = _jnum(j, "phi_max", i_r)
+    let self_r = _jnum(j, "self_pred", i_r)
+    let ppl_r = _jnum(j, "ppl", i_r)
+    let phi_f = _jnum(j, "phi", i_f)
+    let phif_sd = _jnum(j, "phi_sd", i_f)
+    let phif_min = _jnum(j, "phi_min", i_f)
+    let phif_max = _jnum(j, "phi_max", i_f)
+    let self_f = _jnum(j, "self_pred", i_f)
+    let ppl_f = _jnum(j, "ppl", i_f)
+
+    let layer = _jnum(j, "layer", 0)
+    let kk = _jnum(j, "K", 0)
+    let steps = _jnum(j, "steps", 0)
+    let dev = _jnum(j, "device", 0)
+    let runtime = _jnum(j, "runtime_s", 0)
+    let recpar = _jnum(j, "rec_params", 0)
+    let ffpar = _jnum(j, "ff_params", 0)
+
+    // numeric falsifier evaluation (deterministic)
+    let fc = parse_float(phi_c)
+    let fr = parse_float(phi_r)
+    let ff = parse_float(phi_f)
+    let frmax = parse_float(phif_max)        // FF control upper band edge
+    let pc = parse_float(ppl_c)
+    let pr = parse_float(ppl_r)
+    let pf = parse_float(ppl_f)
+    let sr = parse_float(self_r)
+    let sf = parse_float(self_f)
+
+    let F2L4 = fr > frmax                     // REC Phi clears FF-control band (upper edge)
+    let F4 = pr < pc && pf < pc               // both adapters lowered ppl vs frozen base
+    let F5 = sr > sf                          // REC self_pred > FF self_pred
+    let d_phi = fr - ff
+    let d_self = sr - sf
+    let d_ppl_rec = pr - pc
+    let d_ppl_ff = pf - pc
+    let supported = F2L4
+
+    // --- TSV ---
+    let mut tsv = "arm\tphi_proxy_bits\tself_pred_mi_bits\tperplexity\tnote\n"
+    tsv = tsv + "CAUSAL_frozen\t" + phi_c + "\t" + self_c + "\t" + ppl_c + "\tfrozen base reference · no adapter\n"
+    tsv = tsv + "REC_lm\t" + phi_r + "\t" + self_r + "\t" + ppl_r + "\tGRU residual-inject · LM-finetuned · mean/3 [" + phir_min + ".." + phir_max + "] sd " + phir_sd + "\n"
+    tsv = tsv + "FF_lm\t" + phi_f + "\t" + self_f + "\t" + ppl_f + "\tparam-matched FF · LM-finetuned · mean/3 [" + phif_min + ".." + phif_max + "] sd " + phif_sd + "\n"
+    write_file(OUT_DIR + "/result_phi_l4.tsv", tsv)
+
+    // --- summary ---
+    let mut sm = "LAB-09 L4 — residual-stream LM-objective finetune · REC vs FF Phi\n"
+    sm = sm + "model=Qwen2.5-1.5B  layer=" + layer + "  K=" + kk + "  steps=" + steps + "  device=" + dev + "  runtime=" + runtime + "s\n"
+    sm = sm + "rec_params=" + recpar + "  ff_params=" + ffpar + "\n\n"
+    sm = sm + "arm                phi      self_pred  ppl\n"
+    sm = sm + "CAUSAL_frozen      " + phi_c + "   " + self_c + "   " + ppl_c + "\n"
+    sm = sm + "REC_lm (GRU)       " + phi_r + "   " + self_r + "   " + ppl_r + "   (phi band [" + phir_min + ".." + phir_max + "])\n"
+    sm = sm + "FF_lm  (control)   " + phi_f + "   " + self_f + "   " + ppl_f + "   (phi band [" + phif_min + ".." + phif_max + "])\n\n"
+    sm = sm + "delta_phi  REC-FF              = " + str(d_phi) + " bits\n"
+    sm = sm + "delta_self REC-FF              = " + str(d_self) + " bits\n"
+    sm = sm + "delta_ppl  REC-CAUSAL          = " + str(d_ppl_rec) + "\n"
+    sm = sm + "delta_ppl  FF-CAUSAL           = " + str(d_ppl_ff) + "\n\n"
+    sm = sm + "F2L4 REC_phi > FF_band_max     : " + str(F2L4) + "\n"
+    sm = sm + "F4   REC_ppl<base AND FF_ppl<base : " + str(F4) + "\n"
+    sm = sm + "F5   REC_self > FF_self        : " + str(F5) + "\n"
+    sm = sm + "VERDICT supported (F2L4)       : " + str(supported) + "\n"
+    write_file(OUT_DIR + "/result_phi_l4_summary.txt", sm)
+
+    print(sm)
+    print("  artifacts -> result_phi_l4.tsv · result_phi_l4_summary.txt · " + JSON_PATH + "\n")
+}

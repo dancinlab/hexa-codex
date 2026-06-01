@@ -1,0 +1,297 @@
+#!hexa strict
+// LAB/lab-12-causal-emergence/causal_emergence_interventional_harness.hexa
+//
+// LAB-12 RIGOROUS TIER — Hoel INTERVENTIONAL effective information + grouping search.
+// See LAB/README.md LAB-12 and verdict_emergence.txt limits L1/L2. The 1st smoke
+// (causal_emergence_sim_harness.hexa) used an OBSERVATIONAL transfer-MI proxy on natural
+// trajectories with THREE fixed coarse-grainings and found CE = EI_macro - EI_micro
+// strongly NEGATIVE at the edge (REFUTED). Its honest residual: (L1) observational, not
+// Hoel's interventional EI; (L2) fixed coarse-grainings, no grouping SEARCH. THIS tier
+// closes both — it is the fair, can-flip-the-verdict test.
+//
+// WHAT CHANGES vs the smoke (the two load-bearing fixes):
+//   (1) INTERVENTIONAL EI. We build the transition-probability matrix (TPM) by do()-
+//       intervention: FORCE the ring into each of the 2^N micro spike states, run ONE
+//       memoryless LIF step (v reset to 0 — the discrete-Markov closure Hoel's EI is
+//       defined on), sample the next-state distribution over the regime noise. EI is
+//       then the mutual information under a UNIFORM (max-entropy) intervention over
+//       states: EI = (1/|S|) Σ_s D_KL( TPM(·|s) || <TPM> ) bits (Tononi/Hoel EI =
+//       determinism − degeneracy). This is the INTERVENTIONAL causal measure, not the
+//       observational trajectory-MI of the smoke.
+//   (2) GROUPING SEARCH. Macro EI is computed for SIX coarse-grainings (spatial pairs
+//       {0,1}{2,3}{4,5} with OR/AND/XOR · spatial triples {0,1,2}{3,4,5} with
+//       majority/OR/AND) and we take the MAX macro EI. CE = max_grouping EI_macro -
+//       EI_micro. So a positive CE only needs ONE grouping to out-inform micro — the
+//       most generous (anti-false-negative) emergence test we can run at this size.
+//
+// HYPOTHESIS (falsifiable): at the edge regime (R2/R3, LAB-10's Phi peak) the best macro
+//   grouping out-informs micro (CE > 0) and does so more than in the ordered (R1) and
+//   chaotic (R4) regimes — edge-specific causal emergence.
+//
+// FALSIFIER (pre-registered; deterministic; NO model self-judgement — g5):
+//   edge_peak = higher-EI_micro of {R2,R3} (tie -> R3 tonic edge).
+//   F1  CE(edge_peak) > 0          (best macro out-informs micro at the detected edge)
+//   F2  CE(edge_peak) > CE(R1)     (more emergence at edge than ordered)
+//   F3  CE(edge_peak) > CE(R4)     (more emergence at edge than chaotic)
+//   supported = F1 AND F2 AND F3. We report every real CE either way (cx_lab_falsifiable).
+//
+// MODEL NOTE (honest): the interventional TPM uses the MEMORYLESS-RESET closure of the
+//   LIF ring (v reset each step), the standard discrete-Markov setting for Hoel EI. This
+//   differs from the smoke's leaky (v-carrying) trajectory; we re-confirm the regime
+//   ordering holds (R1/R4 low EI, edge higher) as a sanity tie to LAB-10.
+//
+// HONESTY (cx_lab_sandbox · g5): pure-local deterministic kernel ($0 · no network · no
+//   LLM · seeded LCG=42). SIM only — NOT live AKD1000 silicon.
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numeric kernel + filesystem write — no atlas atoms, no network.")
+
+let SEED = 42
+let N = 6
+let NSTATE = 1 << N         // 64 micro states
+let SAMP = 6000             // noise samples per state for the interventional TPM row
+let THETA = 1.0
+let OUT_DIR = env("HEXA_CODEX_ROOT") + "/LAB/lab-12-causal-emergence"
+
+let mut LCG = 0
+fn seed_lcg(s: int) { LCG = s }
+fn rbit() -> int {
+    LCG = (1103515245 * LCG + 12345) % 2147483648
+    return (LCG / 65536) % 2
+}
+
+fn bit(code: int, i: int) -> int { return (code >> i) % 2 }
+
+// build interventional TPM (flat NSTATE*NSTATE probabilities) for one regime.
+// do(s): force spike state = s, v reset to 0, one LIF step, sample next over noise.
+fn build_tpm(drive: float, gain: float, noise_amp: float) -> [float] {
+    let mut tpm = []
+    let mut z = 0
+    while z < NSTATE * NSTATE { tpm.push(0.0) ; z = z + 1 }
+    let mut s = 0
+    while s < NSTATE {
+        let mut cnt = []
+        let mut q = 0
+        while q < NSTATE { cnt.push(0) ; q = q + 1 }
+        let mut rep = 0
+        while rep < SAMP {
+            let mut ns = 0
+            let mut i = 0
+            while i < N {
+                let li = (i + N - 1) % N
+                let ri = (i + 1) % N
+                let rec = (bit(s, li) + bit(s, ri)) + 0.0
+                let sgn = (2 * rbit() - 1) + 0.0
+                let inp = drive + gain * rec + noise_amp * sgn   // v reset to 0 -> v_step = inp
+                if inp > THETA { ns = ns + (1 << i) }
+                i = i + 1
+            }
+            cnt[ns] = cnt[ns] + 1
+            rep = rep + 1
+        }
+        let base = s * NSTATE
+        let mut j = 0
+        while j < NSTATE { tpm[base + j] = (cnt[j] + 0.0) / (SAMP + 0.0) ; j = j + 1 }
+        s = s + 1
+    }
+    return tpm
+}
+
+// Hoel/Tononi EI at the micro scale: MI under UNIFORM intervention over NSTATE states.
+fn ei_micro(tpm: [float]) -> float {
+    let mut avg = []
+    let mut j = 0
+    while j < NSTATE { avg.push(0.0) ; j = j + 1 }
+    let mut s = 0
+    while s < NSTATE {
+        let base = s * NSTATE
+        j = 0
+        while j < NSTATE { avg[j] = avg[j] + tpm[base + j] ; j = j + 1 }
+        s = s + 1
+    }
+    j = 0
+    while j < NSTATE { avg[j] = avg[j] / (NSTATE + 0.0) ; j = j + 1 }
+    let mut ei = 0.0
+    s = 0
+    while s < NSTATE {
+        let base = s * NSTATE
+        j = 0
+        while j < NSTATE {
+            let p = tpm[base + j]
+            if p > 0.0 { ei = ei + p * (log2(p) - log2(avg[j])) }
+            j = j + 1
+        }
+        s = s + 1
+    }
+    return ei / (NSTATE + 0.0)
+}
+
+fn nmacro(gid: int) -> int { if gid == 1 { return 3 } return 2 }
+
+// macro label of a micro code under (grouping gid, coarse-grain function cg).
+//   gid=1 spatial pairs {0,1}{2,3}{4,5} (NMACRO=3): cg 0=OR 1=AND 2=XOR
+//   gid=2 spatial triples {0,1,2}{3,4,5} (NMACRO=2): cg 0=MAJ(>=2) 1=OR(>=1) 2=AND(==3)
+fn macro_label(code: int, gid: int, cg: int) -> int {
+    let mut m = 0
+    if gid == 1 {
+        let mut g = 0
+        while g < 3 {
+            let a = bit(code, 2 * g)
+            let b = bit(code, 2 * g + 1)
+            let mut v = 0
+            if cg == 1 { v = if (a + b) == 2 { 1 } else { 0 } }
+            else if cg == 2 { v = (a + b) % 2 }
+            else { v = if (a + b) > 0 { 1 } else { 0 } }
+            m = m + (v << g)
+            g = g + 1
+        }
+    } else {
+        let mut g = 0
+        while g < 2 {
+            let a = bit(code, 3 * g)
+            let b = bit(code, 3 * g + 1)
+            let c = bit(code, 3 * g + 2)
+            let sum = a + b + c
+            let mut v = 0
+            if cg == 1 { v = if sum >= 1 { 1 } else { 0 } }
+            else if cg == 2 { v = if sum == 3 { 1 } else { 0 } }
+            else { v = if sum >= 2 { 1 } else { 0 } }   // majority
+            m = m + (v << g)
+            g = g + 1
+        }
+    }
+    return m
+}
+
+// macro EI for one (gid,cg): coarse-grain the micro TPM (uniform over micro-in-macro),
+// then Hoel EI under uniform intervention over the KM macro states.
+fn ei_macro(tpm: [float], gid: int, cg: int) -> float {
+    let NM = nmacro(gid)
+    let KM = 1 << NM
+    // label every micro state + preimage counts
+    let mut lab = []
+    let mut pre = []
+    let mut q = 0
+    while q < KM { pre.push(0) ; q = q + 1 }
+    let mut s = 0
+    while s < NSTATE { let L = macro_label(s, gid, cg) ; lab.push(L) ; pre[L] = pre[L] + 1 ; s = s + 1 }
+    // macro TPM[M][M'] = (1/|pre M|) Σ_{s in M} Σ_{ns in M'} micro tpm[s][ns]
+    let mut mt = []
+    q = 0
+    while q < KM * KM { mt.push(0.0) ; q = q + 1 }
+    s = 0
+    while s < NSTATE {
+        let M = lab[s]
+        let base = s * NSTATE
+        let mut ns = 0
+        while ns < NSTATE { mt[M * KM + lab[ns]] = mt[M * KM + lab[ns]] + tpm[base + ns] ; ns = ns + 1 }
+        s = s + 1
+    }
+    let mut M = 0
+    while M < KM {
+        if pre[M] > 0 {
+            let mut M2 = 0
+            while M2 < KM { mt[M * KM + M2] = mt[M * KM + M2] / (pre[M] + 0.0) ; M2 = M2 + 1 }
+        }
+        M = M + 1
+    }
+    // EI under uniform intervention over the KM macro states (all have preimages here)
+    let mut avg = []
+    q = 0
+    while q < KM { avg.push(0.0) ; q = q + 1 }
+    M = 0
+    while M < KM {
+        let mut M2 = 0
+        while M2 < KM { avg[M2] = avg[M2] + mt[M * KM + M2] ; M2 = M2 + 1 }
+        M = M + 1
+    }
+    let mut M2 = 0
+    while M2 < KM { avg[M2] = avg[M2] / (KM + 0.0) ; M2 = M2 + 1 }
+    let mut ei = 0.0
+    M = 0
+    while M < KM {
+        M2 = 0
+        while M2 < KM {
+            let p = mt[M * KM + M2]
+            if p > 0.0 { ei = ei + p * (log2(p) - log2(avg[M2])) }
+            M2 = M2 + 1
+        }
+        M = M + 1
+    }
+    return ei / (KM + 0.0)
+}
+
+fn r6(x: float) -> str {
+    let scaled = x * 1000000.0
+    let ri = scaled + 0.5
+    let asint = ri - (ri % 1.0)
+    return str(asint / 1000000.0)
+}
+
+fn main() {
+    let DRIVE = [0.20, 0.30, 0.35, 1.40]
+    let GAIN  = [0.10, 0.15, 0.25, 1.30]
+    let NOISE = [0.00, 0.30, 0.55, 0.00]
+    let RLBL  = ["R1_weak_silent", "R2_noise_edge", "R3_tonic_edge", "R4_over_driven"]
+    // grouping search list: (gid, cg) · names for the winner report
+    let GIDS = [1, 1, 1, 2, 2, 2]
+    let CGS  = [0, 1, 2, 0, 1, 2]
+    let GNM  = ["pairOR", "pairAND", "pairXOR", "triMAJ", "triOR", "triAND"]
+    let M = 4
+    let NC = 6
+
+    print("LAB-12 RIGOROUS — interventional EI + grouping search · N=" + str(N) + " · samp=" + str(SAMP) + "\n")
+
+    let mut eimi = []
+    let mut eima = []
+    let mut bestn = []
+    let mut ces = []
+    let mut tsv = "regime\tEI_micro\tEI_macro_best\tbest_grouping\tCE_best\n"
+    let mut idx = 0
+    while idx < M {
+        seed_lcg(SEED)
+        let tpm = build_tpm(DRIVE[idx], GAIN[idx], NOISE[idx])
+        let ei_u = ei_micro(tpm)
+        // search groupings for max macro EI
+        let mut best = -1000000.0
+        let mut bname = ""
+        let mut c = 0
+        while c < NC {
+            let em = ei_macro(tpm, GIDS[c], CGS[c])
+            if em > best { best = em ; bname = GNM[c] }
+            c = c + 1
+        }
+        let ce = best - ei_u
+        eimi.push(ei_u) ; eima.push(best) ; bestn.push(bname) ; ces.push(ce)
+        tsv = tsv + RLBL[idx] + "\t" + r6(ei_u) + "\t" + r6(best) + "\t" + bname + "\t" + r6(ce) + "\n"
+        print("  " + RLBL[idx] + "  EI_micro=" + r6(ei_u) + "  EI_macro*=" + r6(best) + " (" + bname + ")  CE=" + r6(ce) + "\n")
+        idx = idx + 1
+    }
+    write_file(OUT_DIR + "/result_emergence_interventional.tsv", tsv)
+
+    let edge_is_r3 = eimi[2] >= eimi[1]
+    let ce_edge = if edge_is_r3 { ces[2] } else { ces[1] }
+    let edge_lbl = if edge_is_r3 { "R3_tonic_edge" } else { "R2_noise_edge" }
+
+    let f1 = ce_edge > 0.0
+    let f2 = ce_edge > ces[0]
+    let f3 = ce_edge > ces[3]
+    let supported = f1 && f2 && f3
+
+    let mut sm = "LAB-12 RIGOROUS — interventional EI (Hoel) + grouping search · SIM\n"
+    sm = sm + "seed=" + str(SEED) + " N=" + str(N) + " states=" + str(NSTATE) + " samp/state=" + str(SAMP) + " (memoryless-reset Markov closure)\n"
+    sm = sm + "EI = MI under UNIFORM intervention · CE = max_grouping EI_macro - EI_micro · groupings: pairOR/AND/XOR · triMAJ/OR/AND\n\n"
+    sm = sm + "regime           EI_micro   EI_macro*  best_grouping  CE\n"
+    let mut q = 0
+    while q < M {
+        sm = sm + RLBL[q] + "   " + r6(eimi[q]) + "   " + r6(eima[q]) + "   " + bestn[q] + "   " + r6(ces[q]) + "\n"
+        q = q + 1
+    }
+    sm = sm + "\nedge_peak = " + edge_lbl + "  CE_edge = " + r6(ce_edge) + "  (R1 CE=" + r6(ces[0]) + "  R4 CE=" + r6(ces[3]) + ")\n\n"
+    sm = sm + "falsifier F1 CE(edge) > 0       : " + str(f1) + "\n"
+    sm = sm + "falsifier F2 CE(edge) > CE(R1)  : " + str(f2) + "\n"
+    sm = sm + "falsifier F3 CE(edge) > CE(R4)  : " + str(f3) + "\n"
+    sm = sm + "VERDICT supported (edge-specific causal emergence · interventional · F1∧F2∧F3) : " + str(supported) + "\n"
+    write_file(OUT_DIR + "/result_emergence_interventional_summary.txt", sm)
+    print(sm)
+}

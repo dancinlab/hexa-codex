@@ -17,7 +17,7 @@
 # PREREQS (the operator's machine):
 #   - runpodctl installed + logged in (`runpodctl config --apiKey ...`)
 #   - ~/.runpod/ssh/<key> present (the key referenced in anima/config/runpod.json)
-#   - HF token retrievable: `ssh mac /Users/ghost/core/secret/bin/secret get HF_TOKEN`
+#   - HF token retrievable via $HF_TOKEN_CMD (default: `ssh $HF_TOKEN_HOST secret get HF_TOKEN`)
 #   - the hexa-forge repo reachable (this script's repo)
 #
 # WHAT IT DOES (encodes LEARNING_PROGRAMMING.md §6 RunPod rules):
@@ -54,7 +54,10 @@ esac; done
 
 IMAGE="runpod/pytorch:2.4.0-py3.11-cuda12.4.1-devel-ubuntu22.04"
 GPU="NVIDIA H100 SXM 80GB"
-HF_TOKEN_CMD='ssh mac /Users/ghost/core/secret/bin/secret get HF_TOKEN'
+# Portable HF-token fetch: override $HF_TOKEN_CMD wholesale, or just point
+# $HF_TOKEN_HOST at your ssh host (the `secret` CLI is resolved from PATH there).
+HF_TOKEN_HOST="${HF_TOKEN_HOST:-mac}"
+HF_TOKEN_CMD="${HF_TOKEN_CMD:-ssh $HF_TOKEN_HOST secret get HF_TOKEN}"
 
 echo "=== runpod_launch_7b_sft.sh — v0.3.0 Lever 1 (+3) ==="
 echo "  base model : Qwen/Qwen2.5-Coder-7B"

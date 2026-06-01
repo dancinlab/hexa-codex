@@ -33,7 +33,7 @@
 //   Architecture flags (3): rms_norm_eps_neg_log10 · initializer_range_x100 ·
 //                           tie_word_embeddings_bool
 //
-// THE n=6 LATTICE ATOM SET (per /Users/ghost/core/hexa-lang/n6/atlas.n6 base
+// THE n=6 LATTICE ATOM SET (per the hexa-lang n6/atlas.n6 base
 // definitions @P sigma/phi/tau/sopfr/J2/mu/M3 — atlas.n6 lines 1-40):
 //   atomic:    n=6, phi=2, tau=4, sigma=12, sopfr=5, J2=24, mu=1, M3=7
 //   derived:   sigma-phi=10, sigma-tau=8, n_over_phi=3, n_minus_phi=4,

@@ -2,7 +2,7 @@
 hexa-codex pytest configuration.
 
 Most checks are auto-runnable (Python stdlib only); a few are tagged
-`hexa` because they require the hexa-lang runtime (`/Users/ghost/.hx/bin/hexa`).
+`hexa` because they require the hexa-lang runtime (`hexa` on PATH / ~/.hx/bin/hexa).
 """
 from __future__ import annotations
 

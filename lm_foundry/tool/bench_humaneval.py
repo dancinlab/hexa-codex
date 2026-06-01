@@ -8,7 +8,7 @@ HumanEval on a base model + writes results to runs/<model>/humaneval.json.
 USAGE
     python3 tool/bench_humaneval.py \\
         --model Qwen/Qwen2.5-Coder-1.5B \\
-        --output /home/summer/runs/bench-cold-v0.1.3/qwen2.5-coder-1.5b/ \\
+        --output ~/runs/bench-cold-v0.1.3/qwen2.5-coder-1.5b/ \\
         --num-tasks 164          # full set ; 0 = unlimited
 
 OUTPUT

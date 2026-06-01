@@ -20,7 +20,7 @@ This script adds ~250 gap-targeted pairs on top of the r3 base:
 Plus the v3 base (1314 rows) → total ~1560 rows for v4.
 
 OUTPUT
-    /home/summer/runs/sft-train-v4/train.jsonl
+    $HEXA_RUNS_DIR/sft-train-v4/train.jsonl   (default ~/runs/...)
 """
 from __future__ import annotations
 import os as _os
@@ -35,8 +35,11 @@ from pathlib import Path
 
 random.seed(42)
 
-OUT = Path("/home/summer/runs/sft-train-v4/train.jsonl")
-V3_BASE = Path("/home/summer/runs/sft-train-v3/train.jsonl")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+OUT = RUNS / "sft-train-v4" / "train.jsonl"
+V3_BASE = RUNS / "sft-train-v3" / "train.jsonl"
 
 
 def fmt(prompt: str, completion: str) -> dict:

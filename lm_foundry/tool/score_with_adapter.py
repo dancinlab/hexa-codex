@@ -7,7 +7,7 @@ Sister of tool/score_mk0_eval.py but loads PeftModel before generation.
 USAGE
     python3 tool/score_with_adapter.py \\
         --base Qwen/Qwen2.5-Coder-3B \\
-        --adapter /home/summer/runs/sft-lora-r16-v1 \\
+        --adapter ~/runs/sft-lora-r16-v1 \\
         --manifest eval/hexa-eval/manifest.jsonl \\
         --output runs/hexa-eval-mk0/qwen3b-lora-r16-v1/
 """

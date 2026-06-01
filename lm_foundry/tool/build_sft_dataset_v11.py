@@ -15,8 +15,8 @@ v11 = v10 base (2,334) + ~50 data-format Q/A + ~96 T5 bare-code + ~36 T7 layerin
 Total v11: ~2,516 rows.
 
 OUTPUT
-    /home/summer/runs/sft-train-v11/train.jsonl
-    /home/summer/runs/sft-train-v11/MANIFEST.json
+    $HEXA_RUNS_DIR/sft-train-v11/train.jsonl   (default ~/runs/...)
+    $HEXA_RUNS_DIR/sft-train-v11/MANIFEST.json
 """
 from __future__ import annotations
 import os as _os
@@ -30,8 +30,11 @@ from pathlib import Path
 
 random.seed(42)
 
-V10_BASE = Path("/home/summer/runs/sft-train-v10/train.jsonl")
-OUT_DIR = Path("/home/summer/runs/sft-train-v11")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V10_BASE = RUNS / "sft-train-v10" / "train.jsonl"
+OUT_DIR = RUNS / "sft-train-v11"
 OUT = OUT_DIR / "train.jsonl"
 MANIFEST = OUT_DIR / "MANIFEST.json"
 

@@ -17,8 +17,8 @@ v9 = v8 base (2,110) + ~230 targeted boost pairs:
 Total v9: ~2,340 rows.
 
 OUTPUT
-    /home/summer/runs/sft-train-v9/train.jsonl
-    /home/summer/runs/sft-train-v9/MANIFEST.json
+    $HEXA_RUNS_DIR/sft-train-v9/train.jsonl   (default ~/runs/...)
+    $HEXA_RUNS_DIR/sft-train-v9/MANIFEST.json
 """
 from __future__ import annotations
 import os as _os
@@ -32,8 +32,11 @@ from pathlib import Path
 
 random.seed(42)
 
-V8_BASE = Path("/home/summer/runs/sft-train-v8/train.jsonl")
-OUT_DIR = Path("/home/summer/runs/sft-train-v9")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V8_BASE = RUNS / "sft-train-v8" / "train.jsonl"
+OUT_DIR = RUNS / "sft-train-v9"
 OUT = OUT_DIR / "train.jsonl"
 MANIFEST = OUT_DIR / "MANIFEST.json"
 

@@ -23,8 +23,8 @@ v14 = (v11 base with the fictional T5-classification pairs DROPPED) + ~220 real-
 Q/A pairs. ~2,640 rows.
 
 OUTPUT
-    /home/summer/runs/sft-train-v14/train.jsonl
-    /home/summer/runs/sft-train-v14/MANIFEST.json
+    $HEXA_RUNS_DIR/sft-train-v14/train.jsonl   (default ~/runs/...)
+    $HEXA_RUNS_DIR/sft-train-v14/MANIFEST.json
 """
 from __future__ import annotations
 import os as _os
@@ -38,8 +38,11 @@ from pathlib import Path
 
 random.seed(42)
 
-V11_BASE = Path("/home/summer/runs/sft-train-v11/train.jsonl")
-OUT_DIR = Path("/home/summer/runs/sft-train-v14")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V11_BASE = RUNS / "sft-train-v11" / "train.jsonl"
+OUT_DIR = RUNS / "sft-train-v14"
 OUT = OUT_DIR / "train.jsonl"
 MANIFEST = OUT_DIR / "MANIFEST.json"
 

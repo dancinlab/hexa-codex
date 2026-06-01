@@ -19,7 +19,15 @@
 
 set -euo pipefail
 
-HF_TOKEN_VALUE="$(ssh mac '/Users/ghost/core/secret/bin/secret get HF_TOKEN' 2>/dev/null)"
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS_DIR="${HEXA_RUNS_DIR:-$HOME/runs}"
+export HEXA_RUNS_DIR="$RUNS_DIR"
+
+# Portable HF-token fetch: override $HF_TOKEN_CMD wholesale, or just point
+# $HF_TOKEN_HOST at your ssh host (the `secret` CLI is resolved from PATH there).
+HF_TOKEN_HOST="${HF_TOKEN_HOST:-mac}"
+HF_TOKEN_CMD="${HF_TOKEN_CMD:-ssh $HF_TOKEN_HOST secret get HF_TOKEN}"
+HF_TOKEN_VALUE="$($HF_TOKEN_CMD 2>/dev/null)"
 export HUGGING_FACE_HUB_TOKEN="$HF_TOKEN_VALUE"
 
 # verify token
@@ -34,14 +42,14 @@ echo "whoami: $(echo "$WHOAMI" | python3 -c 'import json,sys; print(json.load(sy
 mkdir -p /tmp/r6_f16 /tmp/r6_q5 /tmp/r7_f16 /tmp/r7_q5
 
 # r6: files may have been moved during earlier session — relink if available
-[ -f /home/summer/runs/hexa-forge-code-3b-v0.2.0-r6.f16.gguf ] && \
-    mv /home/summer/runs/hexa-forge-code-3b-v0.2.0-r6.f16.gguf /tmp/r6_f16/ 2>/dev/null || true
-[ -f /home/summer/runs/hexa-forge-code-3b-v0.2.0-r6.Q5_K_M.gguf ] && \
-    mv /home/summer/runs/hexa-forge-code-3b-v0.2.0-r6.Q5_K_M.gguf /tmp/r6_q5/ 2>/dev/null || true
+[ -f "$RUNS_DIR/hexa-forge-code-3b-v0.2.0-r6.f16.gguf" ] && \
+    mv "$RUNS_DIR/hexa-forge-code-3b-v0.2.0-r6.f16.gguf" /tmp/r6_f16/ 2>/dev/null || true
+[ -f "$RUNS_DIR/hexa-forge-code-3b-v0.2.0-r6.Q5_K_M.gguf" ] && \
+    mv "$RUNS_DIR/hexa-forge-code-3b-v0.2.0-r6.Q5_K_M.gguf" /tmp/r6_q5/ 2>/dev/null || true
 
 # r7: copy from canonical home
-cp /home/summer/runs/hexa-forge-code-3b-v0.2.0-r7.f16.gguf /tmp/r7_f16/ 2>/dev/null || true
-cp /home/summer/runs/hexa-forge-code-3b-v0.2.0-r7.Q5_K_M.gguf /tmp/r7_q5/ 2>/dev/null || true
+cp "$RUNS_DIR/hexa-forge-code-3b-v0.2.0-r7.f16.gguf" /tmp/r7_f16/ 2>/dev/null || true
+cp "$RUNS_DIR/hexa-forge-code-3b-v0.2.0-r7.Q5_K_M.gguf" /tmp/r7_q5/ 2>/dev/null || true
 
 # README templates
 for round in r6 r7; do
@@ -117,10 +125,12 @@ for repo_id, folder, repo_type in UPLOADS:
         commit_message="GGUF export — recovery upload after token refresh")
     print(f"  upload: {r}")
 
-# Bench results from local runs/ (r7-strict)
+# Bench results from local runs/ (r7-strict); $HEXA_RUNS_DIR (set by the shell
+# wrapper) overrides, else ~/runs.
+_RUNS = os.environ.get("HEXA_RUNS_DIR") or os.path.join(os.path.expanduser("~"), "runs")
 BENCH = [
-    ("/home/summer/runs/hexa-eval-r7", "hexa-eval-r7-strict"),
-    ("/home/summer/runs/five-nl-r7", "five-nl-r7-strict"),
+    (os.path.join(_RUNS, "hexa-eval-r7"), "hexa-eval-r7-strict"),
+    (os.path.join(_RUNS, "five-nl-r7"), "five-nl-r7-strict"),
 ]
 for src, sub in BENCH:
     if not os.path.exists(src):

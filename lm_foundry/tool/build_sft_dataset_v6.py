@@ -10,7 +10,7 @@ v6 restores the structured-only diet: v4 base + 76 apple hand-crafted
 Q/A pairs. SwiftUI / UIKit / Combine knowledge stays; no continuation drift.
 
 OUTPUT
-    /home/summer/runs/sft-train-v6/train.jsonl
+    $HEXA_RUNS_DIR/sft-train-v6/train.jsonl   (default ~/runs/...)
 """
 from __future__ import annotations
 import os as _os
@@ -21,9 +21,12 @@ _sys.path[:] = [p for p in _sys.path if _os.path.abspath(p) != _THIS_DIR]
 import json
 from pathlib import Path
 
-V4_BASE = Path("/home/summer/runs/sft-train-v4/train.jsonl")
-APPLE = Path("/home/summer/runs/sft-apple/apple_pairs.jsonl")
-OUT = Path("/home/summer/runs/sft-train-v6/train.jsonl")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V4_BASE = RUNS / "sft-train-v4" / "train.jsonl"
+APPLE = RUNS / "sft-apple" / "apple_pairs.jsonl"
+OUT = RUNS / "sft-train-v6" / "train.jsonl"
 
 
 def main():

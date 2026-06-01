@@ -24,8 +24,8 @@ template (the format-balance lesson from r1→r3). Pairs are short and
 recipe-shaped — not file continuations (the v5 over-continuation regression).
 
 OUTPUT
-    /home/summer/runs/sft-train-v8/train.jsonl
-    /home/summer/runs/sft-train-v8/MANIFEST.json
+    $HEXA_RUNS_DIR/sft-train-v8/train.jsonl   (default ~/runs/...)
+    $HEXA_RUNS_DIR/sft-train-v8/MANIFEST.json
 """
 from __future__ import annotations
 import os as _os
@@ -39,8 +39,11 @@ from pathlib import Path
 
 random.seed(42)
 
-V7_BASE = Path("/home/summer/runs/sft-train-v8/.._v7_base") if False else Path("/home/summer/runs/sft-train-v7/train.jsonl")
-OUT_DIR = Path("/home/summer/runs/sft-train-v8")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V7_BASE = RUNS / "sft-train-v7" / "train.jsonl"
+OUT_DIR = RUNS / "sft-train-v8"
 OUT = OUT_DIR / "train.jsonl"
 MANIFEST = OUT_DIR / "MANIFEST.json"
 

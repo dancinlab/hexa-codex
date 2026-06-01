@@ -20,7 +20,7 @@ v7 = v6 base (1,665) + targeted boost:
 Total v7: ~1,985 rows.
 
 OUTPUT
-    /home/summer/runs/sft-train-v7/train.jsonl
+    $HEXA_RUNS_DIR/sft-train-v7/train.jsonl   (default ~/runs/...)
 """
 from __future__ import annotations
 import os as _os
@@ -33,8 +33,11 @@ from pathlib import Path
 
 random.seed(42)
 
-V6_BASE = Path("/home/summer/runs/sft-train-v6/train.jsonl")
-OUT = Path("/home/summer/runs/sft-train-v7/train.jsonl")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V6_BASE = RUNS / "sft-train-v6" / "train.jsonl"
+OUT = RUNS / "sft-train-v7" / "train.jsonl"
 
 
 def fmt(p, c):

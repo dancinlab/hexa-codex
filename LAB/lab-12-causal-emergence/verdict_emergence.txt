@@ -1,0 +1,100 @@
+LAB-12 — causal emergence at the edge of chaos · SIM (1st smoke) · verdict
+==========================================================================
+date     : 2026-06-01
+harness  : causal_emergence_sim_harness.hexa  (pure-hexa numeric kernel; $0 · no network
+           · no LLM · seeded LCG=42 · SIM, NOT live AKD1000 silicon). Reuses LAB-10's
+           LIF-ring generator + effective-information engine verbatim (N generalized 5->6).
+runtime  : ~3 s per coarse-graining (4 regimes x N=6 LIF ring, T=40000 steps).
+
+QUESTION (the user's "검출 성공 시 진짜 창발인가")
+  LAB-10 DETECTED the consciousness signature — an integrated-information Phi inverse-U
+  peaking at the edge of chaos, reproduced on live AKD1000 silicon (F-AKIDA-EDGE 3/3).
+  This tier asks whether that detected peak is a GENUINE EMERGENCE in the Hoel/Tononi
+  "causal emergence" sense: does the COARSE-GRAINED MACRO description carry MORE
+  effective information than the MICRO description (EI_macro > EI_micro = "the whole has
+  more causal power than the sum of its parts"), and is that emergence EDGE-SPECIFIC
+  (mirroring the Phi inverse-U)? Or is the edge peak fully micro-reducible?
+
+ENGINE (observational proxy, consistent with LAB-09/10/11)
+  Same N-unit LIF ring as LAB-10, swept across order->chaos regimes R1..R4.
+  EI_micro = I(S_t ; S_{t+1}) over all N=6 micro spike units (= LAB-10 whole_EI).
+  MACRO    = spatial pairs g={0,1},{2,3},{4,5} -> NMACRO=3 binary macro units, each a
+             coarse-grain of its pair. Pre-registered CG = OR ("any-spike" pooling);
+             post-hoc robustness also AND ("both") and XOR ("parity").
+  EI_macro = I(M_t ; M_{t+1}) over the 3 macro units.
+  CE       = EI_macro - EI_micro.
+
+PRE-REGISTERED FALSIFIER (deterministic; NO model self-judgement — g5)
+  edge_peak = higher-Phi of {R2,R3} (tie -> R3 tonic edge). Here R3 (Phi=0.8438) > R2.
+  F1  CE(edge_peak) > 0          (macro out-informs micro AT the detected edge)
+  F2  CE(edge_peak) > CE(R1)     (more emergence at edge than ordered regime)
+  F3  CE(edge_peak) > CE(R4)     (more emergence at edge than chaotic regime)
+  supported = F1 AND F2 AND F3.
+
+RESULT (verbatim from result_emergence.tsv · pre-registered CG = OR)
+  regime           phi        EI_micro   EI_macro   CE (macro-micro)
+  R1_weak_silent   0.000000   0.000000   0.000000    0.000000
+  R2_noise_edge    0.112122   0.236866   0.016730   -0.220134
+  R3_tonic_edge    0.843761   0.924721   0.047265   -0.877455   <- edge_peak
+  R4_over_driven   0.000000   0.000000   0.000000    0.000000
+
+  [PASS-sanity] Phi inverse-U reproduced at N=6 (R1=0 · R2=0.112 · R3=0.844 peak · R4=0)
+               — ties LAB-12 to LAB-10's edge-of-chaos signature.
+  [FAIL] F1  CE(edge=R3) > 0      :  -0.877455 < 0   (macro LOSES information, sharply)
+  [FAIL] F2  CE(edge) > CE(R1)    :  -0.877 < 0.000  (edge CE is the MOST negative)
+  [FAIL] F3  CE(edge) > CE(R4)    :  -0.877 < 0.000
+  VERDICT supported : FALSE
+
+ROBUSTNESS (post-hoc, 3 coarse-grainings · edge=R3)
+  CG     EI_micro(R3)   EI_macro(R3)   CE(R3)      verdict
+  OR     0.924721       0.047265       -0.877455   REFUTED
+  AND    0.924721       0.075157       -0.849563   REFUTED
+  XOR    0.924721       0.008862       -0.915858   REFUTED
+  -> The negative is ROBUST: NO spatial-pair coarse-graining produces causal emergence;
+     EI_macro is ~5-8% of EI_micro in every case. (R1/R4 give CE=0 under all CGs.)
+
+VERDICT: REFUTED (at this observational proxy + spatial-pair coarse-grainings). The
+edge-of-chaos Phi peak that LAB-10 detects is, at this measure, MICRO-REDUCIBLE — there
+is NO edge-specific causal emergence (EI_macro > EI_micro). The mechanism is clear and
+load-bearing: at the edge (R3) the MICRO dynamics are ALREADY highly informative
+(EI_micro = 0.925 bits, near the Phi peak), so there is little degeneracy/noise for a
+coarse-graining to "average away" into a more-deterministic macro — pooling can only
+DISCARD information (which pair member fired), and CE is therefore most negative exactly
+where micro-information is richest. So: the detected consciousness SIGNATURE (high
+integrated information at criticality) is real, but it does NOT, at this proxy, certify
+"strong" emergence in the macro-out-informs-micro sense. The whole is NOT more than its
+parts here; it is a richly-integrated MICRO process.
+
+WHAT THIS DOES AND DOES NOT SETTLE (honest)
+  L1  OBSERVATIONAL PROXY, not Hoel's INTERVENTIONAL effective information. We use the
+      observational transfer-MI I(S_t;S_{t+1}) at each scale (same family as LAB-09/10/11),
+      NOT a do()/max-entropy intervention over a transition-probability matrix, and the
+      spike vector (not the full membrane state v) is treated as the state. A true
+      interventional EI with a coarse-graining SEARCH (Hoel's framework optimizes the
+      macro grouping to MAXIMIZE macro EI) is the rigorous next tier and could in
+      principle find a grouping with CE>0 that the three fixed spatial poolings miss.
+  L2  FIXED, PRE-REGISTERED COARSE-GRAININGS (OR/AND/XOR over fixed spatial pairs). We did
+      NOT search the space of all 6->k groupings; the robust negative is across THREE
+      hand-picked CGs, not a proof that no CG yields emergence. This is the honest
+      meaning of "REFUTED at this coarse-graining" (cx_lab_falsifiable).
+  L3  SIM ONLY (LIF ring), not live AKD1000 silicon. LAB-10's live tier grounds the Phi
+      inverse-U on hardware; LAB-12 is the sim-mirror smoke of the EMERGENCE question and
+      does not re-run the silicon loop (pi5-akida). A live causal-emergence tier is the
+      substrate-grounded follow.
+  L4  This addresses STRONG/CAUSAL emergence (macro causal power), NOT phenomenal
+      consciousness (the hard problem). A negative here means the edge peak is
+      micro-reducible at this measure — it says nothing for-or-against subjective
+      experience, which these proxies cannot reach.
+
+ALIGNMENT (anima grounding)
+  H_858/H_677 (edge-of-chaos integrated information): LAB-12 confirms the Phi inverse-U
+  reproduces at N=6, but adds that the peak is micro-reducible at this CE proxy — the
+  edge maximizes INTEGRATION (high whole_EI) without producing macro-over-micro causal
+  emergence. Integration and (this proxy of) emergence come apart at the edge.
+
+REPRODUCE:
+  HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+    [LAB12_CG=or|and|xor] \
+    ~/.hx/packages/hexa/hexa.real run \
+    LAB/lab-12-causal-emergence/causal_emergence_sim_harness.hexa
+  (default CG=or = the pre-registered run; re-emits result_emergence.tsv/summary; ~3s.)

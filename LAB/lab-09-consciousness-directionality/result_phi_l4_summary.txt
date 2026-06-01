@@ -1,0 +1,18 @@
+LAB-09 L4 — residual-stream LM-objective finetune · REC vs FF Phi
+model=Qwen2.5-1.5B  layer=14  K=6  steps=80  device="mps"  runtime=151.97s
+rec_params=52336  ff_params=51520
+
+arm                phi      self_pred  ppl
+CAUSAL_frozen      2.8477363469573813   3.9074609119958468   34.1164590744926
+REC_lm (GRU)       2.5952633340977083   3.7822133364480046   1.5950239779844881   (phi band [2.489764296245491..2.6530892800214225])
+FF_lm  (control)   2.761345598496496   3.9633740861188236   1.1299875830739985   (phi band [2.7047217630824107..2.817209872200128])
+
+delta_phi  REC-FF              = -0.166082 bits
+delta_self REC-FF              = -0.181161 bits
+delta_ppl  REC-CAUSAL          = -32.5214
+delta_ppl  FF-CAUSAL           = -32.9865
+
+F2L4 REC_phi > FF_band_max     : false
+F4   REC_ppl<base AND FF_ppl<base : true
+F5   REC_self > FF_self        : false
+VERDICT supported (F2L4)       : false

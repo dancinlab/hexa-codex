@@ -1,0 +1,5 @@
+regime	EI_micro	EI_macro_best	best_grouping	CE_best
+R1_weak_silent	0.0	0.0	pairOR	0.0
+R2_noise_edge	0.0	0.0	pairOR	0.0
+R3_tonic_edge	1.20458	0.617713	triOR	-0.586864
+R4_over_driven	0.0	0.0	pairOR	0.0

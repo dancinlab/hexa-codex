@@ -1,0 +1,17 @@
+LAB-12 — causal emergence at the edge of chaos · SIM (1st smoke)
+seed=42 N=6 macro=3 (pair OR-pool) steps=40000 (LIF ring; NOT live silicon)
+EI = observational I(S_t;S_{t+1}) proxy · CE = EI_macro - EI_micro
+
+regime           phi      EI_micro  EI_macro  CE(macro-micro)
+R1_weak_silent   0.0   0.0   0.0   0.0
+R2_noise_edge   0.112122   0.236866   0.01673   -0.220134
+R3_tonic_edge   0.843761   0.924721   0.047265   -0.877455
+R4_over_driven   0.0   0.0   0.0   0.0
+
+edge_peak = R3_tonic_edge  CE_edge = -0.877455
+  (R1 CE=0.0  R4 CE=0.0)
+
+falsifier F1 CE(edge) > 0           : false
+falsifier F2 CE(edge) > CE(R1)      : false
+falsifier F3 CE(edge) > CE(R4)      : false
+VERDICT supported (edge-specific causal emergence · F1∧F2∧F3) : false

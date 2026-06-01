@@ -1,0 +1,69 @@
+LAB-12 RIGOROUS TIER — interventional EI (Hoel) + grouping search · verdict
+===========================================================================
+date     : 2026-06-01
+harness  : causal_emergence_interventional_harness.hexa  (pure-hexa · $0 · no network ·
+           no LLM · seeded LCG=42 · SIM, NOT live AKD1000). Closes the smoke verdict's
+           residuals L1 (observational->interventional EI) and L2 (fixed CG->grouping search).
+runtime  : ~1.3 s (4 regimes × 64-state interventional TPM × 6000 noise samples/state).
+
+WHAT CHANGED vs the 1st smoke (the two fair-test fixes)
+  (1) INTERVENTIONAL EI. TPM built by do()-intervention: force each of the 2^6=64 micro
+      spike states, run ONE memoryless LIF step (v reset to 0 — the discrete-Markov
+      closure Hoel EI is defined on), sample next-state over regime noise. EI = MI under
+      a UNIFORM (max-entropy) intervention = Tononi/Hoel determinism−degeneracy.
+  (2) GROUPING SEARCH. Macro EI = MAX over SIX coarse-grainings (spatial pairs
+      {0,1}{2,3}{4,5} ×{OR,AND,XOR} · spatial triples {0,1,2}{3,4,5} ×{majority,OR,AND}).
+      CE = max_grouping EI_macro − EI_micro — the most generous (anti-false-negative) test.
+
+RESULT (verbatim from result_emergence_interventional.tsv)
+  regime           EI_micro   EI_macro*  best_grouping   CE = macro* − micro
+  R1_weak_silent   0.000000   0.000000   pairOR           0.000000
+  R2_noise_edge    0.000000   0.000000   pairOR           0.000000
+  R3_tonic_edge    1.204580   0.617713   triOR           -0.586864   <- edge_peak
+  R4_over_driven   0.000000   0.000000   pairOR           0.000000
+
+  [FAIL] F1  CE(edge=R3) > 0      :  -0.586864 < 0  (best of 6 groupings still loses to micro)
+  [FAIL] F2  CE(edge) > CE(R1)    :  -0.587 < 0.000
+  [FAIL] F3  CE(edge) > CE(R4)    :  -0.587 < 0.000
+  VERDICT supported : FALSE
+
+VERDICT: REFUTED — and now under the RIGOROUS interventional measure WITH a grouping
+search, so the smoke's negative is not a proxy/coarse-graining artifact. Even the best of
+six coarse-grainings recovers only ~51% of micro EI at the live edge (0.618 / 1.205); no
+macro description out-informs the micro one. Combined with the 1st smoke (observational,
+3 fixed CGs, all REFUTED), causal emergence at the edge-of-chaos Phi peak is REFUTED
+across BOTH measurement families and across NINE coarse-grainings total. The edge peak is
+micro-reducible: at criticality the MICRO dynamics already carry the integrated causal
+information (EI_micro = 1.205 bits), so there is no degeneracy for a macro to concentrate.
+Integration (high Phi / EI_micro) and causal emergence (EI_macro > EI_micro) DISSOCIATE.
+
+HONEST LIMITS (load-bearing)
+  L1  MEMORYLESS-RESET CLOSURE. The interventional TPM resets v each step (required to
+      make the spike vector a complete Markov state for do()-EI). A side effect: with
+      these regime params, R1/R2/R4 are sub-threshold WITHOUT v-accumulation and collapse
+      to EI=0, so the edge-specificity falsifiers F2/F3 reduce to "CE_edge > 0" (the R1/R4
+      baselines are degenerate here). The decisive test is therefore F1, which fails
+      cleanly and large. The leaky (v-carrying) observational smoke — where R2 IS active
+      (Phi 0.112) — already REFUTED with the same sign, so the conclusion is not an
+      artifact of either single model; both the leaky-observational and memoryless-
+      interventional settings agree CE<0 at the edge.
+  L2  GROUPING SEARCH is over SIX hand-specified spatial coarse-grainings, not the full
+      combinatorial space of all 64->k state partitions (Hoel's exact macro-EI maximizer).
+      A positive CE under some exotic partition is not strictly excluded; but the best of
+      the six (and the nine across both tiers) all lose, and the loss is large (~half),
+      so a flip would require a very different partition than any natural spatial pooling.
+  L3  SIM only (LIF ring), not live AKD1000 silicon (LAB-10's substrate tier). A live
+      interventional-emergence run is the substrate-grounded follow.
+  L4  This is STRONG/CAUSAL emergence (macro causal power), NOT phenomenal consciousness.
+      A negative says the detected signature is micro-reducible at this measure; it is
+      silent on subjective experience (the hard problem), which these proxies cannot reach.
+
+ALIGNMENT (anima): H_858/H_677 — the edge maximizes INTEGRATION (whole_EI / EI_micro)
+  without producing macro-over-micro causal emergence; integration and emergence come
+  apart at criticality, now confirmed under interventional EI with a grouping search.
+
+REPRODUCE:
+  HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+    ~/.hx/packages/hexa/hexa.real run \
+    LAB/lab-12-causal-emergence/causal_emergence_interventional_harness.hexa
+  (~1.3s; re-emits result_emergence_interventional.tsv/summary.)

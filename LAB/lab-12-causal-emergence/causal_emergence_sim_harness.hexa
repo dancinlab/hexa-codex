@@ -1,0 +1,324 @@
+#!hexa strict
+// LAB/lab-12-causal-emergence/causal_emergence_sim_harness.hexa
+//
+// LAB-12 — Causal emergence at the edge of chaos, SIM (1st smoke).
+// See LAB/README.md LAB-12. Builds DIRECTLY on LAB-10: when the consciousness
+// signature (integrated-information Phi inverse-U) is DETECTED at the edge of chaos,
+// is that signature a GENUINE EMERGENCE — i.e. does the COARSE-GRAINED MACRO
+// description carry MORE effective information than the MICRO description (Hoel/
+// Tononi "causal emergence", EI_macro > EI_micro = "the whole has more causal power
+// than the sum of its parts")? Or is the edge peak fully micro-reducible (no
+// emergence, EI_macro <= EI_micro)?
+//
+// HYPOTHESIS (falsifiable):
+//   On the SAME LIF ring as LAB-10 swept across order->chaos regimes R1..R4, causal
+//   emergence CE = EI_macro - EI_micro is POSITIVE at the edge regimes (R2/R3, where
+//   LAB-10 found the Phi peak) and NON-POSITIVE / smaller in the ordered (R1) and
+//   chaotic (R4) regimes. I.e. emergence is EDGE-SPECIFIC, mirroring the Phi inverse-U.
+//
+// FALSIFIER (pre-registered, mirrors LAB-10's F-AKIDA-EDGE shape; deterministic, no
+// model self-judgement — g5):
+//   F1  CE(edge_peak) > 0                 (macro out-informs micro AT the detected edge)
+//   F2  CE(edge_peak) > CE(R1)            (more emergence at edge than in the ordered regime)
+//   F3  CE(edge_peak) > CE(R4)            (more emergence at edge than in the chaotic regime)
+//   edge_peak = whichever of {R2,R3} has the higher Phi (ties -> R3, the tonic edge).
+//   supported = F1 AND F2 AND F3. If any fails, the edge Phi peak is NOT accompanied
+//   by edge-specific causal emergence at this proxy -> emergence NOT established.
+//   We report every real CE either way (cx_lab_falsifiable).
+//
+// EI / EMERGENCE ENGINE (consistent with LAB-09/10/11 — an OBSERVATIONAL proxy):
+//   EI_micro = I(S_t ; S_{t+1}) over all N micro spike units (= LAB-10 whole_EI).
+//   MACRO coarse-grain: spatial pairs g={0,1},{2,3},{4,5}; macro bit_g = OR(s[2g],s[2g+1])
+//     ("any-spike" population pooling) -> NMACRO=3 binary macro units.
+//   EI_macro = I(M_t ; M_{t+1}) over the 3 macro units.
+//   CE = EI_macro - EI_micro.
+//   NOTE (honest, see verdict L1): this is an OBSERVATIONAL transfer-MI proxy of Hoel's
+//   INTERVENTIONAL effective information (no do()/max-entropy intervention, no v-state).
+//   Because macro has FEWER bits (max 3 vs micro 6), EI_macro > EI_micro is a CONSERVATIVE
+//   emergence test — a positive CE means coarse-graining CONCENTRATED causal structure.
+//
+// HONESTY (cx_lab_sandbox · g5 no-self-judge):
+//   Pure local deterministic numeric kernel ($0, no network, no LLM, seeded LCG=42).
+//   SIM only — NOT live AKD1000 silicon (that is LAB-10's substrate-grounded tier).
+//
+// @no-lock-needed
+// @resolver-bypass(reason="Pure local numeric kernel + filesystem write — no atlas atoms, no network.")
+
+let SEED = 42
+let N = 6            // micro LIF units (even, so it pairs into NMACRO macro groups)
+let NMACRO = 3       // macro groups = N/2 spatial pairs
+let T = 40000
+let THETA = 1.0
+let LEAK = 0.5
+let FULL = (1 << N) - 1   // all-micro mask = 63
+let OUT_DIR = env("HEXA_CODEX_ROOT") + "/LAB/lab-12-causal-emergence"
+
+let mut LCG = 0
+fn seed_lcg(s: int) { LCG = s }
+fn rbit() -> int {
+    LCG = (1103515245 * LCG + 12345) % 2147483648
+    return (LCG / 65536) % 2
+}
+
+fn encode(b: [int]) -> int {
+    let mut code = 0
+    let mut i = 0
+    while i < N { code = code + (b[i] << i) ; i = i + 1 }
+    return code
+}
+
+fn popcount(mask: int) -> int {
+    let mut c = 0
+    let mut u = 0
+    while u < N { if (mask >> u) % 2 == 1 { c = c + 1 } ; u = u + 1 }
+    return c
+}
+
+fn subcode(code: int, mask: int) -> int {
+    let mut acc = 0
+    let mut pos = 0
+    let mut u = 0
+    while u < N {
+        if (mask >> u) % 2 == 1 {
+            let bit = (code >> u) % 2
+            acc = acc + (bit << pos)
+            pos = pos + 1
+        }
+        u = u + 1
+    }
+    return acc
+}
+
+fn entropy(counts: [int], total: int) -> float {
+    let mut h = 0.0
+    let mut i = 0
+    let n = len(counts)
+    let tf = total + 0.0
+    while i < n {
+        let c = counts[i]
+        if c > 0 {
+            let p = c / tf
+            h = h - p * log2(p)
+        }
+        i = i + 1
+    }
+    return h
+}
+
+// I(X_t^subset ; X_{t+1}^subset) over the micro mask (observational MI in bits).
+fn mi_subset(xt: [int], xn: [int], mask: int) -> float {
+    let k = 1 << popcount(mask)
+    let mut joint = []
+    let mut z = 0
+    while z < k * k { joint.push(0) ; z = z + 1 }
+    let mut s = 0
+    while s < T {
+        let a = subcode(xt[s], mask)
+        let b = subcode(xn[s], mask)
+        joint[a * k + b] = joint[a * k + b] + 1
+        s = s + 1
+    }
+    let mut rows = []
+    let mut cols = []
+    let mut r = 0
+    while r < k { rows.push(0) ; cols.push(0) ; r = r + 1 }
+    let mut a = 0
+    while a < k {
+        let mut b = 0
+        while b < k {
+            let c = joint[a * k + b]
+            rows[a] = rows[a] + c
+            cols[b] = cols[b] + c
+            b = b + 1
+        }
+        a = a + 1
+    }
+    return entropy(rows, T) + entropy(cols, T) - entropy(joint, T)
+}
+
+// generic I(A_t ; A_{t+1}) over code arrays with `k` distinct states (used for macro).
+fn mi_codes(at: [int], bt: [int], k: int) -> float {
+    let mut joint = []
+    let mut z = 0
+    while z < k * k { joint.push(0) ; z = z + 1 }
+    let mut s = 0
+    while s < T {
+        joint[at[s] * k + bt[s]] = joint[at[s] * k + bt[s]] + 1
+        s = s + 1
+    }
+    let mut rows = []
+    let mut cols = []
+    let mut r = 0
+    while r < k { rows.push(0) ; cols.push(0) ; r = r + 1 }
+    let mut a = 0
+    while a < k {
+        let mut b = 0
+        while b < k {
+            let c = joint[a * k + b]
+            rows[a] = rows[a] + c
+            cols[b] = cols[b] + c
+            b = b + 1
+        }
+        a = a + 1
+    }
+    return entropy(rows, T) + entropy(cols, T) - entropy(joint, T)
+}
+
+// Phi-proxy over the micro units (LAB-10 engine, generalized to N bits) — for the
+// inverse-U sanity check that ties LAB-12 to LAB-10.
+fn phi_proxy(xt: [int], xn: [int]) -> float {
+    let whole = mi_subset(xt, xn, FULL)
+    let mut best = 1000000.0
+    let mut mask = 1
+    while mask < FULL {
+        if mask % 2 == 1 {
+            let sum = mi_subset(xt, xn, mask) + mi_subset(xt, xn, FULL - mask)
+            if sum < best { best = sum }
+        }
+        mask = mask + 1
+    }
+    return whole - best
+}
+
+// macro coarse-grain of one micro code: NMACRO bits, each from pair (2g, 2g+1).
+// CG mode (env LAB12_CG): "or" (any-spike, default) · "and" (both) · "xor" (parity).
+let CG = if env("LAB12_CG").len() > 0 { env("LAB12_CG") } else { "or" }
+fn macro_of(code: int) -> int {
+    let mut m = 0
+    let mut g = 0
+    while g < NMACRO {
+        let a = (code >> (2 * g)) % 2
+        let b = (code >> (2 * g + 1)) % 2
+        let mut bit = 0
+        if CG == "and" { bit = if (a + b) == 2 { 1 } else { 0 } }
+        else if CG == "xor" { bit = (a + b) % 2 }
+        else { bit = if (a + b) > 0 { 1 } else { 0 } }   // "or"
+        m = m + (bit << g)
+        g = g + 1
+    }
+    return m
+}
+
+fn mean_rate(xt: [int]) -> float {
+    let mut spikes = 0
+    let mut s = 0
+    while s < T {
+        let mut i = 0
+        while i < N { spikes = spikes + ((xt[s] >> i) % 2) ; i = i + 1 }
+        s = s + 1
+    }
+    return (spikes + 0.0) / ((T * N) + 0.0)
+}
+
+// LIF ring sweep at one regime (drive, gain, noise_amp). Fills xt/xn spike states.
+fn evolve_lif(drive: float, gain: float, noise_amp: float, xt: [int], xn: [int]) {
+    seed_lcg(SEED)
+    let mut v = []
+    let mut sp = []
+    let mut i = 0
+    while i < N { v.push(0.0) ; sp.push(0) ; i = i + 1 }
+    let mut k = 0
+    while k < T {
+        let mut nxt = []
+        i = 0
+        while i < N {
+            let li = (i + N - 1) % N
+            let ri = (i + 1) % N
+            let rec = (sp[li] + sp[ri]) + 0.0
+            let sgn = (2 * rbit() - 1) + 0.0
+            let inp = drive + gain * rec + noise_amp * sgn
+            v[i] = v[i] * LEAK + inp
+            let mut s = 0
+            if v[i] > THETA { s = 1 ; v[i] = 0.0 }
+            nxt.push(s)
+            i = i + 1
+        }
+        xt[k] = encode(sp)
+        xn[k] = encode(nxt)
+        sp = nxt
+        k = k + 1
+    }
+}
+
+fn new_arr(t: int) -> [int] {
+    let mut a = []
+    let mut i = 0
+    while i < t { a.push(0) ; i = i + 1 }
+    return a
+}
+
+fn r6(x: float) -> str {
+    let scaled = x * 1000000.0
+    let ri = scaled + 0.5
+    let asint = ri - (ri % 1.0)
+    return str(asint / 1000000.0)
+}
+
+fn main() {
+    // R1 weak-silent · R2 noise-edge · R3 tonic-edge · R4 over-driven (order->chaos)
+    // (same regime sweep as LAB-10 edge_of_chaos_sim_harness.hexa)
+    let DRIVE = [0.20, 0.30, 0.35, 1.40]
+    let GAIN  = [0.10, 0.15, 0.25, 1.30]
+    let NOISE = [0.00, 0.30, 0.55, 0.00]
+    let RLBL  = ["R1_weak_silent", "R2_noise_edge", "R3_tonic_edge", "R4_over_driven"]
+    let M = 4
+
+    print("LAB-12 causal-emergence SIM — N=" + str(N) + " LIF ring (macro=" + str(NMACRO) + " pairs), T=" + str(T) + "\n")
+
+    let mut phis = []
+    let mut eimi = []
+    let mut eima = []
+    let mut ces = []
+    let mut tsv = "regime\tdrive\tgain\tnoise\tphi_proxy\tEI_micro\tEI_macro\tCE_macro_minus_micro\n"
+    let mut idx = 0
+    while idx < M {
+        let mut xt = new_arr(T)
+        let mut xn = new_arr(T)
+        evolve_lif(DRIVE[idx], GAIN[idx], NOISE[idx], xt, xn)
+
+        let phi = phi_proxy(xt, xn)
+        let ei_micro = mi_subset(xt, xn, FULL)
+
+        // build macro series + macro EI
+        let mut mt = new_arr(T)
+        let mut mn = new_arr(T)
+        let mut s = 0
+        while s < T { mt[s] = macro_of(xt[s]) ; mn[s] = macro_of(xn[s]) ; s = s + 1 }
+        let ei_macro = mi_codes(mt, mn, 1 << NMACRO)
+        let ce = ei_macro - ei_micro
+
+        phis.push(phi) ; eimi.push(ei_micro) ; eima.push(ei_macro) ; ces.push(ce)
+        tsv = tsv + RLBL[idx] + "\t" + r6(DRIVE[idx]) + "\t" + r6(GAIN[idx]) + "\t" + r6(NOISE[idx]) + "\t" + r6(phi) + "\t" + r6(ei_micro) + "\t" + r6(ei_macro) + "\t" + r6(ce) + "\n"
+        print("  " + RLBL[idx] + "  phi=" + r6(phi) + "  EI_micro=" + r6(ei_micro) + "  EI_macro=" + r6(ei_macro) + "  CE=" + r6(ce) + "\n")
+        idx = idx + 1
+    }
+    write_file(OUT_DIR + "/result_emergence.tsv", tsv)
+
+    // edge_peak = the higher-Phi of R2 (idx1) / R3 (idx2); tie -> R3 (tonic edge)
+    let edge_is_r3 = phis[2] >= phis[1]
+    let ce_edge = if edge_is_r3 { ces[2] } else { ces[1] }
+    let edge_lbl = if edge_is_r3 { "R3_tonic_edge" } else { "R2_noise_edge" }
+
+    let f1 = ce_edge > 0.0                 // macro out-informs micro at the detected edge
+    let f2 = ce_edge > ces[0]              // more emergence at edge than ordered R1
+    let f3 = ce_edge > ces[3]              // more emergence at edge than chaotic R4
+    let supported = f1 && f2 && f3
+
+    let mut sm = "LAB-12 — causal emergence at the edge of chaos · SIM (1st smoke)\n"
+    sm = sm + "seed=" + str(SEED) + " N=" + str(N) + " macro=" + str(NMACRO) + " (pair OR-pool) steps=" + str(T) + " (LIF ring; NOT live silicon)\n"
+    sm = sm + "EI = observational I(S_t;S_{t+1}) proxy · CE = EI_macro - EI_micro\n\n"
+    sm = sm + "regime           phi      EI_micro  EI_macro  CE(macro-micro)\n"
+    let mut q = 0
+    while q < M {
+        sm = sm + RLBL[q] + "   " + r6(phis[q]) + "   " + r6(eimi[q]) + "   " + r6(eima[q]) + "   " + r6(ces[q]) + "\n"
+        q = q + 1
+    }
+    sm = sm + "\nedge_peak = " + edge_lbl + "  CE_edge = " + r6(ce_edge) + "\n"
+    sm = sm + "  (R1 CE=" + r6(ces[0]) + "  R4 CE=" + r6(ces[3]) + ")\n\n"
+    sm = sm + "falsifier F1 CE(edge) > 0           : " + str(f1) + "\n"
+    sm = sm + "falsifier F2 CE(edge) > CE(R1)      : " + str(f2) + "\n"
+    sm = sm + "falsifier F3 CE(edge) > CE(R4)      : " + str(f3) + "\n"
+    sm = sm + "VERDICT supported (edge-specific causal emergence · F1∧F2∧F3) : " + str(supported) + "\n"
+    write_file(OUT_DIR + "/result_emergence_summary.txt", sm)
+    print(sm)
+}

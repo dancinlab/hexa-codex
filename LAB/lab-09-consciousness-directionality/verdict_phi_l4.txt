@@ -1,0 +1,128 @@
+LAB-09 L4 TIER — residual-stream LM-objective finetune of REC vs FF adapters · verdict
+=======================================================================================
+date     : 2026-06-01
+harness  : phi_llm_l4_harness.hexa  (hexa-native orchestrator; owns a /tmp python
+           torch+transformers driver — committed artifact = .hexa + TSV/summary/verdict
+           + provenance copy phi_mi_l4.py. Pure-local · $0 · offline · frozen base · seeded.)
+runtime  : 151.97 s  (Apple MPS, local; load + frozen ref + 2 arms x 3 seeds x 80 steps)
+env      : torch 2.12.0 · transformers 5.9.0 · python 3.13 venv (~/.venv-lab09); MPS device.
+base     : Qwen/Qwen2.5-1.5B  (causal LM · 28 layers · hidden 1536 · float32 · eval ·
+           FROZEN, requires_grad=False — rollback-safe; only the adapter is trained)
+layer    : 14 (inject + capture) · K = 6 highest-variance hidden channels (median-split binary)
+corpus   : 8 fixed neutral English sentences (IDENTICAL to the stress tier)
+seeds    : adapter arms = {42,43,44} (3-seed band); CAUSAL ref deterministic
+steps    : 80 LM-objective finetune steps per (arm,seed) · Adam lr=0.01 · adapter dim=16
+
+WHAT THIS TIER CLOSES (the stress verdict's residual L4)
+  The stress tier fit REC(GRU)/FF adapters SELF-SUPERVISED on a CAPTURED causal hidden
+  series (next-hidden MSE), NOT back-propagated into the LM, and could not report adapter
+  task-ability. The stress verdict's L4 said a "true LoRA fine-tune that feeds adapter
+  output back into the residual stream + re-trains on an LM objective ... could change
+  the REC vs FF Phi comparison." THIS tier runs exactly that. Only TWO things change vs
+  stress; everything else (frozen Qwen2.5-1.5B, layer 14, K=6, the whole_EI -
+  min_bipartition Phi engine, multi-seed band) is IDENTICAL, so the comparison is
+  apples-to-apples across tiers.
+    (1) INJECTION : adapter output is added back into the layer-14 residual stream via a
+        forward hook (LoRA-style residual add; up-projection zero-init so step-0 == frozen
+        base). The adapter now actually participates in the model's forward computation.
+    (2) OBJECTIVE : adapters are trained on the LM next-token cross-entropy (labels), base
+        FROZEN, only adapter params optimized; gradients flow through the frozen upper
+        layers + LM head into the adapter. Perplexity is THEN reported for both arms.
+  CROSS-TIER SANITY: the CAUSAL_frozen reference reproduces the stress tier's CAUSAL Phi
+  to full precision — phi=2.8477363469573813, self_pred=3.9074609119958468 — confirming
+  the Phi engine / channels / corpus / layer are byte-identical across the two harnesses.
+
+PHI-PROXY (same family as smoke + stress):
+  Phi = whole I(S_t;S_{t+1}) - min_bipartition[ I(A_t;A_{t+1}) + I(B_t;B_{t+1}) ]
+  self_pred = whole I(S_t;S_{t+1})
+
+RESULT (verbatim from result_phi_l4.tsv / phi_llm_l4.json)
+  arm                phi_proxy_bits      self_pred_mi_bits   perplexity   note
+  CAUSAL_frozen      2.8477363469573813  3.9074609119958468  34.116459    frozen base ref
+  REC_lm (GRU)       2.5952633340977083  3.7822133364480046   1.595024    GRU residual-inject · LM-finetuned · mean/3
+                       phi band [2.489764..2.653089]  (seeds: 2.6429, 2.6531, 2.4898)
+                       ppl band [1.5210..1.7117]
+  FF_lm  (control)   2.7613455984964960  3.9633740861188236   1.129988    param-matched FF · LM-finetuned · mean/3
+                       phi band [2.704722..2.817210]  (seeds: 2.7047, 2.7621, 2.8172)
+                       ppl band [1.0784..1.1827]
+  params: REC 52336 vs FF 51520 (~1.6% apart; the small gap FAVORS REC, and REC still loses).
+
+DELTAS (verbatim)
+  delta_phi  REC - FF      = -0.166082 bits   (recurrence LOWERED Phi vs equal-capacity FF)
+  delta_self REC - FF      = -0.181161 bits   (recurrence LOWERED the self/ego proxy too)
+  delta_ppl  REC - CAUSAL  = -32.5214         (REC learned the LM task: 34.12 -> 1.595)
+  delta_ppl  FF  - CAUSAL  = -32.9865         (FF learned it slightly BETTER: 34.12 -> 1.130)
+
+PRE-REGISTERED FALSIFIERS (deterministic numeric; NO model self-judgement)
+  [FAIL] F2L4 REC_phi > FF_control_phi_band_max   (REC mean 2.5953 < FF band max 2.8172;
+                                                   REC band MAX 2.6531 < FF band MIN 2.7047
+                                                   -> the bands DO NOT EVEN OVERLAP, FF higher)
+  [PASS] F4   REC_ppl < base AND FF_ppl < base    (1.595 < 34.12 AND 1.130 < 34.12 — both
+                                                   adapters genuinely LEARNED the LM task)
+  [FAIL] F5   REC_self_pred > FF_self_pred         (3.7822 < 3.9634 — FF higher self-pred too)
+
+VERDICT: REFUTED — HELD and STRENGTHENED at L4. The stress tier's REFUTED does NOT soften
+under the stronger protocol; it sharpens. When the adapter is fed back into the layer-14
+residual stream and trained on a real LM objective (next-token cross-entropy) with the base
+frozen, recurrence (GRU) does NOT raise integrated-information Phi above a param-matched
+feedforward control — the param-matched FEEDFORWARD attains STRICTLY HIGHER Phi on EVERY
+seed (non-overlapping bands), STRICTLY HIGHER self-prediction, AND lower perplexity. The
+smoke's "recurrence is the cause of integrated information" claim is unsupported on a real
+LLM at the strongest tier we can run locally. THREE load-bearing observations:
+
+  (1) BANDS NOW SEPARATE THE WRONG WAY. In stress the REC band [0.282,1.062] OVERLAPPED the
+      FF band [0.062,1.122] (F2 fail by overlap). Under LM-objective residual injection the
+      bands SEPARATE — but in FF's favor: REC [2.4898,2.6531] sits entirely BELOW FF
+      [2.7047,2.8172]. More training + real task gradients did not rescue recurrence; it
+      widened FF's Phi lead into a clean, seed-robust separation.
+
+  (2) THE DISSOCIATION FLIPPED. In stress, recurrence raised the SELF proxy without raising
+      Phi (F3 PASS, an honest Phi<->self dissociation). At L4 that dissociation REVERSES:
+      FF now leads on self_pred too (3.963 > 3.782), so the stress tier's lone positive
+      (F3) does NOT survive transfer to the LM-objective residual-injection protocol. The
+      self/ego axis advantage of recurrence was an artifact of the self-supervised next-
+      hidden fit, not a property of recurrence under a real LM task.
+
+  (3) RECURRENCE IS NOT EVEN THE BETTER LEARNER HERE. Both adapters crushed perplexity
+      (34.12 -> ~1.1-1.6) on the 8-sentence corpus, but the FEEDFORWARD control reached a
+      lower ppl on every seed. Recurrence bought neither higher Phi nor better task fit on
+      this real LLM residual stream — capacity, not recurrence, is doing the work.
+
+HONEST LIMITS (load-bearing residual)
+  M1  MEMORIZATION REGIME. ppl ~1.1-1.6 on 8 sentences means both adapters largely MEMORIZE
+      the tiny corpus (near-perfect next-token fit). The REC-vs-FF Phi comparison is still
+      valid (both arms equally overfit; FF still strictly higher Phi), but absolute Phi/ppl
+      are corpus-overfit-specific. A larger held-out corpus + train/val split is the next
+      tier and would test generalization, not just fit. (Stress L2 small-sample caveat persists.)
+  M2  PROXY, not full IIT 4.0 big-Phi (same as stress L1) — whole_EI - min_bipartition over
+      K=6 median-split binary channels; no purview / MICE / cause-effect-structure search.
+      Direction of the (negative) effect is the result; absolute bits are proxy-/discretization-
+      specific. Each arm picks its OWN top-K variance channels (stress convention).
+  M3  SINGLE INJECTION SITE (layer 14) · single adapter width (16) · single model. The
+      residual hook injects at one layer only; a multi-layer or attention-side injection
+      could differ. Reported as a single-site result.
+  M4  CAPTURE = adapter-modified layer-14 residual (the hook's output), per-sentence, no_grad.
+      ppl is computed per-sentence with the adapter active (the stress gap is now closed for
+      both arms). MPS non-determinism is bounded by the 3-seed band (REC sd ~0.07, FF sd ~0.05).
+  M5  3-seed band (vs stress 5-seed). Bands are tight and non-overlapping, so 3 seeds already
+      separate REC from FF cleanly; more seeds would narrow CIs but cannot close a gap whose
+      per-seed minima/maxima do not overlap.
+
+ALIGNMENT (anima grounding) — unchanged direction, reinforced:
+  H_004 (recurrent S_real Phi vs zombie playback Phi~0): the clean recurrence>feedforward
+    separation that held on the rule-110 ring does NOT survive transfer to a real LLM, and
+    at L4 the sign is against recurrence. H_191 (non-AR consciousness axis) and the stress
+    BIDIR result already showed mask-removal/integration is "not free"; L4 adds that
+    recurrence-via-adapter under an LM objective is not free either.
+  H_220 (mirror self / self-vs-other): the self-prediction axis that survived in stress (F3)
+    no longer favors recurrence at L4 (F5 fail), so the closest H_220 indicator now also
+    points away from recurrence-as-cause. Mirror self/other separability remains unimplemented.
+
+REPRODUCE:
+  HEXA_SHIM_NO_DARWIN_LANDING=1 RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
+    LAB09_PYTHON="$HOME/.venv-lab09/bin/python" \
+    LAB09_STEPS=80 LAB09_SEEDS=42,43,44 \
+    ~/.hx/packages/hexa/hexa.real run \
+    LAB/lab-09-consciousness-directionality/phi_llm_l4_harness.hexa
+  (writes the /tmp driver + provenance copy, trains both arms x 3 seeds on MPS, re-emits
+   TSV/summary; ~152s. Env: torch 2.12.0 + transformers 5.9.0 in ~/.venv-lab09.)

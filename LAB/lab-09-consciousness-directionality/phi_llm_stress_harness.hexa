@@ -35,7 +35,7 @@
 // ANIMA GROUNDING (prior art):
 //   H_191 (non-autoregressive / ALM-free consciousness 3-axis) · H_004 (recurrent
 //   S_real Phi=0.538 vs zombie playback Phi~0) · H_220 (mirror self / self-vs-other),
-//   at /Users/mini/dancinlab/anima/.worktrees/h869-dispatch-kl/UNIVERSE/.
+//   in the anima repo's UNIVERSE/ tree (handoff h869-dispatch-kl).
 //
 // HONESTY (cx_lab_sandbox · g5):
 //   Pure-local, $0, no network, no external API. Base = locally-cached Qwen2.5-1.5B

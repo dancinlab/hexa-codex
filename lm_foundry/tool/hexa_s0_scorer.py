@@ -35,7 +35,22 @@ import tempfile
 from pathlib import Path
 from typing import Tuple
 
-HEXA_CC_BIN = Path("/home/summer/mac_home/core/hexa-lang/build/hexa_v2_linux_x86_64")
+# Portable hexa-cc binary location: $HEXA_CC_BIN overrides; else the on-PATH
+# `hexa-cc`/`hexa_v2_linux_x86_64`; else a default under ~/.hx/build. The caller
+# fails fast (bin_path.exists() check below) when no binary is found.
+def _default_cc_bin() -> Path:
+    env = _os.environ.get("HEXA_CC_BIN")
+    if env:
+        return Path(env)
+    import shutil as _shutil
+    for name in ("hexa-cc", "hexa_v2_linux_x86_64"):
+        found = _shutil.which(name)
+        if found:
+            return Path(found)
+    return Path.home() / ".hx" / "build" / "hexa_v2_linux_x86_64"
+
+
+HEXA_CC_BIN = _default_cc_bin()
 TIMEOUT_S = 10.0
 
 

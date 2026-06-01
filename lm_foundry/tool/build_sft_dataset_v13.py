@@ -17,8 +17,8 @@ Total v13: ~2,591 rows. Expected: r11's strengths + the T2/T7 gains, ~66-68% Mk.
 epochs. See ROADMAP round 27.)
 
 OUTPUT
-    /home/summer/runs/sft-train-v13/train.jsonl
-    /home/summer/runs/sft-train-v13/MANIFEST.json
+    $HEXA_RUNS_DIR/sft-train-v13/train.jsonl   (default ~/runs/...)
+    $HEXA_RUNS_DIR/sft-train-v13/MANIFEST.json
 """
 from __future__ import annotations
 import os as _os
@@ -35,8 +35,11 @@ from pathlib import Path  # noqa: E402
 
 random.seed(42)
 
-V11_BASE = Path("/home/summer/runs/sft-train-v11/train.jsonl")
-OUT_DIR = Path("/home/summer/runs/sft-train-v13")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V11_BASE = RUNS / "sft-train-v11" / "train.jsonl"
+OUT_DIR = RUNS / "sft-train-v13"
 OUT = OUT_DIR / "train.jsonl"
 MANIFEST = OUT_DIR / "MANIFEST.json"
 

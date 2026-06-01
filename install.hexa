@@ -1,7 +1,7 @@
 // install.hexa — hx build hook for hexa-codex.
 //
 // Invoked by `hx install hexa-codex` (hexa-lang package manager) right after
-// the GitHub checkout (or symlink from /Users/ghost/core/hexa-codex) lands in
+// the GitHub checkout (or a local symlink to the hexa-codex repo) lands in
 // $HX_PKG_DIR. hx passes:
 //   HX_PKG_DIR     — absolute path to the package root
 //   HX_BIN_DIR     — ~/.hx/bin

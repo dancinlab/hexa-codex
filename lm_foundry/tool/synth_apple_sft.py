@@ -15,7 +15,7 @@ Output: ~250 pairs covering:
 - Common iOS/macOS patterns (MVVM, dependency injection)
 - Refusal still respected — only code-adjacent prompts accepted
 
-OUT: /home/summer/runs/sft-apple/apple_pairs.jsonl
+OUT: $HEXA_RUNS_DIR/sft-apple/apple_pairs.jsonl   (default ~/runs/...)
 """
 from __future__ import annotations
 import os as _os
@@ -27,7 +27,9 @@ import json, random
 from pathlib import Path
 
 random.seed(42)
-OUT = Path("/home/summer/runs/sft-apple/apple_pairs.jsonl")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+OUT = RUNS / "sft-apple" / "apple_pairs.jsonl"
 
 
 def fmt(prompt, completion):

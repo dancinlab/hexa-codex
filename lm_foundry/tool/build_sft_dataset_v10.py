@@ -11,8 +11,8 @@ that confirms r9's 46% was Mk.0.1 (n=28) generation variance, not a regression.
 v10 = v9 base (2,303) + ~70 RunPod / cloud-GPU ops Q/A pairs.
 
 OUTPUT
-    /home/summer/runs/sft-train-v10/train.jsonl
-    /home/summer/runs/sft-train-v10/MANIFEST.json
+    $HEXA_RUNS_DIR/sft-train-v10/train.jsonl   (default ~/runs/...)
+    $HEXA_RUNS_DIR/sft-train-v10/MANIFEST.json
 """
 from __future__ import annotations
 import os as _os
@@ -26,8 +26,11 @@ from pathlib import Path
 
 random.seed(42)
 
-V9_BASE = Path("/home/summer/runs/sft-train-v9/train.jsonl")
-OUT_DIR = Path("/home/summer/runs/sft-train-v10")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V9_BASE = RUNS / "sft-train-v9" / "train.jsonl"
+OUT_DIR = RUNS / "sft-train-v10"
 OUT = OUT_DIR / "train.jsonl"
 MANIFEST = OUT_DIR / "MANIFEST.json"
 

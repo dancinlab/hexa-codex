@@ -15,7 +15,7 @@ Mix:
 Total: ~1,765 rows.
 
 OUTPUT
-    /home/summer/runs/sft-train-v5/train.jsonl
+    $HEXA_RUNS_DIR/sft-train-v5/train.jsonl   (default ~/runs/...)
 """
 from __future__ import annotations
 import os as _os
@@ -28,10 +28,13 @@ from pathlib import Path
 
 random.seed(42)
 
-V4_BASE = Path("/home/summer/runs/sft-train-v4/train.jsonl")
-APPLE_PAIRS = Path("/home/summer/runs/sft-apple/apple_pairs.jsonl")
-SWIFT_CORPUS = Path("/home/summer/runs/corpus/stack-v1-swift/swift")
-OUT = Path("/home/summer/runs/sft-train-v5/train.jsonl")
+# Portable runs root: $HEXA_RUNS_DIR overrides, else ~/runs.
+RUNS = Path(_os.environ.get("HEXA_RUNS_DIR", Path.home() / "runs"))
+
+V4_BASE = RUNS / "sft-train-v4" / "train.jsonl"
+APPLE_PAIRS = RUNS / "sft-apple" / "apple_pairs.jsonl"
+SWIFT_CORPUS = RUNS / "corpus" / "stack-v1-swift" / "swift"
+OUT = RUNS / "sft-train-v5" / "train.jsonl"
 
 
 def fmt(prompt, completion):

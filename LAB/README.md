@@ -404,6 +404,10 @@ L4 에선 FF 쪽으로 깨끗이 분리). stress 의 유일한 긍정 F3(self �
 전체 verdict:
 [`verdict_phi_l4.txt`](lab-09-consciousness-directionality/verdict_phi_l4.txt).
 
+**planned milestones (미실행 · 문서 등록만):**
+
+- [ ] **held-out tier** — L4 의 M1(암기 regime · ppl~1.1–1.6) 을 닫는다: 40문장 코퍼스를 32 train / 8 val 로 분리, TRAIN 으로만 어댑터 LM-finetune 후 **VAL(held-out)** 에서 Φ·ppl·self 측정. falsifier: F2H `REC_val_phi > FF_val_phi_band_max` · F4H `REC_val_ppl<base ∧ FF_val_ppl<base`(일반화) · F5H `REC_val_self>FF_val_self`. train↔val ppl gap 으로 overfit 분리. paper [`phi-no-cause-no-emergence`](../PAPER/phi-no-cause-no-emergence/) 의 동명 milestone 과 연동.
+
 ---
 
 ## LAB-10 — 의식 방향성 · AKIDA 뉴로모픽 칩 튜닝

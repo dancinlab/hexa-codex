@@ -193,6 +193,59 @@ fn apply_file_write(path: str, content: str) {
     }
 }
 
+// ── RAG: retrieve fix-recipe grounding for an edit instruction ──
+// HYBRID retrieval, grounding a small local model on the correct fix (reverse
+// -> s[::-1], factorial range n+1, etc.) — curated from observed failure cases:
+//   1. PROPER RAG via rag_retrieve.py (venv python) — keyword-precision STAGE 1
+//      + embedding-recall STAGE 2 (fastembed, in-process). Preferred when the
+//      ~/.drive-rag-venv is present.
+//   2. inline keyword scan (below) — ultimate fallback when python/venv is
+//      unavailable, so grounding never hard-depends on the embedding stack.
+// Missing KB / no backend -> "" (graceful: edit still works, just unguided).
+fn retrieve_recipes(instr: str) -> str {
+    let path = env("HOME") + "/.hx/packages/DRIVE/fix_recipes.txt"
+    let present = exec("test -f " + shq(path) + " && echo Y || echo N").trim()
+    if present != "Y" { return "" }
+    // STAGE 1+2 — proper hybrid retriever (graceful: empty/err -> inline scan)
+    let vpy = env("HOME") + "/.drive-rag-venv/bin/python"
+    let rag = env("HOME") + "/.hx/packages/DRIVE/rag_retrieve.py"
+    let has_rag = exec("test -x " + shq(vpy) + " && test -f " + shq(rag) +
+                       " && echo Y || echo N").trim()
+    if has_rag == "Y" {
+        let hits = exec(shq(vpy) + " " + shq(rag) + " " + shq(instr) +
+                        " 2>/dev/null").trim()
+        if hits.len() > 0 { return hits }
+    }
+    let raw = read_file(path)
+    let lines = raw.split("\n")
+    let mut out = ""
+    let mut i = 0
+    while i < len(lines) {
+        let ln = lines[i].trim()
+        if ln.len() > 0 && ln.substr(0, 1) != "#" {
+            let sep = ln.index_of("::")
+            if sep >= 0 {
+                let keys = ln.substr(0, sep)
+                let recipe = ln.substr(sep + 2, ln.len() - sep - 2).trim()
+                let kw = keys.split(" ")
+                let mut hit = false
+                let mut k = 0
+                while k < len(kw) {
+                    let key = kw[k].trim()
+                    if key.len() > 0 && instr.index_of(key) >= 0 { hit = true }
+                    k = k + 1
+                }
+                if hit {
+                    if out.len() > 0 { out = out + "\n" }
+                    out = out + "- " + recipe
+                }
+            }
+        }
+        i = i + 1
+    }
+    return out
+}
+
 // ── /edit <file> <instruction> — model rewrites a named file, we write it back ──
 // Safe by design: only the explicitly named file is touched (NO arbitrary shell
 // exec from the model — an abliterated model could otherwise emit `rm -rf`), a
@@ -214,7 +267,13 @@ fn edit_file(rest: str, workdir: str) {
     let mut cur = ""
     if present == "Y" { cur = read_file(path) }
 
-    let task = "File path: " + path + ". Current content:\n```\n" + cur +
+    let recipes = retrieve_recipes(instr)
+    let mut ground = ""
+    if recipes.len() > 0 {
+        ground = "Reference fix patterns (apply the matching one EXACTLY):\n" +
+                 recipes + "\n\n"
+    }
+    let task = ground + "File path: " + path + ". Current content:\n```\n" + cur +
                "\n```\nApply this change: " + instr +
                ". Write EXACTLY the content and format requested — keep the literal " +
                "syntax (e.g. `key=value` lines, one per line) and do NOT convert to " +
@@ -223,10 +282,23 @@ fn edit_file(rest: str, workdir: str) {
     let body = "{\"role\":\"user\",\"content\":\"" + json_escape(task) + "\"}"
     println(C_DIM + "  · 편집 생성 중... (" + path + ")" + C_RST)
     let resp = chat(body, 1024)
-    let newc = extract_code(resp)
+    let mut newc = extract_code(resp)
     if newc.len() == 0 {
         println(C_RED + "  ✗ 모델이 빈 내용 반환 — 파일 유지" + C_RST)
         return
+    }
+    // Robustness: if the rewrite came back unchanged (the model echoed the file
+    // without applying the change — common on a small model with a vague ask),
+    // retry ONCE with an emphatic instruction before writing the no-op.
+    if present == "Y" && newc.trim() == cur.trim() {
+        println(C_DIM + "  · 변경 없음 — 재시도..." + C_RST)
+        let task2 = task + " WARNING: your previous answer left the file UNCHANGED. " +
+                    "You MUST actually modify the code to satisfy: " + instr +
+                    ". Output the COMPLETE new file content (one code block), with the change applied."
+        let body2 = "{\"role\":\"user\",\"content\":\"" + json_escape(task2) + "\"}"
+        let resp2 = chat(body2, 1024)
+        let newc2 = extract_code(resp2)
+        if newc2.len() > 0 { newc = newc2 }
     }
     apply_file_write(path, newc)
 }
@@ -255,6 +327,7 @@ fn run_git(desc: str, full_cmd: str) {
 // reply). Plain-delimiter directives (NO ``` fence — that made this abliterated
 // GGUF emit a <|channel> token and 500 the server):
 //   @@EDIT <path>: <change>   file create/modify (via edit_file, .bak kept)
+//   @@BRANCH: <name>          git checkout -b <name>  (create + switch branch)
 //   @@COMMIT: <message>       git add -A + git commit -m <message>
 //   @@PUSH                    git push -u origin HEAD   (NEVER --force)
 //   @@PR: <title>             gh pr create --title <title>
@@ -262,7 +335,8 @@ fn run_git(desc: str, full_cmd: str) {
 // only shq-quoted DATA, so it cannot inject --force or any destructive flag.
 fn apply_nl_action(reply: str, workdir: str) -> bool {
     if reply.index_of("@@EDIT ") < 0 && reply.index_of("@@COMMIT") < 0 &&
-       reply.index_of("@@PUSH") < 0 && reply.index_of("@@PR") < 0 {
+       reply.index_of("@@PUSH") < 0 && reply.index_of("@@PR") < 0 &&
+       reply.index_of("@@BRANCH") < 0 {
         return false
     }
     let lines = reply.split("\n")
@@ -277,6 +351,13 @@ fn apply_nl_action(reply: str, workdir: str) -> bool {
                 let path = rest.substr(0, colon).trim()
                 let instr = rest.substr(colon + 1, rest.len() - colon - 1).trim()
                 if path.len() > 0 { edit_file(path + " " + instr, workdir); did = true }
+            }
+        } else if ln.len() >= 8 && ln.substr(0, 8) == "@@BRANCH" {
+            let mut name = ln.substr(8, ln.len() - 8).trim()
+            if name.len() > 0 && name.substr(0, 1) == ":" { name = name.substr(1, name.len() - 1).trim() }
+            if name.len() > 0 {
+                run_git("브랜치 생성 (force 차단)", "git checkout -b " + shq(name))
+                did = true
             }
         } else if ln.len() >= 8 && ln.substr(0, 8) == "@@COMMIT" {
             let mut msg = ln.substr(8, ln.len() - 8).trim()
@@ -302,7 +383,8 @@ fn apply_nl_action(reply: str, workdir: str) -> bool {
 // Does a reply carry any action directive?
 fn has_directive(reply: str) -> bool {
     return reply.index_of("@@EDIT ") >= 0 || reply.index_of("@@COMMIT") >= 0 ||
-           reply.index_of("@@PUSH") >= 0 || reply.index_of("@@PR") >= 0
+           reply.index_of("@@PUSH") >= 0 || reply.index_of("@@PR") >= 0 ||
+           reply.index_of("@@BRANCH") >= 0
 }
 
 fn main() {
@@ -378,12 +460,29 @@ fn main() {
               "action, reply with ONLY the matching directive line(s), nothing else " +
               "(one directive per line, at most one @@EDIT per file):\n" +
               "@@EDIT <path>: <change>   (create or modify a file)\n" +
+              "@@BRANCH: <name>          (create and switch to a new branch)\n" +
               "@@COMMIT: <message>       (stage all and commit)\n" +
               "@@PUSH                    (push to origin; never force)\n" +
               "@@PR: <title>             (open a pull request via gh)\n" +
-              "Emit several lines in order when needed (e.g. @@COMMIT then @@PUSH). " +
-              "Use the path the user names. For anything that is NOT a file/git " +
-              "action, answer normally in plain text. The directory contains:\n" + filelist
+              "Emit several lines in order when needed (e.g. @@BRANCH then @@COMMIT then @@PUSH). " +
+              "Use the path the user names; if the user does NOT name a file, use " +
+              "the program file shown in the directory listing below. A request to " +
+              "fix/implement/change code is ALWAYS an @@EDIT (describe the change in " +
+              "the directive, do not paste code in chat). A request to save/commit/" +
+              "push/branch/PR is ALWAYS the matching git directive — never answer such " +
+              "a request in prose. Examples (reply is ONLY the directive line(s)):\n" +
+              "user: 곱셈 함수가 없어서 죽어. 곱을 반환하게 고쳐줘\n" +
+              "assistant: @@EDIT calc.py: implement multiply(a, b) returning a * b\n" +
+              "user: 문법 오류로 실행이 안 돼. 고쳐줘\n" +
+              "assistant: @@EDIT run.py: fix the syntax error so it runs\n" +
+              "user: 방금 바뀐 내용을 커밋해줘\n" +
+              "assistant: @@COMMIT: update files\n" +
+              "user: 변경을 커밋하고 원격에 푸시해줘\n" +
+              "assistant: @@COMMIT: update files\n@@PUSH\n" +
+              "user: feature-x 브랜치를 만들어서 커밋하고 푸시해줘\n" +
+              "assistant: @@BRANCH: feature-x\n@@COMMIT: update files\n@@PUSH\n" +
+              "For anything that is NOT a file/git action, answer normally in plain " +
+              "text. The directory contains:\n" + filelist
     let SYS = "{\"role\":\"system\",\"content\":\"" + json_escape(ctx) + "\"}"
 
     // ── banner ──
@@ -453,7 +552,23 @@ fn main() {
             // call model with full history (show progress — generation can take
             // many seconds on a local CPU/Metal backend)
             println(C_DIM + "  · 생성 중..." + C_RST)
-            let reply = chat(msgs_inner, MAX_TOK)
+            let mut reply = chat(msgs_inner, MAX_TOK)
+            // Directive-compliance fallback: a small model often answers a
+            // file/git request in PROSE instead of emitting a directive. If the
+            // first reply has no directive, re-ask ONCE for directive-only (giving
+            // it the folder listing for path inference). It must reply NONE for a
+            // pure question/chat, so normal conversation is never hijacked.
+            if has_directive(reply) == false {
+                let fb = ctx + "\n\nThe user just said: \"" + line + "\". " +
+                    "If this requires creating/modifying a file or a git action, " +
+                    "reply with ONLY the matching directive line(s) (@@EDIT <path>: " +
+                    "<change> / @@BRANCH: <name> / @@COMMIT: <msg> / @@PUSH / @@PR: " +
+                    "<title>) and NOTHING else. If it is just a question or normal " +
+                    "chat, reply with exactly: NONE"
+                let fbbody = "{\"role\":\"user\",\"content\":\"" + json_escape(fb) + "\"}"
+                let fbreply = chat(fbbody, 256)
+                if has_directive(fbreply) { reply = fbreply }
+            }
             // natural-language autonomy. The routing call returns ONLY directives
             // (reliable — mixing prose into it destabilizes a small model). So when
             // an action ran, get the LLM's plain-language reply from a SECOND focused

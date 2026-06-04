@@ -26,11 +26,15 @@ DRIVE 자체 (자동차)          이 문서 (정비 기록부)
 - [x] `/edit <파일> <지시>` 파일 실제 수정 — 모델이 새 전체 내용 반환, `.bak` 백업 후 덮어씀 (셸 exec 안 함, 안전). 유저 명시 요청 · live 검증 (note.txt 1a2)
 - [x] 자연어 자동 처리 — `/edit` 없이 평문 지시만으로 파일 수정 (모델이 `@@EDIT <path>: <instr>` 라우팅 → `edit_file` 2-패스, 기존 내용 보존). 유저 명시 요청 · 5/5 패턴 통과 (create·append·replace·no-trigger·multiline)
 - [x] git 자연어 — `@@COMMIT`/`@@PUSH`/`@@PR`(gh) 디렉티브로 커밋·푸시·PR. **force 구조적 차단** (drive 가 고정 플래그로 명령 빌드 · `--force` 코드 경로 없음 · 모델은 데이터만). 유저 명시 요청 · live 검증 (commit/push 성공 · diverged push rejected)
+- [x] git 브랜치 자연어 — `@@BRANCH: <name>` 디렉티브로 `git checkout -b <name>` (새 브랜치 생성+전환). `@@BRANCH`→`@@COMMIT`→`@@PUSH` 순으로 조합되어 "별도 브랜치 만들어 커밋·푸시"가 자연어만으로 가능. force 차단 동일 (고정 플래그 · 모델은 브랜치명 데이터만). 유저 명시 요청 · 100-sim 샌드박스(로컬 bare origin) 검증
 - [x] 액션 후 LLM 한 문장 응답 + `✓ 완료` 마커 — 라우팅 콜은 디렉티브만(안정), 실행 후 system-free 요약 콜로 한국어 응답 (5/5 회귀 없음)
 - [x] 모델 선택 — `drive <name>` · `--model` · `--list` · 런타임 `/model` 전환 · PR #137
 - [x] 진입 폴더(cwd) 인식 — 파일목록을 system 메시지로 주입 · PR #138
 - [x] 기본 모델 `supergemma4-e4b-abliterated-Q4_K_M` + 색상 연결 문구 · PR #139
 - [x] 인터랙티브 stdout flush 근본 수정 — hexa-lang `exec_replace` (fd 상속) upstream · PR #140 / hexa-lang #1898
+- [x] 자연어 디렉티브 컴플라이언스 강화 — system few-shot + 산문답 시 "디렉티브만(else NONE)" 폴백 콜 1회 → 작은 로컬모델의 @@EDIT/@@git 라우팅 신뢰도↑. 유저 명시 요청 · 100-sim 관찰 기반
+- [x] no-op 편집 자동 재시도 — 재작성이 원본 그대로면(모델이 변경 누락) 강조 프롬프트로 1회 재시도. 유저 명시 요청 · 100-sim 관찰 기반
+- [x] fix-recipe RAG — `fix_recipes.txt` 지식베이스에서 지시문 키워드로 레시피 검색 → edit 프롬프트에 grounding 주입(reverse→`s[::-1]`·`a*b+1`·factorial range n+1·return 누락 등). 누락 파일 graceful. 유저 명시 요청 · 하드 archetype 6/6 PASS 검증
 
 ## 열린 기능 (open)
 

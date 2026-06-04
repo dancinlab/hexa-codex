@@ -25,8 +25,9 @@ grounding). NEVER raises to the caller — every failure degrades to "".
 """
 import sys, os, json, hashlib
 
-KB     = os.path.expanduser("~/.hx/packages/DRIVE/fix_recipes.txt")
-CACHE  = os.path.expanduser("~/.hx/packages/DRIVE/fix_recipes.emb.json")
+_HERE  = os.path.dirname(os.path.abspath(__file__))   # this script's dir = pkg root
+KB     = os.path.join(_HERE, "fix_recipes.txt")       # KB ships beside this script
+CACHE  = os.path.join(_HERE, "fix_recipes.emb.json")  # embedding cache (regenerable)
 MODEL  = os.environ.get("DRIVE_EMBED_MODEL", "intfloat/multilingual-e5-large")
 EMBURL = os.environ.get("DRIVE_EMBED_URL", "").strip()   # optional HTTP fallback
 TOPK   = int(os.environ.get("DRIVE_RAG_TOPK", "3"))

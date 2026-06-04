@@ -203,12 +203,18 @@ fn apply_file_write(path: str, content: str) {
 //      unavailable, so grounding never hard-depends on the embedding stack.
 // Missing KB / no backend -> "" (graceful: edit still works, just unguided).
 fn retrieve_recipes(instr: str) -> str {
-    let path = env("HOME") + "/.hx/packages/DRIVE/fix_recipes.txt"
+    // Resolve the package dir portably: DRIVE_PKG_DIR (exported by the bin/drive
+    // launcher of the released package) wins, else the in-repo/legacy install
+    // path. This keeps the KB + retriever findable regardless of install name
+    // (e.g. ~/.hx/packages/drive vs .../DRIVE).
+    let mut pkgdir = env("DRIVE_PKG_DIR")
+    if pkgdir.len() == 0 { pkgdir = env("HOME") + "/.hx/packages/DRIVE" }
+    let path = pkgdir + "/fix_recipes.txt"
     let present = exec("test -f " + shq(path) + " && echo Y || echo N").trim()
     if present != "Y" { return "" }
     // STAGE 1+2 — proper hybrid retriever (graceful: empty/err -> inline scan)
     let vpy = env("HOME") + "/.drive-rag-venv/bin/python"
-    let rag = env("HOME") + "/.hx/packages/DRIVE/rag_retrieve.py"
+    let rag = pkgdir + "/rag_retrieve.py"
     let has_rag = exec("test -x " + shq(vpy) + " && test -f " + shq(rag) +
                        " && echo Y || echo N").trim()
     if has_rag == "Y" {

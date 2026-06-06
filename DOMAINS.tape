@@ -54,6 +54,8 @@
 @domain OFFICE := "./OFFICE/OFFICE.md"
 # ─── FRONTEND/* 프론트엔드 디자인 LLM (2026-06-07 · SEED · sample/ = SkillOpt·SkillLens 오프라인 미러) ───
 @domain FRONTEND := "./FRONTEND/FRONTEND.md"
+# ─── AGENT-SKILL/* 에이전트 스킬 아티팩트 측정 (2026-06-07 · SEED · SkillOpt·SkillLens 토픽 홈 · AGENT 자매) ───
+@domain AGENT-SKILL := "./AGENT-SKILL/AGENT-SKILL.md"
 
 # ─── driving lane (실제 wire 구현) — ENGINE 은 line 6 core sibling 으로 등록됨 (active) ───
 # CODEX archived 2026-05-28 (cycle-10 reorg) — 22 candidate first-probe orchestrator 역할 종료.

@@ -156,29 +156,6 @@ and operating notes (Vast.ai is the primary GPU platform after RunPod's
 
 ---
 
-## 🛺 DRIVE — model test-drive CLI
-
-A lightweight **multi-turn chat REPL** for test-driving local GGUF models on
-`llama-server` — the counterpart to a full agent TUI (no tools, no file edits,
-just ask → answer). Plus `/build`: a single-file **agentic loop**
-(generate → run → self-fix, up to 5 rounds) so the model can finish a small
-program on its own.
-
-```bash
-hx install ./DRIVE                 # → `drive` shell on ~/.hx/bin
-drive                              # chat (default Qwen2.5-1.5B-Instruct-Q4_K_M)
-drive Qwen2.5-7B-Instruct-Q4_K_M   # switch model (any *.gguf under ~/Models/gguf)
-# in-REPL:
-/build print the numbers 1 to 5    # auto-completes one Python file (generate→run→fix)
-```
-
-Multi-turn is real (history accumulated in `messages[]`, re-sent each turn),
-llama-server is auto-started/reused on port 8099, and `/build` runs the program
-in a `timeout`-guarded sandbox. Requires `llama-server` + `curl` + `jq` and a
-`*.gguf` under `~/Models/gguf`. See [`DRIVE/README.md`](DRIVE/README.md).
-
----
-
 ## n=6 master identity
 
 The four verb-counts (6 + 3 + 4 + 4 = 17) and the four group taxonomy
@@ -651,7 +628,6 @@ hexa-codex/
 ├── cog_arch/                  cognitive architecture envelope
 ├── causal/                    causal-chain reasoning spec
 ├── lm_foundry/                domain-LLM training pipeline (absorbed from hexa-forge, 2026-05-13)
-├── DRIVE/                     model test-drive CLI — multi-turn chat REPL + /build agentic loop
 ├── formal/                    Lean 4 σ(6)=12 mechanically proven kernel
 ├── papers/                    n=6 atlas papers (17/68-tech, ethics, governance)
 ├── verify/                    34 .hexa-native verifiers (math_pure)

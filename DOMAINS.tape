@@ -52,6 +52,8 @@
 @domain UNCENSORED := "./VERTICAL/UNCENSORED/UNCENSORED.md"
 # ─── horizontal generalist (VERTICAL 의 직교 짝 · 2026-05-28) ───
 @domain OFFICE := "./OFFICE/OFFICE.md"
+# ─── FRONTEND/* 프론트엔드 디자인 LLM (2026-06-07 · SEED · sample/ = SkillOpt·SkillLens 오프라인 미러) ───
+@domain FRONTEND := "./FRONTEND/FRONTEND.md"
 
 # ─── driving lane (실제 wire 구현) — ENGINE 은 line 6 core sibling 으로 등록됨 (active) ───
 # CODEX archived 2026-05-28 (cycle-10 reorg) — 22 candidate first-probe orchestrator 역할 종료.

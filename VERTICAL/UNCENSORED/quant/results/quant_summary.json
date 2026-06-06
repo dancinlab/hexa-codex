@@ -1,0 +1,12 @@
+{
+  "src": "/workspace/model",
+  "out": "/workspace/awq-out",
+  "quant_config": {
+    "zero_point": true,
+    "q_group_size": 128,
+    "w_bit": 4,
+    "version": "GEMM"
+  },
+  "out_size_gb": 19.35,
+  "elapsed_sec": 2635.0
+}

@@ -64,3 +64,5 @@ wandb/
 # local idea memo (not for publication)
 # manifest backups
 lm_foundry/eval/**/*.bak
+.harness/logs/
+.harness/handoff/

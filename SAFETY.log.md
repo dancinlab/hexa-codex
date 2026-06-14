@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # SAFETY.log.md — safety verb group history
 
 > History sibling of [`SAFETY.md`](SAFETY.md). Per the dancinlab root

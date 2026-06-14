@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # OPS.log.md — ops verb group history
 
 > History sibling of [`OPS.md`](OPS.md). Per the dancinlab root `.md`

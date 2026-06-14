@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # SANDBOX.log.md — measurement substrate history
 
 > History sibling of [`SANDBOX.md`](SANDBOX.md). Per the dancinlab

@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # LEARNING_BIO.md — what the (planned) hexa-forge **bio** model must know
 
 > Master record for the **bio / molecular / medical** sibling model — the

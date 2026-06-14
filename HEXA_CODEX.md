@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # HEXA_CODEX — current state
 
 @title: 🜂 HEXA_CODEX — 영구 발견 substrate (우산 메타도메인 · "완료되지 않는 코덱스")

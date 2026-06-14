@@ -4,6 +4,26 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — harness perfect-setup (2026-06-15)
+
+- **Harness conformance** — brought the repo to full `dancinlab/harness`
+  (harness-hardcore) compliance. `.harness-engine` submodule pinned and
+  committed; the `bash .harness-engine/bin/harness` wrapper is the canonical
+  entrypoint.
+- **ARCHITECTURE.md** — replaced the stub with an English architecture SSOT
+  (overview + component map + data flow + governance/verify) reflecting the
+  17-verb spec library + `lm_foundry/` foundry.
+- **CLAUDE.md** — converted from a `project.tape` symlink (tape preserved) to a
+  harness-standard markdown guide: H1 + blurb + `## Structure` tree + governance
+  summary + `## Harness` + quick reference.
+- **harness.config.json** — added `lockdown.files` (core hexa sources) and a
+  `docs` block (architecture/log/scratch + `scopeDirs: [""]` root-only +
+  allow-list of root SSOT/README-variant docs).
+- **.claude/settings.json** — guarded harness hooks confirmed (pre bash/write,
+  post edit, prompt, prefs/easy/recommend inject, SessionStart).
+- **Docs discipline** — `harness docs check` = `docs: ok`; CLAUDE-MD violations
+  0. Prepended an SSOT quickref pointer to 13 scattered root docs.
+
 ## [Unreleased] — LAB 재편 + 끼어들기 무손실 실험 + 음성 결과 게재 (2026-05-25)
 
 - **BITNET·RWKV 도메인 → LAB 하위 이동** — 두 도메인 SSOT(`BITNET.md`/`.log.md` · `RWKV.md`/`.log.md`)를 루트에서 `LAB/lab-03-bitnet/` · `LAB/lab-04-rwkv/` 로 `git mv`(히스토리 보존). `LAB/README.md` 인덱스를 "🎓 도메인 졸업(루트)" → "🎓 도메인(LAB 내, SSOT가 `lab-NN-*/<NAME>.md`)" 로 재프레이밍. sibling 링크 `../../` 보정 · `bench/rwkv_m2m3_ctx_sweep.hexa` 주석 경로 갱신. `.verdicts/`·`.discoveries/` 불변 기록은 미수정.

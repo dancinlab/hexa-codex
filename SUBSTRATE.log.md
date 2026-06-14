@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # SUBSTRATE.log.md — substrate verb group history
 
 > History sibling of [`SUBSTRATE.md`](SUBSTRATE.md). Per the dancinlab

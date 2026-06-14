@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # ORCHESTRATION — forge runtime layer (pre-7B classifier + tier router + vendor SDKs + cache)
 
 @title: 🎛️ ORCHESTRATION — forge 런타임 frontier (engineering · closure = roofline %)

@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # ECONOMICS.log.md — economics verb group history
 
 > History sibling of [`ECONOMICS.md`](ECONOMICS.md). Per the dancinlab

@@ -5,7 +5,11 @@
     "hexa"
   ],
   "lockdown": {
-    "files": [],
+    "files": [
+      "cli/hexa-codex.hexa",
+      "install.hexa",
+      "hexa.toml"
+    ],
     "fromMarkdown": "CLAUDE.md",
     "onEditReminder": "L0 file edited — update CHANGELOG + issue tracker in the same change."
   },
@@ -42,6 +46,27 @@
     "AGENTS.md",
     "README.md"
   ],
+  "docs": {
+    "architecture": "ARCHITECTURE.md",
+    "log": "CHANGELOG.md",
+    "scratchDir": "scripts/scratch",
+    "scopeDirs": [
+      ""
+    ],
+    "allow": [
+      "README.md",
+      "CHANGELOG.md",
+      "ARCHITECTURE.md",
+      "CLAUDE.md",
+      "AGENTS.md",
+      "LICENSE",
+      "CONTRIBUTING.md",
+      "SECURITY.md",
+      "RELEASE_NOTES_v1.0.0.md",
+      "RELEASE_NOTES_v1.4.0.md",
+      "V0_6_0_GA.md"
+    ]
+  },
   "ledger": {
     "staleSec": 1800
   }

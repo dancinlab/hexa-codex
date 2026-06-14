@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # OPERATIONS — forge runtime production runbook
 
 > **Domain doc** (per dancinlab-wide `domain-meta-domain` principle:

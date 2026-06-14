@@ -1,3 +1,5 @@
+> 📍 SSOT: [ARCHITECTURE.md](ARCHITECTURE.md) · governance [CLAUDE.md](CLAUDE.md)
+
 # TAPE-AUDIT — hexa-codex
 
 17-verb cognitive substrate (alignment / adversarial / agent_serving / causal / cog_arch / consciousness / deploy / enterprise / eval / formal / interpret / multimodal / quality_scale / rlhf / safety / train_cost / infer_cost / welfare / cognitive-social-psychology / discovery / experiments / reality-map / t4_empirical / lm_foundry). Parent of `hexa-mind`'s 7-verb rollup.

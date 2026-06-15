@@ -4,8 +4,9 @@
 (safety · economics · ops · substrate) plus the `lm_foundry/` domain-LLM foundry
 (a hexa-lang code-LLM at 94.29% Mk.I with a 3-vendor orchestration runtime). It is
 a never-completing codex — each domain lane advances a verify-driven permanent axis
-forever. Architecture SSOT: [ARCHITECTURE.md](ARCHITECTURE.md). Machine-readable
-governance: [project.tape](project.tape).
+forever. Architecture SSOT: [ARCHITECTURE.md](ARCHITECTURE.md).
+
+> 이 문서가 단일 markdown 거버넌스 SSOT · project.tape 은퇴 (this file is the single markdown governance SSOT; project.tape retired).
 
 ## Structure
 
@@ -14,7 +15,7 @@ hexa-codex/
 ├─ ARCHITECTURE.md        — architecture SSOT (update-in-place)
 ├─ CHANGELOG.md           — append-only history / decisions
 ├─ README.md              — domain narrative, verbs, badges
-├─ project.tape           — machine-readable governance (@D verbs)
+├─ CLAUDE.md              — single markdown governance SSOT (this file)
 ├─ CLAIMS.tape            — single index of verifiable claims
 ├─ alignment/ safety/ welfare/ adversarial/ consciousness/ interpret/  — SAFETY verbs (6)
 ├─ train_cost/ infer_cost/ quality_scale/                              — ECONOMICS verbs (3)
@@ -32,7 +33,7 @@ hexa-codex/
 
 ## Governance
 
-Governance verbs live in [project.tape](project.tape) (`@D` entries). Summary:
+Governance verbs (formerly `project.tape` `@D` entries, now folded into this file):
 
 - **HF artifacts**: register every model/dataset/ckpt to HF Hub completely under
   `dancinlab/*` (`hexa-forge-*` models, `hexa-codex-<domain>-evals-v<N>` evals);
@@ -89,7 +90,7 @@ each guarded so they no-op when the engine binary is absent.
 |------|----------------|
 | Architecture SSOT | [ARCHITECTURE.md](ARCHITECTURE.md) |
 | History / decisions | [CHANGELOG.md](CHANGELOG.md) |
-| Governance verbs | [project.tape](project.tape) |
+| Governance verbs | this file (`## Governance`) |
 | Claim index | `CLAIMS.tape` · verdicts `.verdicts/` |
 | Domain-LLM foundry | [lm_foundry/README.md](lm_foundry/README.md) · [ORCHESTRATION.md](ORCHESTRATION.md) |
 | Docs discipline check | `bash .harness-engine/bin/harness docs check` |

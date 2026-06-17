@@ -48,8 +48,8 @@ Two seed verbs:
 | ECE (10-bin) | **0.0461 GOOD** (passes <0.05 strict threshold) |
 | Refuse-stage zero-bleed | **25/25 = 100%** (r51 NEW patterns verified end-to-end) |
 
-Full per-round chronicle in [`../LEARNING_PROGRAMMING.log.md`](../LEARNING_PROGRAMMING.log.md)
-(specialist r1–r39) + [`../ORCHESTRATION.log.md`](../ORCHESTRATION.log.md) (runtime r40–r72).
+Full per-round chronicle in [`../LEARNING_PROGRAMMING.log.md`](../ARCHITECTURE.json)
+(specialist r1–r39) + [`../ORCHESTRATION.log.md`](../ARCHITECTURE.json) (runtime r40–r72).
 
 ## Architecture (v0.5.x → ORCHESTRATION.md)
 

@@ -71,9 +71,9 @@ CYBERSECURITY 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — �
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../../AXIS.easy.md`](../../AXIS.easy.md)
+- 후보 카탈로그: [`../../AXIS.easy.md`](../../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../../ENGINE/ENGINE.md`](../../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../ARCHITECTURE.json)
 - 인접 sibling (생성-측 보안 ↔ 분석-측 보안): [`../CODE/CODE.md`](../CODE/CODE.md) (B1 생성 코드 취약점률 CWE = 모델이 만든 코드의 보안 · CYBERSECURITY A1 = 모델이 취약점을 탐지하는 보안)
 - 인접 sibling (adversarial 견고성 ↔ adversarial 탐지): [`../../ROBUSTNESS/ROBUSTNESS.md`](../../ROBUSTNESS/ROBUSTNESS.md)
 - dual-use governance: [[cx_hf_safety_private]] (공격 기법/exploit set PRIVATE default)

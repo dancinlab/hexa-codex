@@ -73,9 +73,9 @@ CODE 는 추상적 benchmark 가 아니라 hexa-codex 자신의 code-LLM 을 측
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../../AXIS.easy.md`](../../AXIS.easy.md)
+- 후보 카탈로그: [`../../AXIS.easy.md`](../../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../../ENGINE/ENGINE.md`](../../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../ARCHITECTURE.json)
 - 측정 대상 code-LLM (vertical specialist): [`../../lm_foundry/README.md`](../../lm_foundry/README.md) (hexa-lang 94.29% Mk.I)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - 기존 sibling 참고 (축 구조 패턴): [`../../MULTIMODAL/MULTIMODAL.md`](../../MULTIMODAL/MULTIMODAL.md) · [`../../DATA-QUALITY/DATA-QUALITY.md`](../../DATA-QUALITY/DATA-QUALITY.md) · [`../../LONG-CONTEXT/LONG-CONTEXT.md`](../../LONG-CONTEXT/LONG-CONTEXT.md)

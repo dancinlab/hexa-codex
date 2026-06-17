@@ -64,9 +64,9 @@ MULTIMODAL 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — loca
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- 후보 카탈로그: [`../AXIS.easy.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - 흡수 출처 (cycle-10 reorg): `FRONTIER/F2` (multimodal balance)
 - 기존 sibling 참고 (축 구조 패턴): [`../MULTILINGUAL/MULTILINGUAL.md`](../MULTILINGUAL/MULTILINGUAL.md) · [`../LONG-CONTEXT/LONG-CONTEXT.md`](../LONG-CONTEXT/LONG-CONTEXT.md)

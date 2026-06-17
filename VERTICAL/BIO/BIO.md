@@ -70,9 +70,9 @@ BIO 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — HF transfor
 ## Cross-refs
 
 - recipe (만들기 layer · 직결): [`../../lm_foundry/docs/bio-llm.md`](../../lm_foundry/docs/bio-llm.md) — `hexa-forge bio` build spec · §FINDINGS 에 구 BIODATA 흡수
-- 후보 카탈로그: [`../../AXIS.easy.md`](../../AXIS.easy.md)
+- 후보 카탈로그: [`../../AXIS.easy.md`](../../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../../ENGINE/ENGINE.md`](../../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../ARCHITECTURE.json)
 - 뉴로 측정 sibling (해석성 lane): [`../../NEUROEXP/NEUROEXP.md`](../../NEUROEXP/NEUROEXP.md)
 - vertical sibling: VERTICAL/CODE (코드 전문 모델 측정)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]

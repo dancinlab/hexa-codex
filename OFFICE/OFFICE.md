@@ -79,9 +79,9 @@ OFFICE 는 추상 benchmark 가 아니라 **VERTICAL/* 군 전체의 존재 정�
 
 - VERTICAL 메타검증 대상 (전문 모델 깊이 dimension): [`../VERTICAL/CODE/CODE.md`](../VERTICAL/CODE/CODE.md) (코드 장인 · 12 도메인 첫째) — OFFICE 의 horizontal 짝, VERTICAL/* 전체(BIO·MATH·LAW·MEDICAL·FINANCE·SCIENCE·ROBOTICS·MATERIALS·WEATHER·CYBERSECURITY)가 메타검증 대상
 - 인접 범용 능력 도메인: [`../INSTRUCTION-FOLLOWING/INSTRUCTION-FOLLOWING.md`](../INSTRUCTION-FOLLOWING/INSTRUCTION-FOLLOWING.md) (범용 지시 이행 능력)
-- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- 후보 카탈로그: [`../AXIS.easy.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - 기존 sibling 참고 (축 구조 패턴): [`../MULTIMODAL/MULTIMODAL.md`](../MULTIMODAL/MULTIMODAL.md) · [`../DATA-QUALITY/DATA-QUALITY.md`](../DATA-QUALITY/DATA-QUALITY.md) · [`../LONG-CONTEXT/LONG-CONTEXT.md`](../LONG-CONTEXT/LONG-CONTEXT.md)
 - this domain: [`OFFICE.md`](OFFICE.md) (snapshot) · [`OFFICE.log.md`](OFFICE.log.md) (history)

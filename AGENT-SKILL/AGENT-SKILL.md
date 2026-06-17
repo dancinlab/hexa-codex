@@ -57,7 +57,7 @@ AGENT-SKILL 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — HF 
 
 - canonical seed (verbatim 원본): [`../FRONTEND/sample/README.md`](../FRONTEND/sample/README.md) — SkillOpt · SkillLens
 - 자매 측정 도메인 (직교): [`../AGENT/AGENT.md`](../AGENT/AGENT.md) (에이전트 서빙/궤적 — AGENT-SKILL 은 그 스킬-아티팩트 축)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (승격 대상 · measured tier 도달 시): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - this domain: [`AGENT-SKILL.md`](AGENT-SKILL.md) (snapshot) · [`AGENT-SKILL.log.md`](AGENT-SKILL.log.md) (history)

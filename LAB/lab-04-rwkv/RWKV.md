@@ -17,6 +17,6 @@
 
 ## Cross-refs
 
-- [`SANDBOX.md`](../../SANDBOX.md) — the self-hosted measurement substrate this domain runs on
-- [`OPS.md`](../../OPS.md) — the SLO/latency consumer of the RWKV linear-time result
+- [`SANDBOX.md`](../../ARCHITECTURE.json) — the self-hosted measurement substrate this domain runs on
+- [`OPS.md`](../../ARCHITECTURE.json) — the SLO/latency consumer of the RWKV linear-time result
 - https://www.rwkv.com/ — upstream architecture + claims (domain seed)

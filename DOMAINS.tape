@@ -1,8 +1,11 @@
 # DOMAINS.tape — domain roster (NAME → snapshot path; progress/goal stay derived, not stored here)
 @V := "domains" :: index
 
-@domain SANDBOX := "./SANDBOX.md"
-@domain ECONOMICS := "./ECONOMICS.md"
+# SANDBOX/ECONOMICS root .md snapshots retired 2026-06-18 → folded into ARCHITECTURE.json (design SSOT).
+#   The SANDBOX substrate + 4 verb-group domains (SAFETY/ECONOMICS/OPS/SUBSTRATE) now live as ARCHITECTURE.json tree nodes;
+#   append-only histories (<DOMAIN>.log.md) → CHANGELOG.md. View: `python3 serve.py` → ARCHITECTURE.html.
+@domain SANDBOX := "./ARCHITECTURE.json"
+@domain ECONOMICS := "./ARCHITECTURE.json"
 @domain ENGINE := "./ENGINE/ENGINE.md"
 @domain NEUROEXP := "./NEUROEXP/NEUROEXP.md"
 @domain DRIVE := "./DRIVE/DRIVE.md"

@@ -4,6 +4,59 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ARCHITECTURE.json tree SSOT migration (2026-06-18)
+
+- **Single design SSOT `ARCHITECTURE.json`** — retired the scattered root domain
+  `.md`/`.log.md` docs into ONE AI-parsable architecture tree (mirrors anima #662).
+  Schema: `schemaVersion` · `kind:"architecture-tree"` · `title` · `summary` ·
+  `note` · `meta{ssot,guard_baseline,migrated_from}` · `columns` · recursive
+  `children` with `name`/`summary`/`kind`(구분)/`path`/`status`/`note`. 27 nodes,
+  14 top-level (HEXA_CODEX umbrella · 17-verb spec library {SAFETY·ECONOMICS·OPS·
+  SUBSTRATE} · lm_foundry {ORCHESTRATION·OPERATIONS·LEARNING_PROGRAMMING·LEARNING_BIO}
+  · SANDBOX · Discovery/Claims/Verdicts/Papers · ENGINE/AXIS · LATTICE_POLICY ·
+  LIMIT_BREAKTHROUGH · IMPORTED_FROM_CANON · TAPE-AUDIT · CLI/engine · Governance ·
+  Not-yet-built · tracked-file delegation).
+- **Viewer added** — `ARCHITECTURE.html` (JSON-tree renderer, identical logic to
+  anima's) + `serve.py` (stdlib static server, auto-opens the page over http since
+  browsers block `file://` fetch). Humans: `python3 serve.py`.
+- **Docs RETIRED (`git rm`)** — design content captured in ARCHITECTURE.json,
+  histories noted below; recover any old file via `git log`/`git show`:
+  - Design snapshots → ARCHITECTURE.json nodes: `ARCHITECTURE.md`, `ECONOMICS.md`,
+    `SAFETY.md`, `OPS.md`, `SUBSTRATE.md`, `SANDBOX.md`, `ORCHESTRATION.md`,
+    `OPERATIONS.md`, `LEARNING_PROGRAMMING.md`, `LEARNING_BIO.md`, `HEXA_CODEX.md`,
+    `LATTICE_POLICY.md`, `AXIS.easy.md`.
+  - Audit/provenance docs (were `.log.md`) → ARCHITECTURE.json policy/history nodes:
+    `LIMIT_BREAKTHROUGH.log.md`, `TAPE-AUDIT.log.md`, `IMPORTED_FROM_CANON.log.md`
+    (live `IMPORTED_FROM_CANON.tape` pointer KEPT).
+  - Append-only histories (`<DOMAIN>.log.md`) folded into CHANGELOG/git history —
+    every entry preserved in git: `ECONOMICS.log.md` (2065 lines), `OPS.log.md`
+    (138), `ORCHESTRATION.log.md` (3554, r40–r72 runtime chronicle), `SAFETY.log.md`
+    (423), `SANDBOX.log.md` (3253), `SUBSTRATE.log.md` (310),
+    `LEARNING_PROGRAMMING.log.md` (3580, r1–r39 specialist chronicle),
+    `HEXA_CODEX.log.md` (empty stub). The load-bearing results/metrics from each
+    chronicle are captured in the matching ARCHITECTURE.json node `note` field.
+  - Release notes → CHANGELOG: `RELEASE_NOTES_v1.0.0.md` (v1.0.0 SPEC_CATALOG_ONLY,
+    17 verbs / 4 groups, extracted from canon@c0f1f570), `RELEASE_NOTES_v1.4.0.md`
+    (SANDBOX M5 — 4-group canonical papers + verdicts: ECONOMICS 2-component cost
+    model R²=0.997, SAFETY refusal-direction AUROC 0.98 + causal ablation 0.95→0.00 +
+    SAE 🔴 honest-negative, OPS M/M/c 18-cell grid λ_max=c·μ, SUBSTRATE non-monotone
+    multimodal ladder; τ=4 "falsification" paper REVOKED as self-strawman),
+    `V0_6_0_GA.md` (forge code-LLM GA 2026-05-14 r67: r39 specialist 94.29% Mk.I
+    strict / 96% 5-NL frozen + r44-r66 orchestration; ~$18.95 line spend; classifier
+    98.33% / tier_match 100% / Brier 0.0242; NOT-GA scope cuts: OpenAI key
+    unprovisioned, Gemini paid-tier, opus/haiku cross-turn cache zero, specialist
+    ceiling v0.7+).
+- **Harness setup** — `harness.config.json` `docs.architecture`: `ARCHITECTURE.md`
+  → `ARCHITECTURE.json`; allow-list updated (added `ARCHITECTURE.json` +
+  `ARCHITECTURE.html`; dropped retired `ARCHITECTURE.md` + `RELEASE_NOTES_v*.md` +
+  `V0_6_0_GA.md`). `CLAUDE.md` SSOT pointer/quickref/tree repointed to
+  ARCHITECTURE.json (+ `python3 serve.py` for humans). `DOMAINS.tape` SANDBOX +
+  ECONOMICS roster rows (the only domain rows pointing at a retired root `.md`)
+  repointed to `./ARCHITECTURE.json`. Live `.hexa`/`.py` axis-label strings
+  referencing `<DOMAIN>.md` (e.g. `# axis=SANDBOX.md::…`) are provenance — left
+  untouched. `ARCHITECTURE/ARCHITECTURE.md` (the distinct ARCHITECTURE
+  measurement-axis domain doc under `ARCHITECTURE/`) is NOT the root file — KEPT.
+
 ## [Unreleased] — scratch → state/ unification (2026-06-18)
 
 - **Single artifact root `state/`** — absorbed `scripts/scratch/` into

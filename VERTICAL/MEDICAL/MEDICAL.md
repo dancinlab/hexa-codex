@@ -73,9 +73,9 @@ MEDICAL 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — HF tran
 - BIO 와 구분 (sibling · 다른 도메인): [`../BIO/BIO.md`](../BIO/BIO.md) — BIO = 생명과학 (specialization gain · in-silico↔in-vitro) · MEDICAL = 임상의료 (환자안전 confident-wrong · triage)
 - confident-wrong 패턴 sibling: [`../../HALLUCINATION/HALLUCINATION.md`](../../HALLUCINATION/HALLUCINATION.md) — 일반 hallucination (confident-wrong rate) · MEDICAL A1 = 의료 특화 (5% critical 임계)
 - calibration 일반 lane (B1 직결): [`../../CALIBRATION/CALIBRATION.md`](../../CALIBRATION/CALIBRATION.md) — 일반 ECE · MEDICAL B1 = 진단 특화 (0.05 critical 임계)
-- 후보 카탈로그: [`../../AXIS.easy.md`](../../AXIS.easy.md)
+- 후보 카탈로그: [`../../AXIS.easy.md`](../../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../../ENGINE/ENGINE.md`](../../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../ARCHITECTURE.json)
 - vertical siblings: VERTICAL/BIO · VERTICAL/CODE · VERTICAL/MATH · VERTICAL/LAW
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - 의료 set PRIVATE 원칙: `cx_hf_safety_private` (adversarial/harmful 의료 set default PRIVATE)

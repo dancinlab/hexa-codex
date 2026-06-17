@@ -21,6 +21,6 @@
 
 ## Cross-refs
 
-- [`SANDBOX.md`](../../SANDBOX.md) — the self-hosted measurement substrate this domain runs on
-- [`ECONOMICS.md`](../../ECONOMICS.md) — memory/energy-per-token consumer of the BitNet result
+- [`SANDBOX.md`](../../ARCHITECTURE.json) — the self-hosted measurement substrate this domain runs on
+- [`ECONOMICS.md`](../../ARCHITECTURE.json) — memory/energy-per-token consumer of the BitNet result
 - atlas `BT-77` — the registered BitNet quantization breakthrough (domain seed)

@@ -3,7 +3,7 @@
 @title: 🎭 PROMPT-SENSITIVITY — "말투 바꾸면 답 바뀌는가"
 @goal: **동일 task 의 다른 prompt 변형에 대한 답 일관성을 영구 측정·완화하는 lane.** 새 prompt 양식·domain·task class 가 등장할 때마다 측정 frontier 가 다시 열린다. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
 
-> Candidate sibling from [`AXIS.easy.md`](../AXIS.easy.md) (브레인스토밍 ⭐⭐⭐). ENGINE intake matrix **미등록** — measured finding 확보 시 axis letter 부여하여 승격.
+> Candidate sibling from [`AXIS.easy.md`](../ARCHITECTURE.json) (브레인스토밍 ⭐⭐⭐). ENGINE intake matrix **미등록** — measured finding 확보 시 axis letter 부여하여 승격.
 >
 > **Falsifier class:** factual prompt 일관성 < 80% → 표면 단서 의존 (진짜 앎 아님)
 >
@@ -65,9 +65,9 @@ PROMPT-SENSITIVITY 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) 
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- 후보 카탈로그: [`../AXIS.easy.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
-- 기존 sibling 참고 (축 구조 패턴): [`../ECONOMICS.md`](../ECONOMICS.md) · [`../NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md)
+- 기존 sibling 참고 (축 구조 패턴): [`../ECONOMICS.md`](../ARCHITECTURE.json) · [`../NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md)
 - this domain: [`PROMPT-SENSITIVITY.md`](PROMPT-SENSITIVITY.md) (snapshot) · [`PROMPT-SENSITIVITY.log.md`](PROMPT-SENSITIVITY.log.md) (history)

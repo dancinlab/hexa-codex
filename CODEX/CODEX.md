@@ -3,7 +3,7 @@
 > ⚠️ **ARCHIVED (cycle-10 reorg · 2026-05-28)** — CODEX 의 22-candidate first-probe orchestration 역할 종료. 각 candidate 가 독립 도메인으로 자립 (A1·B·N⭐ 자체 보유 · `DOMAINS.tape` 등록) → meta-orchestration 중복. 무게중심 이동: **CODEX (측정 카탈로그 meta) → ENGINE (driving lane · mature finding → 실제 LLM behavior wire)**. 본 파일 + `CODEX.log.md` 의 cycle-9 8-round retrospective 는 history 기록으로 보존 (active roster 제외 · git 영구 보존). frontier 동향은 각 도메인 N⭐ NOVEL MAIN 으로 흡수 완료 (구 FRONTIER retire). 이후 작업은 ENGINE intake matrix 에서.
 
 @title: 🧭 CODEX — "axis 후보 측정 코디네이터" 〔archived〕
-@goal: **[`AXIS.easy.md`](../AXIS.easy.md) 의 22 candidate sibling 후보 도메인의 first probe (축 A1) 를 cross-domain 으로 영구 orchestrate 하는 meta-domain lane.** 새 candidate 가 등장할 때마다 milestone 추가 · 측정 완료 → 후보 도메인의 N⭐ NOVEL probe → ENGINE intake matrix 승격 검토. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
+@goal: **[`AXIS.easy.md`](../ARCHITECTURE.json) 의 22 candidate sibling 후보 도메인의 first probe (축 A1) 를 cross-domain 으로 영구 orchestrate 하는 meta-domain lane.** 새 candidate 가 등장할 때마다 milestone 추가 · 측정 완료 → 후보 도메인의 N⭐ NOVEL probe → ENGINE intake matrix 승격 검토. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
 
 > Meta-domain (cross-domain orchestration lane). 22 candidate sibling domain (⭐⭐⭐ 12 + ⭐⭐ 10) 의 first probe 를 한 곳에서 dispatch. 측정은 SANDBOX 기질 위에서 (`cx_lab_sandbox`) · verdict 는 각 후보 도메인의 `.verdicts/` 에 기록.
 >
@@ -164,9 +164,9 @@ CODEX milestone 🟢 ──▶ AXIS.easy.md 카드 promote ──▶ ENGINE matr
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- 후보 카탈로그: [`../AXIS.easy.md`](../ARCHITECTURE.json)
 - 22 candidate domains: [`../CALIBRATION/`](../CALIBRATION/CALIBRATION.md) · [`../HALLUCINATION/`](../HALLUCINATION/HALLUCINATION.md) · ... (DOMAINS.tape 참조)
 - ENGINE intake matrix (승격 대상): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - this domain: [`CODEX.md`](CODEX.md) (snapshot) · [`CODEX.log.md`](CODEX.log.md) (history)

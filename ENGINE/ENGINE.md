@@ -179,7 +179,7 @@ ENGINE 은 5 sibling 의 verdict 를 input 으로 받음. 각 sibling 의 SANDBO
 
 ## Cross-refs
 
-- 6 sibling 도메인 (cycle-10 round-1 +CALIBRATION): [`ECONOMICS.md`](../ECONOMICS.md) · [`SAFETY.md`](../SAFETY.md) · [`OPS.md`](../OPS.md) · [`SUBSTRATE.md`](../SUBSTRATE.md) · [`SANDBOX.md`](../SANDBOX.md) · [`NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md) · [`CALIBRATION/CALIBRATION.md`](../CALIBRATION/CALIBRATION.md)
+- 6 sibling 도메인 (cycle-10 round-1 +CALIBRATION): [`ECONOMICS.md`](../ARCHITECTURE.json) · [`SAFETY.md`](../ARCHITECTURE.json) · [`OPS.md`](../ARCHITECTURE.json) · [`SUBSTRATE.md`](../ARCHITECTURE.json) · [`SANDBOX.md`](../ARCHITECTURE.json) · [`NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md) · [`CALIBRATION/CALIBRATION.md`](../CALIBRATION/CALIBRATION.md)
 - CALIBRATION verdict: [`../CALIBRATION/verify/numerics_calibration_a1_ece_formula.hexa`](../CALIBRATION/verify/numerics_calibration_a1_ece_formula.hexa) · [`../CALIBRATION/verdicts/`](../CALIBRATION/verdicts/)
 - CODEX meta-domain (22 candidate orchestrator): [`../CODEX/CODEX.md`](../CODEX/CODEX.md)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]

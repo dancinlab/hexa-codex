@@ -3,7 +3,7 @@
 @title: 🍽️ DATA-EFFICIENCY — "공부 순서 다이어트"
 @goal: **curriculum·quality·sample-efficiency 효과를 영구 측정·최적화하는 lane.** 새 corpus·filter·curriculum 기법 가 등장할 때마다 측정 frontier 가 다시 열린다. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
 
-> Candidate sibling from [`AXIS.easy.md`](../AXIS.easy.md) (브레인스토밍 ⭐⭐). ENGINE intake matrix **미등록** — measured finding 확보 시 axis letter 부여하여 승격.
+> Candidate sibling from [`AXIS.easy.md`](../ARCHITECTURE.json) (브레인스토밍 ⭐⭐). ENGINE intake matrix **미등록** — measured finding 확보 시 axis letter 부여하여 승격.
 >
 > **Falsifier class:** curriculum 효과 < 5% vs 무작위 → curriculum 무의미
 >
@@ -65,9 +65,9 @@ DATA-EFFICIENCY 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) —
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- 후보 카탈로그: [`../AXIS.easy.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
-- 기존 sibling 참고 (축 구조 패턴): [`../ECONOMICS.md`](../ECONOMICS.md) · [`../NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md)
+- 기존 sibling 참고 (축 구조 패턴): [`../ECONOMICS.md`](../ARCHITECTURE.json) · [`../NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md)
 - this domain: [`DATA-EFFICIENCY.md`](DATA-EFFICIENCY.md) (snapshot) · [`DATA-EFFICIENCY.log.md`](DATA-EFFICIENCY.log.md) (history)

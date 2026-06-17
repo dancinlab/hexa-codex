@@ -76,9 +76,9 @@ SCIENCE 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — HF tran
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../../AXIS.easy.md`](../../AXIS.easy.md)
+- 후보 카탈로그: [`../../AXIS.easy.md`](../../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../../ENGINE/ENGINE.md`](../../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../ARCHITECTURE.json)
 - vertical sibling (반드시 구분): [`../MATH/MATH.md`](../MATH/MATH.md) (수학 · formal-proof) · [`../CODE/CODE.md`](../CODE/CODE.md) (코드) · [`../BIO/BIO.md`](../BIO/BIO.md) (바이오/생명과학 · wet-lab) · [`../MEDICAL/MEDICAL.md`](../MEDICAL/MEDICAL.md) (임상)
 - 뉴로 측정 sibling (해석성 lane): [`../../NEUROEXP/NEUROEXP.md`](../../NEUROEXP/NEUROEXP.md)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]

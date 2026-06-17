@@ -276,7 +276,7 @@ GGUF:    dancinlab/hexa-forge-code-<size>-GGUF-f16-<version>
 ## §8 Cross-link
 
 - HF org: [https://huggingface.co/dancinlab](https://huggingface.co/dancinlab)
-- v0.1.3 entry per the retired ROADMAP: [`../../LEARNING_PROGRAMMING.log.md`](../../LEARNING_PROGRAMMING.log.md) Part 2 (origin spec §4)
+- v0.1.3 entry per the retired ROADMAP: [`../../LEARNING_PROGRAMMING.log.md`](../../ARCHITECTURE.json) Part 2 (origin spec §4)
 - Open decisions this runbook unblocks: D-007 / D-008 / D-009 (compute-dependent triad)
 - Tool docstrings — HF auth instructions to be updated per §3 routing on next tool edit pass (deferred to v0.1.3 entry; tools currently print a 3-step instruction that's compatible with the env-var protocol)
 - Nexus 2026-04-29 directive: applies to nexus's compute-on-Mac fallback, NOT to this HF-bridge use (carve-out documented above)

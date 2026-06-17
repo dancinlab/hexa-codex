@@ -64,9 +64,9 @@ POST-TRAINING 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — l
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- 후보 카탈로그: [`../AXIS.easy.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - 흡수 출처 (cycle-10): orchestra-research 20-skill "Post-Training" (누락 흡수)
 - 실측 substrate 후보: `lm_foundry/` Mk.I SFT/GRPO routing-RL 실험 (r38~r43) — [[feedback_lever4_rl_sft_conflict]] · [[feedback_pure_rl_exploration_collapse]] · [[feedback_rl_tail_vs_greedy]]

@@ -3,7 +3,7 @@
 @title: 💭 HALLUCINATION — "헛소리 측정기"
 @goal: **모델이 모르는 사실에 대해 confident 으로 지어내는 빈도를 영구 측정·억제하는 lane.** ⭐ NOVEL MAIN (N) = reasoning-depth ↔ confident-wrong coupling — 깊은 추론(scratch-pad/CoT)이 환각을 줄이는가 (cycle-10 reorg · FRONTIER F4 흡수). 새 knowledge cutoff·fact universe·domain·reasoning regime 가 등장할 때마다 측정 frontier 가 다시 열린다. **종료 조건 없음 · 진행바 100% 미도달 = 설계** ([[feedback_closure_is_physical_limit]]).
 
-> Candidate sibling from [`AXIS.easy.md`](../AXIS.easy.md) (브레인스토밍 ⭐⭐⭐). ENGINE intake matrix **미등록** — measured finding 확보 시 axis letter 부여하여 승격.
+> Candidate sibling from [`AXIS.easy.md`](../ARCHITECTURE.json) (브레인스토밍 ⭐⭐⭐). ENGINE intake matrix **미등록** — measured finding 확보 시 axis letter 부여하여 승격.
 >
 > **Falsifier class:** factual probe 에서 hallucination rate > 20% with high confidence
 >
@@ -67,9 +67,9 @@ HALLUCINATION 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — l
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- 후보 카탈로그: [`../AXIS.easy.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
-- 기존 sibling 참고 (축 구조 패턴): [`../ECONOMICS.md`](../ECONOMICS.md) · [`../NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md)
+- 기존 sibling 참고 (축 구조 패턴): [`../ECONOMICS.md`](../ARCHITECTURE.json) · [`../NEUROEXP/NEUROEXP.md`](../NEUROEXP/NEUROEXP.md)
 - this domain: [`HALLUCINATION.md`](HALLUCINATION.md) (snapshot) · [`HALLUCINATION.log.md`](HALLUCINATION.log.md) (history)

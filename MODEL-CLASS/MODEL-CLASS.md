@@ -71,9 +71,9 @@ MODEL-CLASS 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — loc
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../AXIS.easy.md`](../AXIS.easy.md)
+- 후보 카탈로그: [`../AXIS.easy.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - 인접 sibling — micro 부품 측정 (micro-vs-macro 구분): [`../ARCHITECTURE/ARCHITECTURE.md`](../ARCHITECTURE/ARCHITECTURE.md)
 - 인접 sibling — modality 품종: [`../MULTIMODAL/MULTIMODAL.md`](../MULTIMODAL/MULTIMODAL.md)
 - 인접 sibling — 위치별 능력 (축 구조 패턴): [`../LONG-CONTEXT/LONG-CONTEXT.md`](../LONG-CONTEXT/LONG-CONTEXT.md)

@@ -47,7 +47,7 @@
     "README.md"
   ],
   "docs": {
-    "architecture": "ARCHITECTURE.md",
+    "architecture": "ARCHITECTURE.json",
     "log": "CHANGELOG.md",
     "scratchDir": "state/scratch",
     "scopeDirs": [
@@ -56,15 +56,13 @@
     "allow": [
       "README.md",
       "CHANGELOG.md",
-      "ARCHITECTURE.md",
+      "ARCHITECTURE.json",
+      "ARCHITECTURE.html",
       "CLAUDE.md",
       "AGENTS.md",
       "LICENSE",
       "CONTRIBUTING.md",
-      "SECURITY.md",
-      "RELEASE_NOTES_v1.0.0.md",
-      "RELEASE_NOTES_v1.4.0.md",
-      "V0_6_0_GA.md"
+      "SECURITY.md"
     ]
   },
   "ledger": {

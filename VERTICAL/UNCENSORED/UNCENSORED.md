@@ -85,9 +85,9 @@ UNCENSORED 는 추상적 클래스가 아니라 실재 무검열 specialist 모�
 
 ## Cross-refs
 
-- 후보 카탈로그: [`../../AXIS.easy.md`](../../AXIS.easy.md)
+- 후보 카탈로그: [`../../AXIS.easy.md`](../../ARCHITECTURE.json)
 - ENGINE intake matrix (driving lane): [`../../ENGINE/ENGINE.md`](../../ENGINE/ENGINE.md)
-- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../../SANDBOX.md`](../../ARCHITECTURE.json)
 - vertical peer sibling: [`../CODE/CODE.md`](../CODE/CODE.md) (코드 specialist 측정) · [`../MATH/MATH.md`](../MATH/MATH.md) (수학 specialist 측정) · [`../BIO/BIO.md`](../BIO/BIO.md) (바이오 specialist 측정)
 - activation capture env (N1 measured 전제): [[reference_activation_capture_env]]
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]

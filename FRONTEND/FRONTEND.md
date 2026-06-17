@@ -54,7 +54,7 @@ FRONTEND 측정은 모두 SANDBOX 기질 위에서 (`cx_lab_sandbox`) — HF tra
 
 - 원본 seed (verbatim): [`sample/README.md`](sample/README.md) — SkillOpt · SkillLens
 - vertical peer sibling: [`../VERTICAL/CODE/CODE.md`](../VERTICAL/CODE/CODE.md) (코드 generic — FRONTEND 와 직교) · [`../VERTICAL/UNCENSORED/UNCENSORED.md`](../VERTICAL/UNCENSORED/UNCENSORED.md) (축 구조 패턴 참고)
-- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../SANDBOX.md)
+- SANDBOX 기질 (measurement substrate): [`../SANDBOX.md`](../ARCHITECTURE.json)
 - ENGINE intake matrix (승격 대상 · measured tier 도달 시): [`../ENGINE/ENGINE.md`](../ENGINE/ENGINE.md)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - this domain: [`FRONTEND.md`](FRONTEND.md) (snapshot) · [`FRONTEND.log.md`](FRONTEND.log.md) (history)

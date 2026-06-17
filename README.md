@@ -36,7 +36,7 @@
 > routing, real 3-vendor SDKs, persistent cache, multi-turn memory,
 > production observability, and SQLite WAL multi-process safety. See
 > [`lm_foundry/README.md`](lm_foundry/README.md) and
-> [`ORCHESTRATION.md`](ORCHESTRATION.md).
+> [`ARCHITECTURE.json`](ARCHITECTURE.json) ("lm_foundry/" node).
 
 ---
 
@@ -71,7 +71,7 @@ preregistered hypothesis, not a validated capability claim.
 
 ### SAFETY (6)
 
-> Domain SSOT: [`SAFETY.md`](SAFETY.md) · history [`SAFETY.log.md`](SAFETY.log.md)
+> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "SAFETY group" node · history → [`CHANGELOG.md`](CHANGELOG.md) (was SAFETY.md/.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -84,7 +84,7 @@ preregistered hypothesis, not a validated capability claim.
 
 ### ECONOMICS (3)
 
-> Domain SSOT: [`ECONOMICS.md`](ECONOMICS.md) · history [`ECONOMICS.log.md`](ECONOMICS.log.md)
+> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "ECONOMICS group" node · history → [`CHANGELOG.md`](CHANGELOG.md) (was ECONOMICS.md/.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -94,7 +94,7 @@ preregistered hypothesis, not a validated capability claim.
 
 ### OPS (4)
 
-> Domain SSOT: [`OPS.md`](OPS.md) · history [`OPS.log.md`](OPS.log.md)
+> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "OPS group" node · history → [`CHANGELOG.md`](CHANGELOG.md) (was OPS.md/.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -105,7 +105,7 @@ preregistered hypothesis, not a validated capability claim.
 
 ### SUBSTRATE (4)
 
-> Domain SSOT: [`SUBSTRATE.md`](SUBSTRATE.md) · history [`SUBSTRATE.log.md`](SUBSTRATE.log.md)
+> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "SUBSTRATE group" node · history → [`CHANGELOG.md`](CHANGELOG.md) (was SUBSTRATE.md/.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -134,15 +134,15 @@ inference side) — the merge consolidates the two.
 
 | verb   | what                                | status (2026-05-14, **v0.5.14 / r62**)                            |
 |--------|-------------------------------------|-------------------------------------------------------------------|
-| `code` | programming-only LLM for hexa-lang  | **GA at 94.29% Mk.I strict (627/665), 96% 5-NL** — r39 v3-t3patch adapter, **unchanged since GA mark**. Path: Qwen2.5-Coder-7B + LoRA r=64 SFT (r1–r34) → Phase-A manifest fixes (r33/r37/r38) → compile-feedback RL via GRPO (Lever 4 — T4 enum 55→100%) → T3 quote-fragility patch (r39, T3 58.8→100%). **v0.4.x in-weight delegation disproved (r40–r43.1, 5 distinct failure modes)**; routing moved OUT of model weights to a deterministic pre-7B classifier + per-vendor tier selector + real 3-vendor SDKs + per-prompt cache + multi-turn memory + production observability. **v0.5.x orchestration line (r44–r62) ships the production stack**: DLG-mk0 classifier 0.9833 / tier_match 1.000 / Brier 0.0242 EXCELLENT / ECE 0.0461 GOOD on 300-task held-out manifest. See [`ORCHESTRATION.md`](ORCHESTRATION.md). |
+| `code` | programming-only LLM for hexa-lang  | **GA at 94.29% Mk.I strict (627/665), 96% 5-NL** — r39 v3-t3patch adapter, **unchanged since GA mark**. Path: Qwen2.5-Coder-7B + LoRA r=64 SFT (r1–r34) → Phase-A manifest fixes (r33/r37/r38) → compile-feedback RL via GRPO (Lever 4 — T4 enum 55→100%) → T3 quote-fragility patch (r39, T3 58.8→100%). **v0.4.x in-weight delegation disproved (r40–r43.1, 5 distinct failure modes)**; routing moved OUT of model weights to a deterministic pre-7B classifier + per-vendor tier selector + real 3-vendor SDKs + per-prompt cache + multi-turn memory + production observability. **v0.5.x orchestration line (r44–r62) ships the production stack**: DLG-mk0 classifier 0.9833 / tier_match 1.000 / Brier 0.0242 EXCELLENT / ECE 0.0461 GOOD on 300-task held-out manifest. See [`ARCHITECTURE.json`](ARCHITECTURE.json) ("ORCHESTRATION runtime" node). |
 | `bio`  | HEXA-BIO domain LLM (seq + prose)   | recipe spec landed; training pending. Paired with `dancinlab/hexa-bio`. |
 
-- Knowledge SSOTs: [`LEARNING_PROGRAMMING.md`](LEARNING_PROGRAMMING.md)
-  (code-LLM, 14 sections) · [`LEARNING_BIO.md`](LEARNING_BIO.md).
-- Round-by-round chronicle: [`LEARNING_PROGRAMMING.log.md`](LEARNING_PROGRAMMING.log.md)
-  (specialist r1–r39) · [`ORCHESTRATION.log.md`](ORCHESTRATION.log.md) (routing runtime r40–r72).
-- **Runtime spec**: [`ORCHESTRATION.md`](ORCHESTRATION.md)
-  — canonical v0.5.x runtime spec (15 sections + ## Log; root domain doc).
+- Knowledge SSOTs: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "code-LLM learning surface"
+  + "bio-LLM scaffold" nodes (was LEARNING_PROGRAMMING.md · LEARNING_BIO.md).
+- Round-by-round chronicle → [`CHANGELOG.md`](CHANGELOG.md) + git history (was
+  LEARNING_PROGRAMMING.log.md specialist r1–r39 · ORCHESTRATION.log.md runtime r40–r72).
+- **Runtime spec**: [`ARCHITECTURE.json`](ARCHITECTURE.json) "ORCHESTRATION runtime" node
+  — canonical runtime spec (was ORCHESTRATION.md, 15 sections).
 - Design docs: [`lm_foundry/papers/`](lm_foundry/papers/) (incl. `spec-lever4-compile-rl.md`, `spec-delegation-v0.4.0.md` OBSOLETE §4/§10).
 - HF artifacts: **42 repos** under `dancinlab/hexa-forge-*` (prefix kept as artifact
   identity). **GA adapter (unchanged):** `dancinlab/hexa-forge-code-7b-qwen2.5-lora-r64-v0.4.0-rl-t4-v3-t3patch` (r39).
@@ -272,7 +272,7 @@ Per `LATTICE_POLICY.md` §1.3: lattice tautologies (σ·φ = n·τ = 24)
 alone are **not** sufficient verification — the `numerics_*` tier
 carries real-limits anchors (PAC sample complexity, Kolmogorov
 `K(program)` lower bound, Rice's theorem undecidability of semantic
-equivalence — see [`LIMIT_BREAKTHROUGH.log.md`](LIMIT_BREAKTHROUGH.log.md) §2).
+equivalence — see [`ARCHITECTURE.json`](ARCHITECTURE.json) "LIMIT_BREAKTHROUGH" node).
 
 ### Bookkeeping closure verdict
 

@@ -470,7 +470,7 @@ AUROC=0.98 + causal ablation 95→0%) 을 inference-time intervention SPEC 으�
 
 ### 연결
 
-- input finding: [SAFETY.md (cycle-19/20 refusal-direction)](SAFETY.md) · `.verdicts/sandbox/m4_safety_refusal_*`
+- input finding: [SAFETY.md (cycle-19/20 refusal-direction)](../ARCHITECTURE.json) · `.verdicts/sandbox/m4_safety_refusal_*`
 - wire: [`ENGINE/wires/wire_b1_safety_refusal_intervention.hexa`](ENGINE/wires/wire_b1_safety_refusal_intervention.hexa)
 - falsifier: [`ENGINE/verify/numerics_engine_b1_wire_safety.hexa`](ENGINE/verify/numerics_engine_b1_wire_safety.hexa)
 - verdict: [`ENGINE/verdicts/b1_wire_safety_verdict.txt`](ENGINE/verdicts/b1_wire_safety_verdict.txt)
@@ -534,11 +534,11 @@ A1 의 `[x]` flip 은 axis frontier 종료가 아니다 ([[feedback_closure_is_p
 
 ### 연결
 
-- input finding: [ECONOMICS.log.md cycle-34](ECONOMICS.log.md) (n=11 PARITY entry)
+- input finding: [ECONOMICS.log.md cycle-34](../ARCHITECTURE.json) (n=11 PARITY entry)
 - wire: [`ENGINE/wires/wire_a1_econ_e1_router_rule.hexa`](ENGINE/wires/wire_a1_econ_e1_router_rule.hexa)
 - falsifier: [`ENGINE/verify/numerics_engine_a1_wire_econ_e1.hexa`](ENGINE/verify/numerics_engine_a1_wire_econ_e1.hexa)
 - verdict: [`ENGINE/verdicts/a1_wire_econ_e1_verdict.txt`](ENGINE/verdicts/a1_wire_econ_e1_verdict.txt)
-- ECONOMICS source: [`ECONOMICS.md::E1`](ECONOMICS.md)
+- ECONOMICS source: [`ECONOMICS.md::E1`](../ARCHITECTURE.json)
 - N1 axis (self-meta): [`ENGINE.md::N1`](ENGINE.md)
 
 ---

@@ -84,7 +84,7 @@ NEUROEXP 는 hexa-codex 의 **LLM-engineering 6 도메인** 옆에 **LLM 자체�
 
 ## Cross-refs
 
-- 6 sibling 도메인 (hexa-codex 내부): [`SANDBOX.md`](../SANDBOX.md) · [`ECONOMICS.md`](../ECONOMICS.md) · [`SAFETY.md`](../SAFETY.md) · [`OPS.md`](../OPS.md) · [`SUBSTRATE.md`](../SUBSTRATE.md) · [`ENGINE/ENGINE.md`](../ENGINE/ENGINE.md) · [`BIODATA/BIODATA.md`](../BIODATA/BIODATA.md)
+- 6 sibling 도메인 (hexa-codex 내부): [`SANDBOX.md`](../ARCHITECTURE.json) · [`ECONOMICS.md`](../ARCHITECTURE.json) · [`SAFETY.md`](../ARCHITECTURE.json) · [`OPS.md`](../ARCHITECTURE.json) · [`SUBSTRATE.md`](../ARCHITECTURE.json) · [`ENGINE/ENGINE.md`](../ENGINE/ENGINE.md) · [`BIODATA/BIODATA.md`](../BIODATA/BIODATA.md)
 - 단방향 sibling (외부 repo): [`anima/UNIVERSE`](../../anima/UNIVERSE/UNIVERSE.md) — 의식·생명 가설 H_XXX lib (NEUROEXP axis Φ 의 anchor)
 - 영구 frontier 원리: [[feedback_closure_is_physical_limit]]
 - 호스트 인프라: [[reference_host_topology]] · [[reference_activation_capture_env]] (axis L/C/Φ 실측용)

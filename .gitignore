@@ -16,8 +16,7 @@ venv/
 .claude/*
 !.claude/skills/
 
-# hexa-codex runtime state (cli/hexa-codex.hexa appends to state/)
-state/
+# hexa-codex runtime state — state/ tracked per commons c5 (cli/hexa-codex.hexa appends to state/)
 
 # build artifacts
 build/out/

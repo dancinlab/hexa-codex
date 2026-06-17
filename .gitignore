@@ -17,6 +17,10 @@ venv/
 !.claude/skills/
 
 # hexa-codex runtime state — state/ tracked per commons c5 (cli/hexa-codex.hexa appends to state/)
+# narrow: ephemeral run-markers + logs stay untracked; real artifacts under state/ ARE tracked
+state/markers/
+state/*.log
+lm_foundry/state/*.jsonl
 
 # build artifacts
 build/out/

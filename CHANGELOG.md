@@ -4,6 +4,25 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — scratch → state/ unification (2026-06-18)
+
+- **Single artifact root `state/`** — absorbed `scripts/scratch/` into
+  `state/scratch/` (`git mv` the `.gitkeep`; empty `scripts/scratch/` removed).
+  `state/` is the single git-tracked runtime/scratch artifact root (commons c5).
+- **Reference fixes (live config paths only)** — `harness.config.json`
+  `docs.scratchDir`: `scripts/scratch` → `state/scratch`; `.harness/enforcement.json`
+  H-TMP-SCRATCH exception + DOC-SCATTER hints: `scripts/scratch` → `state/scratch`;
+  `CLAUDE.md` docs-block scratch pointer + tree `state/` entry. Historical
+  provenance strings in code/docs left untouched.
+- **Deliberately NOT moved (load-bearing source/output, c9 honest skip)** —
+  `.verdicts/` (live write path of ~88 `bench/*.hexa` via `ROOT + "/.verdicts/…"`),
+  `bench/` (52 `.hexa` source files cited by 173 refs), `experiments/` (62 `.hexa`
+  source experiments cited as provenance by 30 refs). `exports/`, `.harness/`,
+  `build/` untouched.
+- **.gitignore** — narrow re-ignores after the wholesale `state/` block removal:
+  `state/markers/`, `state/*.log`, `lm_foundry/state/*.jsonl` (ephemeral
+  run-markers + logs stay untracked; real `state/` artifacts ARE tracked).
+
 ## [Unreleased] — harness perfect-setup (2026-06-15)
 
 - **Harness conformance** — brought the repo to full `dancinlab/harness`

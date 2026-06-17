@@ -28,6 +28,7 @@ hexa-codex/
 ├─ PAPER/ papers/         — gated /paper output (one positive + one closed-negative per group)
 ├─ RAG/ LONG-CONTEXT/ HALLUCINATION/ … — per-axis research domains (<X>.md + <X>.log.md)
 ├─ cli/ ENGINE/           — hexa-lang entrypoints + discovery/verify engine
+├─ state/                 — single runtime/scratch artifact root (c5): scratch/ (docs scratchDir) · markers/ + *.log untracked
 └─ .harness-engine/       — harness submodule (governance · docs discipline · gates)
 ```
 
@@ -77,7 +78,7 @@ Config — [harness.config.json](harness.config.json):
 - `lockdown.files` guards core sources; edits remind to update `CHANGELOG.md`.
 - `lint.changelog` requires `CHANGELOG.md` to be staged alongside `*.hexa` changes.
 - `docs` block: architecture SSOT = `ARCHITECTURE.md`, log = `CHANGELOG.md`,
-  scratch = `scripts/scratch/`, scope limited to root `.md` files, with the root
+  scratch = `state/scratch/`, scope limited to root `.md` files, with the root
   SSOT/README-variant docs allow-listed.
 
 Agent hooks (pre-bash / pre-write / post-edit / prompt / prefs · easy · recommend

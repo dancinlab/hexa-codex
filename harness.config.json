@@ -49,7 +49,7 @@
   "docs": {
     "architecture": "ARCHITECTURE.md",
     "log": "CHANGELOG.md",
-    "scratchDir": "scripts/scratch",
+    "scratchDir": "state/scratch",
     "scopeDirs": [
       ""
     ],

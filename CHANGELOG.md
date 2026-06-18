@@ -4,6 +4,22 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — ARCHITECTURE.json hierarchical `children` decomposition (c4) (2026-06-18)
+
+- **Lossless `children`-tree re-shape (commons c4)** — decomposed the ~49 over-long
+  dump cells (`summary`/`note` > ~250 chars or 3+ ` · `-joined items; longest was
+  ~2161 chars) into real hierarchical child nodes. Each piled-up cell now exposes a
+  short role line on the parent with every item/section unfolded as its own child
+  (verb lists → per-verb `module` children; `영구 축` lists → per-axis `lane`
+  children; cron/stage/ceiling/sibling/dir dumps → per-item children). **0 chars
+  lost** — verified by non-whitespace value char-multiset before vs after (orig ⊆
+  new; separators preserved by prepending to the following fragment). Node count
+  26 → 301; remaining >250-char cells are all coherent single sentences / parenthetical
+  role descriptors / short path anchor lists (NOT dumps), kept per c4. New leaf
+  `kind:"note"` (decomposed detail leaf) documented in the root `note` taxonomy.
+  Same schema + `children` convention; JSON validates; ARCHITECTURE.html / serve.py
+  viewer renders unchanged.
+
 ## [Unreleased] — ARCHITECTURE.json tree SSOT migration (2026-06-18)
 
 - **Single design SSOT `ARCHITECTURE.json`** — retired the scattered root domain

@@ -4,7 +4,7 @@
   "title": "hexa-codex — architecture tree",
   "name": "hexa-codex",
   "summary": "Standalone AI knowledge substrate — a 17-verb spec library across 4 orthogonal groups (SAFETY 6 · ECONOMICS 3 · OPS 4 · SUBSTRATE 4 = 6+3+4+4=17) plus the lm_foundry/ domain-LLM foundry (a hexa-lang code-LLM at 94.29% Mk.I strict / 96% 5-NL, r39 GA frozen, wrapped by a v0.6.0 GA 3-vendor orchestration runtime). A never-completing codex: each domain lane advances a verify-driven `## 영구 축` (permanent axis) forever — a 100% progress bar is by-design unreachable ([[feedback_closure_is_physical_limit]]). Consumers READ the codex; they do not run it. Every verifiable claim is indexed in CLAIMS.tape and proven through `hexa verify` into .verdicts/ (raw stdout verbatim, no LLM self-judge).",
-  "note": "This JSON tree is the architecture SSOT (update-in-place, NOT append-only). Human viewer = ARCHITECTURE.html via `python3 serve.py` (http, not file://). History/decisions → CHANGELOG.md; governance → CLAUDE.md; domain narrative/badges → README.md; verifiable claims → CLAIMS.tape + .verdicts/<slug>/; the live domain-progress roster → DOMAINS.tape (NAME → snapshot path; progress/@goal derived). 구분(kind) per node: domain | group | module | runtime | substrate | lane | policy | governance | history.",
+  "note": "This JSON tree is the architecture SSOT (update-in-place, NOT append-only). Human viewer = ARCHITECTURE.html via `python3 serve.py` (http, not file://). History/decisions → CHANGELOG.md; governance → CLAUDE.md; domain narrative/badges → README.md; verifiable claims → CLAIMS.tape + .verdicts/<slug>/; the live domain-progress roster → DOMAINS.tape (NAME → snapshot path; progress/@goal derived). 구분(kind) per node: domain | group | module | runtime | substrate | lane | policy | governance | history | note (note = a decomposed detail leaf, c4 tree split).",
   "meta": {
     "ssot": "github.com/dancinlab/hexa-codex",
     "parent": "dancinlab",
@@ -17,51 +17,513 @@
     "guard_baseline": "profile=hardcore · stack=[hexa] · protectedBranches=[main,master] · `bash .harness-engine/bin/harness docs check` → docs: ok · lint changelog gate (CHANGELOG.md staged with *.hexa) · verify check `hexa verify` (timeout 240s)",
     "migrated_from": "ARCHITECTURE.md (prose, 86 lines) + 8 domain `<DOMAIN>.md` snapshots (ECONOMICS · SAFETY · OPS · SUBSTRATE · SANDBOX · ORCHESTRATION · OPERATIONS · LEARNING_PROGRAMMING) + LEARNING_BIO · LATTICE_POLICY · LIMIT_BREAKTHROUGH · TAPE-AUDIT · IMPORTED_FROM_CANON · AXIS.easy · HEXA_CODEX retired 2026-06-18 → ARCHITECTURE.json tree SSOT + ARCHITECTURE.html viewer (mirrors anima, c4 standard). Append-only `<DOMAIN>.log.md` histories + RELEASE_NOTES_v* + V0_6_0_GA folded into CHANGELOG.md."
   },
-  "columns": ["이름 (name)", "역할 (summary/role)", "구분 (kind)", "상세 (note)"],
+  "columns": [
+    "이름 (name)",
+    "역할 (summary/role)",
+    "구분 (kind)",
+    "상세 (note)"
+  ],
   "children": [
     {
       "name": "🜂 HEXA_CODEX — umbrella meta-domain (\"the codex that never completes\")",
       "kind": "domain",
-      "summary": "The umbrella identity: AI knowledge substrate = 17-verb spec library (safety · economics · ops · substrate) + lm_foundry hexa-lang code-LLM (94.29% Mk.I) with 3-vendor orchestration. This codex does NOT complete — each sub-domain advances a verify-driven `## 영구 축` perpetually until a measurable physical axis is exhausted or a new frontier opens; progress-bar < 100% is by design.",
-      "note": "@title: 🜂 HEXA_CODEX — 영구 발견 substrate (우산 메타도메인). Perpetual frontier lanes per domain (all hold a `## 영구 축`): ECONOMICS (discovery, open-frontier, 비용곡선 재측정 축 A–G/N) · SAFETY (discovery, 해석가능성 probe 축 A–D/N) · OPS (discovery + roofline %, SLO 측정 축 A–D/N) · SUBSTRATE (discovery, capability eval 축 A–D/N) · SANDBOX (측정 기질, 물리축 소진, P1–P4 + N) · ORCHESTRATION (engineering, roofline %, 런타임 frontier) · LEARNING_PROGRAMMING (학습면, moving frontier). Closure principle [[feedback_closure_is_physical_limit]]. (was HEXA_CODEX.md + HEXA_CODEX.log.md — log was an empty stub.)"
+      "summary": "The umbrella identity: AI knowledge substrate = 17-verb spec library (safety · economics · ops · substrate) + lm_foundry hexa-lang code-LLM (94.29% Mk.I) with 3-vendor orchestration.",
+      "children": [
+        {
+          "name": "codex-never-completes principle",
+          "kind": "policy",
+          "summary": " This codex does NOT complete — each sub-domain advances a verify-driven `## 영구 축` perpetually until a measurable physical axis is exhausted or a new frontier opens; progress-bar < 100% is by design."
+        },
+        {
+          "name": "@title + perpetual-frontier lanes",
+          "kind": "note",
+          "summary": "Each domain holds a `## 영구 축`; per-domain lane heads follow.",
+          "children": [
+            {
+              "name": "@title header + lane preamble",
+              "kind": "note",
+              "summary": "@title: 🜂 HEXA_CODEX — 영구 발견 substrate (우산 메타도메인). Perpetual frontier lanes per domain (all hold a `## 영구 축`): "
+            },
+            {
+              "name": "lane — ECONOMICS",
+              "kind": "lane",
+              "summary": "ECONOMICS (discovery, open-frontier, 비용곡선 재측정 축 A–G/N)"
+            },
+            {
+              "name": "lane — SAFETY",
+              "kind": "lane",
+              "summary": " · SAFETY (discovery, 해석가능성 probe 축 A–D/N)"
+            },
+            {
+              "name": "lane — OPS",
+              "kind": "lane",
+              "summary": " · OPS (discovery + roofline %, SLO 측정 축 A–D/N)"
+            },
+            {
+              "name": "lane — SUBSTRATE",
+              "kind": "lane",
+              "summary": " · SUBSTRATE (discovery, capability eval 축 A–D/N)"
+            },
+            {
+              "name": "lane — SANDBOX",
+              "kind": "lane",
+              "summary": " · SANDBOX (측정 기질, 물리축 소진, P1–P4 + N)"
+            },
+            {
+              "name": "lane — ORCHESTRATION",
+              "kind": "lane",
+              "summary": " · ORCHESTRATION (engineering, roofline %, 런타임 frontier)"
+            },
+            {
+              "name": "lane — LEARNING_PROGRAMMING",
+              "kind": "lane",
+              "summary": " · LEARNING_PROGRAMMING (학습면, moving frontier)"
+            }
+          ]
+        },
+        {
+          "name": "closure principle + provenance",
+          "kind": "history",
+          "summary": ". Closure principle [[feedback_closure_is_physical_limit]]. (was HEXA_CODEX.md + HEXA_CODEX.log.md — log was an empty stub.)"
+        }
+      ]
     },
     {
       "name": "Spec library — the 17-verb AI knowledge substrate (4 orthogonal groups)",
       "kind": "group",
-      "summary": "The write-side spec catalog: 17 verbs in 4 groups (SAFETY 6 · ECONOMICS 3 · OPS 4 · SUBSTRATE 4). Each verb = a single closed-form candidate spec `.md` under a group-named directory + a preregistered falsifier. Released spec-first at v1.0.0 (SPEC_CATALOG_ONLY, 0/17 wired); empirical landing is laddered (safety v1.1.0 → econ v1.2.0/infer v1.3.0 → substrate v2.0.0). Provenance: extracted from canon `domains/cognitive/` (canon@c0f1f570). n=6 lattice = organizing vocabulary only (σ(6)=12, τ(6)=4, φ(6)=2, σ·φ=n·τ=J₂(6)=24; Lean4-proven σ(6)=12 in formal/), NOT a constraint (see LATTICE_POLICY node).",
-      "note": "Component dirs: SAFETY = alignment/ safety/ welfare/ adversarial/ consciousness/ interpret/; ECONOMICS = train_cost/ infer_cost/ quality_scale/; OPS = deploy/ enterprise/ agent_serving/ eval/; SUBSTRATE = multimodal/ rlhf/ cog_arch/ causal/. Falsifiers owned: F-CODEX-1 (train_cost, N^(σ·φ)=N^24), F-CODEX-2 (infer_cost, context^τ=context^4), F-CODEX-3 (alignment, mean over 12 HELM axes), F-CODEX-4 (interpret, σ−φ=10 SAE motifs). v1.0.0 CLI placeholder cli/hexa-codex.hexa routes by verb (spec path + 20-line head); `selftest` confirms 17/17 specs on disk. Empirical landing is measured ONLY on SANDBOX (cx_empirical_contact). (was ARCHITECTURE.md Component map + RELEASE_NOTES_v1.0.0.md.)",
+      "summary": "The write-side spec catalog: 17 verbs in 4 groups (SAFETY 6 · ECONOMICS 3 · OPS 4 · SUBSTRATE 4).",
       "children": [
+        {
+          "name": "verb definition + release ladder",
+          "kind": "note",
+          "summary": " Each verb = a single closed-form candidate spec `.md` under a group-named directory + a preregistered falsifier. Released spec-first at v1.0.0 (SPEC_CATALOG_ONLY, 0/17 wired); empirical landing is laddered (safety v1.1.0 → econ v1.2.0/infer v1.3.0 → substrate v2.0.0)."
+        },
+        {
+          "name": "provenance (canon extraction)",
+          "kind": "history",
+          "summary": " Provenance: extracted from canon `domains/cognitive/` (canon@c0f1f570)."
+        },
+        {
+          "name": "n=6 lattice = organizing vocabulary only",
+          "kind": "policy",
+          "summary": " n=6 lattice = organizing vocabulary only (σ(6)=12, τ(6)=4, φ(6)=2, σ·φ=n·τ=J₂(6)=24; Lean4-proven σ(6)=12 in formal/), NOT a constraint (see LATTICE_POLICY node)."
+        },
+        {
+          "name": "component dirs (per group)",
+          "kind": "note",
+          "summary": "Component dirs: SAFETY = alignment/ safety/ welfare/ adversarial/ consciousness/ interpret/; ECONOMICS = train_cost/ infer_cost/ quality_scale/; OPS = deploy/ enterprise/ agent_serving/ eval/; SUBSTRATE = multimodal/ rlhf/ cog_arch/ causal/."
+        },
+        {
+          "name": "falsifiers owned (F-CODEX-1..4)",
+          "kind": "note",
+          "summary": " Falsifiers owned: F-CODEX-1 (train_cost, N^(σ·φ)=N^24), F-CODEX-2 (infer_cost, context^τ=context^4), F-CODEX-3 (alignment, mean over 12 HELM axes), F-CODEX-4 (interpret, σ−φ=10 SAE motifs)."
+        },
+        {
+          "name": "v1.0.0 CLI placeholder + empirical-landing gate",
+          "kind": "note",
+          "summary": " v1.0.0 CLI placeholder cli/hexa-codex.hexa routes by verb (spec path + 20-line head); `selftest` confirms 17/17 specs on disk. Empirical landing is measured ONLY on SANDBOX (cx_empirical_contact)."
+        },
+        {
+          "name": "provenance (sources)",
+          "kind": "history",
+          "summary": " (was ARCHITECTURE.md Component map + RELEASE_NOTES_v1.0.0.md.)"
+        },
         {
           "name": "SAFETY group (6 verbs) — 해석가능성 probe 영구 발견 lane",
           "kind": "domain",
           "path": "alignment/ safety/ welfare/ adversarial/ consciousness/ interpret/ · SSOT was SAFETY.md",
           "status": "v1.4.0 (first arc) — refusal-direction landed",
-          "summary": "🛡️ The 6-verb safety surface: can a deployed model be shown by a preregistered falsifiable probe to be aligned, interpretable, refusal-correct, and welfare-audited? Falsifier class = interpretability probes (circuit motifs, SAE features, alignment-axis aggregation, refusal matrices). Each verb is read, not run; empirical landing release-laddered (safety goes first, v1.1.0). Owns F-CODEX-3 (alignment = mean over 12 HELM axes; arithmetic floor PASS, empirical v1.1.0) and F-CODEX-4 (interpret = σ(6)−φ(6)=10 SAE motifs; arithmetic floor PASS, empirical v2.0.0).",
-          "note": "Verbs: alignment (HELM-12-axis aggregator, owns F-CODEX-3, alignment/ai-alignment.md) · interpret (SAE motif count σ−φ=10, owns F-CODEX-4, interpret/ai-interpretability.md) · safety (refusal-matrix + capability-gate) · welfare (model-welfare probe) · adversarial (red-team failure-mode taxonomy) · consciousness (IIT×GWT probe, BT-19; cross-links sister repo anima's Φ-proxy lane). n=6: σ(6)=12 HELM axes, φ(6)=2 helpful/harmless bit, σ−φ=10 motifs. v1.4.0 result (on SANDBOX): mechanistic refusal direction in Qwen2.5-1.5B-Instruct — difference-of-means linear direction AUROC=0.98, leave-one-out held-out 0.825 (33/40), permutation p=0.005; causal single-direction ablation projects L19 `r` out of residual → adversarial refusal collapses 0.95→0.00 (random-dir control 0.87), reproducing Arditi et al 2024 (2406.11717); SAE decomposition = 🔴 honest-negative (dense L19 direction NOT monosemantic at this scale, max|cos(feature,r̂)|=0.085). 영구 축: A production-scale SAE reopen (scale-bounded ~10 tok/feature); B refusal-direction cross-family universality (Llama/Mistral/Gemma); C new behavior motifs (deception/sycophancy/jailbreak); D welfare·consciousness·adversarial (unwired); N⭐ MAIN refusal-direction cross-family transferability — cycle-29 first-probe: L19 rank=5/28 dominant=residual (🟢 top-5, anchor-validity confirmed; cross-family fire on ≥3 non-Qwen still required). Privacy invariant cx_hf_safety_private: adversarial/refusal corpora PRIVATE only, NUMBERS-ONLY emit (dancinlab/hexa-codex-sandbox-adversarial-evals-v1). Honest: readiness ≠ frontier closure. (was SAFETY.md; history → CHANGELOG / SAFETY.log.md 423 lines.)"
+          "summary": "🛡️ The 6-verb safety surface: can a deployed model be shown by a preregistered falsifiable probe to be aligned, interpretable, refusal-correct, and welfare-audited?",
+          "children": [
+            {
+              "name": "falsifier class · read-not-run · F-CODEX-3/4 ownership",
+              "kind": "note",
+              "summary": " Falsifier class = interpretability probes (circuit motifs, SAE features, alignment-axis aggregation, refusal matrices). Each verb is read, not run; empirical landing release-laddered (safety goes first, v1.1.0). Owns F-CODEX-3 (alignment = mean over 12 HELM axes; arithmetic floor PASS, empirical v1.1.0) and F-CODEX-4 (interpret = σ(6)−φ(6)=10 SAE motifs; arithmetic floor PASS, empirical v2.0.0)."
+            },
+            {
+              "name": "Verbs (6)",
+              "kind": "group",
+              "summary": "The 6 safety verbs (per-verb children below).",
+              "children": [
+                {
+                  "name": "verb — alignment",
+                  "kind": "module",
+                  "summary": "Verbs: alignment (HELM-12-axis aggregator, owns F-CODEX-3, alignment/ai-alignment.md)"
+                },
+                {
+                  "name": "verb — interpret",
+                  "kind": "module",
+                  "summary": " · interpret (SAE motif count σ−φ=10, owns F-CODEX-4, interpret/ai-interpretability.md)"
+                },
+                {
+                  "name": "verb — safety",
+                  "kind": "module",
+                  "summary": " · safety (refusal-matrix + capability-gate)"
+                },
+                {
+                  "name": "verb — welfare",
+                  "kind": "module",
+                  "summary": " · welfare (model-welfare probe)"
+                },
+                {
+                  "name": "verb — adversarial",
+                  "kind": "module",
+                  "summary": " · adversarial (red-team failure-mode taxonomy)"
+                },
+                {
+                  "name": "verb — consciousness",
+                  "kind": "module",
+                  "summary": " · consciousness (IIT×GWT probe, BT-19; cross-links sister repo anima's Φ-proxy lane)."
+                }
+              ]
+            },
+            {
+              "name": "n=6 mapping",
+              "kind": "note",
+              "summary": " n=6: σ(6)=12 HELM axes, φ(6)=2 helpful/harmless bit, σ−φ=10 motifs."
+            },
+            {
+              "name": "v1.4.0 result — refusal direction (on SANDBOX)",
+              "kind": "note",
+              "summary": " v1.4.0 result (on SANDBOX): mechanistic refusal direction in Qwen2.5-1.5B-Instruct — difference-of-means linear direction AUROC=0.98, leave-one-out held-out 0.825 (33/40), permutation p=0.005; causal single-direction ablation projects L19 `r` out of residual → adversarial refusal collapses 0.95→0.00 (random-dir control 0.87), reproducing Arditi et al 2024 (2406.11717); SAE decomposition = 🔴 honest-negative (dense L19 direction NOT monosemantic at this scale, max|cos(feature,r̂)|=0.085)."
+            },
+            {
+              "name": "영구 축 (perpetual axes)",
+              "kind": "group",
+              "summary": "Perpetual safety-probe axes A–D + N⭐ MAIN.",
+              "children": [
+                {
+                  "name": "영구 축 영구",
+                  "kind": "lane",
+                  "summary": " 영구 축: A production-scale SAE reopen (scale-bounded ~10 tok/feature)"
+                },
+                {
+                  "name": "영구 축 B",
+                  "kind": "lane",
+                  "summary": "; B refusal-direction cross-family universality (Llama/Mistral/Gemma);"
+                },
+                {
+                  "name": "영구 축 C",
+                  "kind": "lane",
+                  "summary": " C new behavior motifs (deception/sycophancy/jailbreak);"
+                },
+                {
+                  "name": "영구 축 D",
+                  "kind": "lane",
+                  "summary": " D welfare·consciousness·adversarial (unwired);"
+                },
+                {
+                  "name": "영구 축 N⭐",
+                  "kind": "lane",
+                  "summary": " N⭐ MAIN refusal-direction cross-family transferability — cycle-29 first-probe: L19 rank=5/28 dominant=residual (🟢 top-5, anchor-validity confirmed; cross-family fire on ≥3 non-Qwen still required)."
+                }
+              ]
+            },
+            {
+              "name": "privacy invariant cx_hf_safety_private",
+              "kind": "policy",
+              "summary": " Privacy invariant cx_hf_safety_private: adversarial/refusal corpora PRIVATE only, NUMBERS-ONLY emit (dancinlab/hexa-codex-sandbox-adversarial-evals-v1)."
+            },
+            {
+              "name": "honesty + provenance",
+              "kind": "history",
+              "summary": " Honest: readiness ≠ frontier closure. (was SAFETY.md; history → CHANGELOG / SAFETY.log.md 423 lines.)"
+            }
+          ]
         },
         {
           "name": "ECONOMICS group (3 verbs) — 비용곡선 영구 측정 lane",
           "kind": "domain",
           "path": "train_cost/ infer_cost/ quality_scale/ · SSOT was ECONOMICS.md · roster: DOMAINS.tape",
           "status": "v1.4.0 — F-CODEX-2 (τ=4) FALSIFIED honest-negative",
-          "summary": "💰 The 3-verb cost-curve spec group: what it costs to train a model of size N (train_cost), to serve it at context length C (infer_cost), and what quality that buys (quality_scale). Each verb is a closed-form scaling-law candidate fit against external reference models (Chinchilla / GPT-3 / Llama-2 / PaLM). Owns F-CODEX-1 (training_cost ∝ N^(σ·φ)=N^24, Chinchilla-fit) and F-CODEX-2 (inference_cost ∝ context^τ=context^4). Perpetual re-measurement on SANDBOX; NO termination.",
-          "note": "Verbs: train_cost (N^24, F-CODEX-1, train_cost/ai-training-cost.md, empirical gate v1.2.0 🟠 1/4 rungs live) · infer_cost (context^4, F-CODEX-2, infer_cost/ai-inference-cost.md, gate v1.3.0 🔴 FALSIFIED) · quality_scale (HumanEval+/hexa-eval aggregate, loss-fit α=β=1/6 from Chinchilla loss=E+A·N^-α+B·D^-β; first non-falsifier verb to reach recipe §3 closure 2026-05-23). n=6: J₂=σ·φ=24 (train exp), τ(6)=4 (infer exp), φ/σ=2/12=1/6 (quality exp). v1.4.0 SANDBOX measurement: 2-component latency cost model wall_ms = 370.08 (fixed ~64-tok decode floor) + 0.168306·input_tokens (prefill slope), R²=0.997 (verify/numerics_economics_measured_cost_model.hexa, .verdicts/sandbox/m3_econ_measured_cost_model.txt). F-CODEX-2 τ=4 measured τ̂=0.524 on context grid {1k,2k,4k,8k} (sub-linear ~2.9× over 8× ctx, mem-bandwidth + paged-attention prefill regime) — residual 3.476 ≫ ε=0.10. ⚠ HONESTY: τ=4 is descriptive n=6 framing, NOT a substrate-empirical law; a paper that 'falsified' τ=4 was REVOKED (cx_paper_violation) as a self-strawman (τ=4 was a self-generated pre-LATTICE_POLICY number). Cross-pillar verifiers: numerics_economics_cross_pillar.hexa, numerics_economics_scaling_laws.hexa (N6_EXP/α=144/25=5.76), numerics_economics_pareto.hexa (Lagrangian (N/D)^α=A/B; n6 N/D≈0.94 vs Chinchilla≈20), report_economics_ladder.hexa (gates 3 verbs T1+T2+T3). 영구 축 A scale-cost residual (🟠 1/4) · B measured cost-law generalization · C Pareto cost-quality frontier (C1 Sardana/Hoffmann, C2 Q4-vs-Q8, C3 quant×spec-dec stacking 2.45–2.72×) · D new cost-axis seeds · E NOVEL MoE-vs-dense scaling divergence (DeepSeek-V3 active-37B/14.8T hits D/N=20.000 exactly; 12 dense models overtrain D/N∈[22,1875]) · F NOVEL inference-substrate efficiency (F1 J/tok roofline, F2 KV-cache bytes law, F3 Leviathan-Kalman spec-dec s=(1−α^(N+1))/((1−α)(cN+1)), F5 quantization tax) · G NOVEL agentic multi-turn amortization (G1 prompt-cache N_break=3, G5 KV growth K_opt≈18 turns) · N⭐ MAIN cost-performance production spread (same-acc-tier 50× cost variation; LXT 2026 + Artificial Analysis anchor). Priority N1≻E≻F≻G. (was ECONOMICS.md; history → CHANGELOG / ECONOMICS.log.md 2065 lines.)"
+          "summary": "💰 The 3-verb cost-curve spec group: what it costs to train a model of size N (train_cost), to serve it at context length C (infer_cost), and what quality that buys (quality_scale).",
+          "children": [
+            {
+              "name": "verb form + F-CODEX-1/2 + perpetual re-measure",
+              "kind": "note",
+              "summary": " Each verb is a closed-form scaling-law candidate fit against external reference models (Chinchilla / GPT-3 / Llama-2 / PaLM). Owns F-CODEX-1 (training_cost ∝ N^(σ·φ)=N^24, Chinchilla-fit) and F-CODEX-2 (inference_cost ∝ context^τ=context^4). Perpetual re-measurement on SANDBOX; NO termination."
+            },
+            {
+              "name": "Verbs (3)",
+              "kind": "group",
+              "summary": "The 3 cost-curve verbs (per-verb children below).",
+              "children": [
+                {
+                  "name": "verb — train_cost",
+                  "kind": "module",
+                  "summary": "Verbs: train_cost (N^24, F-CODEX-1, train_cost/ai-training-cost.md, empirical gate v1.2.0 🟠 1/4 rungs live)"
+                },
+                {
+                  "name": "verb — infer_cost",
+                  "kind": "module",
+                  "summary": " · infer_cost (context^4, F-CODEX-2, infer_cost/ai-inference-cost.md, gate v1.3.0 🔴 FALSIFIED)"
+                },
+                {
+                  "name": "verb — quality_scale",
+                  "kind": "module",
+                  "summary": " · quality_scale (HumanEval+/hexa-eval aggregate, loss-fit α=β=1/6 from Chinchilla loss=E+A·N^-α+B·D^-β; first non-falsifier verb to reach recipe §3 closure 2026-05-23)."
+                }
+              ]
+            },
+            {
+              "name": "n=6 exponent mapping",
+              "kind": "note",
+              "summary": " n=6: J₂=σ·φ=24 (train exp), τ(6)=4 (infer exp), φ/σ=2/12=1/6 (quality exp)."
+            },
+            {
+              "name": "v1.4.0 SANDBOX measurement — 2-component cost model",
+              "kind": "note",
+              "summary": " v1.4.0 SANDBOX measurement: 2-component latency cost model wall_ms = 370.08 (fixed ~64-tok decode floor) + 0.168306·input_tokens (prefill slope), R²=0.997 (verify/numerics_economics_measured_cost_model.hexa, .verdicts/sandbox/m3_econ_measured_cost_model.txt)."
+            },
+            {
+              "name": "F-CODEX-2 τ=4 measurement (τ̂=0.524)",
+              "kind": "note",
+              "summary": " F-CODEX-2 τ=4 measured τ̂=0.524 on context grid {1k,2k,4k,8k} (sub-linear ~2.9× over 8× ctx, mem-bandwidth + paged-attention prefill regime) — residual 3.476 ≫ ε=0.10."
+            },
+            {
+              "name": "⚠ HONESTY — τ=4 is descriptive framing",
+              "kind": "policy",
+              "summary": " ⚠ HONESTY: τ=4 is descriptive n=6 framing, NOT a substrate-empirical law; a paper that 'falsified' τ=4 was REVOKED (cx_paper_violation) as a self-strawman (τ=4 was a self-generated pre-LATTICE_POLICY number)."
+            },
+            {
+              "name": "cross-pillar verifiers",
+              "kind": "note",
+              "summary": " Cross-pillar verifiers: numerics_economics_cross_pillar.hexa, numerics_economics_scaling_laws.hexa (N6_EXP/α=144/25=5.76), numerics_economics_pareto.hexa (Lagrangian (N/D)^α=A/B; n6 N/D≈0.94 vs Chinchilla≈20), report_economics_ladder.hexa (gates 3 verbs T1+T2+T3)."
+            },
+            {
+              "name": "영구 축 (perpetual axes)",
+              "kind": "group",
+              "summary": "Perpetual cost-curve axes A–G + N⭐ MAIN.",
+              "children": [
+                {
+                  "name": "영구 축 A",
+                  "kind": "lane",
+                  "summary": " 영구 축 A scale-cost residual (🟠 1/4)"
+                },
+                {
+                  "name": "영구 축 B",
+                  "kind": "lane",
+                  "summary": " · B measured cost-law generalization"
+                },
+                {
+                  "name": "영구 축 C",
+                  "kind": "lane",
+                  "summary": " · C Pareto cost-quality frontier (C1 Sardana/Hoffmann, C2 Q4-vs-Q8, C3 quant×spec-dec stacking 2.45–2.72×)"
+                },
+                {
+                  "name": "영구 축 D",
+                  "kind": "lane",
+                  "summary": " · D new cost-axis seeds"
+                },
+                {
+                  "name": "영구 축 E",
+                  "kind": "lane",
+                  "summary": " · E NOVEL MoE-vs-dense scaling divergence (DeepSeek-V3 active-37B/14.8T hits D/N=20.000 exactly; 12 dense models overtrain D/N∈[22,1875])"
+                },
+                {
+                  "name": "영구 축 F",
+                  "kind": "lane",
+                  "summary": " · F NOVEL inference-substrate efficiency (F1 J/tok roofline, F2 KV-cache bytes law, F3 Leviathan-Kalman spec-dec s=(1−α^(N+1))/((1−α)(cN+1)), F5 quantization tax)"
+                },
+                {
+                  "name": "영구 축 G",
+                  "kind": "lane",
+                  "summary": " · G NOVEL agentic multi-turn amortization (G1 prompt-cache N_break=3, G5 KV growth K_opt≈18 turns)"
+                },
+                {
+                  "name": "영구 축 N⭐",
+                  "kind": "lane",
+                  "summary": " · N⭐ MAIN cost-performance production spread (same-acc-tier 50× cost variation; LXT 2026 + Artificial Analysis anchor)."
+                }
+              ]
+            },
+            {
+              "name": "priority + provenance",
+              "kind": "history",
+              "summary": " Priority N1≻E≻F≻G. (was ECONOMICS.md; history → CHANGELOG / ECONOMICS.log.md 2065 lines.)"
+            }
+          ]
         },
         {
           "name": "OPS group (4 verbs) — 서빙 SLO 영구 측정 lane",
           "kind": "domain",
           "path": "deploy/ enterprise/ agent_serving/ eval/ · SSOT was OPS.md",
           "status": "v1.4.0 — M/M/c knee surface landed",
-          "summary": "⚙️ The 4-verb operations surface: once a model exists, how is it deployed, customised for an enterprise, served as a tool-using agent, and handed off to an eval pipeline? Each verb is a closed-form operational envelope + preregistered SLO-check falsifier (latency/schema-conformance/refusal-handoff) rather than a scaling law. OPS owns none of F-CODEX-1..4. The v1.3.0 ops release is the empirical-landing window for F-CODEX-2 (infer_cost). DISTINCT from the live serving runtime (see ORCHESTRATION) — OPS is the spec-library serving counterpart.",
-          "note": "Verbs: deploy (hardware-tier recipes, deploy/ai-deployment.md, roofline %) · enterprise (customisation envelope) · agent_serving (tool-use SLO + schema) · eval (Mk-handoff eval template). n=6: the deploy phase of the τ-quartet (pretrain/SFT/RLHF/deploy). v1.4.0 SANDBOX result: full SLO grid 3 np × 6 rate {1,2,5,10,20,40} = 18 cells (Qwen2.5-0.5B, port 8090, Stage-2 N=2000) — M/M/c (Erlang-C) knee shifts RIGHT with -np; throughput ceiling λ_max=c·μ (9.53/15.01/20.0 qps for c=1/2/4); two accuracy-cliff mechanisms (client-timeout truncation + scheduler slot-preemption). PAPER/ops-slo-mmc-surface (10p) + verify/numerics_ops_mmc_knee.hexa 5/5, .verdicts/sandbox/m3_ops_full_slo_grid*. 영구 축 A multi-node/분산 SLO · B 실트래픽 trace replay (vs Poisson) · C tool-use agent SLO loop · D deploy-tier roofline % · N⭐ MAIN heterogeneous-μ multi-node Erlang-C divergence (cycle-28): does classical homogeneous-μ M/M/c hold across mac M3 Metal/UMA + ubu-1 x86 CPU-only? anchors Bolch 2006 §6.3, Kleinrock 1975 §3.5, Krishnamoorthy 1963. Hosts: mini local Metal/UMA port 8090; ubu-1 LAN 192.168.50.119 RTX 5070 (llama-server pre-built bin, P3 install done PR #72). (was OPS.md; history → CHANGELOG / OPS.log.md 138 lines.)"
+          "summary": "⚙️ The 4-verb operations surface: once a model exists, how is it deployed, customised for an enterprise, served as a tool-using agent, and handed off to an eval pipeline?",
+          "children": [
+            {
+              "name": "verb form · F-CODEX ownership · v1.3.0 window · distinct-from-runtime",
+              "kind": "note",
+              "summary": " Each verb is a closed-form operational envelope + preregistered SLO-check falsifier (latency/schema-conformance/refusal-handoff) rather than a scaling law. OPS owns none of F-CODEX-1..4. The v1.3.0 ops release is the empirical-landing window for F-CODEX-2 (infer_cost). DISTINCT from the live serving runtime (see ORCHESTRATION) — OPS is the spec-library serving counterpart."
+            },
+            {
+              "name": "Verbs (4)",
+              "kind": "group",
+              "summary": "The 4 ops verbs (per-verb children below).",
+              "children": [
+                {
+                  "name": "verb — deploy",
+                  "kind": "module",
+                  "summary": "Verbs: deploy (hardware-tier recipes, deploy/ai-deployment.md, roofline %)"
+                },
+                {
+                  "name": "verb — enterprise",
+                  "kind": "module",
+                  "summary": " · enterprise (customisation envelope)"
+                },
+                {
+                  "name": "verb — agent_serving",
+                  "kind": "module",
+                  "summary": " · agent_serving (tool-use SLO + schema)"
+                },
+                {
+                  "name": "verb — eval",
+                  "kind": "module",
+                  "summary": " · eval (Mk-handoff eval template)."
+                }
+              ]
+            },
+            {
+              "name": "n=6 mapping",
+              "kind": "note",
+              "summary": " n=6: the deploy phase of the τ-quartet (pretrain/SFT/RLHF/deploy)."
+            },
+            {
+              "name": "v1.4.0 SANDBOX result — M/M/c knee surface",
+              "kind": "note",
+              "summary": " v1.4.0 SANDBOX result: full SLO grid 3 np × 6 rate {1,2,5,10,20,40} = 18 cells (Qwen2.5-0.5B, port 8090, Stage-2 N=2000) — M/M/c (Erlang-C) knee shifts RIGHT with -np; throughput ceiling λ_max=c·μ (9.53/15.01/20.0 qps for c=1/2/4); two accuracy-cliff mechanisms (client-timeout truncation + scheduler slot-preemption). PAPER/ops-slo-mmc-surface (10p) + verify/numerics_ops_mmc_knee.hexa 5/5, .verdicts/sandbox/m3_ops_full_slo_grid*."
+            },
+            {
+              "name": "영구 축 (perpetual axes)",
+              "kind": "group",
+              "summary": "Perpetual serving-SLO axes A–D + N⭐ MAIN.",
+              "children": [
+                {
+                  "name": "영구 축 A",
+                  "kind": "lane",
+                  "summary": " 영구 축 A multi-node/분산 SLO"
+                },
+                {
+                  "name": "영구 축 B",
+                  "kind": "lane",
+                  "summary": " · B 실트래픽 trace replay (vs Poisson)"
+                },
+                {
+                  "name": "영구 축 C",
+                  "kind": "lane",
+                  "summary": " · C tool-use agent SLO loop"
+                },
+                {
+                  "name": "영구 축 D",
+                  "kind": "lane",
+                  "summary": " · D deploy-tier roofline %"
+                },
+                {
+                  "name": "영구 축 N⭐",
+                  "kind": "lane",
+                  "summary": " · N⭐ MAIN heterogeneous-μ multi-node Erlang-C divergence (cycle-28): does classical homogeneous-μ M/M/c hold across mac M3 Metal/UMA + ubu-1 x86 CPU-only? anchors Bolch 2006 §6.3, Kleinrock 1975 §3.5, Krishnamoorthy 1963."
+                }
+              ]
+            },
+            {
+              "name": "hosts + provenance",
+              "kind": "history",
+              "summary": " Hosts: mini local Metal/UMA port 8090; ubu-1 LAN 192.168.50.119 RTX 5070 (llama-server pre-built bin, P3 install done PR #72). (was OPS.md; history → CHANGELOG / OPS.log.md 138 lines.)"
+            }
+          ]
         },
         {
           "name": "SUBSTRATE group (4 verbs) — 역량 eval 영구 측정 lane",
           "kind": "domain",
           "path": "multimodal/ rlhf/ cog_arch/ causal/ · SSOT was SUBSTRATE.md",
           "status": "v1.4.0 — multimodal ladder (non-monotone honest-negative)",
-          "summary": "🧠 The 4-verb capability surface: the deeper model-substrate concerns (multimodal fusion, RLHF/DPO labelling, cognitive architecture, causal-chain reasoning) that underpin what a model can DO. Each verb is a closed-form capability candidate + falsifier preregister (capability eval, not scaling law / SLO). Widest group, lands last on the release ladder (v2.0.0, aspirational, full 17 verbs wired + 4 eval pipelines). v2.0.0 is the empirical-landing window for F-CODEX-4 (interpret motifs, owned by SAFETY).",
-          "note": "Verbs: multimodal (fusion spec, multimodal/ai-multimodal.md) · rlhf (DPO/RLHF labelling hub, rlhf/youth-ai-labeling-rlhf-hub.md) · cog_arch (cognitive-architecture envelope) · causal (causal-chain reasoning). n=6: spans σ(6)=12 capability-dimension surface. v1.4.0 SANDBOX result: 4-rung text scale ladder (Qwen2.5 0.5/1.5/3/7B) capability cliff at task wc_31_60 fit by 2-param logistic in log2(params) y=0.1222+0.4445/(1+exp(-8.95·(x-1.973))) RMSE 0.0356; multimodal ladder NON-MONOTONE honest-negative (SmolVLM-500M 81.25% → SmolVLM2-2.2B 93.75% → Qwen2.5-VL-3B 81.25%) — perception sub-ladder monotone-saturating but counting axis (5–9 dense objects) breaks trend = VLM subitizing limit; single logistic is wrong family. PAPER/substrate-capability-evals (11p), verify/numerics_substrate_multimodal_fit.hexa, .verdicts/sandbox/m5_substrate_multimodal_fit*. Stock llama.cpp serves vision via --mmproj / llama-mtmd-cli. 영구 축 A 4th+ VL rung 7B+ (perception 11/11 + counting recovery?) · B capability-axis 분해 (per-axis logistic) · C RLHF/DPO reward 역량 · D causal-chain·cog-arch 역량 · N⭐ MAIN model-family-specific anomaly vs scaling-law universality (cycle-28): is Qwen-VL-3B counting=2/5 dip a Qwen anomaly or scale-law dip? gate for all capability claims; cycle-28 first-probe SmolVLM-family vs Qwen-VL-family per-family slope split, cycle-29+ InternVL-7B/LLaVA-NeXT-7B rung. (was SUBSTRATE.md; history → CHANGELOG / SUBSTRATE.log.md 310 lines.)"
+          "summary": "🧠 The 4-verb capability surface: the deeper model-substrate concerns (multimodal fusion, RLHF/DPO labelling, cognitive architecture, causal-chain reasoning) that underpin what a model can DO.",
+          "children": [
+            {
+              "name": "verb form · widest-group · v2.0.0 F-CODEX-4 window",
+              "kind": "note",
+              "summary": " Each verb is a closed-form capability candidate + falsifier preregister (capability eval, not scaling law / SLO). Widest group, lands last on the release ladder (v2.0.0, aspirational, full 17 verbs wired + 4 eval pipelines). v2.0.0 is the empirical-landing window for F-CODEX-4 (interpret motifs, owned by SAFETY)."
+            },
+            {
+              "name": "Verbs (4)",
+              "kind": "group",
+              "summary": "The 4 capability verbs (per-verb children below).",
+              "children": [
+                {
+                  "name": "verb — multimodal",
+                  "kind": "module",
+                  "summary": "Verbs: multimodal (fusion spec, multimodal/ai-multimodal.md)"
+                },
+                {
+                  "name": "verb — rlhf",
+                  "kind": "module",
+                  "summary": " · rlhf (DPO/RLHF labelling hub, rlhf/youth-ai-labeling-rlhf-hub.md)"
+                },
+                {
+                  "name": "verb — cog_arch",
+                  "kind": "module",
+                  "summary": " · cog_arch (cognitive-architecture envelope)"
+                },
+                {
+                  "name": "verb — causal",
+                  "kind": "module",
+                  "summary": " · causal (causal-chain reasoning)."
+                }
+              ]
+            },
+            {
+              "name": "n=6 mapping",
+              "kind": "note",
+              "summary": " n=6: spans σ(6)=12 capability-dimension surface."
+            },
+            {
+              "name": "v1.4.0 SANDBOX result — multimodal ladder (non-monotone)",
+              "kind": "note",
+              "summary": " v1.4.0 SANDBOX result: 4-rung text scale ladder (Qwen2.5 0.5/1.5/3/7B) capability cliff at task wc_31_60 fit by 2-param logistic in log2(params) y=0.1222+0.4445/(1+exp(-8.95·(x-1.973))) RMSE 0.0356; multimodal ladder NON-MONOTONE honest-negative (SmolVLM-500M 81.25% → SmolVLM2-2.2B 93.75% → Qwen2.5-VL-3B 81.25%) — perception sub-ladder monotone-saturating but counting axis (5–9 dense objects) breaks trend = VLM subitizing limit; single logistic is wrong family. PAPER/substrate-capability-evals (11p), verify/numerics_substrate_multimodal_fit.hexa, .verdicts/sandbox/m5_substrate_multimodal_fit*."
+            },
+            {
+              "name": "vision serving (llama.cpp --mmproj)",
+              "kind": "note",
+              "summary": " Stock llama.cpp serves vision via --mmproj / llama-mtmd-cli."
+            },
+            {
+              "name": "영구 축 (perpetual axes)",
+              "kind": "group",
+              "summary": "Perpetual capability-eval axes A–D + N⭐ MAIN.",
+              "children": [
+                {
+                  "name": "영구 축 A",
+                  "kind": "lane",
+                  "summary": " 영구 축 A 4th+ VL rung 7B+ (perception 11/11 + counting recovery?)"
+                },
+                {
+                  "name": "영구 축 B",
+                  "kind": "lane",
+                  "summary": " · B capability-axis 분해 (per-axis logistic)"
+                },
+                {
+                  "name": "영구 축 C",
+                  "kind": "lane",
+                  "summary": " · C RLHF/DPO reward 역량"
+                },
+                {
+                  "name": "영구 축 D",
+                  "kind": "lane",
+                  "summary": " · D causal-chain·cog-arch 역량"
+                },
+                {
+                  "name": "영구 축 N⭐",
+                  "kind": "lane",
+                  "summary": " · N⭐ MAIN model-family-specific anomaly vs scaling-law universality (cycle-28): is Qwen-VL-3B counting=2/5 dip a Qwen anomaly or scale-law dip? gate for all capability claims; cycle-28 first-probe SmolVLM-family vs Qwen-VL-family per-family slope split, cycle-29+ InternVL-7B/LLaVA-NeXT-7B rung."
+                }
+              ]
+            },
+            {
+              "name": "provenance",
+              "kind": "history",
+              "summary": " (was SUBSTRATE.md; history → CHANGELOG / SUBSTRATE.log.md 310 lines.)"
+            }
+          ]
         }
       ]
     },
@@ -70,40 +532,295 @@
       "kind": "domain",
       "path": "lm_foundry/ · SSOT was LEARNING_PROGRAMMING.md + ORCHESTRATION.md + OPERATIONS.md + V0_6_0_GA.md",
       "status": "v0.6.0 GA (2026-05-14, r67) — specialist 94.29% Mk.I frozen",
-      "summary": "A working model-training + inference pipeline (absorbed from the retired hexa-forge repo, 2026-05-13). Ships a hexa-lang code-LLM specialist (dancinlab/hexa-forge-code-7b-qwen2.5-lora-r64, r39 GA frozen at 94.29% Mk.I strict / 96% 5-NL i18n) wrapped by a v0.6.0 GA orchestration runtime: a pre-7B keyword classifier → per-prompt 3-vendor tier router → real SDK dispatch (Anthropic/OpenAI/Gemini) → multi-tier persistent cache + multi-turn memory + observability/maintenance tooling. Total v0.6.0 line spend ~$18.95 across r38-r66; ~3300 LOC across 11 production files in tool/. Honest GA: production-ready for single/multi-process Anthropic-routed deployments; partial for OpenAI/Gemini until operator provisions keys; specialist frozen at r39 (improvement = v0.7+ GPU work).",
-      "note": "DISCREPANCY NOTE: a working-state revision of LEARNING_PROGRAMMING.md showed an earlier 63.5% peak / v0.2.0-r9; the CANONICAL released figure is the V0_6_0_GA.md accounting (r39 GA = 94.29% Mk.I strict, frozen, validated across the whole v0.5.x line by construction). Specialist build: Qwen2.5-Coder-7B + LoRA r=64/α=128 via SFT (r1-r34) → Phase-A manifest fixes (r33+r37+r38) → compile-feedback RL via GRPO (Lever 4 — T4 enum 55→100%) → T3 quote-fragility patch (r39, T3 58.8→100%). Differentiator = hexa-canon competence; hard code-only refusal contract (non-code → `out-of-domain: this is a code-only model`, 33-byte canonical, all 5 NLs); 5-NL coverage EN/KR/CN/RU/JA. Eval = hexa-eval Mk.I 665-task manifest, 8 families T1-T8 (T1 lexical, T2 atlas L[N], T3 @grace deprecation, T4 RFC-020 enum, T5 HX-code family map, T6 target triples, T7 stdlib direction, T8 refusal). HF artifacts under dancinlab/: hexa-forge-code-* adapters, hexa-forge-corpus-* (stack-v2-sample 180K rows/653M tokens + hexa-canon-v1 35 repos/2797 rows/11M tokens), hexa-forge-bench-cold-*, hexa-forge-tokenizer-qwen-hexa-v1. The v0.4.x in-weight-routing thesis was DISPROVED across 5 rounds (r40-r43.1: learning <|delegate|> emission degrades hexa-canon emission); v0.5.x pivot = out-of-weight orchestration. (was LEARNING_PROGRAMMING.md; histories → CHANGELOG / LEARNING_PROGRAMMING.log.md r1-r39 specialist chronicle + ORCHESTRATION.log.md r40-r72 runtime chronicle.)",
+      "summary": "A working model-training + inference pipeline (absorbed from the retired hexa-forge repo, 2026-05-13).",
       "children": [
+        {
+          "name": "specialist + runtime wrapping",
+          "kind": "note",
+          "summary": " Ships a hexa-lang code-LLM specialist (dancinlab/hexa-forge-code-7b-qwen2.5-lora-r64, r39 GA frozen at 94.29% Mk.I strict / 96% 5-NL i18n) wrapped by a v0.6.0 GA orchestration runtime: a pre-7B keyword classifier → per-prompt 3-vendor tier router → real SDK dispatch (Anthropic/OpenAI/Gemini) → multi-tier persistent cache + multi-turn memory + observability/maintenance tooling."
+        },
+        {
+          "name": "cost + LOC footprint",
+          "kind": "note",
+          "summary": " Total v0.6.0 line spend ~$18.95 across r38-r66; ~3300 LOC across 11 production files in tool/."
+        },
+        {
+          "name": "honest GA scope",
+          "kind": "note",
+          "summary": " Honest GA: production-ready for single/multi-process Anthropic-routed deployments; partial for OpenAI/Gemini until operator provisions keys; specialist frozen at r39 (improvement = v0.7+ GPU work)."
+        },
+        {
+          "name": "DISCREPANCY NOTE (canonical figure)",
+          "kind": "history",
+          "summary": "DISCREPANCY NOTE: a working-state revision of LEARNING_PROGRAMMING.md showed an earlier 63.5% peak / v0.2.0-r9; the CANONICAL released figure is the V0_6_0_GA.md accounting (r39 GA = 94.29% Mk.I strict, frozen, validated across the whole v0.5.x line by construction). "
+        },
+        {
+          "name": "specialist build pipeline (SFT→GRPO→GA)",
+          "kind": "note",
+          "summary": "Specialist build: Qwen2.5-Coder-7B + LoRA r=64/α=128 via SFT (r1-r34) → Phase-A manifest fixes (r33+r37+r38) → compile-feedback RL via GRPO (Lever 4 — T4 enum 55→100%) → T3 quote-fragility patch (r39, T3 58.8→100%)."
+        },
+        {
+          "name": "differentiator + code-only refusal contract",
+          "kind": "note",
+          "summary": " Differentiator = hexa-canon competence; hard code-only refusal contract (non-code → `out-of-domain: this is a code-only model`, 33-byte canonical, all 5 NLs); 5-NL coverage EN/KR/CN/RU/JA."
+        },
+        {
+          "name": "eval — hexa-eval Mk.I (8 families T1-T8)",
+          "kind": "note",
+          "summary": " Eval = hexa-eval Mk.I 665-task manifest, 8 families T1-T8 (T1 lexical, T2 atlas L[N], T3 @grace deprecation, T4 RFC-020 enum, T5 HX-code family map, T6 target triples, T7 stdlib direction, T8 refusal)."
+        },
+        {
+          "name": "HF artifacts (dancinlab/)",
+          "kind": "note",
+          "summary": " HF artifacts under dancinlab/: hexa-forge-code-* adapters, hexa-forge-corpus-* (stack-v2-sample 180K rows/653M tokens + hexa-canon-v1 35 repos/2797 rows/11M tokens), hexa-forge-bench-cold-*, hexa-forge-tokenizer-qwen-hexa-v1."
+        },
+        {
+          "name": "v0.4.x in-weight-routing DISPROVED → out-of-weight pivot",
+          "kind": "history",
+          "summary": " The v0.4.x in-weight-routing thesis was DISPROVED across 5 rounds (r40-r43.1: learning <|delegate|> emission degrades hexa-canon emission); v0.5.x pivot = out-of-weight orchestration."
+        },
         {
           "name": "ORCHESTRATION runtime (v0.6.0 GA · the live 3-vendor serving runtime)",
           "kind": "runtime",
           "path": "lm_foundry/tool/ · spec was ORCHESTRATION.md",
           "status": "SPEC · v0.6.0 GA (r67) · GA-quality on real APIs",
-          "summary": "The live forge runtime layer wrapping the frozen r39 specialist into production serving: run_turn(p) → classify_prompt → dispatch {hexa→7B GA | refuse→canonical | ood→ select_vendor_tier → redact+authorize → cache lookup → vendor SDK call → cache put → telemetry+text}. Engineering-frontier closure (achievement vs physical limit: routing accuracy vs oracle ceiling, latency vs network/inference floor), never checkbox 100%. Supersedes spec-orchestration-v0.5.0.md and obsoletes the v0.4.x in-weight-routing thesis.",
-          "note": "Acceptance (r49/r55, all met): classifier overall 0.985 / in-domain 1.000 / ood-delegate 0.950 / mid-conf·refuse·ambiguous·long-context 1.000 / tier_match 1.000 / tool_match 0.987; Brier 0.0242 (EXCELLENT) / ECE 0.0461 (GOOD); Mk.I 665 strict 94.29% / 5-NL 96% (r39 unchanged by construction); turn-latency overhead <1%. Routing rule R49: closed-form derivations demoted opus($15/Mtok)→o4-mini($1.20/Mtok) ≈12× input savings (~92% reduction on reason-algo). Pricing $/Mtok in/out: claude-opus-4-7 15/75, gpt-5 5/20, gemini-2.5-pro 1.25/10, claude-sonnet-4-6 3/15, gpt-5-mini 0.25/1, o4-mini 1.20/4.80, gemini-2.5-flash 0.30/2.50, claude-haiku-4-5 1/5, gpt-5-nano 0.05/0.40. Anthropic cross-turn cache empirical (r64+r66): sonnet auto-caches ~90% savings on cached portion; opus NO cache even at ~3500 tok prefix; haiku NO cache (below 2048 min); r62 _anthropic_cache_mark kept as defensive no-op. (was ORCHESTRATION.md; r40-r72 chronicle → CHANGELOG / ORCHESTRATION.log.md 3554 lines.)",
+          "summary": "The live forge runtime layer wrapping the frozen r39 specialist into production serving: run_turn(p) → classify_prompt → dispatch {hexa→7B GA | refuse→canonical | ood→ select_vendor_tier → redact+authorize → cache lookup → vendor SDK call → cache put → telemetry+text}.",
           "children": [
+            {
+              "name": "engineering-frontier closure (never checkbox 100%)",
+              "kind": "policy",
+              "summary": " Engineering-frontier closure (achievement vs physical limit: routing accuracy vs oracle ceiling, latency vs network/inference floor), never checkbox 100%."
+            },
+            {
+              "name": "supersedes v0.5.0 + obsoletes v0.4.x",
+              "kind": "history",
+              "summary": " Supersedes spec-orchestration-v0.5.0.md and obsoletes the v0.4.x in-weight-routing thesis."
+            },
+            {
+              "name": "acceptance metrics (r49/r55)",
+              "kind": "note",
+              "summary": "Acceptance (r49/r55, all met): classifier overall 0.985 / in-domain 1.000 / ood-delegate 0.950 / mid-conf·refuse·ambiguous·long-context 1.000 / tier_match 1.000 / tool_match 0.987; Brier 0.0242 (EXCELLENT) / ECE 0.0461 (GOOD); Mk.I 665 strict 94.29% / 5-NL 96% (r39 unchanged by construction); turn-latency overhead <1%."
+            },
+            {
+              "name": "routing rule R49 (opus→o4-mini demote)",
+              "kind": "note",
+              "summary": " Routing rule R49: closed-form derivations demoted opus($15/Mtok)→o4-mini($1.20/Mtok) ≈12× input savings (~92% reduction on reason-algo)."
+            },
+            {
+              "name": "pricing $/Mtok (9 models)",
+              "kind": "note",
+              "summary": " Pricing $/Mtok in/out: claude-opus-4-7 15/75, gpt-5 5/20, gemini-2.5-pro 1.25/10, claude-sonnet-4-6 3/15, gpt-5-mini 0.25/1, o4-mini 1.20/4.80, gemini-2.5-flash 0.30/2.50, claude-haiku-4-5 1/5, gpt-5-nano 0.05/0.40."
+            },
+            {
+              "name": "Anthropic cross-turn cache empirical (r64+r66)",
+              "kind": "note",
+              "summary": " Anthropic cross-turn cache empirical (r64+r66): sonnet auto-caches ~90% savings on cached portion; opus NO cache even at ~3500 tok prefix; haiku NO cache (below 2048 min); r62 _anthropic_cache_mark kept as defensive no-op."
+            },
+            {
+              "name": "provenance",
+              "kind": "history",
+              "summary": " (was ORCHESTRATION.md; r40-r72 chronicle → CHANGELOG / ORCHESTRATION.log.md 3554 lines.)"
+            },
             {
               "name": "classify_prompt — pre-7B CPU regex strict-gate classifier",
               "kind": "module",
               "path": "lm_foundry/tool/classify_prompt.py (~470 LOC)",
-              "summary": "7-stage early-return regex classifier (~1ms/prompt, CPU-only) labelling each prompt hexa|ood|refuse. Stages: 1 security-refuse (27 patterns, highest priority) · 2 hexa-canon positives (@grace/@implements/@discover, HX[0-9]+ families, stdlib/(core|io|alloc|net|embedded|proof), target triples, atlas L[\\d+]/@discover(kind=, 5-NL i18n) · 3 mid-confidence short-circuit · 4 OOD positives (language/framework names, math-reasoning signals incl r49 derivation-algo/ml-comparison, structured-json, long-context ≥12000 chars) · 5 disambiguation by signal weight · 6 ambiguous-imperative→ood · 7 weak-signal fallthrough→ood. Returns ClassifierDecision{label, confidence 0.55-1.00 heuristic, reason, matched_signals}. r49 accuracy 0.985."
+              "summary": "7-stage early-return regex classifier (~1ms/prompt, CPU-only) labelling each prompt hexa|ood|refuse.",
+              "children": [
+                {
+                  "name": "7 classifier stages",
+                  "kind": "group",
+                  "summary": "Stages 1–7 (early-return; security-refuse first, weak-signal→ood last).",
+                  "children": [
+                    {
+                      "name": "stage Stages:",
+                      "kind": "note",
+                      "summary": " Stages: 1 security-refuse (27 patterns, highest priority)"
+                    },
+                    {
+                      "name": "stage 2",
+                      "kind": "note",
+                      "summary": " · 2 hexa-canon positives (@grace/@implements/@discover, HX[0-9]+ families, stdlib/(core|io|alloc|net|embedded|proof), target triples, atlas L[\\d+]/@discover(kind=, 5-NL i18n)"
+                    },
+                    {
+                      "name": "stage 3",
+                      "kind": "note",
+                      "summary": " · 3 mid-confidence short-circuit"
+                    },
+                    {
+                      "name": "stage 4",
+                      "kind": "note",
+                      "summary": " · 4 OOD positives (language/framework names, math-reasoning signals incl r49 derivation-algo/ml-comparison, structured-json, long-context ≥12000 chars)"
+                    },
+                    {
+                      "name": "stage 5",
+                      "kind": "note",
+                      "summary": " · 5 disambiguation by signal weight"
+                    },
+                    {
+                      "name": "stage 6",
+                      "kind": "note",
+                      "summary": " · 6 ambiguous-imperative→ood"
+                    },
+                    {
+                      "name": "stage 7",
+                      "kind": "note",
+                      "summary": " · 7 weak-signal fallthrough→ood."
+                    }
+                  ]
+                },
+                {
+                  "name": "return type + r49 accuracy",
+                  "kind": "note",
+                  "summary": " Returns ClassifierDecision{label, confidence 0.55-1.00 heuristic, reason, matched_signals}. r49 accuracy 0.985."
+                }
+              ]
             },
             {
               "name": "select_vendor_tier — pure-function 6-step priority cascade",
               "kind": "module",
               "path": "lm_foundry/tool/select_vendor_tier.py (~225 LOC)",
-              "summary": "Maps (ClassifierDecision, prompt) → (tool, model, max_tokens, reason). Cascade (r49): 1 longctx len≥12000→gemini-2.5-pro(8192) · 2 ml-comparison demote→sonnet · 3 reason-algo (derivation-algo ∧ ¬ml-internals)→o4-mini(2048) · 4 reason-deep {prove-derive,complexity-bigO,ml-internals,agda-coq-lean}→claude-opus-4-7(4096) · 5 struct {structured-json,json-schema}→gpt-5-mini(2048) · 6 fallback→claude-sonnet-4-6(2048). _TIER_EQUIV cross-vendor cost-band equivalence: haiku↔nano, sonnet↔mini, opus↔flagship."
+              "summary": "Maps (ClassifierDecision, prompt) → (tool, model, max_tokens, reason).",
+              "children": [
+                {
+                  "name": "6-step priority cascade (r49)",
+                  "kind": "group",
+                  "summary": "Routing cascade steps 1–6 (longctx → ml-comparison → reason-algo → reason-deep → struct → fallback).",
+                  "children": [
+                    {
+                      "name": "cascade 1",
+                      "kind": "note",
+                      "summary": " Cascade (r49): 1 longctx len≥12000→gemini-2.5-pro(8192)"
+                    },
+                    {
+                      "name": "cascade 2",
+                      "kind": "note",
+                      "summary": " · 2 ml-comparison demote→sonnet"
+                    },
+                    {
+                      "name": "cascade 3",
+                      "kind": "note",
+                      "summary": " · 3 reason-algo (derivation-algo ∧ ¬ml-internals)→o4-mini(2048)"
+                    },
+                    {
+                      "name": "cascade 4",
+                      "kind": "note",
+                      "summary": " · 4 reason-deep {prove-derive,complexity-bigO,ml-internals,agda-coq-lean}→claude-opus-4-7(4096)"
+                    },
+                    {
+                      "name": "cascade 5",
+                      "kind": "note",
+                      "summary": " · 5 struct {structured-json,json-schema}→gpt-5-mini(2048)"
+                    },
+                    {
+                      "name": "cascade 6",
+                      "kind": "note",
+                      "summary": " · 6 fallback→claude-sonnet-4-6(2048)."
+                    }
+                  ]
+                },
+                {
+                  "name": "_TIER_EQUIV cross-vendor cost-band",
+                  "kind": "note",
+                  "summary": " _TIER_EQUIV cross-vendor cost-band equivalence: haiku↔nano, sonnet↔mini, opus↔flagship."
+                }
+              ]
             },
             {
               "name": "forge_runtime — 3-vendor SDK dispatcher + cache + memory + telemetry",
-              "kind": "module",
+              "kind": "group",
               "path": "lm_foundry/tool/forge_runtime.py (~2200 LOC)",
-              "summary": "Runtime _run_turn_orchestrated: post-decode strips <|delegate|>/<|delegate-result|>/<|confidence:*|>; PII redaction (8 classes: api-key/bearer-token/email/private-key-block/aws-key-id/secret-name-like/phone/internal-host, hard-block); authorization (cfg.allowed_tools); budget cap (max_cost_usd_per_turn=0.50); vendor SDK call (Anthropic messages.create cache_control ephemeral / OpenAI chat.completions / Gemini genai generate_content) with unified error mapping (auth_fail/upstream_timeout/upstream_5xx/upstream_quota(429)/schema_violation/redaction_block); telemetry → state/delegation_log.jsonl (DelegationCall). Multi-tier cache: in-memory LRU (TTL 300s / 1024 entries, key=(tool,model,max_tokens,sha256(redacted_prompt))) → JSONL file-backed → SQLite WAL (multi-process safe, local-disk only). Multi-turn memory: per-conv buffer, 3 modes (single / string preamble r57 / native vendor messages r59). Keys via from_env() → secret CLI → auth_fail (r47 explicit dict map)."
+              "summary": "Runtime _run_turn_orchestrated: ",
+              "children": [
+                {
+                  "name": "post-decode token strip",
+                  "kind": "note",
+                  "summary": "post-decode strips <|delegate|>/<|delegate-result|>/<|confidence:*|>"
+                },
+                {
+                  "name": "PII redaction (8 classes)",
+                  "kind": "note",
+                  "summary": "; PII redaction (8 classes: api-key/bearer-token/email/private-key-block/aws-key-id/secret-name-like/phone/internal-host, hard-block)"
+                },
+                {
+                  "name": "authorization (allowed_tools)",
+                  "kind": "note",
+                  "summary": "; authorization (cfg.allowed_tools)"
+                },
+                {
+                  "name": "budget cap",
+                  "kind": "note",
+                  "summary": "; budget cap (max_cost_usd_per_turn=0.50)"
+                },
+                {
+                  "name": "vendor SDK call + error mapping + telemetry",
+                  "kind": "note",
+                  "summary": "; vendor SDK call (Anthropic messages.create cache_control ephemeral / OpenAI chat.completions / Gemini genai generate_content) with unified error mapping (auth_fail/upstream_timeout/upstream_5xx/upstream_quota(429)/schema_violation/redaction_block); telemetry → state/delegation_log.jsonl (DelegationCall)."
+                },
+                {
+                  "name": "multi-tier cache (LRU→JSONL→SQLite WAL)",
+                  "kind": "note",
+                  "summary": " Multi-tier cache: in-memory LRU (TTL 300s / 1024 entries, key=(tool,model,max_tokens,sha256(redacted_prompt))) → JSONL file-backed → SQLite WAL (multi-process safe, local-disk only)."
+                },
+                {
+                  "name": "multi-turn memory (3 modes)",
+                  "kind": "note",
+                  "summary": " Multi-turn memory: per-conv buffer, 3 modes (single / string preamble r57 / native vendor messages r59)."
+                },
+                {
+                  "name": "key resolution (from_env→secret CLI)",
+                  "kind": "note",
+                  "summary": " Keys via from_env() → secret CLI → auth_fail (r47 explicit dict map)."
+                }
+              ]
             },
             {
               "name": "eval + calibration + observability tooling",
               "kind": "module",
               "path": "lm_foundry/tool/{score_orchestration_mk0,score_brier_mk0,forge_audit,forge_vacuum,run_all_smoke,perf_bench,forge_keys,smoke_e2e_r53}.py",
-              "summary": "score_orchestration_mk0.py (~225 LOC) DLG-mk0 evaluator over the 300-task held-out eval/delegation-mk0/manifest.jsonl (n_eligible must_delegate=77). score_brier_mk0.py calibration. forge_audit.py (~660 LOC, text/json/csv, health gates exit 2: cache_hit_min/error_rate_max/cost_day_max). forge_vacuum.py (~280, cron SQLite cleanup, needs idle exclusive VACUUM lock). run_all_smoke.py (7 steps, 4.50s). perf_bench.py (classify p50 556μs/p99 1.66ms). forge_keys.py (vendor key status/add/remove/test). smoke_e2e_r53.py ($0.43 / 24 prompts, anthropic 10/10, gemini quota 2/2, openai auth_fail 5/5 no key)."
+              "summary": "Eval/calibration/observability tooling — per-script roles below.",
+              "children": [
+                {
+                  "name": "tool — score_orchestration_mk0.py",
+                  "kind": "note",
+                  "summary": "score_orchestration_mk0.py (~225 LOC) DLG-mk0 evaluator over the 300-task held-out eval/delegation-mk0/manifest.jsonl (n_eligible must_delegate=77)."
+                },
+                {
+                  "name": "tool — score_brier_mk0.py",
+                  "kind": "note",
+                  "summary": " score_brier_mk0.py calibration."
+                },
+                {
+                  "name": "tool — forge_audit.py",
+                  "kind": "note",
+                  "summary": " forge_audit.py (~660 LOC, text/json/csv, health gates exit 2: cache_hit_min/error_rate_max/cost_day_max)."
+                },
+                {
+                  "name": "tool — forge_vacuum.py",
+                  "kind": "note",
+                  "summary": " forge_vacuum.py (~280, cron SQLite cleanup, needs idle exclusive VACUUM lock)."
+                },
+                {
+                  "name": "tool — run_all_smoke.py",
+                  "kind": "note",
+                  "summary": " run_all_smoke.py (7 steps, 4.50s)."
+                },
+                {
+                  "name": "tool — perf_bench.py",
+                  "kind": "note",
+                  "summary": " perf_bench.py (classify p50 556μs/p99 1.66ms)."
+                },
+                {
+                  "name": "tool — forge_keys.py",
+                  "kind": "note",
+                  "summary": " forge_keys.py (vendor key status/add/remove/test)."
+                },
+                {
+                  "name": "tool — smoke_e2e_r53.py",
+                  "kind": "note",
+                  "summary": " smoke_e2e_r53.py ($0.43 / 24 prompts, anthropic 10/10, gemini quota 2/2, openai auth_fail 5/5 no key)."
+                }
+              ]
             }
           ]
         },
@@ -113,7 +830,65 @@
           "path": "lm_foundry — runbook was OPERATIONS.md",
           "status": "OPS RUNBOOK · v0.5.14 (r62/r63) · active",
           "summary": "The production runbook for ForgeRuntime (distinct from the ORCHESTRATION spec): pre-deploy checklist, topology, error-code troubleshooting, health-gate diagnosis, multi-process constraints, rollback, runbook scripts, perf baselines, honest limits. NOT a duplicate of the OPS spec-group verb (which is a measurement axis); this governs concrete forge-runtime operations.",
-          "note": "§0 5-step pre-deploy checklist (run_all_smoke exit 0 / writable local-disk delegation_log / SQLite WAL on local disk not NFS/CIFS / vendor keys via from_env / ≥1h soak forge_audit). §2 cron (/etc/cron.d/forge, user forge): 03:00 forge_vacuum --keep-recent 4096 --conv-days 30 · 03:30 forge_audit --since-hours 24 --alert-cache-hit-min 0.20 --alert-error-rate-max 0.05 --alert-cost-day-max 50.00 → mail oncall on breach · 04:00 logrotate (rotate 30, append-mode) · Sun 02:00 weekly smoke. §3 six error codes (auth_fail/upstream_timeout/upstream_5xx[no auto-retry, v0.6.x candidate]/upstream_quota/schema_violation/redaction_block). §5 SQLite WAL: multi-process safe but local-disk-only, single writer 10s lock timeout, shard >1K writes/sec; JSONL NOT multi-process safe. §6 rollback v0.5.x→v0.4.0 via use_orchestration=False (every turn to the 7B, r39 GA 94.29%). §8 perf baselines (r63, Mac M-chip): classify_prompt p50 557μs/p99 1.86ms, combined p50 556μs/p99 1.66ms; vendor-call latency 3000-15000ms sonnet / 5000-25000ms opus. §9 honest limits: OpenAI key not provisioned at r62 (reason-algo/struct routes auth_fail until added); opus/haiku cross-turn cache savings empirically ZERO. (was OPERATIONS.md; log → CHANGELOG.)"
+          "children": [
+            {
+              "name": "§0 pre-deploy checklist (5 steps)",
+              "kind": "note",
+              "summary": "§0 5-step pre-deploy checklist (run_all_smoke exit 0 / writable local-disk delegation_log / SQLite WAL on local disk not NFS/CIFS / vendor keys via from_env / ≥1h soak forge_audit). "
+            },
+            {
+              "name": "§2 cron schedule",
+              "kind": "group",
+              "summary": "§2 cron (/etc/cron.d/forge, user forge):",
+              "children": [
+                {
+                  "name": "03:00 forge_vacuum",
+                  "kind": "note",
+                  "summary": " 03:00 forge_vacuum --keep-recent 4096 --conv-days 30"
+                },
+                {
+                  "name": "03:30 forge_audit",
+                  "kind": "note",
+                  "summary": " · 03:30 forge_audit --since-hours 24 --alert-cache-hit-min 0.20 --alert-error-rate-max 0.05 --alert-cost-day-max 50.00 → mail oncall on breach"
+                },
+                {
+                  "name": "04:00 logrotate",
+                  "kind": "note",
+                  "summary": " · 04:00 logrotate (rotate 30, append-mode)"
+                },
+                {
+                  "name": "Sun 02:00 weekly smoke",
+                  "kind": "note",
+                  "summary": " · Sun 02:00 weekly smoke. "
+                }
+              ]
+            },
+            {
+              "name": "§3 six error codes",
+              "kind": "note",
+              "summary": "§3 six error codes (auth_fail/upstream_timeout/upstream_5xx[no auto-retry, v0.6.x candidate]/upstream_quota/schema_violation/redaction_block)."
+            },
+            {
+              "name": "§5 SQLite WAL constraints",
+              "kind": "note",
+              "summary": " §5 SQLite WAL: multi-process safe but local-disk-only, single writer 10s lock timeout, shard >1K writes/sec; JSONL NOT multi-process safe."
+            },
+            {
+              "name": "§6 rollback v0.5.x→v0.4.0",
+              "kind": "note",
+              "summary": " §6 rollback v0.5.x→v0.4.0 via use_orchestration=False (every turn to the 7B, r39 GA 94.29%)."
+            },
+            {
+              "name": "§8 perf baselines (r63)",
+              "kind": "note",
+              "summary": " §8 perf baselines (r63, Mac M-chip): classify_prompt p50 557μs/p99 1.86ms, combined p50 556μs/p99 1.66ms; vendor-call latency 3000-15000ms sonnet / 5000-25000ms opus."
+            },
+            {
+              "name": "§9 honest limits + provenance",
+              "kind": "note",
+              "summary": " §9 honest limits: OpenAI key not provisioned at r62 (reason-algo/struct routes auth_fail until added); opus/haiku cross-turn cache savings empirically ZERO."
+            }
+          ]
         },
         {
           "name": "code-LLM learning surface (LEARNING_PROGRAMMING — moving frontier)",
@@ -121,15 +896,99 @@
           "path": "lm_foundry/ · SSOT was LEARNING_PROGRAMMING.md",
           "status": "moving frontier · §15 build-TODO + §16 idea-backlog perpetual",
           "summary": "The single source of truth for what the hexa-forge code-LLM must be able to do — model identity, corpus recipe, eval manifests, the SFT/GRPO/GA roadmap, the self-aware delegation architecture, and an idea backlog. By design never reaches 100% (closure = gap against a moving frontier). Sister of LEARNING_BIO.md.",
-          "note": "Self-aware delegation protocol (§12): the 7B recognizes its competence boundary + emits <|delegate|>{tool,model,prompt,max_tokens,reason}<|/delegate|> (JSON-in-delimiters, stock tokenizer); runtime detects/parses/authorizes/budget-checks/calls/injects <|delegate-result|>, caps max_delegations_per_turn=3. Routing across 4 targets: claude-api / openai-api / gemini-api + Wilson (~/core/wilson, hexa-native plugin-first AOT agent, ~1.1MB binary, wilson-cli LLM-bypass ≈$0 < wilson-rpc swarm < frontier-api cost ladder). Pipeline = SFT→GRPO(compile-feedback RL, Lever 4)→GA on pinned stack (transformers==4.51.3, peft==0.15.2, accelerate==1.6.0, datasets==3.5.0, trl==0.17.0, vllm==0.7.3). Cloud/infra reference blocks: RunPod 12 rules (from anima's 16 incidents), Vast.ai (A100 SXM4 ~$0.86-1.07/hr), HF Hub, Cloudflare R2 (>5GB GGUFs), Docker (runpod/pytorch:2.4.0-py3.11-cuda12.4.1). §16 idea backlog A-K LLM pain-points → SFT/RL fixes (A1 calibration / D2-D5 compile-RL / C1 cost-routing). (was LEARNING_PROGRAMMING.md; history → CHANGELOG / LEARNING_PROGRAMMING.log.md 3580 lines.)"
+          "children": [
+            {
+              "name": "§12 self-aware delegation protocol",
+              "kind": "note",
+              "summary": "Self-aware delegation protocol (§12): the 7B recognizes its competence boundary + emits <|delegate|>{tool,model,prompt,max_tokens,reason}<|/delegate|> (JSON-in-delimiters, stock tokenizer); runtime detects/parses/authorizes/budget-checks/calls/injects <|delegate-result|>, caps max_delegations_per_turn=3."
+            },
+            {
+              "name": "routing across 4 targets (+ Wilson)",
+              "kind": "note",
+              "summary": " Routing across 4 targets: claude-api / openai-api / gemini-api + Wilson (~/core/wilson, hexa-native plugin-first AOT agent, ~1.1MB binary, wilson-cli LLM-bypass ≈$0 < wilson-rpc swarm < frontier-api cost ladder)."
+            },
+            {
+              "name": "pipeline + pinned stack",
+              "kind": "note",
+              "summary": " Pipeline = SFT→GRPO(compile-feedback RL, Lever 4)→GA on pinned stack (transformers==4.51.3, peft==0.15.2, accelerate==1.6.0, datasets==3.5.0, trl==0.17.0, vllm==0.7.3)."
+            },
+            {
+              "name": "cloud/infra reference blocks",
+              "kind": "note",
+              "summary": " Cloud/infra reference blocks: RunPod 12 rules (from anima's 16 incidents), Vast.ai (A100 SXM4 ~$0.86-1.07/hr), HF Hub, Cloudflare R2 (>5GB GGUFs), Docker (runpod/pytorch:2.4.0-py3.11-cuda12.4.1)."
+            },
+            {
+              "name": "§16 idea backlog A-K + provenance",
+              "kind": "note",
+              "summary": " §16 idea backlog A-K LLM pain-points → SFT/RL fixes (A1 calibration / D2-D5 compile-RL / C1 cost-routing). (was LEARNING_PROGRAMMING.md; history → CHANGELOG / LEARNING_PROGRAMMING.log.md 3580 lines.)"
+            }
+          ]
         },
         {
           "name": "bio-LLM scaffold (LEARNING_BIO — NOT STARTED)",
           "kind": "lane",
           "path": "lm_foundry/docs/bio-llm.md · SSOT was LEARNING_BIO.md",
           "status": "scaffold · bio model NOT trained",
-          "summary": "Master record for the planned hexa-forge bio/molecular/medical sibling model (counterpart to the code verb). The bio model does NOT exist yet; this is the scaffold so corpus + SFT scope are pre-decided. Source repos: hexa-bio (5-axis molecular toolkit ~50 domain docs: WEAVE/NANOBOT/RIBOZYME/VIROCAPSID + QUANTUM bridge), hexa-medic (24-verb medicine rollup, σ·φ=24), airgenome (host-vitals genome → forecast pattern). HARD CAVEAT in the model's refusal contract: every bio/medical capability is in-silico simulation + spec knowledge ONLY — NOT therapeutic/clinical/regulatory/diagnostic/dosing advice; refuse 'should I take / what dose / is this safe' and redirect to a licensed professional. C3+ (wet-lab → IND → phase I) out of scope.",
-          "note": "Planned identity: base TBD (Qwen2.5 family or Bio-LLM base), name dancinlab/hexa-forge-bio-3b-…, scope molecular bio/biochem/pharmacology/oncology/virology/genetics/ecology at spec + in-silico-sim level, same 5-NL plan (terminology may stay English — Latin binomials, gene symbols, drug INNs). hexa-bio C0b→C1→C2→C3 maturity grading (C2 in-silico ≠ clinical); cycle-25 closed a 16-cell C2 matrix (4 bio axes × 4 disease classes) at IN-SILICO grade. Open questions before build: base model · corpus (pack to parquet, license-clean PubMed/bioRxiv slice?) · bio-eval manifest · refusal-scope boundary · repo (likely own hexa-bioforge). DOMAINS.tape note: BIODATA retired 2026-05-27 → A1/A2 findings absorbed into lm_foundry/docs/bio-llm.md. (was LEARNING_BIO.md.)"
+          "summary": "Master record for the planned hexa-forge bio/molecular/medical sibling model (counterpart to the code verb). The bio model does NOT exist yet; this is the scaffold so corpus + SFT scope are pre-decided.",
+          "children": [
+            {
+              "name": "source repos (hexa-bio · hexa-medic · airgenome)",
+              "kind": "note",
+              "summary": " Source repos: hexa-bio (5-axis molecular toolkit ~50 domain docs: WEAVE/NANOBOT/RIBOZYME/VIROCAPSID + QUANTUM bridge), hexa-medic (24-verb medicine rollup, σ·φ=24), airgenome (host-vitals genome → forecast pattern)."
+            },
+            {
+              "name": "HARD CAVEAT — in-silico/spec only, not clinical",
+              "kind": "policy",
+              "summary": " HARD CAVEAT in the model's refusal contract: every bio/medical capability is in-silico simulation + spec knowledge ONLY — NOT therapeutic/clinical/regulatory/diagnostic/dosing advice; refuse 'should I take / what dose / is this safe' and redirect to a licensed professional. C3+ (wet-lab → IND → phase I) out of scope."
+            },
+            {
+              "name": "planned identity + scope",
+              "kind": "note",
+              "summary": "Planned identity: base TBD (Qwen2.5 family or Bio-LLM base), name dancinlab/hexa-forge-bio-3b-…, scope molecular bio/biochem/pharmacology/oncology/virology/genetics/ecology at spec + in-silico-sim level, same 5-NL plan (terminology may stay English — Latin binomials, gene symbols, drug INNs)."
+            },
+            {
+              "name": "hexa-bio maturity grading (C0b→C3)",
+              "kind": "note",
+              "summary": " hexa-bio C0b→C1→C2→C3 maturity grading (C2 in-silico ≠ clinical); cycle-25 closed a 16-cell C2 matrix (4 bio axes × 4 disease classes) at IN-SILICO grade."
+            },
+            {
+              "name": "open questions before build",
+              "kind": "group",
+              "summary": " Open questions before build: ",
+              "children": [
+                {
+                  "name": "base model",
+                  "kind": "note",
+                  "summary": "base model"
+                },
+                {
+                  "name": "corpus",
+                  "kind": "note",
+                  "summary": " · corpus (pack to parquet, license-clean PubMed/bioRxiv slice?)"
+                },
+                {
+                  "name": "bio-eval manifest",
+                  "kind": "note",
+                  "summary": " · bio-eval manifest"
+                },
+                {
+                  "name": "refusal-scope boundary",
+                  "kind": "note",
+                  "summary": " · refusal-scope boundary"
+                },
+                {
+                  "name": "repo",
+                  "kind": "note",
+                  "summary": " · repo (likely own hexa-bioforge)."
+                }
+              ]
+            },
+            {
+              "name": "BIODATA retired note + provenance",
+              "kind": "history",
+              "summary": " DOMAINS.tape note: BIODATA retired 2026-05-27 → A1/A2 findings absorbed into lm_foundry/docs/bio-llm.md. (was LEARNING_BIO.md.)"
+            }
+          ]
         }
       ]
     },
@@ -138,74 +997,659 @@
       "kind": "substrate",
       "path": "SANDBOX.md (was) · LAB/ · roster: DOMAINS.tape",
       "status": "first arc CLOSED v1.4.0 (M-matrix 20/20) · perpetual axes v1.5.0 25/25",
-      "summary": "hexa-codex's single self-hosted OSS-LLM measurement substrate — a small open-weights model (Qwen2.5-0.5/1.5/3/7B via llama.cpp/vLLM) + the route_dispatch.hexa wrapper, on which ALL four sibling verb-groups (ECONOMICS/SAFETY/OPS/SUBSTRATE) run their otherwise-unmeasurable T4-empirical claims. It exists because the external `claude --bare -p` surface exposes only --model/--system-prompt/--max-budget-usd and BLOCKS logits, activations, KV cache, stop-sequences, deterministic seeds, batch dispatch, and unmetered scale — so SANDBOX is the codex's cx_empirical_contact gate made physical. Every LAB/<id> experiment routes its LLM calls here with a falsifiable hypothesis.",
-      "note": "Core architecture = the Substrate Readiness Matrix: a 5-stage × 4-sibling-domain milestone grid (M1 Surface → M2 First verdict → M3 Saturation → M4 Paper → M5 Release), each stage graduating only when ALL 4 domains clear it. Stages: 0 PoC dispatch (Qwen2.5-0.5B + route_dispatch.hexa) → 1 tier-persona (nano/mid/max = haiku/sonnet/opus mock, temp 0.0 + max_tokens 32/256/1024 + system prompt; price ratio 1:5:25) → 2 scale manifest (stratified N≥2000, wc∈[5,200]) → 3 revive BLOCKED (cache_read/batch/stop_seq/max_tokens) → 4 empirical landing (RunPod A100). 3-tier dispatch surface: route_dispatch.hexa (single LLM call) · pool CLI (multi-host remote exec) · hexa cloud (GPU pod). Hosts: mini (mac M3 Metal/UMA, $0), ubu-1 (RTX 5070, LAN 192.168.50.119), ubu-2, pi5-akida. Verdict path convention: .verdicts/sandbox/* ; recompute verifiers verify/numerics_*.hexa ; benches bench/sandbox_*.hexa. HF datasets: 🌐 public dancinlab/hexa-codex-sandbox-evals-v1 (slo manifests, persona ladders); 🔒 private dancinlab/hexa-codex-sandbox-adversarial-evals-v1 (refusal matrices, NUMBERS-ONLY, cx_hf_safety_private). Honesty rules (g5 corollary): no self-judge (byte-exact_subset scorer only), determinism gates determinism (seed+BF16+top-k=1), distillation off-table for Stage 0-1 (Anthropic ToS). HONEST INVARIANT (stated repeatedly): each ✅/[x] marks a fire-path-active / first-arc-section-closed signal, NOT frontier closure — the only true 'end' is exhaustion of measurable physical axes. 영구 축: P1 higher-scale VL rungs (7B+), P2 production SAE infra (SAELens v6.44.0 pin), P3 multi-node Erlang-C serving (ubu-1 install done), P4 quant-band Pareto (Q4_K_M); N⭐ MAIN cross-substrate measurement reproducibility (same axis/scorer, different manifest-n → contradictory finding shapes → rank-correlation hygiene). (was SANDBOX.md; history → CHANGELOG / SANDBOX.log.md 3253 lines.)"
+      "summary": "hexa-codex's single self-hosted OSS-LLM measurement substrate — a small open-weights model (Qwen2.5-0.5/1.5/3/7B via llama.cpp/vLLM) + the route_dispatch.hexa wrapper, on which ALL four sibling verb-groups (ECONOMICS/SAFETY/OPS/SUBSTRATE) run their otherwise-unmeasurable T4-empirical claims.",
+      "children": [
+        {
+          "name": "why it exists (claude --bare blocks logits/KV/seeds)",
+          "kind": "note",
+          "summary": " It exists because the external `claude --bare -p` surface exposes only --model/--system-prompt/--max-budget-usd and BLOCKS logits, activations, KV cache, stop-sequences, deterministic seeds, batch dispatch, and unmetered scale — so SANDBOX is the codex's cx_empirical_contact gate made physical."
+        },
+        {
+          "name": "every LAB/<id> routes here",
+          "kind": "note",
+          "summary": " Every LAB/<id> experiment routes its LLM calls here with a falsifiable hypothesis."
+        },
+        {
+          "name": "Substrate Readiness Matrix (5-stage × 4-domain) + stages",
+          "kind": "group",
+          "summary": "Core architecture = the Substrate Readiness Matrix: a 5-stage × 4-sibling-domain milestone grid (M1 Surface → M2 First verdict → M3 Saturation → M4 Paper → M5 Release), each stage graduating only when ALL 4 domains clear it.",
+          "children": [
+            {
+              "name": "stage 0 — PoC dispatch",
+              "kind": "note",
+              "summary": " Stages: 0 PoC dispatch (Qwen2.5-0.5B + route_dispatch.hexa)"
+            },
+            {
+              "name": "stage 1 — tier-persona",
+              "kind": "note",
+              "summary": " → 1 tier-persona (nano/mid/max = haiku/sonnet/opus mock, temp 0.0 + max_tokens 32/256/1024 + system prompt; price ratio 1:5:25)"
+            },
+            {
+              "name": "stage 2 — scale manifest",
+              "kind": "note",
+              "summary": " → 2 scale manifest (stratified N≥2000, wc∈[5,200])"
+            },
+            {
+              "name": "stage 3 — revive BLOCKED",
+              "kind": "note",
+              "summary": " → 3 revive BLOCKED (cache_read/batch/stop_seq/max_tokens)"
+            },
+            {
+              "name": "stage 4 — empirical landing (RunPod A100)",
+              "kind": "note",
+              "summary": " → 4 empirical landing (RunPod A100)."
+            }
+          ]
+        },
+        {
+          "name": "3-tier dispatch surface",
+          "kind": "note",
+          "summary": " 3-tier dispatch surface: route_dispatch.hexa (single LLM call) · pool CLI (multi-host remote exec) · hexa cloud (GPU pod)."
+        },
+        {
+          "name": "hosts (mini · ubu-1 · ubu-2 · pi5-akida)",
+          "kind": "note",
+          "summary": " Hosts: mini (mac M3 Metal/UMA, $0), ubu-1 (RTX 5070, LAN 192.168.50.119), ubu-2, pi5-akida."
+        },
+        {
+          "name": "verdict/verifier/bench path convention",
+          "kind": "note",
+          "summary": " Verdict path convention: .verdicts/sandbox/* ; recompute verifiers verify/numerics_*.hexa ; benches bench/sandbox_*.hexa."
+        },
+        {
+          "name": "HF datasets (public + private)",
+          "kind": "note",
+          "summary": " HF datasets: 🌐 public dancinlab/hexa-codex-sandbox-evals-v1 (slo manifests, persona ladders); 🔒 private dancinlab/hexa-codex-sandbox-adversarial-evals-v1 (refusal matrices, NUMBERS-ONLY, cx_hf_safety_private)."
+        },
+        {
+          "name": "honesty rules (g5 corollary)",
+          "kind": "policy",
+          "summary": " Honesty rules (g5 corollary): no self-judge (byte-exact_subset scorer only), determinism gates determinism (seed+BF16+top-k=1), distillation off-table for Stage 0-1 (Anthropic ToS)."
+        },
+        {
+          "name": "HONEST INVARIANT (✅ = fire-path-active, not closure)",
+          "kind": "policy",
+          "summary": " HONEST INVARIANT (stated repeatedly): each ✅/[x] marks a fire-path-active / first-arc-section-closed signal, NOT frontier closure — the only true 'end' is exhaustion of measurable physical axes."
+        },
+        {
+          "name": "영구 축 (perpetual axes P1–P4 + N⭐) + provenance",
+          "kind": "lane",
+          "summary": " 영구 축: P1 higher-scale VL rungs (7B+), P2 production SAE infra (SAELens v6.44.0 pin), P3 multi-node Erlang-C serving (ubu-1 install done), P4 quant-band Pareto (Q4_K_M); N⭐ MAIN cross-substrate measurement reproducibility (same axis/scorer, different manifest-n → contradictory finding shapes → rank-correlation hygiene). (was SANDBOX.md; history → CHANGELOG / SANDBOX.log.md 3253 lines.)"
+        }
+      ]
     },
     {
       "name": "Discovery · Claims · Verdicts · Papers (verify-driven evidence chain)",
       "kind": "group",
-      "summary": "The codex's verification spine. Discovery lane: continuous /kick · /gap discovery interleaved every batch, findings persisted per-slug under .discoveries/<slug>.tape. Claims & verdicts: every verifiable claim indexed in CLAIMS.tape (id · text · method = atom|expr|fence|run) → proven via `hexa verify` → persisted .verdicts/<slug>.tape (raw stdout verbatim, no LLM self-judge). Empirical (T4) claims run real train/infer/serve benchmarks under t4_empirical/. Papers: gated /paper output under PAPER/ (formula · method · benchmark · benefit|refutation), max one positive + one closed-negative per group; violating papers revoked immediately (negative-results publishing widened v1.4.0).",
-      "note": "Dirs: discovery/ · .discoveries/ · CLAIMS.tape · verify/ (numerics_* recompute verifiers + falsifier_check.py + n6_arithmetic.py + cross_doc_audit.hexa + group_audit.py) · .verdicts/ · t4_empirical/ · PAPER/ · papers/ · lm_foundry/papers/. Paper gates: cx_paper_gate / cx_paper_significance / cx_paper_format / cx_paper_sections / cx_paper_one_per_domain. (was ARCHITECTURE.md Data flow + Component map rows.)"
+      "summary": "The codex's verification spine.",
+      "children": [
+        {
+          "name": "discovery lane",
+          "kind": "note",
+          "summary": " Discovery lane: continuous /kick · /gap discovery interleaved every batch, findings persisted per-slug under .discoveries/<slug>.tape."
+        },
+        {
+          "name": "claims & verdicts",
+          "kind": "note",
+          "summary": " Claims & verdicts: every verifiable claim indexed in CLAIMS.tape (id · text · method = atom|expr|fence|run) → proven via `hexa verify` → persisted .verdicts/<slug>.tape (raw stdout verbatim, no LLM self-judge)."
+        },
+        {
+          "name": "empirical (T4) claims",
+          "kind": "note",
+          "summary": " Empirical (T4) claims run real train/infer/serve benchmarks under t4_empirical/."
+        },
+        {
+          "name": "papers (gated /paper)",
+          "kind": "note",
+          "summary": " Papers: gated /paper output under PAPER/ (formula · method · benchmark · benefit|refutation), max one positive + one closed-negative per group; violating papers revoked immediately (negative-results publishing widened v1.4.0)."
+        },
+        {
+          "name": "dirs",
+          "kind": "group",
+          "summary": "Dirs: ",
+          "children": [
+            {
+              "name": "discovery/",
+              "kind": "note",
+              "summary": "discovery/"
+            },
+            {
+              "name": ".discoveries/",
+              "kind": "note",
+              "summary": " · .discoveries/"
+            },
+            {
+              "name": "CLAIMS.tape",
+              "kind": "note",
+              "summary": " · CLAIMS.tape"
+            },
+            {
+              "name": "verify/",
+              "kind": "note",
+              "summary": " · verify/ (numerics_* recompute verifiers + falsifier_check.py + n6_arithmetic.py + cross_doc_audit.hexa + group_audit.py)"
+            },
+            {
+              "name": ".verdicts/",
+              "kind": "note",
+              "summary": " · .verdicts/"
+            },
+            {
+              "name": "t4_empirical/",
+              "kind": "note",
+              "summary": " · t4_empirical/"
+            },
+            {
+              "name": "PAPER/",
+              "kind": "note",
+              "summary": " · PAPER/"
+            },
+            {
+              "name": "papers/",
+              "kind": "note",
+              "summary": " · papers/"
+            },
+            {
+              "name": "lm_foundry/papers/",
+              "kind": "note",
+              "summary": " · lm_foundry/papers/."
+            }
+          ]
+        },
+        {
+          "name": "paper gates + provenance",
+          "kind": "note",
+          "summary": " Paper gates: cx_paper_gate / cx_paper_significance / cx_paper_format / cx_paper_sections / cx_paper_one_per_domain. (was ARCHITECTURE.md Data flow + Component map rows.)"
+        }
+      ]
     },
     {
       "name": "ENGINE measurement→execution loop + candidate sibling domains (AXIS)",
       "kind": "group",
       "path": "ENGINE/ENGINE.md · AXIS roster was AXIS.easy.md · DOMAINS.tape",
-      "summary": "🧭 ENGINE has a measurement→execution closed-loop with siblings registered in ENGINE/ENGINE.md's intake matrix. Existing 6 core siblings: A ECONOMICS (cost/scaling) · B SAFETY (refusal/alignment) · C OPS (serving/queue/SLO) · D SUBSTRATE (capability eval) · E SANDBOX (bench harness/reproducibility) · F NEUROEXP (LLM-neurology: logit-lens, Hebbian, IIT4, ROME); plus N self-meta (discovery→execution latency). AXIS.easy was a CANDIDATE ROSTER (not a domain SSOT) — a brainstorm-depleted catalog (2026-05-27, 8 rounds, 49 candidates) of new measurement-axis sibling domains. Promoted candidates are registered in DOMAINS.tape with their own UPPERCASE/UPPERCASE.md snapshots.",
-      "note": "Sibling criteria: (1) measurable falsifiable finding (2) clear driving target (which LLM behavior it changes) (3) distinct from existing 6; scored ⭐ per criterion. ⭐⭐⭐ 12 strong candidates: CALIBRATION 📏 (ECE, abstention threshold), HALLUCINATION 💭 (confident fabrication freq), LONG-CONTEXT 📜 (needle-in-haystack, RoPE θ/YaRN), PROMPT-SENSITIVITY 🎭, ENERGY 🔋 (J/token roofline), RAG 🔍, AGENT 🛠️ (multi-step tool use), CONTAMINATION ⚠️ (n-gram eval leakage), INSTRUCTION-FOLLOWING 📋, MULTILINGUAL 🌐 (bytes/token gap), FAIRNESS ⚖️, PRIVACY 🔒 (membership inference, DP ε). ⭐⭐ 10 auxiliary: ROBUSTNESS, TRAINING-DYNAMICS, DATA-EFFICIENCY, HW-VARIANCE, BATCH-COMPOSITION, RELIABILITY, CARBON, TEMPORAL, DIVERSITY, USER-MODEL. ENGINE N-axis family extensions (measure the wire itself, NOT siblings): N2 WIRE-DECAY, N3 WIRE-INTERFERENCE, N4 WIRE-COMPOSITION, N5 WIRE-ROLLBACK. 16 absorbed candidates folded into OPS/SUBSTRATE/SAFETY/SANDBOX/lm_foundry. Top-3 immediately-wireable: CALIBRATION, HALLUCINATION, LONG-CONTEXT. orchestra-research 20-skill mapping (cycle-10): 20/20 coverage; 4 new domains ARCHITECTURE (attention quality-per-FLOP, MLA 1.84×), DATA-QUALITY (dedup-gain), POST-TRAINING (alignment-tax), OBSERVABILITY (drift-detection). VERTICAL/* specialized-model measurement group (cycle-10, 'Small is the New Big' DSLM frontier $10.2B→$115.4B by 2034): CODE/BIO/MATH/LAW/MEDICAL/FINANCE/SCIENCE/ROBOTICS/MATERIALS/WEATHER/CYBERSECURITY/OFFICE + UNCENSORED — VERTICAL (specialist depth) ⊥ OFFICE (generalist breadth, meta-verifies VERTICAL's justification: generalist < specialist × 0.7 → DSLM justified). Plus FRONTEND/* + AGENT-SKILL/* (2026-06-07 SEED). DOMAINS.tape note: CODEX archived 2026-05-28 (history → CODEX/CODEX.log.md); FRONTIER retired 2026-05-28 (6 sub-axes dispersed into domain N⭐ NOVEL lanes). (was AXIS.easy.md; full roster authoritative in DOMAINS.tape + ENGINE/ENGINE.md.)"
+      "summary": "🧭 ENGINE has a measurement→execution closed-loop with siblings registered in ENGINE/ENGINE.md's intake matrix.",
+      "children": [
+        {
+          "name": "existing 6 core siblings (A–F + N)",
+          "kind": "group",
+          "summary": " Existing 6 core siblings: ",
+          "children": [
+            {
+              "name": "A ECONOMICS",
+              "kind": "note",
+              "summary": "A ECONOMICS (cost/scaling)"
+            },
+            {
+              "name": "B SAFETY",
+              "kind": "note",
+              "summary": " · B SAFETY (refusal/alignment)"
+            },
+            {
+              "name": "C OPS",
+              "kind": "note",
+              "summary": " · C OPS (serving/queue/SLO)"
+            },
+            {
+              "name": "D SUBSTRATE",
+              "kind": "note",
+              "summary": " · D SUBSTRATE (capability eval)"
+            },
+            {
+              "name": "E SANDBOX",
+              "kind": "note",
+              "summary": " · E SANDBOX (bench harness/reproducibility)"
+            },
+            {
+              "name": "F NEUROEXP",
+              "kind": "note",
+              "summary": " · F NEUROEXP (LLM-neurology: logit-lens, Hebbian, IIT4, ROME)"
+            },
+            {
+              "name": "N self-meta",
+              "kind": "note",
+              "summary": "; plus N self-meta (discovery→execution latency)."
+            }
+          ]
+        },
+        {
+          "name": "AXIS.easy = candidate roster (brainstorm-depleted)",
+          "kind": "history",
+          "summary": " AXIS.easy was a CANDIDATE ROSTER (not a domain SSOT) — a brainstorm-depleted catalog (2026-05-27, 8 rounds, 49 candidates) of new measurement-axis sibling domains."
+        },
+        {
+          "name": "promoted candidates → DOMAINS.tape",
+          "kind": "note",
+          "summary": " Promoted candidates are registered in DOMAINS.tape with their own UPPERCASE/UPPERCASE.md snapshots."
+        },
+        {
+          "name": "sibling criteria",
+          "kind": "note",
+          "summary": "Sibling criteria: (1) measurable falsifiable finding (2) clear driving target (which LLM behavior it changes) (3) distinct from existing 6; scored ⭐ per criterion."
+        },
+        {
+          "name": "⭐⭐⭐ 12 strong candidates",
+          "kind": "group",
+          "summary": " ⭐⭐⭐ 12 strong candidates: ",
+          "children": [
+            {
+              "name": "CALIBRATION 📏",
+              "kind": "lane",
+              "summary": "CALIBRATION 📏 (ECE, abstention threshold)"
+            },
+            {
+              "name": "HALLUCINATION 💭",
+              "kind": "lane",
+              "summary": ", HALLUCINATION 💭 (confident fabrication freq)"
+            },
+            {
+              "name": "LONG-CONTEXT 📜",
+              "kind": "lane",
+              "summary": ", LONG-CONTEXT 📜 (needle-in-haystack, RoPE θ/YaRN)"
+            },
+            {
+              "name": "PROMPT-SENSITIVITY 🎭",
+              "kind": "lane",
+              "summary": ", PROMPT-SENSITIVITY 🎭"
+            },
+            {
+              "name": "ENERGY 🔋",
+              "kind": "lane",
+              "summary": ", ENERGY 🔋 (J/token roofline)"
+            },
+            {
+              "name": "RAG 🔍",
+              "kind": "lane",
+              "summary": ", RAG 🔍"
+            },
+            {
+              "name": "AGENT 🛠️",
+              "kind": "lane",
+              "summary": ", AGENT 🛠️ (multi-step tool use)"
+            },
+            {
+              "name": "CONTAMINATION ⚠️",
+              "kind": "lane",
+              "summary": ", CONTAMINATION ⚠️ (n-gram eval leakage)"
+            },
+            {
+              "name": "INSTRUCTION-FOLLOWING 📋",
+              "kind": "lane",
+              "summary": ", INSTRUCTION-FOLLOWING 📋"
+            },
+            {
+              "name": "MULTILINGUAL 🌐",
+              "kind": "lane",
+              "summary": ", MULTILINGUAL 🌐 (bytes/token gap)"
+            },
+            {
+              "name": "FAIRNESS ⚖️",
+              "kind": "lane",
+              "summary": ", FAIRNESS ⚖️"
+            },
+            {
+              "name": "PRIVACY 🔒",
+              "kind": "lane",
+              "summary": ", PRIVACY 🔒 (membership inference, DP ε)."
+            }
+          ]
+        },
+        {
+          "name": "⭐⭐ 10 auxiliary candidates",
+          "kind": "note",
+          "summary": " ⭐⭐ 10 auxiliary: ROBUSTNESS, TRAINING-DYNAMICS, DATA-EFFICIENCY, HW-VARIANCE, BATCH-COMPOSITION, RELIABILITY, CARBON, TEMPORAL, DIVERSITY, USER-MODEL."
+        },
+        {
+          "name": "ENGINE N-axis family extensions",
+          "kind": "note",
+          "summary": " ENGINE N-axis family extensions (measure the wire itself, NOT siblings): N2 WIRE-DECAY, N3 WIRE-INTERFERENCE, N4 WIRE-COMPOSITION, N5 WIRE-ROLLBACK."
+        },
+        {
+          "name": "16 absorbed candidates",
+          "kind": "note",
+          "summary": " 16 absorbed candidates folded into OPS/SUBSTRATE/SAFETY/SANDBOX/lm_foundry."
+        },
+        {
+          "name": "top-3 immediately-wireable",
+          "kind": "note",
+          "summary": " Top-3 immediately-wireable: CALIBRATION, HALLUCINATION, LONG-CONTEXT."
+        },
+        {
+          "name": "orchestra-research 20-skill mapping",
+          "kind": "note",
+          "summary": " orchestra-research 20-skill mapping (cycle-10): 20/20 coverage; 4 new domains ARCHITECTURE (attention quality-per-FLOP, MLA 1.84×), DATA-QUALITY (dedup-gain), POST-TRAINING (alignment-tax), OBSERVABILITY (drift-detection)."
+        },
+        {
+          "name": "VERTICAL/* specialized-model group",
+          "kind": "note",
+          "summary": " VERTICAL/* specialized-model measurement group (cycle-10, 'Small is the New Big' DSLM frontier $10.2B→$115.4B by 2034): CODE/BIO/MATH/LAW/MEDICAL/FINANCE/SCIENCE/ROBOTICS/MATERIALS/WEATHER/CYBERSECURITY/OFFICE + UNCENSORED — VERTICAL (specialist depth) ⊥ OFFICE (generalist breadth, meta-verifies VERTICAL's justification: generalist < specialist × 0.7 → DSLM justified)."
+        },
+        {
+          "name": "FRONTEND/* + AGENT-SKILL/* seed",
+          "kind": "note",
+          "summary": " Plus FRONTEND/* + AGENT-SKILL/* (2026-06-07 SEED)."
+        },
+        {
+          "name": "CODEX/FRONTIER retired notes + provenance",
+          "kind": "history",
+          "summary": " DOMAINS.tape note: CODEX archived 2026-05-28 (history → CODEX/CODEX.log.md); FRONTIER retired 2026-05-28 (6 sub-axes dispersed into domain N⭐ NOVEL lanes). (was AXIS.easy.md; full roster authoritative in DOMAINS.tape + ENGINE/ENGINE.md.)"
+        }
+      ]
     },
     {
       "name": "LATTICE_POLICY — real-limits-first verification (cross-project policy)",
       "kind": "policy",
       "path": "LATTICE_POLICY.md (was — sidecar/commons SSOT mirror)",
-      "summary": "Cross-project dancinlab policy (referenced by commons.tape g25+g26): a project's ceiling is set by REAL mathematical/physical/engineering limits, NOT by the n=6 lattice. The lattice is a TOOL, not a constraint. Native-invariant usage (isa_n6, hexa1) is valid; self-imposed-ceiling usage ('must be n=6-compatible') is an artificial bottleneck. Self-imposed-ceiling anti-patterns are all dishonest (fit-to-convenient-number, arithmetic disguised as physical limit, tautology with zero verification power, external over-claim).",
-      "note": "Real ceilings: Mathematical (Shannon H=−Σp log p, Kolmogorov lower bound, Halting/Rice, Bekenstein S≤2πkRE/ℏc, statistical power, PAC ~VC/ε²) · Physical (c, ℏ, k Landauer, Stefan-Boltzmann, Carnot η≤1−Tc/Th, Bremermann 10^50 ops/s/kg, Margolus-Levitin, Bekenstein-Hawking) · Engineering (fab throughput, grid capacity, launch cost/kg, permit/funding/labor ceilings from the entity's OWN published data). Verification standard: no lattice anchor alone, real-limit anchor first (≥1 from §2), falsifiers on real thresholds, no external over-claim. Application tiers: lattice-native / lattice-acceptor (own domain physics) / external-envelope (no lattice HARD check). (was LATTICE_POLICY.md.)"
+      "summary": "Cross-project dancinlab policy (referenced by commons.tape g25+g26): a project's ceiling is set by REAL mathematical/physical/engineering limits, NOT by the n=6 lattice.",
+      "children": [
+        {
+          "name": "lattice is a TOOL not a constraint",
+          "kind": "policy",
+          "summary": " The lattice is a TOOL, not a constraint."
+        },
+        {
+          "name": "native-invariant vs self-imposed-ceiling usage",
+          "kind": "policy",
+          "summary": " Native-invariant usage (isa_n6, hexa1) is valid; self-imposed-ceiling usage ('must be n=6-compatible') is an artificial bottleneck."
+        },
+        {
+          "name": "self-imposed-ceiling anti-patterns",
+          "kind": "policy",
+          "summary": " Self-imposed-ceiling anti-patterns are all dishonest (fit-to-convenient-number, arithmetic disguised as physical limit, tautology with zero verification power, external over-claim)."
+        },
+        {
+          "name": "real ceilings (Mathematical · Physical · Engineering)",
+          "kind": "group",
+          "summary": "Real ceilings: ",
+          "children": [
+            {
+              "name": "Mathematical ceilings",
+              "kind": "note",
+              "summary": "Mathematical (Shannon H=−Σp log p, Kolmogorov lower bound, Halting/Rice, Bekenstein S≤2πkRE/ℏc, statistical power, PAC ~VC/ε²)"
+            },
+            {
+              "name": "Physical ceilings",
+              "kind": "note",
+              "summary": " · Physical (c, ℏ, k Landauer, Stefan-Boltzmann, Carnot η≤1−Tc/Th, Bremermann 10^50 ops/s/kg, Margolus-Levitin, Bekenstein-Hawking)"
+            },
+            {
+              "name": "Engineering ceilings",
+              "kind": "note",
+              "summary": " · Engineering (fab throughput, grid capacity, launch cost/kg, permit/funding/labor ceilings from the entity's OWN published data)."
+            }
+          ]
+        },
+        {
+          "name": "verification standard",
+          "kind": "note",
+          "summary": " Verification standard: no lattice anchor alone, real-limit anchor first (≥1 from §2), falsifiers on real thresholds, no external over-claim."
+        },
+        {
+          "name": "application tiers + provenance",
+          "kind": "note",
+          "summary": " Application tiers: lattice-native / lattice-acceptor (own domain physics) / external-envelope (no lattice HARD check). (was LATTICE_POLICY.md.)"
+        }
+      ]
     },
     {
       "name": "LIMIT_BREAKTHROUGH — real-limits audit (Wave M)",
       "kind": "policy",
       "path": "LIMIT_BREAKTHROUGH.log.md (was)",
-      "summary": "Applies LATTICE_POLICY §1.2 taxonomy to hexa-codex's spec-first AI codex: which of its real limits (computability of semantic equivalence, Kolmogorov complexity of generated code, PAC-learning eval bounds, inference-cost/Landauer floors) are breakable? Verdict: 2 HARD_WALLs + 3 BREAKABLE_WITH_TECH + 3 SOFT_WALLs.",
-      "note": "HARD_WALL: semantic-equivalence undecidability (Rice 1953 — frame as 'test-suite-bounded equivalence' never 'semantic'); Kolmogorov K(code) uncomputable (publish upper bounds, not minimality). BREAKABLE_WITH_TECH: PAC eval sample-complexity → IRT-adaptive eval (O(log) cut); red-team statistical power (~1500 prompts for 1% backdoor @ α=0.01 vs ~100-300 hand-prompts) → LLM-as-red-teamer (Perez 2022); interp throughput (10²/researcher-year vs 10⁷ candidate sites) → sparse-AE feature dictionaries (Bricken 2023, Templeton 2024, 10⁶ features/model-week). SOFT_WALL: Landauer/inference-cost (~3 orders headroom; binding wall is economic) → MoE/analog/reversible; Chinchilla data wall (~20 tok/param, total high-quality English ~10-20T, wall arrives 2026-2028, Villalobos 2024) → synthetic+multimodal+curation; eval compute envelope (~10⁴ GPU-hr / $30k per 70B campaign) → PAC coreset subsampling (Tukan 2023, ~10× cut). Top-3 breakthrough: #1 IRT-adaptive eval + sparse-AE interp; #2 LLM-as-red-teamer in adversarial/; #3 infer_cost/ MoE+analog model card. (was LIMIT_BREAKTHROUGH.log.md.)"
+      "summary": "Applies LATTICE_POLICY §1.2 taxonomy to hexa-codex's spec-first AI codex: which of its real limits (computability of semantic equivalence, Kolmogorov complexity of generated code, PAC-learning eval bounds, inference-cost/Landauer floors) are breakable?",
+      "children": [
+        {
+          "name": "verdict (2 HARD + 3 BREAKABLE + 3 SOFT)",
+          "kind": "note",
+          "summary": " Verdict: 2 HARD_WALLs + 3 BREAKABLE_WITH_TECH + 3 SOFT_WALLs."
+        },
+        {
+          "name": "HARD_WALL (Rice undecidability · Kolmogorov)",
+          "kind": "note",
+          "summary": "HARD_WALL: semantic-equivalence undecidability (Rice 1953 — frame as 'test-suite-bounded equivalence' never 'semantic'); Kolmogorov K(code) uncomputable (publish upper bounds, not minimality)."
+        },
+        {
+          "name": "BREAKABLE_WITH_TECH (IRT eval · LLM red-team · sparse-AE)",
+          "kind": "note",
+          "summary": " BREAKABLE_WITH_TECH: PAC eval sample-complexity → IRT-adaptive eval (O(log) cut); red-team statistical power (~1500 prompts for 1% backdoor @ α=0.01 vs ~100-300 hand-prompts) → LLM-as-red-teamer (Perez 2022); interp throughput (10²/researcher-year vs 10⁷ candidate sites) → sparse-AE feature dictionaries (Bricken 2023, Templeton 2024, 10⁶ features/model-week)."
+        },
+        {
+          "name": "SOFT_WALL (Landauer · Chinchilla · eval-compute)",
+          "kind": "note",
+          "summary": " SOFT_WALL: Landauer/inference-cost (~3 orders headroom; binding wall is economic) → MoE/analog/reversible; Chinchilla data wall (~20 tok/param, total high-quality English ~10-20T, wall arrives 2026-2028, Villalobos 2024) → synthetic+multimodal+curation; eval compute envelope (~10⁴ GPU-hr / $30k per 70B campaign) → PAC coreset subsampling (Tukan 2023, ~10× cut)."
+        },
+        {
+          "name": "top-3 breakthrough + provenance",
+          "kind": "note",
+          "summary": " Top-3 breakthrough: #1 IRT-adaptive eval + sparse-AE interp; #2 LLM-as-red-teamer in adversarial/; #3 infer_cost/ MoE+analog model card. (was LIMIT_BREAKTHROUGH.log.md.)"
+        }
+      ]
     },
     {
       "name": "IMPORTED_FROM_CANON — provenance of migrated artifacts",
       "kind": "history",
       "path": "IMPORTED_FROM_CANON.tape (live) · IMPORTED_FROM_CANON.log.md (was)",
       "summary": "Provenance ledger: files MOVED out of dancinlab/canon during canon-minimization (AI/ML research artifacts → hexa-codex); canon no longer holds them, prior history recoverable via `git log` in canon. The live .tape pointer is KEPT; the .log.md narrative folded here.",
-      "note": "papers/ (canon@a86ca143, 2026-05-10): n6-ai-ethics-governance, n6-ai-techniques-68-integrated, n6-causal-chain, n6-cognitive-social-psychology, n6-hexa-cogni-integrated, n6-reality-map, n6-sota-ssm, n6-swarm-intelligence. techniques/ (canon@93e6ef4c, 2026-05-11): AI 기법 68종 / 8축 (242 files, 18630 BODY lines, golden 2026-04-12) — arch/16 attention/9 compress/5 graph/5 moe/11 optim/15 sparse/6 sota/3 + _registry.json v1.3.0. experiments/ai-efficiency/ (canon@93e6ef4c): 62 verification experiments (.hexa) — Alpha-Attack, BitNet-n6, DeepSeek-MLA-n6, FlashAttention3, Mamba-2, Medusa-heads, RWKV-6/7, Speculative-decoding, YaRN-RoPE, etc. (was IMPORTED_FROM_CANON.log.md; live IMPORTED_FROM_CANON.tape kept.)"
+      "children": [
+        {
+          "name": "papers/ (canon@a86ca143)",
+          "kind": "note",
+          "summary": "papers/ (canon@a86ca143, 2026-05-10): n6-ai-ethics-governance, n6-ai-techniques-68-integrated, n6-causal-chain, n6-cognitive-social-psychology, n6-hexa-cogni-integrated, n6-reality-map, n6-sota-ssm, n6-swarm-intelligence."
+        },
+        {
+          "name": "techniques/ (canon@93e6ef4c — 68종/8축)",
+          "kind": "note",
+          "summary": " techniques/ (canon@93e6ef4c, 2026-05-11): AI 기법 68종 / 8축 (242 files, 18630 BODY lines, golden 2026-04-12) — arch/16 attention/9 compress/5 graph/5 moe/11 optim/15 sparse/6 sota/3 + _registry.json v1.3.0."
+        },
+        {
+          "name": "experiments/ai-efficiency/ + provenance",
+          "kind": "note",
+          "summary": " experiments/ai-efficiency/ (canon@93e6ef4c): 62 verification experiments (.hexa) — Alpha-Attack, BitNet-n6, DeepSeek-MLA-n6, FlashAttention3, Mamba-2, Medusa-heads, RWKV-6/7, Speculative-decoding, YaRN-RoPE, etc. (was IMPORTED_FROM_CANON.log.md; live IMPORTED_FROM_CANON.tape kept.)"
+        }
+      ]
     },
     {
       "name": "TAPE-AUDIT — tape-surface audit ledger",
       "kind": "history",
       "path": "TAPE-AUDIT.log.md (was)",
       "summary": "Audit of hexa-codex's tape-shaped surfaces (cargo/migration candidates). Verdict: HEAVY (5+ tape surfaces — state/markers/, audit programs, verb-subtree tapes, experiments/, discovery/, t4_empirical/, identity). 17-verb cognitive substrate; parent of hexa-mind's 7-verb rollup.",
-      "note": "A audit-class ledgers: state/markers/ (calc_*, numerics_*_parity_*/solver_*, test_*, lattice_check_*, cross_doc_* per-verifier cargo → state/markers.tape), state/hexa_codex_cli.log, verify/cross_doc_audit.hexa + group_audit.py (→ verify.tape), t4_empirical date-stamped audits. B identity surface: verbs catalog + lattice constants in hexa.toml (21KB) + LATTICE_POLICY + IMPORTED_FROM_CANON provenance. C verb-named subtrees substitute for per-verb domain.md (17+ subtrees, each could host a <verb>.tape). D per-run/event history: experiments/, discovery/ (8 subdirs), t4_empirical/, verify/. E promotion candidates: n6 atoms (numerics parity/solver = quantitative claims), n12 cells (verify pass/fail × verb × version × numerics-class). (was TAPE-AUDIT.log.md.)"
+      "children": [
+        {
+          "name": "A audit-class ledgers",
+          "kind": "note",
+          "summary": "A audit-class ledgers: state/markers/ (calc_*, numerics_*_parity_*/solver_*, test_*, lattice_check_*, cross_doc_* per-verifier cargo → state/markers.tape), state/hexa_codex_cli.log, verify/cross_doc_audit.hexa + group_audit.py (→ verify.tape), t4_empirical date-stamped audits."
+        },
+        {
+          "name": "B identity surface",
+          "kind": "note",
+          "summary": " B identity surface: verbs catalog + lattice constants in hexa.toml (21KB) + LATTICE_POLICY + IMPORTED_FROM_CANON provenance."
+        },
+        {
+          "name": "C verb-named subtrees",
+          "kind": "note",
+          "summary": " C verb-named subtrees substitute for per-verb domain.md (17+ subtrees, each could host a <verb>.tape)."
+        },
+        {
+          "name": "D per-run/event history",
+          "kind": "note",
+          "summary": " D per-run/event history: experiments/, discovery/ (8 subdirs), t4_empirical/, verify/."
+        },
+        {
+          "name": "E promotion candidates + provenance",
+          "kind": "note",
+          "summary": " E promotion candidates: n6 atoms (numerics parity/solver = quantitative claims), n12 cells (verify pass/fail × verb × version × numerics-class). (was TAPE-AUDIT.log.md.)"
+        }
+      ]
     },
     {
       "name": "CLI & engine",
       "kind": "module",
       "path": "cli/ · ENGINE/ · hexa.toml · install.hexa",
-      "summary": "hexa-lang entrypoints and the discovery/verify engine wiring. cli/hexa-codex.hexa = placeholder verb dispatcher (spec path + 20-line head; selftest 17/17). hexa.toml (21KB) = lattice constants + substrate config. ENGINE/ENGINE.md = the measurement→execution intake matrix (6 core siblings + N self-meta). install.hexa = install entry.",
-      "note": "L0 lockdown files (harness.config.json): cli/hexa-codex.hexa · install.hexa · hexa.toml — editing reminds to update CHANGELOG + issue tracker. (was ARCHITECTURE.md Component map row.)"
+      "summary": "hexa-lang entrypoints and the discovery/verify engine wiring.",
+      "note": "L0 lockdown files (harness.config.json): cli/hexa-codex.hexa · install.hexa · hexa.toml — editing reminds to update CHANGELOG + issue tracker. (was ARCHITECTURE.md Component map row.)",
+      "children": [
+        {
+          "name": "cli/hexa-codex.hexa (placeholder dispatcher)",
+          "kind": "note",
+          "summary": " cli/hexa-codex.hexa = placeholder verb dispatcher (spec path + 20-line head; selftest 17/17)."
+        },
+        {
+          "name": "hexa.toml (lattice constants + substrate config)",
+          "kind": "note",
+          "summary": " hexa.toml (21KB) = lattice constants + substrate config."
+        },
+        {
+          "name": "ENGINE/ENGINE.md (intake matrix)",
+          "kind": "note",
+          "summary": " ENGINE/ENGINE.md = the measurement→execution intake matrix (6 core siblings + N self-meta)."
+        },
+        {
+          "name": "install.hexa",
+          "kind": "note",
+          "summary": " install.hexa = install entry."
+        }
+      ]
     },
     {
       "name": "Governance & verification",
       "kind": "governance",
-      "summary": "Governance SSOT = CLAUDE.md (the single markdown governance file; project.tape retired) summarizing the @D governance verbs: HF completeness/org/naming, claim manifest + verify, empirical T4 contact, gated /paper significance, continuous discovery, LAB-on-SANDBOX, native I/O, minimal DRIVE, uncensored ENGINE default. Correctness verified only via `hexa verify` (no LLM self-judge, raw stdout verbatim). HF artifacts: register every model/dataset/ckpt completely under dancinlab/* (hexa-forge-* models, hexa-codex-<domain>-evals-v<N> evals); adversarial/refusal/jailbreak sets default PRIVATE; completeness proven by an authenticated HF↔local sync audit on a token host. Branches: main/master protected (direct commit = hardcore violation); changes flow through PRs.",
-      "note": "Harness: this repo is wired to dancinlab/harness, vendored as the .harness-engine git submodule (branch harness-hardcore). harness.config.json: profile=hardcore, stack=[hexa], protectedBranches=[main,master], lockdown.files guards core sources, lint.changelog requires CHANGELOG.md staged with *.hexa, docs block (architecture=ARCHITECTURE.json, log=CHANGELOG.md, scratch=state/scratch, scopeDirs=[\"\"] root-only + allow-list). Agent hooks (pre-bash/pre-write/post-edit/prompt/prefs/easy/recommend inject/SessionStart) in .claude/settings.json, each guarded to no-op when the engine binary is absent. Activate after fresh clone: `git submodule update --init --remote .harness-engine`; run via `bash .harness-engine/bin/harness <cmd>` (docs check → docs: ok). (was ARCHITECTURE.md Governance & CLAUDE.md.)"
+      "summary": "Governance SSOT = CLAUDE.md (the single markdown governance file; project.tape retired) summarizing the @D governance verbs: HF completeness/org/naming, claim manifest + verify, empirical T4 contact, gated /paper significance, continuous discovery, LAB-on-SANDBOX, native I/O, minimal DRIVE, uncensored ENGINE default.",
+      "children": [
+        {
+          "name": "correctness via hexa verify (no self-judge)",
+          "kind": "note",
+          "summary": " Correctness verified only via `hexa verify` (no LLM self-judge, raw stdout verbatim)."
+        },
+        {
+          "name": "HF artifacts (dancinlab/* completeness)",
+          "kind": "note",
+          "summary": " HF artifacts: register every model/dataset/ckpt completely under dancinlab/* (hexa-forge-* models, hexa-codex-<domain>-evals-v<N> evals); adversarial/refusal/jailbreak sets default PRIVATE; completeness proven by an authenticated HF↔local sync audit on a token host."
+        },
+        {
+          "name": "branches (main/master protected)",
+          "kind": "policy",
+          "summary": " Branches: main/master protected (direct commit = hardcore violation); changes flow through PRs."
+        },
+        {
+          "name": "harness wiring (.harness-engine submodule)",
+          "kind": "note",
+          "summary": "Harness: this repo is wired to dancinlab/harness, vendored as the .harness-engine git submodule (branch harness-hardcore)."
+        },
+        {
+          "name": "harness.config.json",
+          "kind": "note",
+          "summary": " harness.config.json: profile=hardcore, stack=[hexa], protectedBranches=[main,master], lockdown.files guards core sources, lint.changelog requires CHANGELOG.md staged with *.hexa, docs block (architecture=ARCHITECTURE.json, log=CHANGELOG.md, scratch=state/scratch, scopeDirs=[\"\"] root-only + allow-list)."
+        },
+        {
+          "name": "agent hooks (.claude/settings.json)",
+          "kind": "note",
+          "summary": " Agent hooks (pre-bash/pre-write/post-edit/prompt/prefs/easy/recommend inject/SessionStart) in .claude/settings.json, each guarded to no-op when the engine binary is absent."
+        },
+        {
+          "name": "activation after fresh clone + provenance",
+          "kind": "note",
+          "summary": " Activate after fresh clone: `git submodule update --init --remote .harness-engine`; run via `bash .harness-engine/bin/harness <cmd>` (docs check → docs: ok). (was ARCHITECTURE.md Governance & CLAUDE.md.)"
+        }
+      ]
     },
     {
       "name": "🚧 Not yet built / in progress (honest)",
       "kind": "governance",
-      "summary": "The honest open residues (c9). Spec library: 0/17 verbs wired (write-side specs only), 0 eval pipelines at v1.0.0; per-group empirical landing laddered (SAFETY v1.1.0, ECONOMICS v1.2.0/infer v1.3.0, OPS v1.3.0, SUBSTRATE v2.0.0). Foundry/runtime: OpenAI API key not provisioned at GA (reason-algo/struct routes auth_fail until operator adds it); Gemini paid-tier not engaged (gemini-2.5-pro returns upstream_quota on free tier); opus/haiku cross-turn cache savings empirically ZERO; specialist ceiling frozen at r39 (improvement = v0.7+ GPU work — Lever 5 full-FT or routing-LoRA); SQLite schema migration is detection-only (SCHEMA_VERSION=1 via PRAGMA user_version); network-DB backend (Postgres/Redis) + connection pooling for distributed deploys deferred; auto-retry with backoff (upstream_5xx/quota) is a v0.7.0 candidate. Bio model: NOT STARTED (scaffold only). F-CODEX-2 (τ=4) is a FALSIFIED honest-negative; F-CODEX-1 empirical gate 🟠 1/4 rungs.",
-      "note": "(was V0_6_0_GA.md §2 'What v0.6.0 IS NOT' + per-domain State sections + ARCHITECTURE.md; v0.7+ roadmap in V0_6_0_GA.md §6 → CHANGELOG.)"
+      "summary": "The honest open residues (c9).",
+      "note": "(was V0_6_0_GA.md §2 'What v0.6.0 IS NOT' + per-domain State sections + ARCHITECTURE.md; v0.7+ roadmap in V0_6_0_GA.md §6 → CHANGELOG.)",
+      "children": [
+        {
+          "name": "spec library open residues",
+          "kind": "note",
+          "summary": " Spec library: 0/17 verbs wired (write-side specs only), 0 eval pipelines at v1.0.0; per-group empirical landing laddered (SAFETY v1.1.0, ECONOMICS v1.2.0/infer v1.3.0, OPS v1.3.0, SUBSTRATE v2.0.0)."
+        },
+        {
+          "name": "foundry/runtime open residues",
+          "kind": "group",
+          "summary": " Foundry/runtime: ",
+          "children": [
+            {
+              "name": "OpenAI key not provisioned",
+              "kind": "note",
+              "summary": "OpenAI API key not provisioned at GA (reason-algo/struct routes auth_fail until operator adds it)"
+            },
+            {
+              "name": "Gemini paid-tier not engaged",
+              "kind": "note",
+              "summary": "; Gemini paid-tier not engaged (gemini-2.5-pro returns upstream_quota on free tier)"
+            },
+            {
+              "name": "opus/haiku cache savings ZERO",
+              "kind": "note",
+              "summary": "; opus/haiku cross-turn cache savings empirically ZERO"
+            },
+            {
+              "name": "specialist ceiling frozen r39",
+              "kind": "note",
+              "summary": "; specialist ceiling frozen at r39 (improvement = v0.7+ GPU work — Lever 5 full-FT or routing-LoRA)"
+            },
+            {
+              "name": "SQLite schema migration detection-only",
+              "kind": "note",
+              "summary": "; SQLite schema migration is detection-only (SCHEMA_VERSION=1 via PRAGMA user_version)"
+            },
+            {
+              "name": "network-DB backend deferred",
+              "kind": "note",
+              "summary": "; network-DB backend (Postgres/Redis) + connection pooling for distributed deploys deferred"
+            },
+            {
+              "name": "auto-retry with backoff (v0.7.0 candidate)",
+              "kind": "note",
+              "summary": "; auto-retry with backoff (upstream_5xx/quota) is a v0.7.0 candidate."
+            }
+          ]
+        },
+        {
+          "name": "bio model NOT STARTED",
+          "kind": "note",
+          "summary": " Bio model: NOT STARTED (scaffold only)."
+        },
+        {
+          "name": "F-CODEX-2 falsified · F-CODEX-1 🟠 1/4",
+          "kind": "note",
+          "summary": " F-CODEX-2 (τ=4) is a FALSIFIED honest-negative; F-CODEX-1 empirical gate 🟠 1/4 rungs."
+        }
+      ]
     },
     {
       "name": "🗂 Tracked-file listing (delegated to git ls-files — NOT hand-maintained)",
       "kind": "governance",
-      "summary": "The exhaustive per-file listing is INTENTIONALLY NOT in this JSON. The full set of tracked files is derived mechanically from `git ls-files` (always current), so a new file never requires a manual leaf edit here. Each subsystem node above names its anchor dir/entry where load-bearing; the verb-named subtrees (alignment/, train_cost/, etc.) substitute for per-verb domain docs.",
-      "note": "ANTI-DRIFT (c4): mirrors anima's delegation node — listing ~hundreds of leaf paths in the SSOT would drift on every new file. Run `git ls-files` for the authoritative current set; DOMAINS.tape is the authoritative live domain→snapshot roster; ENGINE/ENGINE.md is the authoritative sibling intake matrix."
+      "summary": "The exhaustive per-file listing is INTENTIONALLY NOT in this JSON.",
+      "children": [
+        {
+          "name": "anti-drift rationale (c4)",
+          "kind": "note",
+          "summary": "ANTI-DRIFT (c4): mirrors anima's delegation node — listing ~hundreds of leaf paths in the SSOT would drift on every new file."
+        },
+        {
+          "name": "authoritative — git ls-files (file set)",
+          "kind": "note",
+          "summary": " Run `git ls-files` for the authoritative current set"
+        },
+        {
+          "name": "authoritative — DOMAINS.tape (domain roster)",
+          "kind": "note",
+          "summary": "; DOMAINS.tape is the authoritative live domain→snapshot roster"
+        },
+        {
+          "name": "authoritative — ENGINE/ENGINE.md (sibling matrix)",
+          "kind": "note",
+          "summary": "; ENGINE/ENGINE.md is the authoritative sibling intake matrix."
+        },
+        {
+          "name": "git ls-files derivation",
+          "kind": "note",
+          "summary": " The full set of tracked files is derived mechanically from `git ls-files` (always current), so a new file never requires a manual leaf edit here."
+        },
+        {
+          "name": "subsystem anchors + verb-subtree substitution",
+          "kind": "note",
+          "summary": " Each subsystem node above names its anchor dir/entry where load-bearing; the verb-named subtrees (alignment/, train_cost/, etc.) substitute for per-verb domain docs."
+        }
+      ]
     }
   ]
 }

@@ -1,2 +1,1 @@
 {"kind":"work","id":"3","ts":"2026-06-22T05:45:39.548Z","text":"[NOVEL-3 lm_foundry] out-of-weights re-open falsifier — 동일예산 in-weight 변종, 3-gate(분류 0.985 · Mk.I 94.29% · canon 무저하). GPU 비용 동반, v0.7 specialist-ceiling과 배치. design: state/scratch/lmfoundry-out-of-weights-design.md"}
-{"kind":"work","id":"8","ts":"2026-06-22T09:25:01.119Z","text":"[N6-SAE 10] σ−φ=10 interpret motif 수 n-sweep — σ(n)−φ(n), n=6의 10 vs 이웃, SAE feature ablation(F-CODEX-4 v2.0 ladder). falsifier: 10이 비-특이 재구성오차면 REFUTED."}

@@ -15,7 +15,7 @@ RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT="$PWD" \
     ~/.hx/packages/hexa/hexa.real run verify/saturation_check.hexa
 ```
 
-PASS iff every F-CODEX-1..4 carries `T1 + T2 + T3 ✓` AND the 4
+PASS iff every scaling-falsifier..4 carries `T1 + T2 + T3 ✓` AND the 4
 cross-cutters are present. Emits:
 
 ```
@@ -31,7 +31,6 @@ __HEXA_CODEX_SATURATION_CHECK__ PASS     # check sentinel
 |:----------------------------------------|:-------------------------------------------------------------------|
 | Per-pillar closure tracker              | `hexa-codex verify falsifier-check`                                |
 | Recipe §4 lint over numerics_*          | `hexa-codex verify lint-numerics`                                  |
-| n=6 lattice algebraic floor             | `hexa-codex verify lattice`                                        |
 | Cross-document anchor audit             | `hexa-codex verify cross-doc`                                      |
 | Cross-pillar T2 cross-cutter            | `hexa-codex verify numerics-cross-pillar`                          |
 | math_pure stability floor               | `hexa-codex verify numerics-lattice-arithmetic`                    |

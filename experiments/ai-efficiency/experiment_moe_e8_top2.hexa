@@ -1,12 +1,12 @@
 // experiment_moe_e8_top2.hexa
 // ───────────────────────────────────────────────────────────
 // 카테고리: ai-efficiency (TP Tier 1 P-3)
-// 목적: MoE 전문가수 E=8, top-k=2 라우팅의 구조 검증 (n=6 대조군)
+// 목적: MoE 전문가수 E=8, top-k=2 라우팅의 구조 검증 ( 대조군)
 // 배경: P-2 LoRA r=8 실험과 동일 축. E=8 (=sigma-tau) 대 E=6 (=n) 비교.
 //       GPU 없이 구조 수식 dry-run 만 수행.
 // 가설: E=8 top-2는 E=6 top-2 대비 (1) active FLOPs 동일 (top-k=2=phi 상수),
 //       (2) 파라미터 선형 증가 (E8/E6 = 4/3 = 1.333).
-//       실측(dry-run): CV 하한 E=8 > E=6 (0.0442 > 0.0383) — n=6 정합 승.
+//       실측(dry-run): CV 하한 E=8 > E=6 (0.0442 > 0.0383) —  정합 승.
 //       이유: tokens_per_expert E=8 은 512, E=6 은 682 → sqrt 역수 더 큼.
 // 지표: active FLOPs, params 비율, capacity factor, 이론 load CV
 // 규칙: R1 HEXA-FIRST, R12 AI-NATIVE, 한글 주석
@@ -56,9 +56,9 @@ fn main() {
     println("CV 하한 E=8 (1/sqrt) = " + cv_e8)
     println("CV 하한 E=6 (1/sqrt) = " + cv_e6)
 
-    // ── 5. n=6 정합성 점수 (~/core/nexus/n6/atlas.n6 참조 EXACT 매칭) ──────
+    // ── 5.  정합성 점수 (~/core/nexus/n6/atlas 참조 EXACT 매칭) ──────
     println("")
-    println("── n=6 정합성 (atlas.n6 참조) ──")
+    println("──  정합성 (atlas 참조) ──")
     println("top_k=2 == phi        [EXACT]")
     println("E=6 == n              [EXACT]")
     println("E=8 == sigma-tau=8    [EXACT]")
@@ -69,9 +69,9 @@ fn main() {
     println("── 예측 (dry-run) ──")
     println("active FLOPs 동일 (phi*2*d_model*d_ff)")
     println("메모리 +33.3% (E=6 대비)")
-    println("이론 load CV 하한: E=8 > E=6 (0.0442 > 0.0383) — n=6 유리")
-    println("예측 확정: n=6 정합 (E=6) 이 균등성 실측에서도 우위 기대")
-    println("(BT-22: 전문가 분산은 n=6 약수/배수에서 균등)")
+    println("이론 load CV 하한: E=8 > E=6 (0.0442 > 0.0383) —  유리")
+    println("예측 확정:  정합 (E=6) 이 균등성 실측에서도 우위 기대")
+    println("(BT-22: 전문가 분산은  약수/배수에서 균등)")
 
     // ── 7. expert utilization 분포 (구조) ─────────────────
     println("")

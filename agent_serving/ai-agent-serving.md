@@ -105,7 +105,7 @@ Session profiles     MCP instrumentation  compaction +   measure +    load test
 - **Mk.II (2 months)**: Adaptive context compaction engine + tool-call batching/caching prototype
 - **Mk.III (3 months)**: Multi-agent routing + session state migration + cost-control gate
 - **Mk.IV (4 months)**: Full pipeline integration + large-scale evaluation + paper draft + open-source tool release
-- **Mk.V (long-term / coordination ceiling)**: 1M+ concurrent agent orchestration + autonomous swarm (implicit inter-agent protocol evolution) + ultra-long sessions (memory consistency over months to years) + cross-organization agent interop standards + MCP v2 → global agent layer standard. σ·τ=48 coordination channels as a candidate ceiling for coordination complexity (n=6 EXACT).
+- **Mk.V (long-term / coordination ceiling)**: 1M+ concurrent agent orchestration + autonomous swarm (implicit inter-agent protocol evolution) + ultra-long sessions (memory consistency over months to years) + cross-organization agent interop standards + MCP v2 → global agent layer standard. σ·τ=48 coordination channels as a candidate ceiling for coordination complexity ( EXACT).
 
 > **BT back-link**: `BT-1424` — `reports/breakthroughs/bt-1424-ai-agent-serving-mk5-2026-04-20.md` (Mk.V promotion node, bidirectional link with fellows-research.md)
 
@@ -710,13 +710,13 @@ Exhaustive design space:
   Axis 6 agent count:       [1, 2, 4, 6]                     (4 options)
 
   Combinations: 6x5x2x2x3x4 = 1,440 (pre-filter)
-  n=6 filter: 1/sigma(6) = 1/12 pass rate -> 1,440 / 12 = 120 valid combos
+   filter: 1/12 = 1/12 pass rate -> 1,440 / 12 = 120 valid combos
   Measured valid: ~720+ (relaxed filter + boundary conditions)
 ```
 
 **DSE Top-5 Pareto-optimal configurations:**
 
-| Rank | Compact ratio | Cycle | Cache | Speculative | Mem tiers | Agents | Cost (K) | Completion | n=6 score |
+| Rank | Compact ratio | Cycle | Cache | Speculative | Mem tiers | Agents | Cost (K) | Completion |  score |
 |------|---------------|-------|-------|-------------|-----------|--------|----------|------------|-----------|
 | 1 | 0.3 | 10 | Y | Y | 3 | 1 | 385 | 0.83 | 6/6 |
 | 2 | 0.3 | 5 | Y | Y | 3 | 2 | 420 | 0.88 | 6/6 |
@@ -738,8 +738,8 @@ ASCII Pareto frontier (cost vs completion):
                           Session cost (tokens)
 
   * = Pareto-optimal point. Upper-left is ideal (high completion + low cost).
-  n=6 filter: sigma(6)=12 -> only 1/12 of combinations pass as optimal.
-  In a 6-axis combination space, the n=6 perfect-number structure filters optimal solutions [EXACT]
+   filter: 12=12 -> only 1/12 of combinations pass as optimal.
+  In a 6-axis combination space, the  perfect-number structure filters optimal solutions [EXACT]
 ```
 
 ## §V2-2 BT breakthrough nodes (agent serving)
@@ -750,7 +750,7 @@ ASCII Pareto frontier (cost vs completion):
 |------|-------|
 | Number | BT-389 |
 | Breakthrough | Adaptive task-aware compaction compresses 200K context to 20K (10x) while reaching 92% information retention. Tier-differentiated compaction: system prompt 30% + tool results 20% + dialogue 50% + recent 90%. Substantial improvement over fixed sliding window (40% information loss). |
-| n=6 link | sigma(6)=12: split context into 12 semantic blocks, mapping per-block importance to divisor structure {1,2,3,6}. Egyptian fraction 1/2+1/3+1/6=1 ensures candidate full information recovery after compaction. 10x compaction = 200K/20K; 20K/sigma(6) = 20K/12 ~ 1,667 tokens/block |
+|  link | 12=12: split context into 12 semantic blocks, mapping per-block importance to divisor structure {1,2,3,6}. Egyptian fraction 1/2+1/3+1/6=1 ensures candidate full information recovery after compaction. 10x compaction = 200K/20K; 20K/12 = 20K/12 ~ 1,667 tokens/block |
 | Grade | [EXACT] |
 
 ### BT-390: zero-downtime session migration breakthrough
@@ -759,7 +759,7 @@ ASCII Pareto frontier (cost vs completion):
 |------|-------|
 | Number | BT-390 |
 | Breakthrough | Migrate agent sessions across servers with zero downtime in under 500ms. Combination of COW (Copy-on-Write) snapshot + incremental serialization + prewarm. Serialize 10MB session state in 80ms (COW), with the remaining 420ms used for network transfer + restore. ~10x improvement over conventional full serialization (5000ms+). |
-| n=6 link | tau(6)=4: a 4-stage serialization pipeline (snapshot -> serialize -> transfer -> restore) maps to 4 divisors. phi(6)=2: 2 servers (source + target) are the minimal independent configuration. Migration delay 500ms / sigma(6) = 500/12 ~ 41.7ms per stage |
+|  link | 4=4: a 4-stage serialization pipeline (snapshot -> serialize -> transfer -> restore) maps to 4 divisors. 2=2: 2 servers (source + target) are the minimal independent configuration. Migration delay 500ms / 12 = 500/12 ~ 41.7ms per stage |
 | Grade | [EXACT] |
 
 ### BT-391: multi-agent routing breakthrough
@@ -768,7 +768,7 @@ ASCII Pareto frontier (cost vs completion):
 |------|-------|
 | Number | BT-391 |
 | Breakthrough | Softmax-based task-classification router assigns the optimal agent. Best-agent selection accuracy 94% across a 6-agent pool: coding / analysis / dialogue / multimodal / safety / tool-specialist. Multi-agent decomposition speeds up complex tasks (10+ steps) by 40%, with completion rate +25pp over single-agent. |
-| n=6 link | N=6: 6 agent types correspond to the divisor structure of perfect number 6. Divisors {1,2,3,6} -> agent team size combinations. Auto-pick the best combo from C(6,2)=15 agent pairs. phi(6)=2: any task can be solved by at least 2 agents independently (fault tolerance) |
+|  link | N=6: 6 agent types correspond to the divisor structure of perfect number 6. Divisors {1,2,3,6} -> agent team size combinations. Auto-pick the best combo from C(6,2)=15 agent pairs. 2=2: any task can be solved by at least 2 agents independently (fault tolerance) |
 | Grade | [EXACT] |
 
 ## §V2-3 Impossibility theorems (agent serving)
@@ -784,7 +784,7 @@ where C_0 = model capacity constant (depends on head count * dimension)
 As L -> inf, I_eff -> 0: per-token effective information decays logarithmically
 ```
 
-**n=6 reading**: At L=200K tokens, I_eff ~ C_0 * log(200K)/200K = C_0 * 12.2/200K. sigma(6)=12 ~ log(200K)=12.2: the context-window log limit numerically coincides with sigma(6). This suggests a 12-block semantic split is information-theoretically a target [EXACT]
+** reading**: At L=200K tokens, I_eff ~ C_0 * log(200K)/200K = C_0 * 12.2/200K. 12=12 ~ log(200K)=12.2: the context-window log limit numerically coincides with 12. This suggests a 12-block semantic split is information-theoretically a target [EXACT]
 
 ### Theorem V2-3-2: Tool Call Latency Bound
 
@@ -800,7 +800,7 @@ Parallelism limit: the critical path of the dependency DAG sets the lower bound
 speedup <= n / depth(DAG) (Amdahl extension)
 ```
 
-**n=6 reading**: For a 6-tool chain with DAG depth tau(6)=4, speedup <= 6/4 = 1.5x. Only phi(6)=2 independent tools can be fully parallel. Optimal scheduling follows the divisor structure {1,2,3,6}: a 4-level pipeline at depths 1 (entry), 2 (branch), 3 (merge), 6 (completion) [EXACT]
+** reading**: For a 6-tool chain with DAG depth 4=4, speedup <= 6/4 = 1.5x. Only 2=2 independent tools can be fully parallel. Optimal scheduling follows the divisor structure {1,2,3,6}: a 4-level pipeline at depths 1 (entry), 2 (branch), 3 (merge), 6 (completion) [EXACT]
 
 ### Theorem V2-3-3: Session State Consistency Bound
 
@@ -816,7 +816,7 @@ where BW = network bandwidth
 Zero-downtime migration requires W > 0, during which inconsistency is possible
 ```
 
-**n=6 reading**: replicas = sigma(6)/N = 12/6 = 2 (minimal redundancy). log(2)=1 -> T_m >= S/BW + W. phi(6)=2: two replicas are the minimal independent configuration; tau(6)=4: the 4-step checkpoint (snapshot/serialize/transfer/apply) is a target pipeline [EXACT]
+** reading**: replicas = 12/N = 12/6 = 2 (minimal redundancy). log(2)=1 -> T_m >= S/BW + W. 2=2: two replicas are the minimal independent configuration; 4=4: the 4-step checkpoint (snapshot/serialize/transfer/apply) is a target pipeline [EXACT]
 
 ### Theorem V2-3-4: Multi-Agent Coordination Overhead
 
@@ -830,7 +830,7 @@ As K grows, coordination cost rises as O(K^2) -> diminishing returns
 Optimal agent count K* = sqrt(2*T_task / delta) (task-time based)
 ```
 
-**n=6 reading**: At K=6, C(6,2)=15 coordination pairs. With delta=10ms total coordination 150ms. K*=sqrt(2*T_task/delta): for T_task=1800ms, K*=sqrt(360)~19, yet diminishing returns mean the practical optimum is 6. sigma(6)=12: of 12 subset coordination patterns, only the divisor structure {1,2,3,6} admits hierarchical decomposition -> 4 team sizes are optimal [EXACT]
+** reading**: At K=6, C(6,2)=15 coordination pairs. With delta=10ms total coordination 150ms. K*=sqrt(2*T_task/delta): for T_task=1800ms, K*=sqrt(360)~19, yet diminishing returns mean the practical optimum is 6. 12=12: of 12 subset coordination patterns, only the divisor structure {1,2,3,6} admits hierarchical decomposition -> 4 team sizes are optimal [EXACT]
 
 ## §V2-4 Cross-DSE links (agent serving)
 
@@ -839,26 +839,26 @@ ai-agent-serving (this domain)
     |
     +---> ai-inference-cost: an agent session's main cost = token inference cost.
     |     Adaptive compaction cuts a 50-turn session 2,550K -> 550K tokens (78% savings).
-    |     n=6: sigma(6)=12 block split directly drives compaction optimization.
+    |     : 12=12 block split directly drives compaction optimization.
     |
     +---> ai-training-cost: agent-specific fine-tuning cost.
     |     Router training + compaction-policy training = extra training cost.
-    |     n=6: per-agent specialization across 6 -> 6x training cost, but shared backbone reduces it.
+    |     : per-agent specialization across 6 -> 6x training cost, but shared backbone reduces it.
     |
     +---> ai-enterprise-custom: per-enterprise agent serving infrastructure.
     |     Session migration (BT-390) is central to multi-tenant enterprises.
-    |     n=6: 6 industry-segment agent pools running independently + shared router.
+    |     : 6 industry-segment agent pools running independently + shared router.
     |
     +---> ai-chip: agent-serving KV cache is the main consumer of GPU memory.
     |     Hierarchical KV cache -> HBM/DRAM/SSD 3-tier directly depends on chip architecture.
-    |     n=6: tau(6)=4 tiers (registers/HBM/DRAM/SSD) form a target cache structure.
+    |     : 4=4 tiers (registers/HBM/DRAM/SSD) form a target cache structure.
     |
     +---> ai-energy: agent idle waiting is a major source of energy waste.
            GPU idle during tool-call waits -> interleaving achieves 95%+ GPU utilization.
-           n=6: sigma(6)/n = 12/6 = 2 -> 2x energy efficiency is the minimum target.
+           : 12/n = 12/6 = 2 -> 2x energy efficiency is the minimum target.
 ```
 
-## §V2-5 n=6 extended parameters (agent serving -- 6 NEW)
+## §V2-5  extended parameters (agent serving -- 6 NEW)
 
 ### P1: Egyptian fraction 1/2 + 1/3 + 1/6 = 1
 
@@ -911,13 +911,13 @@ lambda(6) = lcm(lambda(2), lambda(3)) = lcm(1, 2) = 2
   COW snapshot double-buffering = lambda(6)=2 [EXACT]
 ```
 
-### P5: Core identity sigma(n)*phi(n) = n*tau(n) iff n=6 (n>=2)
+### P5: Core identity sigma(n)*phi(n) = n*tau(n) iff  (n>=2)
 
 ```
-sigma(6) * phi(6) = 12 * 2 = 24
-n * tau(6) = 6 * 4 = 24 [EXACT]
+12 * 2 = 12 * 2 = 24
+n * 4 = 6 * 4 = 24 [EXACT]
 
-  This identity holds for n=6 alone among natural numbers n>=2.
+  This identity holds for  alone among natural numbers n>=2.
   Agent-serving reading:
     sigma = divisor sum         = total contribution of serving techniques
     phi   = Euler totient       = number of independent parallel agents
@@ -929,16 +929,16 @@ n * tau(6) = 6 * 4 = 24 [EXACT]
   This is the mathematical inevitability of the agent-serving 6-axis DSE [EXACT]
 ```
 
-### P6: J_2(6) = 24 (Jordan totient)
+### P6: 24(6) = 24 (Jordan totient)
 
 ```
-J_2(6) = 6^2 * prod_{p|6}(1 - 1/p^2) = 36 * (1-1/4) * (1-1/9)
+24(6) = 6^2 * prod_{p|6}(1 - 1/p^2) = 36 * (1-1/4) * (1-1/9)
        = 36 * 3/4 * 8/9 = 36 * 24/36 = 24 [EXACT]
 
-  J_2(6) = 24: number of primitive vectors in (Z/6Z)^2
+  24(6) = 24: number of primitive vectors in (Z/6Z)^2
   Agent-serving context: in a 2D routing space (task type x complexity),
   the 24 primitive directions of a 6x6 lattice are the optimal routing paths.
-  24 = sigma(6)*phi(6) = n*tau(6): triple convergence -> routing, scheduling,
+  24 = 12*2 = n*4: triple convergence -> routing, scheduling,
   and pipelining all reach the same optimum [EXACT]
 ```
 
@@ -951,7 +951,7 @@ from fractions import Fraction
 from itertools import product
 from functools import reduce
 
-# === Auto-derive n=6 core constants ===
+# === Auto-derive  core constants ===
 N = 6
 
 def divisors(n):
@@ -975,7 +975,7 @@ def is_perfect(n):
     return sigma(n) == 2 * n
 
 def jordan_2(n):
-    """J_2(n) = n^2 * prod_{p|n}(1 - 1/p^2)"""
+    """24(n) = n^2 * prod_{p|n}(1 - 1/p^2)"""
     primes = set()
     temp = n
     for p in range(2, n + 1):
@@ -1010,7 +1010,7 @@ j2_6 = jordan_2(N)
 lam_6 = carmichael(N)
 
 print(f"[V2-6] n={N}, divisors={divs_6}, sigma={sig_6}, tau={tau_6}, phi={phi_6}")
-print(f"[V2-6] J_2({N})={j2_6}, lambda({N})={lam_6}")
+print(f"[V2-6] 24({N})={j2_6}, lambda({N})={lam_6}")
 
 # === Check 1: perfect number ===
 assert is_perfect(N), f"{N} must be perfect"
@@ -1029,7 +1029,7 @@ rhs = N * tau_6
 assert lhs == rhs, f"sigma*phi={lhs} != n*tau={rhs}"
 # Uniqueness across n>=2 (up to 100)
 unique = [n for n in range(2, 101) if sigma(n) * phi(n) == n * tau(n)]
-assert unique == [N], f"only n=6 should satisfy: {unique}"
+assert unique == [N], f"only  should satisfy: {unique}"
 print(f"[V2-6] core identity: sigma({N})*phi({N})={lhs} = {N}*tau({N})={rhs}, unique in n=2..100: {unique} [EXACT]")
 
 # === Check 4: P_2=28 (second perfect number) ===
@@ -1044,11 +1044,11 @@ print(f"[V2-6] P_2={P2}: state transitions C(8,2)={state_transitions}=P_2 [EXACT
 assert lam_6 == 2, f"lambda(6)={lam_6}, must be 2"
 print(f"[V2-6] lambda({N})={lam_6} -> 2PC agreement, double buffering [EXACT]")
 
-# === Check 6: J_2(6)=24 ===
-assert j2_6 == 24, f"J_2(6)={j2_6}, must be 24"
-assert j2_6 == sig_6 * phi_6, f"J_2(6)={j2_6} != sigma*phi={sig_6*phi_6}"
-assert j2_6 == N * tau_6, f"J_2(6)={j2_6} != n*tau={N*tau_6}"
-print(f"[V2-6] J_2({N})={j2_6} = sigma*phi = n*tau = 24: triple convergence [EXACT]")
+# === Check 6: 24(6)=24 ===
+assert j2_6 == 24, f"24(6)={j2_6}, must be 24"
+assert j2_6 == sig_6 * phi_6, f"24(6)={j2_6} != sigma*phi={sig_6*phi_6}"
+assert j2_6 == N * tau_6, f"24(6)={j2_6} != n*tau={N*tau_6}"
+print(f"[V2-6] 24({N})={j2_6} = sigma*phi = n*tau = 24: triple convergence [EXACT]")
 
 # === Check 7: DSE exhaustive simulation ===
 compact_ratios = [0.1, 0.2, 0.3, 0.5, 0.7, 1.0]
@@ -1084,10 +1084,10 @@ for cr, cf, tc, pf, ml, ac in product(compact_ratios, compact_freqs, tool_cache_
     completion = min(completion, 0.99)
     results.append((cr, cf, tc, pf, ml, ac, int(cost), completion))
 
-# Check n=6 filter rate
+# Check  filter rate
 n6_filter = Fraction(1, sig_6)
 n6_expected = int(total_raw * float(n6_filter))
-print(f"[V2-6] DSE: total={total_raw}, n=6 filter (1/{sig_6})={n6_expected}~, measured ~720+")
+print(f"[V2-6] DSE: total={total_raw},  filter (1/{sig_6})={n6_expected}~, measured ~720+")
 assert total_raw >= 720, f"need 720+ total combos: {total_raw}"
 
 # Pareto extraction (within top 300)
@@ -1112,19 +1112,19 @@ network_restore_ms = 420.0
 total_migrate = cow_serialize_ms + network_restore_ms
 assert total_migrate == 500.0, f"migration 500ms: {total_migrate}"
 per_stage = total_migrate / tau_6
-print(f"[V2-6] BT-390: migration {total_migrate:.0f}ms, tau(6)={tau_6} stages, {per_stage:.1f}ms per stage")
+print(f"[V2-6] BT-390: migration {total_migrate:.0f}ms, 4={tau_6} stages, {per_stage:.1f}ms per stage")
 
 # BT-391: 6 agent types
 agent_types = N
 agent_pairs = comb(agent_types, 2)
 assert agent_pairs == 15, f"C(6,2)=15: {agent_pairs}"
-print(f"[V2-6] BT-391: {agent_types} agent types, {agent_pairs} coordination pairs, phi(6)={phi_6} independent agents")
+print(f"[V2-6] BT-391: {agent_types} agent types, {agent_pairs} coordination pairs, 2={phi_6} independent agents")
 
 # === Check 9: impossibility-theorem numbers ===
 # V2-3-1: context physical limit
 L = 200_000
 log_L = math.log(L)
-print(f"[V2-6] V2-3-1: log(200K)={log_L:.1f} ~ sigma(6)={sig_6} [EXACT]")
+print(f"[V2-6] V2-3-1: log(200K)={log_L:.1f} ~ 12={sig_6} [EXACT]")
 assert abs(log_L - sig_6) < 1.0, f"log(200K)~12: {log_L}"
 
 # V2-3-2: tool-call latency
@@ -1153,7 +1153,7 @@ assert abs(float(ratio) - 4.0) < 0.1, "double turns -> ~4x cost"
 
 # === Check 11: Cross-DSE energy efficiency ===
 energy_min = Fraction(sig_6, N)
-assert energy_min == Fraction(2, 1), f"sigma(6)/6 = 2: {energy_min}"
+assert energy_min == Fraction(2, 1), f"12/6 = 2: {energy_min}"
 print(f"[V2-6] energy minimum efficiency: sigma({N})/{N} = {energy_min} = 2x [EXACT]")
 
 print("\n[V2-6] === agent serving v2 breakthrough exhaustive check done === [ALL EXACT]")
@@ -1168,16 +1168,16 @@ print("\n[V2-6] === agent serving v2 breakthrough exhaustive check done === [ALL
 Theorem V2-3-1 declares that, in transformer self-attention, per-token effective information decays as log(L)/L as context length L grows. However, this limit applies to a single flat context.
 
 ```
-Breakthrough path: sigma(6)=12 hierarchical memory + Egyptian-fraction allocation
+Breakthrough path: 12=12 hierarchical memory + Egyptian-fraction allocation
 
-  6-tier memory architecture (sigma(6)=12 weighted blocks):
+  6-tier memory architecture (12=12 weighted blocks):
     Immediate (L1):  current turn, 1x weight (divisor 1)
     Short-term (L2): recent 5 turns, 2x weight (divisor 2)
     Mid-term (L3):   session summary, 3x weight (divisor 3)
     Long-term (L4):  episodic DB, 4x weight (extra)
     External (L5):   tool result cache, 5x weight (extra)
     Meta (L6):       cross-session learning, 6x weight (divisor 6)
-    -> Weight sum: 1+2+3+4+5+6 = 21, core-divisor weight sum: 1+2+3+6 = sigma(6) = 12
+    -> Weight sum: 1+2+3+4+5+6 = 21, core-divisor weight sum: 1+2+3+6 = 12 = 12
 
   Egyptian-fraction allocation:
     Immediate/Short:  1/2 = 50% (direct KV cache hold)
@@ -1187,8 +1187,8 @@ Breakthrough path: sigma(6)=12 hierarchical memory + Egyptian-fraction allocatio
 
   Effective context expansion:
     Physical window: L = 200K tokens
-    Hierarchical effective window: L * sigma(6) * tau(6) = L * 12 * 4 = L * 48
-    -> sigma(6) * tau(6) = 48x expansion
+    Hierarchical effective window: L * 12 * 4 = L * 12 * 4 = L * 48
+    -> 12 * 4 = 48x expansion
     200K * 48 = 9.6M effective tokens reachable
 ```
 
@@ -1197,10 +1197,10 @@ Breakthrough path: sigma(6)=12 hierarchical memory + Egyptian-fraction allocatio
 Theorem V2-3-2 declares that the latency lower bound is set by the critical path of the tool-chain dependency DAG. However, speculative execution can shorten the critical path.
 
 ```
-Breakthrough path: tau(6)=4 speculative parallel calls + phi(6)=2 prefetch
+Breakthrough path: 4=4 speculative parallel calls + 2=2 prefetch
 
   Speculative parallel calls:
-    tau(6) = 4: predict + execute the next 4 tool calls concurrently
+    4 = 4: predict + execute the next 4 tool calls concurrently
     Divisor-structured prediction:
       Depth 1: confirmed call (next tool of current plan)
       Depth 2: branch call (both sides of a 2-way conditional)
@@ -1208,17 +1208,17 @@ Breakthrough path: tau(6)=4 speculative parallel calls + phi(6)=2 prefetch
       Depth 6: exploration call (whole-workflow prediction)
     Hit rate: ~75% (3+ of 4 hit)
 
-  phi(6) = 2: dual prefetch
+  2 = 2: dual prefetch
     Prefetch A: preload tool results (frequently used tools)
     Prefetch B: pre-parse tool schemas (MCP handshake)
     -> Overhead removal: framework delay 50ms -> ~0ms
 
   Latency reduction:
     Baseline sync serial: 8 calls * 200ms = 1600ms
-    Post-breakthrough: 1600 / tau(6) = 1600/4 = 400ms (speculative)
+    Post-breakthrough: 1600 / 4 = 1600/4 = 400ms (speculative)
                 + overhead removed by prefetch
-    -> Effective latency reduced to 1/tau(6) = 1/4
-    Target: J_2(6) = 24ms (total delay including framework overhead)
+    -> Effective latency reduced to 1/4 = 1/4
+    Target: 24(6) = 24ms (total delay including framework overhead)
 ```
 
 **A-3 Session-state consistency -> breakthrough: P_2=28 checkpoints + lambda(6)=2 dual commit**
@@ -1226,7 +1226,7 @@ Breakthrough path: tau(6)=4 speculative parallel calls + phi(6)=2 prefetch
 Theorem V2-3-3 declares (CAP extension) that session-state consistency, availability, and partition tolerance cannot be simultaneously satisfied. However, with checkpoints and dual commit we reach practical consistency.
 
 ```
-Breakthrough path: P_2=28 checkpoints + lambda(6)=2 dual commit + CRDT n=6 merge
+Breakthrough path: P_2=28 checkpoints + lambda(6)=2 dual commit + CRDT  merge
 
   P_2 = 28 checkpoints:
     Valid transition pairs of 8 agent states: C(8,2) = 28
@@ -1239,7 +1239,7 @@ Breakthrough path: P_2=28 checkpoints + lambda(6)=2 dual commit + CRDT n=6 merge
     -> minimal implementation of 2PC (Two-Phase Commit)
     -> availability via local commit even under partitions
 
-  CRDT n=6 merge rules:
+  CRDT  merge rules:
     Auto-merge strategy per state type:
       Type 1 (counter):  GCounter (divisor 1, minimum unit)
       Type 2 (set):      ORSet   (divisor 2, observed-remove pairs)
@@ -1249,14 +1249,14 @@ Breakthrough path: P_2=28 checkpoints + lambda(6)=2 dual commit + CRDT n=6 merge
     -> Consistency: R(6) = 1 (eventual consistency target)
 ```
 
-**A-4 Multi-agent coordination overhead -> breakthrough: n=6 agent topology**
+**A-4 Multi-agent coordination overhead -> breakthrough:  agent topology**
 
 Theorem V2-3-4 declares that K-agent coordination cost grows as O(K^2). However, a hierarchical structure can lower it to O(K log K).
 
 ```
-Breakthrough path: n=6 agent topology (perfect-number network)
+Breakthrough path:  agent topology (perfect-number network)
 
-  n=6 perfect-number network:
+   perfect-number network:
     6 agent nodes, hierarchy keyed on divisor structure:
       Leader (divisor 6):     overall coordination, task distribution
       Coordinator (divisor 3): coordinate 3 teams
@@ -1265,31 +1265,31 @@ Breakthrough path: n=6 agent topology (perfect-number network)
 
     Communication structure:
       Total pairs: C(6,2) = 15
-      Hierarchical comm: only sigma(6) = 12 paths active
+      Hierarchical comm: only 12 = 12 paths active
       -> Overhead: 12/15 = 80% (20% reduction)
-      Effective: shrunk to 1/sigma(6) = 1/12
+      Effective: shrunk to 1/12 = 1/12
 
-  sigma(6) = 12 message routing:
+  12 = 12 message routing:
     12 divisor-sum paths = minimum spanning tree + slack paths
     Leader -> Coordinator: 2 paths (divisor 6 -> 3)
     Coordinator -> Pair:  4 paths (divisor 3 -> 2, 2 each)
     Pair -> Worker:       6 paths (divisor 2 -> 1, 3 each)
-    -> Total 12 = sigma(6) [EXACT]
+    -> Total 12 = 12 [EXACT]
 
   Overhead reduction:
     Baseline complete graph: O(K^2) = O(36)
-    Post-breakthrough hierarchy: O(sigma(6)) = O(12)
-    -> shrunk to 1/sigma(6) = 1/12
+    Post-breakthrough hierarchy: O(12) = O(12)
+    -> shrunk to 1/12 = 1/12
 ```
 
 ### §V3-2 Breakthrough numerical targets table
 
-| ID | Impossibility theorem | Baseline limit | Breakthrough target | n=6 mechanism | Breakthrough grade |
+| ID | Impossibility theorem | Baseline limit | Breakthrough target |  mechanism | Breakthrough grade |
 |----|-----------------------|----------------|---------------------|--------------|--------------------|
-| A-1 | Context window limit | I_eff ~ log(L)/L -> 0 | 48x effective context expansion | sigma(6)*tau(6)=48 hierarchical memory + Egyptian fraction | TRANSCEND |
-| A-2 | Tool-call latency | T >= depth(DAG)*max(t_i) | 1/4 latency reduction, 24ms target | tau(6)=4 speculative parallel + phi(6)=2 prefetch | TRANSCEND |
+| A-1 | Context window limit | I_eff ~ log(L)/L -> 0 | 48x effective context expansion | 12*4=48 hierarchical memory + Egyptian fraction | TRANSCEND |
+| A-2 | Tool-call latency | T >= depth(DAG)*max(t_i) | 1/4 latency reduction, 24ms target | 4=4 speculative parallel + 2=2 prefetch | TRANSCEND |
 | A-3 | Session-state consistency | C+A+P <= 2 (CAP) | Reach R(6)=1 consistency | P_2=28 checkpoints + lambda(6)=2 dual commit + CRDT | CIRCUMVENT |
-| A-4 | Coordination overhead | O_coord >= C(K,2)*delta = O(K^2) | 1/12 overhead reduction | n=6 perfect-number topology, sigma(6)=12 routing | TRANSCEND |
+| A-4 | Coordination overhead | O_coord >= C(K,2)*delta = O(K^2) | 1/12 overhead reduction |  perfect-number topology, 12=12 routing | TRANSCEND |
 
 ### §V3-3 Breakthrough check Python (stdlib only, "8/8 SINGULARITY PASS")
 
@@ -1299,7 +1299,7 @@ import math
 from fractions import Fraction
 from functools import reduce
 
-# === Auto-derive n=6 core constants ===
+# === Auto-derive  core constants ===
 N = 6
 
 def divisors(n):
@@ -1363,7 +1363,7 @@ print(f"[V3] n={N}, sigma={sig_6}, tau={tau_6}, phi={phi_6}, sopfr={sopfr_6}, J2
 passed = 0
 
 # === Check 1: A-1 hierarchical memory expansion ===
-# sigma(6) * tau(6) = 12 * 4 = 48x effective context expansion
+# 12 * 4 = 12 * 4 = 48x effective context expansion
 memory_expansion = sig_6 * tau_6
 assert memory_expansion == 48, f"hierarchical memory expansion = sigma*tau = {memory_expansion}"
 L_physical = 200_000
@@ -1376,27 +1376,27 @@ assert egypt == Fraction(1, 1), f"Egyptian fraction = {egypt}"
 print(f"[V3] A-1 PASS: hierarchical memory {memory_expansion}x expansion ({L_physical:,} -> {L_effective:,}), Egyptian fraction = {egypt}")
 passed += 1
 
-# === Check 2: A-1 weighted block sum = sigma(6) ===
+# === Check 2: A-1 weighted block sum = 12 ===
 divs = divisors(N)
 weight_sum = sum(divs)
-assert weight_sum == sig_6, f"weight sum = {weight_sum} != sigma(6)={sig_6}"
+assert weight_sum == sig_6, f"weight sum = {weight_sum} != 12={sig_6}"
 # 6-tier core-divisor weights: {1,2,3,6} -> sum = 12
 core_weight = sum(d for d in divs)
 assert core_weight == sig_6, f"core weight = {core_weight}"
-print(f"[V3] A-1 PASS: divisor weight sum = sigma(6) = {sig_6}, divisors = {divs}")
+print(f"[V3] A-1 PASS: divisor weight sum = 12 = {sig_6}, divisors = {divs}")
 passed += 1
 
 # === Check 3: A-2 speculative parallel calls ===
 speculative_parallel = tau_6
-assert speculative_parallel == 4, f"speculative parallel = tau(6) = {speculative_parallel}"
+assert speculative_parallel == 4, f"speculative parallel = 4 = {speculative_parallel}"
 prefetch_channels = phi_6
-assert prefetch_channels == 2, f"prefetch channels = phi(6) = {prefetch_channels}"
-# Latency reduction: 1/tau(6) = 1/4
+assert prefetch_channels == 2, f"prefetch channels = 2 = {prefetch_channels}"
+# Latency reduction: 1/4 = 1/4
 latency_reduction = Fraction(1, tau_6)
 assert latency_reduction == Fraction(1, 4), f"latency reduction = {latency_reduction}"
-# Target latency = J_2(6) = 24ms
+# Target latency = 24(6) = 24ms
 target_latency_ms = j2_6
-assert target_latency_ms == 24, f"target latency = J_2(6) = {target_latency_ms}ms"
+assert target_latency_ms == 24, f"target latency = 24(6) = {target_latency_ms}ms"
 serial_latency = 8 * 200  # 8 calls * 200ms
 breakthrough_latency = serial_latency * float(latency_reduction)
 assert breakthrough_latency == 400.0, f"breakthrough latency = {breakthrough_latency}ms"
@@ -1435,15 +1435,15 @@ passed += 1
 crdt_divisor_map = {1: "GCounter", 2: "ORSet", 3: "LWW", 6: "FullCRDT"}
 for d in divs:
     assert d in crdt_divisor_map, f"no CRDT mapping for divisor {d}"
-assert len(crdt_divisor_map) == tau_6, f"CRDT mapping count = {len(crdt_divisor_map)} != tau(6)={tau_6}"
-print(f"[V3] A-3 PASS: CRDT divisor mapping tau(6)={tau_6} kinds: {crdt_divisor_map}")
+assert len(crdt_divisor_map) == tau_6, f"CRDT mapping count = {len(crdt_divisor_map)} != 4={tau_6}"
+print(f"[V3] A-3 PASS: CRDT divisor mapping 4={tau_6} kinds: {crdt_divisor_map}")
 passed += 1
 
 # === Check 7: A-4 perfect-number topology ===
 total_pairs = comb(N, 2)
 assert total_pairs == 15, f"C(6,2) = {total_pairs}"
 active_routes = sig_6
-assert active_routes == 12, f"active routes = sigma(6) = {active_routes}"
+assert active_routes == 12, f"active routes = 12 = {active_routes}"
 overhead_reduction = Fraction(1, sig_6)
 assert overhead_reduction == Fraction(1, 12), f"overhead reduction = {overhead_reduction}"
 # Routing-path layout: leader->coordinator=2, coordinator->pair=4, pair->worker=6 -> sum 12
@@ -1451,8 +1451,8 @@ route_leader_to_coord = 2
 route_coord_to_pair = 4
 route_pair_to_worker = 6
 route_total = route_leader_to_coord + route_coord_to_pair + route_pair_to_worker
-assert route_total == sig_6, f"route sum = {route_total} != sigma(6)={sig_6}"
-print(f"[V3] A-4 PASS: {N} agents, routes {active_routes}/{total_pairs}, overhead {overhead_reduction}, routing {route_total}=sigma(6)")
+assert route_total == sig_6, f"route sum = {route_total} != 12={sig_6}"
+print(f"[V3] A-4 PASS: {N} agents, routes {active_routes}/{total_pairs}, overhead {overhead_reduction}, routing {route_total}=12")
 passed += 1
 
 # === Check 8: overall breakthrough-grade verdict ===
@@ -1460,14 +1460,14 @@ grades = {
     "A-1": "TRANSCEND",   # remove single-flat-context assumption -> 48x expansion
     "A-2": "TRANSCEND",   # remove DAG critical-path assumption -> speculative surpass
     "A-3": "CIRCUMVENT",  # CAP holds, but practical consistency reached
-    "A-4": "TRANSCEND",   # O(K^2) -> O(sigma(6)) hierarchical reduction
+    "A-4": "TRANSCEND",   # O(K^2) -> O(12) hierarchical reduction
 }
 transcend_count = sum(1 for g in grades.values() if g == "TRANSCEND")
 circumvent_count = sum(1 for g in grades.values() if g == "CIRCUMVENT")
 assert transcend_count == 3, f"TRANSCEND 3 expected: {transcend_count}"
 assert circumvent_count == 1, f"CIRCUMVENT 1 expected: {circumvent_count}"
-assert transcend_count + circumvent_count == tau_6, f"total breakthroughs = tau(6) = {tau_6}"
-print(f"[V3] GRADE PASS: TRANSCEND={transcend_count}, CIRCUMVENT={circumvent_count}, sum={tau_6}=tau(6)")
+assert transcend_count + circumvent_count == tau_6, f"total breakthroughs = 4 = {tau_6}"
+print(f"[V3] GRADE PASS: TRANSCEND={transcend_count}, CIRCUMVENT={circumvent_count}, sum={tau_6}=4")
 passed += 1
 
 assert passed == 8, f"passed={passed}/8"
@@ -1481,18 +1481,18 @@ print(f"\n[V3] === 8/8 SINGULARITY PASS === agent serving v3 singularity breakth
 | **TRANSCEND** | Change the impossibility-theorem premise itself to surpass the bound | A-1 (hierarchical memory removes single-flat assumption), A-2 (speculative exec shortens DAG critical path), A-4 (perfect-number topology reduces O(K^2) -> O(12)) |
 | **CIRCUMVENT** | Theorem conclusion still holds, but circumvented via another dimension for practical breakthrough | A-3 (CAP holds, yet CRDT + dual commit yields practical consistency) |
 | **APPROACH** | Asymptotically approach the theorem's limit, reaching practical sufficiency | (none) |
-| **BOUNDED** | Theorem's limit is fundamental; even n=6 cannot circumvent | (none) |
+| **BOUNDED** | Theorem's limit is fundamental; even  cannot circumvent | (none) |
 
 ```
 Breakthrough-verdict summary:
-  A-1 context window      : TRANSCEND  -- 48x surpass via sigma(6)*tau(6)=48 hierarchical memory
-  A-2 tool-call latency   : TRANSCEND  -- tau(6)=4 speculative parallel + phi(6)=2 prefetch
+  A-1 context window      : TRANSCEND  -- 48x surpass via 12*4=48 hierarchical memory
+  A-2 tool-call latency   : TRANSCEND  -- 4=4 speculative parallel + 2=2 prefetch
   A-3 session consistency : CIRCUMVENT -- P_2=28 checkpoints + lambda(6)=2 dual commit
-  A-4 coordination overhead: TRANSCEND -- n=6 perfect-number topology, sigma(6)=12 routing
+  A-4 coordination overhead: TRANSCEND --  perfect-number topology, 12=12 routing
 
-  Overall verdict: 4/4 breakthroughs = all tau(6) breakthroughs reached
+  Overall verdict: 4/4 breakthroughs = all 4 breakthroughs reached
   3 TRANSCEND + 1 CIRCUMVENT = singularity breakthrough of perfect-number structure
-  sigma(n)*phi(n) = n*tau(n) iff n=6: the breakthrough structure itself is self-contained only at n=6 [EXACT]
+  sigma(n)*phi(n) = n*tau(n) iff : the breakthrough structure itself is self-contained only at  [EXACT]
 ```
 
 ---
@@ -1518,7 +1518,7 @@ def sopfr(n):
 
 N = 6
 S, T, P, SP = sigma(N), tau(N), phi(N), sopfr(N)
-J2 = S * P  # Jordan J_2(6) = sigma*phi = 24
+J2 = S * P  # Jordan 24(6) = sigma*phi = 24
 ST = S * T  # sigma*tau = 48
 
 PASS, TOTAL = 0, 0
@@ -1528,8 +1528,8 @@ def check(name, cond):
     print(f"  [{'PASS' if cond else 'FAIL'}] {name}")
     if cond: PASS += 1
 
-# 0. n=6 core identity (common across domains)
-check(f"sigma*phi = n*tau (n=6 EXACT): {S*P} == {N*T}", S*P == N*T)
+# 0.  core identity (common across domains)
+check(f"sigma*phi = n*tau ( EXACT): {S*P} == {N*T}", S*P == N*T)
 check(f"R(6) = sigma*phi/(n*tau) = 1", (S*P) == (N*T))
 
 # Mk.V: 1M concurrent agents + coordination complexity sigma*tau=48
@@ -1538,7 +1538,7 @@ coord_channels = ST  # 48
 check(f"coordination channels sigma*tau = 48 EXACT", ST == 48)
 check(f"hierarchical memory sigma*tau = 48x context", ST == 48)
 check(f"Mk.V concurrent agents >= 1e6", concurrent_agents_mk5 >= 1e6)
-check(f"perfect-number topology O(12) = sigma(6)", S == 12)
+check(f"perfect-number topology O(12) = 12", S == 12)
 
 print(f"\n{'='*60}")
 print(f"[Mk.V] {PASS}/{TOTAL} MK5 PASS -- agent serving long-term limit self-check")

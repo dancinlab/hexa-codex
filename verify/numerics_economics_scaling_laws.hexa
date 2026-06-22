@@ -6,9 +6,9 @@
 // doubling rule (train). This script sweeps the FULL closed-form
 // scaling-law surface of the three ECONOMICS verbs, plus the
 // cost-vs-quality competition ratio that emerges from their distinct
-// n=6 exponents.
+//  exponents.
 //
-//   train_cost      ratio = (N·D / 1e22)^N6_EXP     N6_EXP = 24/25 = 0.96
+//   train_cost      ratio = (N·D / 1e22)^EXP_TRAIN     EXP_TRAIN = 24/25 = 0.96
 //   infer_cost      ratio = (ctx / 8192)^τ          τ      = 4
 //   quality_scale   red_term(C, x, α) = C · x^-α    α      = 1/6
 //
@@ -18,12 +18,12 @@
 //   2. q-side D halving   : red_term(B, 2D, α) / red_term(B, D, α) = 2^-α
 //   3. q-side N 4×        : red_term(A, 4N, α) / red_term(A, N, α) = 4^-α
 //   4. q-side D 4×        : red_term(B, 4D, α) / red_term(B, D, α) = 4^-α
-//   5. train N doubling   : train(2N, D)  / train(N, D) = 2^N6_EXP
-//   6. train D doubling   : train(N, 2D)  / train(N, D) = 2^N6_EXP
-//   7. train ND quadr.    : train(2N, 2D) / train(N, D) = 4^N6_EXP
+//   5. train N doubling   : train(2N, D)  / train(N, D) = 2^EXP_TRAIN
+//   6. train D doubling   : train(N, 2D)  / train(N, D) = 2^EXP_TRAIN
+//   7. train ND quadr.    : train(2N, 2D) / train(N, D) = 4^EXP_TRAIN
 //   8. infer ctx doubling : infer(2ctx)   / infer(ctx)  = 2^τ  = 16
 //   9. infer ctx 4×       : infer(4ctx)   / infer(ctx)  = 4^τ  = 256
-//  10. cost/quality ratio : N6_EXP / α = (24/25) / (1/6) = 144/25 = 5.76
+//  10. cost/quality ratio : EXP_TRAIN / α = (24/25) / (1/6) = 144/25 = 5.76
 //                           (per log doubling, train cost rises ~5.76× as
 //                            fast as the quality reducible-loss term shrinks)
 //
@@ -50,16 +50,15 @@ fn _root() -> str {
 
 let ROOT = _root()
 
-// ── n=6 lattice ──────────────────────────────────────────────────────────
 let SIGMA = 12.0
 let PHI   = 2.0
 let TAU   = 4.0
 let N     = 6.0
 let J2    = 24.0
 
-let N6_EXP   = J2 / (J2 + 1.0)                    // 0.96  — train
-let N6_TAU   = TAU                                 // 4     — infer
-let N6_ALPHA = PHI / SIGMA                         // 1/6   — quality
+let EXP_TRAIN   = J2 / (J2 + 1.0)                    // 0.96  — train
+let TAU_INFER   = TAU                                 // 4     — infer
+let ALPHA_Q = PHI / SIGMA                         // 1/6   — quality
 
 // ── anchors ──────────────────────────────────────────────────────────────
 let ND_REF   = 1.0e10 * 1.0e12                     // 1e22 — train anchor
@@ -70,7 +69,7 @@ let N_CHIN   = 70.0e9
 let D_CHIN   = 1.4e12
 
 let FALSIFIERS = [
-    "ECONOMICS scaling-law sweep: q-side α=1/6, train N6_EXP=24/25, infer τ=4 — closed-form ratios",
+    "ECONOMICS scaling-law sweep: q-side α=1/6, train EXP_TRAIN=24/25, infer τ=4 — closed-form ratios",
 ]
 
 // ── helpers ──────────────────────────────────────────────────────────────
@@ -99,11 +98,11 @@ fn red_term(coef: float, x: float, expo: float) -> float {
 }
 
 fn train_cost_ratio(n: float, d: float) -> float {
-    return pow_pure((n * d) / ND_REF, N6_EXP)
+    return pow_pure((n * d) / ND_REF, EXP_TRAIN)
 }
 
 fn infer_cost_ratio(ctx: float) -> float {
-    return pow_pure(ctx / CTX_REF, N6_TAU)
+    return pow_pure(ctx / CTX_REF, TAU_INFER)
 }
 
 // Generic doubling/multiplier verifier. Returns ratio observed vs analytic.
@@ -119,58 +118,58 @@ fn _ratio_check(label: str, observed: float, analytic: float, tol: float) {
 
 // Check 1: quality reducible-loss term in N — halving.
 fn check_q_halving_N() {
-    let lo = red_term(A_COEF, N_CHIN,         N6_ALPHA)
-    let hi = red_term(A_COEF, 2.0 * N_CHIN,   N6_ALPHA)
+    let lo = red_term(A_COEF, N_CHIN,         ALPHA_Q)
+    let hi = red_term(A_COEF, 2.0 * N_CHIN,   ALPHA_Q)
     _ratio_check("q-side N halving: red_term(A,2N,α) / red_term(A,N,α) = 2^-α",
-                 hi / lo, pow_pure(2.0, 0.0 - N6_ALPHA), 1.0e-12)
+                 hi / lo, pow_pure(2.0, 0.0 - ALPHA_Q), 1.0e-12)
 }
 
 // Check 2: quality reducible-loss term in D — halving.
 fn check_q_halving_D() {
-    let lo = red_term(B_COEF, D_CHIN,         N6_ALPHA)
-    let hi = red_term(B_COEF, 2.0 * D_CHIN,   N6_ALPHA)
+    let lo = red_term(B_COEF, D_CHIN,         ALPHA_Q)
+    let hi = red_term(B_COEF, 2.0 * D_CHIN,   ALPHA_Q)
     _ratio_check("q-side D halving: red_term(B,2D,α) / red_term(B,D,α) = 2^-α",
-                 hi / lo, pow_pure(2.0, 0.0 - N6_ALPHA), 1.0e-12)
+                 hi / lo, pow_pure(2.0, 0.0 - ALPHA_Q), 1.0e-12)
 }
 
 // Check 3: quality reducible-loss term in N — 4×.
 fn check_q_4x_N() {
-    let lo = red_term(A_COEF, N_CHIN,         N6_ALPHA)
-    let hi = red_term(A_COEF, 4.0 * N_CHIN,   N6_ALPHA)
+    let lo = red_term(A_COEF, N_CHIN,         ALPHA_Q)
+    let hi = red_term(A_COEF, 4.0 * N_CHIN,   ALPHA_Q)
     _ratio_check("q-side N 4×: red_term(A,4N,α) / red_term(A,N,α) = 4^-α",
-                 hi / lo, pow_pure(4.0, 0.0 - N6_ALPHA), 1.0e-12)
+                 hi / lo, pow_pure(4.0, 0.0 - ALPHA_Q), 1.0e-12)
 }
 
 // Check 4: quality reducible-loss term in D — 4×.
 fn check_q_4x_D() {
-    let lo = red_term(B_COEF, D_CHIN,         N6_ALPHA)
-    let hi = red_term(B_COEF, 4.0 * D_CHIN,   N6_ALPHA)
+    let lo = red_term(B_COEF, D_CHIN,         ALPHA_Q)
+    let hi = red_term(B_COEF, 4.0 * D_CHIN,   ALPHA_Q)
     _ratio_check("q-side D 4×: red_term(B,4D,α) / red_term(B,D,α) = 4^-α",
-                 hi / lo, pow_pure(4.0, 0.0 - N6_ALPHA), 1.0e-12)
+                 hi / lo, pow_pure(4.0, 0.0 - ALPHA_Q), 1.0e-12)
 }
 
 // Check 5: train cost doubling in N (D fixed).
 fn check_train_doubling_N() {
     let lo = train_cost_ratio(N_CHIN,       D_CHIN)
     let hi = train_cost_ratio(2.0 * N_CHIN, D_CHIN)
-    _ratio_check("train N doubling: train(2N,D) / train(N,D) = 2^N6_EXP",
-                 hi / lo, pow_pure(2.0, N6_EXP), 1.0e-12)
+    _ratio_check("train N doubling: train(2N,D) / train(N,D) = 2^EXP_TRAIN",
+                 hi / lo, pow_pure(2.0, EXP_TRAIN), 1.0e-12)
 }
 
 // Check 6: train cost doubling in D (N fixed).
 fn check_train_doubling_D() {
     let lo = train_cost_ratio(N_CHIN, D_CHIN)
     let hi = train_cost_ratio(N_CHIN, 2.0 * D_CHIN)
-    _ratio_check("train D doubling: train(N,2D) / train(N,D) = 2^N6_EXP",
-                 hi / lo, pow_pure(2.0, N6_EXP), 1.0e-12)
+    _ratio_check("train D doubling: train(N,2D) / train(N,D) = 2^EXP_TRAIN",
+                 hi / lo, pow_pure(2.0, EXP_TRAIN), 1.0e-12)
 }
 
 // Check 7: train cost ND quadrupling (both 2×).
 fn check_train_ND_quadrupling() {
     let lo = train_cost_ratio(N_CHIN,       D_CHIN)
     let hi = train_cost_ratio(2.0 * N_CHIN, 2.0 * D_CHIN)
-    _ratio_check("train ND 4× (both 2×): train(2N,2D) / train(N,D) = 4^N6_EXP",
-                 hi / lo, pow_pure(4.0, N6_EXP), 1.0e-12)
+    _ratio_check("train ND 4× (both 2×): train(2N,2D) / train(N,D) = 4^EXP_TRAIN",
+                 hi / lo, pow_pure(4.0, EXP_TRAIN), 1.0e-12)
 }
 
 // Check 8: infer cost ctx doubling — 2^τ = 16 exactly.
@@ -189,14 +188,14 @@ fn check_infer_4x_ctx() {
                  hi / lo, 256.0, 1.0e-12)
 }
 
-// Check 10: cost-vs-quality competition ratio — N6_EXP / α = 144/25 = 5.76.
+// Check 10: cost-vs-quality competition ratio — EXP_TRAIN / α = 144/25 = 5.76.
 //   Per log doubling, train_cost grows ~5.76× as fast as the quality
 //   reducible-loss term shrinks. This is the ECONOMICS surface's
 //   "diminishing returns" signature.
 fn check_cost_quality_ratio() {
-    let observed = N6_EXP / N6_ALPHA
+    let observed = EXP_TRAIN / ALPHA_Q
     let analytic = 144.0 / 25.0                  // 5.76 EXACT
-    _ratio_check("cost/quality ratio: N6_EXP / α = (24/25)/(1/6) = 144/25 = 5.76",
+    _ratio_check("cost/quality ratio: EXP_TRAIN / α = (24/25)/(1/6) = 144/25 = 5.76",
                  observed, analytic, 1.0e-12)
 }
 
@@ -205,10 +204,10 @@ fn check_cost_quality_ratio() {
 fn main() {
     println("========================================================================")
     println("  hexa-codex ECONOMICS scaling-law sweep (math_pure)")
-    println("  q-side α=1/6 · train N6_EXP=24/25 · infer τ=4 — closed-form ratios")
+    println("  q-side α=1/6 · train EXP_TRAIN=24/25 · infer τ=4 — closed-form ratios")
     println("========================================================================")
-    println("  N6_EXP=" + to_string(N6_EXP) + "  τ=" + to_string(N6_TAU) +
-            "  α=β=" + to_string(N6_ALPHA) + "  N6_EXP/α=" + to_string(N6_EXP / N6_ALPHA))
+    println("  EXP_TRAIN=" + to_string(EXP_TRAIN) + "  τ=" + to_string(TAU_INFER) +
+            "  α=β=" + to_string(ALPHA_Q) + "  EXP_TRAIN/α=" + to_string(EXP_TRAIN / ALPHA_Q))
     println("")
 
     check_q_halving_N()

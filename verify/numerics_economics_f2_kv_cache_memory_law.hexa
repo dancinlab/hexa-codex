@@ -200,7 +200,7 @@ content = content + "# checks=" + to_string(checks_passed) + "/" + to_string(che
 content = content + "# eval_point=ctx8192_batch1_fp16\n"
 content = content + "# llama3_8b_kv_gib=1.000 (EXACT)\n"
 content = content + "# llama2_70b_kv_gib=20.00 (EXACT)\n"
-content = content + "# gqa_g8_reduction=8x · mqa_reduction=64x (EXACT consequences of n_kv coefficient)\n"
+content = content + "# gqa_g8_reduction 8x · mqa_reduction 64x (EXACT consequences of n_kv coefficient)\n"
 content = content + "# p_ctx=1.0 p_batch=1.0 p_heads=1.0 (formula-internal identities)\n"
 content = content + "# external_anchor=Ainslie2023_GQA · Shazeer2019_MQA · Pope2023_inference\n"
 content = content + "# next_probe=cycle-37+ T4 SANDBOX nvidia-smi memory.used prefill slope confirm\n"

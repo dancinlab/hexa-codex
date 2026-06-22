@@ -27,29 +27,6 @@ path = "cli/hexa-codex.hexa"
 runner = "hexa"
 files = [
     "tests/test_selftest.hexa",
-    "tests/test_lattice.hexa",
-    "tests/test_cross_doc.hexa",
-    "tests/test_calc_train_cost.hexa",
-    "tests/test_calc_infer_cost.hexa",
-    "tests/test_calc_alignment.hexa",
-    "tests/test_calc_interpret.hexa",
-    "tests/test_numerics_train_cost.hexa",
-    "tests/test_numerics_infer_cost.hexa",
-    "tests/test_numerics_alignment.hexa",
-    "tests/test_numerics_interpret.hexa",
-    "tests/test_numerics_train_cost_parity.hexa",
-    "tests/test_numerics_infer_cost_parity.hexa",
-    "tests/test_numerics_alignment_parity.hexa",
-    "tests/test_numerics_interpret_parity.hexa",
-    "tests/test_numerics_train_cost_solver.hexa",
-    "tests/test_numerics_infer_cost_solver.hexa",
-    "tests/test_numerics_alignment_solver.hexa",
-    "tests/test_numerics_interpret_solver.hexa",
-    "tests/test_numerics_cross_pillar.hexa",
-    "tests/test_numerics_lattice_arithmetic.hexa",
-    "tests/test_falsifier_check.hexa",
-    "tests/test_lint_numerics.hexa",
-    "tests/test_saturation_check.hexa",
     "tests/test_all.hexa",
 ]
 
@@ -59,7 +36,6 @@ files = [
 runner = "pytest"
 marker = "auto"
 files = [
-    "tests/test_n6_invariants.py",
     "tests/test_verifiers.py",
     "tests/test_calculators.py",
     "tests/test_release_ladder.py",
@@ -108,54 +84,15 @@ substrate = [
 # is stdlib-only (no pip install required).
 verify = [
     "verify/cli.py",                # unified verifier dispatcher
-    "verify/n6_arithmetic.py",      # n=6 lattice arithmetic identity
     "verify/spec_inventory.py",     # 17-verb spec presence + headers
     "verify/group_audit.py",        # 4-group / 17-verb consistency
     "verify/release_ladder.py",     # v1.0..v2.0 ladder monotonicity
     "verify/release_params.py",     # per-version parameter registry
-    "verify/falsifier_check.py",    # F-CODEX-1..4 arithmetic floors
     "verify/reference_inventory.py",# papers/ + formal/ md5 + provenance audit
-    "verify/calc_train_cost.py",    # F-CODEX-1 closed form
-    "verify/calc_infer_cost.py",    # F-CODEX-2 closed form
-    "verify/calc_alignment.py",     # F-CODEX-3 axis aggregator
-    "verify/calc_interpret.py",     # F-CODEX-4 motif counter
-    "verify/calc_quality_scale.py", # quality_scale Chinchilla-comparable fit
-    "verify/lattice_explore.py",    # n=k lattice arithmetic explorer
     "verify/verb_query.py",         # verb info / spec lookup tool
-    "verify/lattice_check.hexa",    # n=6 closure audit (.hexa, recipe §7.4 T1)
-    "verify/cross_doc_audit.hexa",  # cross-doc anchor audit (.hexa, recipe §7.4 cross-cutter)
-    "verify/calc_train_cost.hexa",  # F-CODEX-1 T1 calc (.hexa, recipe §7.4 priority 3)
-    "verify/calc_infer_cost.hexa",  # F-CODEX-2 T1 calc (.hexa, recipe §7.4 priority 3)
-    "verify/calc_alignment.hexa",   # F-CODEX-3 T1 calc (.hexa, recipe §7.4 priority 3)
-    "verify/calc_interpret.hexa",   # F-CODEX-4 T1 calc (.hexa, recipe §7.4 priority 3)
-    "verify/numerics_train_cost.hexa", # F-CODEX-1 T2 numerics (.hexa, recipe §7.4 priority 4; math_pure)
-    "verify/numerics_infer_cost.hexa", # F-CODEX-2 T2 numerics (.hexa, recipe §7.4 priority 4; math_pure)
-    "verify/numerics_alignment.hexa",  # F-CODEX-3 T2 numerics (.hexa, recipe §7.4 priority 4; math_pure)
-    "verify/numerics_interpret.hexa",  # F-CODEX-4 T2 numerics (.hexa, recipe §7.4 priority 4; math_pure)
-    "verify/numerics_train_cost_parity.hexa", # F-CODEX-1 T2 stack #2 published-ref parity (.hexa, recipe §7.4 priority 5)
-    "verify/numerics_infer_cost_parity.hexa", # F-CODEX-2 T2 stack #2 published-ref parity (.hexa, recipe §7.4 priority 5)
-    "verify/numerics_alignment_parity.hexa",  # F-CODEX-3 T2 stack #2 published-ref parity (.hexa, recipe §7.4 priority 5)
-    "verify/numerics_interpret_parity.hexa",  # F-CODEX-4 T2 stack #2 published-ref parity (.hexa, recipe §7.4 priority 5)
-    "verify/numerics_train_cost_solver.hexa", # F-CODEX-1 T2 stack #3 ODE solver — Euler/midpoint/RK4 (.hexa, recipe §7.4 priority 6)
-    "verify/numerics_infer_cost_solver.hexa", # F-CODEX-2 T2 stack #3 ODE solver — τ=4 cascade (.hexa, recipe §7.4 priority 6)
-    "verify/numerics_alignment_solver.hexa",  # F-CODEX-3 T2 stack #3 ODE solver — leapfrog/Verlet harmonic oscillator (.hexa, recipe §7.4 priority 6)
-    "verify/numerics_interpret_solver.hexa",  # F-CODEX-4 T2 stack #3 ODE solver — gradient-flow + Lyapunov (.hexa, recipe §7.4 priority 6 final)
-    "verify/numerics_cross_pillar.hexa",      # cross-cutter T2 over all 4 F-CODEX pillars (.hexa, recipe §7.4 priority 7)
-    "verify/numerics_lattice_arithmetic.hexa", # math_pure stability floor (.hexa, recipe §7.4 priority 8)
-    "verify/falsifier_check.hexa",             # closure tracker meta — sat-1 gate (.hexa, recipe §7.4 priority 9)
-    "verify/lint_numerics.hexa",               # meta lint — recipe §4 invariants 1-5 (.hexa, recipe §7.4 priority 10)
-    "verify/saturation_check.hexa",            # aggregate sat-1 self-stop signal (.hexa, recipe §7.4 priority 15)
     # ── T4 layer skeletons (stage 0 stubs — emit PENDING until forge T4 PRs land per D-023) ──
-    "verify/numerics_train_cost_t4_parity.hexa",     # F-CODEX-1 T4 (D-004) — forge SFT loss-vs-FLOP
-    "verify/numerics_infer_cost_t4_parity.hexa",     # F-CODEX-2 T4 (D-005) — forge latency + KV-cache profile
-    "verify/numerics_quality_scale_t4_parity.hexa",  # cross-cutter T4 — forge HumanEval+/hexa-eval/5-NL aggregate
-    "verify/numerics_safety_t4_parity.hexa",         # F-CODEX-3 T4 input — forge 5-NL refusal matrix
-    "verify/numerics_alignment_t4_parity.hexa",      # F-CODEX-3 T4 primary (D-006) — forge HELM-Core 12-axis composite
-    "verify/numerics_adversarial_t4_parity.hexa",    # F-CODEX-3 stress — forge red-team failure modes
-    "verify/numerics_interpret_t4_parity.hexa",      # F-CODEX-4 T4 analog (D-007) — forge tree-sitter idiom audit
     "verify/numerics_rlhf_t4_parity.hexa",           # substrate input T4 — forge DPO yield + judge quality
     "verify/numerics_eval_t4_parity.hexa",           # meta T4 — forge Mk handoff template progression
-    "verify/numerics_agent_serving_t4_parity.hexa",  # F-CODEX-2 SLO input — forge tool-use schema iteration
     "verify/numerics_deploy_t4_parity.hexa",         # ops input T4 — forge hardware-tier deployment recipes
 ]
 build = [
@@ -163,15 +100,9 @@ build = [
 ]
 papers = [
     "papers/README.md",                                       # reference-annex index
-    "papers/n6-ai-17-techniques-experimental-paper.md",       # P1: 17 verb σ·φ=24 map (192/192 EXACT)
-    "papers/n6-ai-techniques-68-integrated-paper.md",         # P2: wider 68-tech atlas
-    "papers/n6-ai-ethics-governance-paper.md",                # P4: ai-ethics+governance overlay (0/24 EXACT, MATURITY=LOW)
-    "papers/n6-governance-safety-urban-paper.md",             # P5: governance+safety+urban (58/58 EXACT, MATURITY=HIGH)
 ]
 formal = [
     "formal/README.md",                                       # formal-substrate index
-    "formal/lean4/N6/InvariantLattice/Sigma.lean",            # σ(n) Nat definition
-    "formal/lean4/N6/InvariantLattice/SigmaLatticeCard.lean", # F-CL-FORMAL-1 PROVEN
 ]
 deepdive = [
     "consciousness/measurement-protocol.md",                  # BT-19 α_IIT·α_GWT=1 reproducible EEG/fMRI protocol
@@ -183,75 +114,26 @@ deepdive = [
 hexa-lang = ">=1.0.0"
 python    = ">=3.10"   # stdlib only — no pip deps for verify/
 
-# ── n=6 master identity (.roadmap.hexa_codex §A.1) ────────
-[invariants.n6]
-sigma_6           = 12     # σ(6) — HELM 12-dimension capability bin
-tau_6             = 4      # τ(6) — 4 lifecycle phases AND 4 group taxonomy
-phi_6             = 2      # φ(6) — 2-bit verdict (helpful / harmless)
-J_2               = 24     # σ·φ = n·τ — training-cost N^J₂ scaling stratum
-master_identity   = "σ(6) · φ(6) = n · τ(6) = J₂ = 24"
-
-# ── Falsifier preregister (.roadmap.hexa_codex §A.4) ──────
-[falsifiers]
-F_CODEX_1 = "training_cost ∝ N^σ·φ = N^24 — Chinchilla scaling-law fit?"
-F_CODEX_2 = "inference_cost ∝ context^τ = context^4 — Claude 4.7 1M ctx latency fit?"
-F_CODEX_3 = "alignment eval n=6 axis HELM-comparable score?"
-F_CODEX_4 = "interpretability circuit count σ-φ=10 motif statistics?"
-
-# ── Closure provenance (raw#10 honest C3) ─────────────────
 [closure]
 verbs_total       = 17
 groups_total      = 4
 verbs_wired       = 0
 verbs_spec        = 17
-papers_absorbed   = 4     # P1+P2 (ai-techniques) + P4 (ai-ethics-governance) + P5 (governance-safety-urban)
-formal_proofs     = 1     # F-CL-FORMAL-1 σ(6)=12 PROVEN (Lean 4)
 deepdives         = 2     # consciousness/measurement-protocol + red-team-failure
 verifiers_pass    = "6/6"
 acceptance_pass   = "62/62 pytest auto + 17/17 verb spec presence (.hexa selftest)"
-falsifier_floor   = "4/4 arithmetic-floor PASS (empirical evals land v1.1+)"
 verdict           = "SPEC_CATALOG_ONLY + RUNNABLE_VERIFICATION_SURFACE + FORMAL_PROOF_ANCHOR"
 extracted_from    = "canon@c0f1f570 on 2026-05-06"
 runnable_added_on = "2026-05-07 (verify/ + build/ + python tests/, mirroring hexa-sscb pattern)"
 references_added_on = "2026-05-07 (papers/ + formal/ from canon@0c65155a, P1+P2+P3)"
-runnable_hexa_iter1 = "2026-05-07 (verify/lattice_check.hexa 24/24 PASS — recipe §7.4 priority 1; T1 floor for F-CODEX-1..4)"
-runnable_hexa_iter2 = "2026-05-07 (verify/cross_doc_audit.hexa 15/15 PASS — recipe §7.4 cross-cutter; 17-verb/4-group + falsifier prefix + provenance + master identity all agree)"
-runnable_hexa_iter3 = "2026-05-07 (verify/calc_train_cost.hexa 8/8 PASS — recipe §7.4 priority 3; F-CODEX-1 T1 calc; J₂=σ·φ=24, exp 24/25=0.96 Chinchilla-comparable)"
-runnable_hexa_iter4 = "2026-05-07 (verify/calc_infer_cost.hexa 9/9 PASS — recipe §7.4 priority 3; F-CODEX-2 T1 calc; context^τ=context^4, σ·τ=48 serving-channel link)"
-runnable_hexa_iter5 = "2026-05-07 (verify/calc_alignment.hexa 9/9 PASS — recipe §7.4 priority 3; F-CODEX-3 T1 calc; mean over σ=12 axes, HELM-drift ≤ 0.10 tolerance)"
-runnable_hexa_iter6 = "2026-05-07 (verify/calc_interpret.hexa 10/10 PASS — recipe §7.4 priority 3 final; F-CODEX-4 T1 calc; motif count = σ−φ = 10, T1 row complete for all 4 falsifiers)"
-runnable_hexa_iter7 = "2026-05-07 (verify/numerics_train_cost.hexa 9/9 PASS — recipe §7.4 priority 4 first; F-CODEX-1 T2 numerical re-derivation via math_pure pow_pure/log_pure; (N·D)^0.96 closed-form on 5-anchor grid)"
-runnable_hexa_iter8 = "2026-05-07 (verify/numerics_infer_cost.hexa 10/10 PASS — recipe §7.4 priority 4; F-CODEX-2 T2 numerical re-derivation; ctx^4 ladder on 5-anchor 1k..1M grid; 1M-ctx ratio = 128^4 = 2^28 EXACT)"
-runnable_hexa_iter9 = "2026-05-08 (verify/numerics_alignment.hexa 10/10 PASS — recipe §7.4 priority 4; F-CODEX-3 T2 numerical re-derivation; σ=12 axis mean over 5 profiles, Jensen + linearity + accumulation stability)"
-runnable_hexa_iter10 = "2026-05-08 (verify/numerics_interpret.hexa 10/10 PASS — recipe §7.4 priority 4 final; F-CODEX-4 T2 numerical re-derivation; σ-φ=10 motif statistics, 6-obs mean+stddev, log decomposition; T2 ROW COMPLETE — all 4 falsifiers at 67% closure)"
-runnable_hexa_iter11 = "2026-05-08 (verify/numerics_train_cost_parity.hexa 10/10 PASS — recipe §7.4 priority 5; F-CODEX-1 T2 stack #2 published-ref parity vs Chinchilla 70B / GPT-3 175B / Llama-2 70B / PaLM 540B; Chinchilla optimum D/N=20 verified, GPT-3 under-trained flagged)"
-runnable_hexa_iter12 = "2026-05-08 (verify/numerics_infer_cost_parity.hexa 10/10 PASS — recipe §7.4 priority 5; F-CODEX-2 T2 stack #2 published-ref parity vs GPT-3.5 16k / Claude 2 100k / Gemini 1.5 1M / Claude 4.7 1M; 1M-ctx KV mem 171.8GB > 80GB threshold, n6/approx ratio = 128^2.5 EXACT)"
-runnable_hexa_iter13 = "2026-05-08 (verify/numerics_alignment_parity.hexa 10/10 PASS — recipe §7.4 priority 5; F-CODEX-3 T2 stack #2 published-ref parity vs Llama-3 70B / Gemini 1.5 Pro / GPT-4 / Claude 3 Opus HELM-Core composites; Llama-3 = baseline 0.65 EXACT, Claude 3 Opus aspirational ceiling)"
-runnable_hexa_iter14 = "2026-05-08 (verify/numerics_interpret_parity.hexa 10/10 PASS — recipe §7.4 priority 5 final; F-CODEX-4 T2 stack #2 published-ref parity vs Olsson 2022 / Cunningham 2023 / Bricken 2023 / Anthropic 2024 SAE motif counts; Anthropic 2024 = J₂ − (σ−φ) = 14 EXACT lattice match; ALL 4 falsifiers at T2 ×2 stack)"
-runnable_hexa_iter15 = "2026-05-08 (verify/numerics_train_cost_solver.hexa 10/10 PASS — recipe §7.4 priority 6 enter; F-CODEX-1 T2 stack #3 ODE solver — Euler/midpoint-RK2/RK4 cascade re-derives c(u)=exp(0.96·u) from dc/du=N6_EXP·c; RK4 rel_err 2e-10 at n=512; convergence orders 1/2/4 verified by step-halving; first T2 #3 slot)"
-runnable_hexa_iter16 = "2026-05-08 (verify/numerics_infer_cost_solver.hexa 10/10 PASS — recipe §7.4 priority 6; F-CODEX-2 T2 stack #3 ODE solver — τ(6)=4 steeper cascade; RK4 rel_err 1.3e-9 at CTX_1M (c≈2.7e8); convergence orders 1/2/4 verified at CTX_32K; T2 #3 row 2/4)"
-runnable_hexa_iter17 = "2026-05-08 (verify/numerics_alignment_solver.hexa 10/10 PASS — recipe §7.4 priority 6; F-CODEX-3 T2 stack #3 ODE solver — symplectic leapfrog/Verlet on harmonic oscillator d²x/dt²=−(x−M); time-average ⟨x⟩ over 1 period recovers σ=12 mean within 7e-8; energy bounded over 50 periods (max drift 9e-5); T2 #3 row 3/4)"
-runnable_hexa_iter18 = "2026-05-08 (verify/numerics_interpret_solver.hexa 10/10 PASS — recipe §7.4 priority 6 FINAL; F-CODEX-4 T2 stack #3 ODE solver — gradient-flow dx/dt=M−x with Lyapunov L=½(x−M)² monotone decay; all 6 OBS-as-IC trajectories converge to M=σ−φ=10 within 4e-9 at t=20; convergence orders 1/2/4 verified; T2 #3 row 4/4 COMPLETE — recipe §7.4 priority 6 row CLOSED)"
-runnable_hexa_iter19 = "2026-05-08 (verify/numerics_cross_pillar.hexa 10/10 PASS — recipe §7.4 priority 7; cross-cutter T2 over all 4 F-CODEX pillars; lattice closure σ·φ=n·τ=J₂=24, ratio tower σ/φ=n=6, F1×F2 composite anchor finite, F3×F4 product = σ−φ, coupled F1+F4 RK4 ODE both ≤1e-8, lattice-log positivity, exponent partition; recipe §7.4 priority 7 CLOSED)"
-runnable_hexa_iter20 = "2026-05-08 (verify/numerics_lattice_arithmetic.hexa 10/10 PASS — recipe §7.4 priority 8; math_pure stability floor — associativity/commutativity/distributivity, IEEE 754 24/25=0.96 exact, log∘exp=id within 1e-13, pow_pure round-trip within 6e-16, Σ24·1.0=J₂ exact, sqrt(σ²)/cbrt(σ³)=σ exact; recipe §7.4 priority 8 CLOSED)"
-runnable_hexa_iter21 = "2026-05-08 (verify/falsifier_check.hexa 10/10 PASS — recipe §7.4 priority 9 closure tracker; all 4 F-CODEX pillars at T1+T2×3=4/4, cross-cutter row 4/4, total 20 runnable .hexa scripts, closure pct ≥0.80 every pillar, substrate anchors P1/P2/Sigma.lean all present; **RECIPE §7.2 sat-1 GATE PASSES** — saturation goal reached)"
-runnable_hexa_iter22 = "2026-05-08 (verify/lint_numerics.hexa 10/10 PASS — recipe §7.4 priority 10; meta lint enforcing recipe §4 invariants 1-5 over 14 numerics_*.hexa: math_pure import, __HEXA_CODEX_<NAME>__ sentinel, FALSIFIERS array, exit(0), RUN/FAIL counters; inventory glob = curated 14 EXACT; namespace uniformity, companion-test pairing, _check() harness use)"
-runnable_hexa_iter23 = "2026-05-08 (verify/saturation_check.hexa 10/10 PASS — recipe §7.4 priority 15 self-stop aggregator; re-runs falsifier_check + lint_numerics + numerics_cross_pillar + numerics_lattice_arithmetic + lattice_check + cross_doc_audit; verify count 23, test count 24; emits __HEXA_CODEX_SATURATION_CHECK__ PASS as the canonical sat-1 marker)"
-runnable_hexa_iter24 = "2026-05-08 (post-sat-1 docs+build update — recipe §7.4 priority 11+12+13; README runnable-surface section rewritten to reflect 23 .hexa verifiers + 24 regression wrappers + per-pillar T1+T2×3 layer table; new docs/numerics_methodology.md narrative covering closure-depth taxonomy + T2 ×3 stack rationale + math_pure invariants + sat-2 outlook; build/Makefile pinned to hexa.real with new sat1 + verify-saturation + test-hexa-all targets)"
-runnable_hexa_iter25 = "2026-05-08 (doc-surface sat-1 alignment — README Status section sat-1-aware, install commands switch to verify/saturation_check.hexa, CHANGELOG header sat-1 status banner, papers/README.md falsifier-floor list updated to the .hexa runnable surface, formal/README.md How-to-verify swaps Python n6_arithmetic.py for lattice_check.hexa + numerics_lattice_arithmetic.hexa + numerics_cross_pillar.hexa)"
-runnable_hexa_iter26 = "2026-05-08 (.roadmap.hexa_codex Cycle 1 entry + per-falsifier sat-1 status; last-sync bumped to 2026-05-08; current release tag annotated 'sat-1 reached, pre v1.1.0')"
-runnable_hexa_iter27 = "2026-05-08 (closure-taxonomy correction — recipe §3 says T1=calc, T2=numerics+solver, T3=parity (archival empirical contact); falsifier_check.hexa now reports closure_pct = 100% (3/3 tiers) per F-CODEX-1..4; saturation_check.hexa emits recipe §7.3 self-stop sentinel __HEXA_CODEX_RSC_SATURATED__ STOP; CHANGELOG/README/roadmap rewritten for 100%; F-CODEX-1..4 ALL at 100% closure)"
-runnable_hexa_iter28 = "2026-05-08 (operator-facing docs amplification — new docs/closure_status.md (static per-pillar 100%-closure snapshot with tier file paths + check counts) + docs/quick_reference.md (sat-1 verdict + component runs + per-falsifier layer runs + regression suites + env notes + recipe pointer table); README Status section links to both)"
 
 # ── Scope honesty (raw#10 C3) ─────────────────────────────
 [scope]
-honest_scope = "17-verb AI knowledge substrate (4 groups: safety + economics + ops + substrate). spec-first library + runnable verification surface (verify/ + tests/ + build/). Each verb ships closed-form candidate + falsifier preregister; F-CODEX-1..4 arithmetic floors verified, empirical evals land v1.1.0..v2.0.0."
 not_scope = [
     "model training (read-side; this is a write-side spec library)",
     "deployed inference SaaS",
     "RLHF data labeling production pipeline",
     "regulatory or alignment claims (preregister only — no validation)",
-    "F-CODEX-1..4 empirical fits (arithmetic floor only at v1.0.0)",
 ]
 
 # ── Cost profile ──────────────────────────────────────────

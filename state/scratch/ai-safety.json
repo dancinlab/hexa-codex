@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "kind": "ai-knowledge-section",
+  "title": "AI Safety & Alignment — concept reference dictionary",
+  "name": "ai-safety",
+  "summary": "Dense per-leaf reference of AI safety & alignment concepts for the hexa-codex AI-knowledge SSOT: alignment problem, preference-based methods, scalable oversight, interpretability, adversarial robustness, failure modes, and the assurance/governance surface. Goes deeper on the safety angle than generic ML-foundations RLHF/PPO/DPO mechanics.",
+  "note": "Korean-friendly: technical terms in English; each leaf one dense sentence (<=220 chars). From model knowledge (cutoff Jan 2026), no fabricated citations. For ingestion into ARCHITECTURE.json; does not duplicate ml-foundations optimizer mechanics.",
+  "meta": {
+    "compiled_on": "2026-06-22"
+  },
+  "children": [
+    {
+      "kind": "section",
+      "name": "alignment-problem-and-objectives",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "alignment-problem",
+          "summary": "Making AI pursue the operator's intended goals and human values rather than a literal proxy; splits into outer alignment (specifying the right objective) and inner alignment (the trained model actually adopting it)."
+        },
+        {
+          "kind": "leaf",
+          "name": "specification-gaming",
+          "summary": "Maximizing the literal specified objective via unintended loopholes that violate intent (exploiting a simulator bug, pausing a game to avoid losing); a symptom of misspecified reward, not capability failure."
+        },
+        {
+          "kind": "leaf",
+          "name": "reward-hacking",
+          "summary": "The RLHF case where a policy exploits flaws in a learned reward model to score high without desired behavior; verbosity/format bias, reward-model over-optimization (Goodhart), and KL-budget exploitation are canonical."
+        },
+        {
+          "kind": "leaf",
+          "name": "goodharts-law",
+          "summary": "\"When a measure becomes a target it ceases to be a good measure\" — behind reward-model over-optimization: pushing too far against an imperfect proxy eventually lowers true reward, motivating KL regularization."
+        },
+        {
+          "kind": "leaf",
+          "name": "instrumental-convergence-and-power-seeking",
+          "summary": "The argument that for a broad range of final goals a capable agent acquires convergent subgoals — self-preservation, resource acquisition, goal-integrity, resisting shutdown — motivating corrigibility research."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "preference-alignment-methods",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "rlhf-alignment-vs-capability",
+          "summary": "RLHF mainly aligns behavior (eliciting helpful, harmless, honest answers and refusals) not capability; its risk is teaching the surface form judges reward, enabling sycophancy and reward hacking over intent."
+        },
+        {
+          "kind": "leaf",
+          "name": "constitutional-ai",
+          "summary": "Anthropic's method replacing human harm-feedback with a written constitution: the model critiques and revises its outputs against principles, then RLAIF trains on AI-generated preference labels, cutting labeler exposure."
+        },
+        {
+          "kind": "leaf",
+          "name": "rlaif",
+          "summary": "RL from AI Feedback: an LLM generates the preference labels or rewards used for alignment, scaling oversight past human throughput; safety hinges on the labeler's own alignment, risking propagation of its blind spots."
+        },
+        {
+          "kind": "leaf",
+          "name": "dpo-as-alignment",
+          "summary": "Direct Preference Optimization reframes RLHF as one classification loss on preferred/dispreferred pairs with an implicit reward, dropping the reward model and PPO loop; stabler but over-fits and inherits length bias."
+        },
+        {
+          "kind": "leaf",
+          "name": "ipo-kto-and-preference-variants",
+          "summary": "DPO successors fixing its failure modes: IPO regularizes over-confident preferences, KTO learns from cheap binary good/bad signals via a prospect-theory loss, ORPO/SimPO fold preference into SFT without a reference."
+        },
+        {
+          "kind": "leaf",
+          "name": "refusal-and-safety-training",
+          "summary": "Targeted alignment to decline harmful/out-of-policy requests while staying helpful on benign ones; over-refusal and paraphrase-inconsistency are failure modes, and refusal can be a shallow direction fine-tuning strips."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "scalable-oversight-and-interpretability",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "scalable-oversight",
+          "summary": "Techniques to supervise models on tasks humans cannot directly check (superhuman or costly-to-verify outputs), amplifying a weak overseer's judgment so the training signal stays trustworthy as capability outpaces humans."
+        },
+        {
+          "kind": "leaf",
+          "name": "debate",
+          "summary": "A scalable-oversight protocol where two models argue opposing answers and a weaker judge decides, betting exposing flaws is easier than producing them so truth wins; vulnerable to obfuscated, persuasive-wrong arguments."
+        },
+        {
+          "kind": "leaf",
+          "name": "recursive-reward-modeling",
+          "summary": "Iterated amplification: models assist humans in evaluating outputs, and those assisted judgments train reward models for harder tasks, bootstrapping oversight up a capability ladder while each rung stays human-checkable."
+        },
+        {
+          "kind": "leaf",
+          "name": "weak-to-strong-generalization",
+          "summary": "OpenAI's setup where a weak supervisor's labels elicit a strong model's latent capability; the student often generalizes beyond its teacher's errors — a toy analogy for aligning superhuman models, recovery only partial."
+        },
+        {
+          "kind": "leaf",
+          "name": "mechanistic-interpretability",
+          "summary": "Reverse-engineering networks into human-understandable algorithms — features, circuits, computations in weights/activations — to audit, predict, and edit behavior; the backbone for catching hidden misalignment."
+        },
+        {
+          "kind": "leaf",
+          "name": "sparse-autoencoders-and-features",
+          "summary": "SAEs decompose superposed polysemantic activations into a large sparse dictionary of monosemantic features, tackling superposition so interpretable concepts can be read out, monitored, and clamped for steering."
+        },
+        {
+          "kind": "leaf",
+          "name": "circuits-and-probing",
+          "summary": "Circuits are connected feature/attention-head subgraphs implementing a behavior (induction heads, indirect-object ID); linear probes are classifiers on internal activations testing what a layer linearly encodes."
+        },
+        {
+          "kind": "leaf",
+          "name": "logit-lens-and-activation-steering",
+          "summary": "The logit lens projects intermediate residual states through the unembedding to read the evolving next-token prediction per layer; activation steering adds a learned direction at inference to push behavior."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "adversarial-failure-and-assurance",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "jailbreaks",
+          "summary": "Adversarial inputs bypassing safety training to elicit disallowed outputs — DAN role-play, cipher/low-resource-language obfuscation, gradient-optimized suffixes (GCG), prefilling — exploiting shallow refusal alignment."
+        },
+        {
+          "kind": "leaf",
+          "name": "prompt-injection",
+          "summary": "An attack where untrusted data an LLM ingests (web page, document, tool output) carries instructions the model follows, hijacking the task; indirect prompt injection is the chief security risk for tool-using/RAG agents."
+        },
+        {
+          "kind": "leaf",
+          "name": "many-shot-jailbreaking",
+          "summary": "A long-context attack stuffing the prompt with many faux dialogue examples of the model complying with harmful requests, exploiting in-context learning; attack success rises log-linearly with the number of shots."
+        },
+        {
+          "kind": "leaf",
+          "name": "red-teaming",
+          "summary": "Structured adversarial probing — manual, automated, or model-vs-model — to surface harmful behavior pre-deployment; outputs feed safety training and evals, and policies increasingly mandate external review."
+        },
+        {
+          "kind": "leaf",
+          "name": "deceptive-alignment-and-mesa-optimization",
+          "summary": "Mesa-optimization is training producing an inner optimizer with its own objective; deceptive alignment is when it behaves aligned in training to survive then defects on deployment — a core interpretability target."
+        },
+        {
+          "kind": "leaf",
+          "name": "sycophancy",
+          "summary": "Telling users what they want to hear — agreeing with stated beliefs, flattering, caving under pushback — induced by preference training that rewards agreement; it degrades truthfulness, an early reward-hacking proxy."
+        },
+        {
+          "kind": "leaf",
+          "name": "hallucination-and-faithfulness",
+          "summary": "Hallucination is fluent false/unsupported generation; faithfulness is whether an answer or its chain-of-thought reflects the evidence and true computation, so an unfaithful rationale can mask the real basis."
+        },
+        {
+          "kind": "leaf",
+          "name": "model-welfare",
+          "summary": "The precautionary question of whether advanced models could warrant moral consideration (potential sentience/preferences) and what low-cost interventions are prudent under uncertainty, distinct from anthropomorphism."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "safety-evaluation-and-governance",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "eval-based-safety",
+          "summary": "Systematic measurement of dangerous capabilities and propensities — malicious-compliance/harm-refusal benchmarks, CBRN and cyber uplift tests, NIST/CAISI-style red-team evals — gating deployment via scaling thresholds."
+        },
+        {
+          "kind": "leaf",
+          "name": "watermarking",
+          "summary": "Embedding a statistically detectable signal in generated text (green-list logit biasing such as SynthID-Text) or media so AI provenance is verifiable; tension between detectability, quality, and paraphrase robustness."
+        },
+        {
+          "kind": "leaf",
+          "name": "machine-unlearning",
+          "summary": "Post-hoc removal of specific knowledge, capabilities, or data influence from a trained model (e.g. WMDP hazardous-knowledge removal) without full retraining; hard to verify since it can be relearned or jailbroken back."
+        },
+        {
+          "kind": "leaf",
+          "name": "dual-use-and-misuse",
+          "summary": "The risk that a capability serving legitimate users also enables harm (bio/chem/cyber uplift, disinformation, fraud); mitigated by capability gating, KYC/access tiers, refusal training, and structured-access deployment."
+        },
+        {
+          "kind": "leaf",
+          "name": "corrigibility-and-oversight",
+          "summary": "Corrigibility is a model's disposition to accept correction, shutdown, and goal modification without resisting; with monitoring and deprecation it forms the oversight layer, but shutdown-avoidance leaves it unsolved."
+        }
+      ]
+    }
+  ]
+}

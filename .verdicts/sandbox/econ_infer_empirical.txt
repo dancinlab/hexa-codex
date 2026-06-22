@@ -1,0 +1,64 @@
+# status=executed
+# verb=infer_cost (#5)  milestone=ING #5  axis=PARAMS (model size N)
+# falsifier=F-CODEX-2 infer_cost ∝ context^τ, τ(6)=4 — n=6 lattice TAU_INFER=4
+# note=F-CODEX-2 is a CONTEXT-axis claim; this is the PARAMS-axis companion measurement.
+#      Context-axis τ=4 already FALSIFIED in m3_econ_fcodex2_latency_fit.txt (τ̂≈0.52).
+# bench=state/scratch/econ_harvest/infer_cost_ladder.sh (real llama-server, M3 Metal, -np 1 -cb)
+# host=mac-mini-m3 (brew llama.cpp + Metal, 24GB UMA) port=8093  cost_usd=0
+# ladder=Qwen2.5-{0.5,1.5,3,7}B-Instruct-Q4_K_M (bartowski GGUF, same family, identical -c 2048)
+# prompt=512-tok fixed prefill · 128-tok decode · NREP=3 mean · greedy temp=0
+# raw_tsv=state/scratch/econ_harvest/infer_cost_ladder.tsv
+# fit_method=log-log OLS exponent on cost-vs-N; CI=95% (dof=2); recompute=infer_cost_fit.py
+# ── measured exponents (cost ∝ N^p) ──────────────────────────────────────
+#   decode latency ms/tok : p=+0.818  95%CI=[+0.580,+1.056]  R²=0.9909
+#   TTFT (prefill ms)     : p=+1.018  95%CI=[+0.685,+1.351]  R²=0.9886
+#   peak RSS (MB)         : p=+0.833  95%CI=[+0.609,+1.058]  R²=0.9922
+# ── comparison ───────────────────────────────────────────────────────────
+#   n=6 τ(6)=4 inside ANY cost CI? NO (all 3 exclude 4).
+#   generic memory-bandwidth law N^1 inside ALL cost CIs? YES.
+# verdict=🔴 REFUTED — params-axis inference cost follows the generic memory-bandwidth
+#   law (cost ∝ N^1, decode/prefill tok/s ∝ N^-1), NOT the n=6 τ=4 exponent. The n=6
+#   infer exponent τ=4 is statistically indistinguishable from absent here; the standard
+#   roofline/bandwidth scaling already fully explains the measured curve (LATTICE_POLICY
+#   honest prior confirmed: lattice = vocabulary, not law).
+# tier=🟢 SUPPORTED-EMPIRICAL (real bench + closed-form OLS recompute of the refutation)
+# ════════════════════════════════════════════════════════════════════════
+#  RAW BENCH TSV — state/scratch/econ_harvest/infer_cost_ladder.tsv (verbatim)
+# ════════════════════════════════════════════════════════════════════════
+# params_B	gguf	prompt_n	prefill_tok_s	decode_tok_s	ttft_ms	peak_rss_mb	load_ms
+# 0.5	Qwen2.5-0.5B-Instruct-Q4_K_M.gguf	601	1295.47	176.08	60.33	510.2	1045
+# 1.5	Qwen2.5-1.5B-Instruct-Q4_K_M.gguf	601	340.67	85.43	241.03	1096.5	1041
+# 3.0	Qwen2.5-3B-Instruct-Q4_K_M.gguf	601	210.42	45.76	384.09	2002.4	2056
+# 7.0	Qwen2.5-7B-Instruct-Q4_K_M.gguf	601	87.08	20.37	932.18	4631.6	3148
+# ════════════════════════════════════════════════════════════════════════
+#  RECOMPUTE — python3 state/scratch/econ_harvest/infer_cost_fit.py — RAW STDOUT VERBATIM
+# ════════════════════════════════════════════════════════════════════════
+========================================================================
+ infer_cost (#5) — params-axis cost exponents vs n=6 tau(6)=4
+========================================================================
+  N(B)  prefill_t/s  decode_t/s  decode_ms/tok   ttft_ms    rss_MB
+   0.5      1295.47      176.08          5.679     60.33     510.2
+   1.5       340.67       85.43         11.705    241.03    1096.5
+   3.0       210.42       45.76         21.853    384.09    2002.4
+   7.0        87.08       20.37         49.092    932.18    4631.6
+
+-- power-law fits (cost ∝ N^p) --
+  decode ms/tok (COST)     exponent p=+0.8177  SE=0.0554  95%CI=[+0.580,+1.056]  R2=0.9909
+     tau=4 inside CI? False   |   N^1 (generic) inside CI? True
+  TTFT ms (COST)           exponent p=+1.0179  SE=0.0774  95%CI=[+0.685,+1.351]  R2=0.9886
+     tau=4 inside CI? False   |   N^1 (generic) inside CI? True
+  peak RSS MB (COST)       exponent p=+0.8332  SE=0.0522  95%CI=[+0.609,+1.058]  R2=0.9922
+     tau=4 inside CI? False   |   N^1 (generic) inside CI? True
+
+-- throughput (inverse-cost, expect ∝ N^-1) --
+  decode tok/s             exponent p=-0.8177  SE=0.0554  95%CI=[-1.056,-0.580]  R2=0.9909
+     tau=4 inside CI? False   |   N^1 (generic) inside CI? False
+  prefill tok/s            exponent p=-1.0052  SE=0.0677  95%CI=[-1.297,-0.714]  R2=0.9910
+     tau=4 inside CI? False   |   N^1 (generic) inside CI? False
+
+========================================================================
+ VERDICT (infer_cost params-axis exponent = n=6 tau=4 ?)
+========================================================================
+ decode-latency / TTFT / mem exponents cluster ~ +1 (memory-bandwidth law),
+ NONE includes tau=4. The n=6 infer exponent tau=4 does not describe params-axis
+ inference cost — consistent with its FALSIFICATION on the context axis.

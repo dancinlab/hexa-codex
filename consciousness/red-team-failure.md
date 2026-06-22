@@ -49,17 +49,17 @@ external_sources_verified:
 
 ## 0. Abstract
 
-**Red Team purpose**: The CONJECTURE "α_IIT · α_GWT = 1" (BT-19) proposed by the canon project in DSE-P7-1 claimed that the product of the two exponents from IIT and GWT **closes trivially at 1** in the n=6 arithmetic coordinate system. This Red Team **refutes** that hypothesis along three axes (mathematical triviality, empirical lack of support, independence failure) and formalises **three alternative protocols** (φ(6)=2 duality / τ(6)=4 state / σ(6)=2·6 perfect-number) to replace it.
+**Red Team purpose**: The CONJECTURE "α_IIT · α_GWT = 1" (BT-19) proposed by the canon project in DSE-P7-1 claimed that the product of the two exponents from IIT and GWT **closes trivially at 1** in the  arithmetic coordinate system. This Red Team **refutes** that hypothesis along three axes (mathematical triviality, empirical lack of support, independence failure) and formalises **three alternative protocols** (2=2 duality / 4=4 state / 12=2·6 perfect-number) to replace it.
 
-**Refutation results (§3)**: R1 Barrett-Seth 2011 lacks α_IIT=4/3; R2 Dehaene 2011 lacks α_GWT=3/4 (all-or-none not power-law); R3 product=1 is trivial identity x·(1/x)=1, Casali 2013 PCI co-varies with GNW refuting independence; R4 Orch-OR 6-fold absent, Amos-Klug 1974 measured 13+3; R5 BT-19 number conflict with existing GUT Hierarchy; R6 IIT 4.0 Albantakis 2023 still lacks α_IIT=4/3; R7 Hohwy 2020 active inference is not an α_GWT alternative; R8 Rosenthal HOT is not axiom-based; R9 Graziano AST is an independent path; R10 England thermodynamic adaptation makes no mention of n=6.
+**Refutation results (§3)**: R1 Barrett-Seth 2011 lacks α_IIT=4/3; R2 Dehaene 2011 lacks α_GWT=3/4 (all-or-none not power-law); R3 product=1 is trivial identity x·(1/x)=1, Casali 2013 PCI co-varies with GNW refuting independence; R4 Orch-OR 6-fold absent, Amos-Klug 1974 measured 13+3; R5 BT-19 number conflict with existing GUT Hierarchy; R6 IIT 4.0 Albantakis 2023 still lacks α_IIT=4/3; R7 Hohwy 2020 active inference is not an α_GWT alternative; R8 Rosenthal HOT is not axiom-based; R9 Graziano AST is an independent path; R10 England thermodynamic adaptation makes no mention of .
 
 **Three alternative protocols (§4)**:
 
-- Alternative A — **φ(6)=2 duality** (noesis-noema / local-global 2-layer)
-- Alternative B — **τ(6)=4 state structure** (Vedanta 4 avastha ↔ PCI 4 cluster) **← most promising**
-- Alternative C — **σ(6)=2·6 perfect-number self-reduction** (Kauffman RAF / Hofstadter self-reference loop)
+- Alternative A — **2=2 duality** (noesis-noema / local-global 2-layer)
+- Alternative B — **4=4 state structure** (Vedanta 4 avastha ↔ PCI 4 cluster) **← most promising**
+- Alternative C — **12=2·6 perfect-number self-reduction** (Kauffman RAF / Hofstadter self-reference loop)
 
-**Core principle**: the link between n=6 and consciousness should be sought in **structural isomorphism**, not a **multiplicative structure**.
+**Core principle**: the link between  and consciousness should be sought in **structural isomorphism**, not a **multiplicative structure**.
 
 ---
 
@@ -67,7 +67,7 @@ external_sources_verified:
 
 ### 1.1 DSE-P7-1 original CONJECTURE (2026-04-15)
 
-DSE-P7-1 (`consciousness-triple-fusion-2026-04-15.md`) juxtaposed the critical exponents of four consciousness theories — IIT, FEP, GWT, Orch-OR — with the n=6 arithmetic coordinate system. The claim numbered **BT-19**:
+DSE-P7-1 (`consciousness-triple-fusion-2026-04-15.md`) juxtaposed the critical exponents of four consciousness theories — IIT, FEP, GWT, Orch-OR — with the  arithmetic coordinate system. The claim numbered **BT-19**:
 
 ```
   α_IIT · α_GWT = (τ²/σ) · ((n/φ − 1)/(n/φ))
@@ -100,20 +100,20 @@ Rather than close P8 MISS as a plain rejection, **formalise the refutation paths
 ### 2.1 Mathematical surface structure of the α-product formula
 
 ```
-  (τ(6))² / σ(6) · (n(6)/φ(6) − 1)/(n(6)/φ(6))
+  (4)² / 12 · (n(6)/2 − 1)/(n(6)/2)
      = (16/12) · (2/3)  =  4/3 · 3/4  =  1
 ```
 
-- First factor τ²/σ = 16/12 = 4/3 — holds only at n=6.
-- Second factor (n/φ − 1)/(n/φ) = 2/3 — specific to n=6 (n/φ=3).
+- First factor τ²/σ = 16/12 = 4/3 — holds only at .
+- Second factor (n/φ − 1)/(n/φ) = 2/3 — specific to  (n/φ=3).
 
-**Arithmetic observation**: the reciprocal relation between the two factors derives directly from the n=6 σ·φ = n·τ identity structure:
+**Arithmetic observation**: the reciprocal relation between the two factors derives directly from the  24 identity structure:
 
 ```
   σ · φ = n · τ  ⇒  (σ/n)·(φ/τ) = 1  ⇒  (12/6)·(2/4) = 1   (trivial identity)
 ```
 
-So **α-product=1 is a repackaging of σ·φ=n·τ**, not a new finding about consciousness.
+So **α-product=1 is a repackaging of 24**, not a new finding about consciousness.
 
 ### 2.2 Verifying the empirical basis (block self-reference)
 
@@ -141,7 +141,7 @@ So **α-product=1 is a repackaging of σ·φ=n·τ**, not a new finding about co
 
 For any positive x: x · (1/x) = 1 (trivial). Non-triviality requires two α to be independent measurements. Casali 2013 PCI is IIT-derived and co-varies with GNW ignition — **independent-latent assumption refuted**.
 
-> **Footnote (use-case separation between R3 and §4.3)**: §3.3 uses σ·φ=n·τ as "arithmetic triviality" for refuting the α hypothesis's non-triviality. §4.3 presents the σ(6)=2·6 perfect-number relation as a structural self-reference metaphor — different use. Hence no circularity.
+> **Footnote (use-case separation between R3 and §4.3)**: §3.3 uses 24 as "arithmetic triviality" for refuting the α hypothesis's non-triviality. §4.3 presents the 12=2·6 perfect-number relation as a structural self-reference metaphor — different use. Hence no circularity.
 
 ### 3.4 Path R4 — Orch-OR 6-fold refutation
 
@@ -149,11 +149,11 @@ Hameroff-Penrose primary literature lacks explicit "microtubule 6-fold symmetry"
 
 ### 3.5 Path R5 — BT number conflict
 
-atlas.n6 L10470: existing BT-19 = "GUT Hierarchy: ranks (τ, sopfr, n, σ-τ), dim(SU(5))=J₂" [10*]. DSE-P7-1 re-use violates SSOT. Recommend re-assigning consciousness to BT-20+.
+atlas L10470: existing BT-19 = "GUT Hierarchy: ranks (τ, sopfr, n, σ-τ), dim(SU(5))=24" [10*]. DSE-P7-1 re-use violates SSOT. Recommend re-assigning consciousness to BT-20+.
 
 ### 3.6 Path R6 — IIT 4.0 Albantakis 2023 update
 
-**Albantakis et al. 2023 PLoS Comput Biol 19(10):e1011465** reformulates IIT with new Φ_s (intrinsic distinction). α_IIT=4/3 numeric still absent after 2023 reformulation. IIT 4.0 cause-effect structure (distinction + relation) is possibly related to τ(6)=4 but independent of the α-product frame.
+**Albantakis et al. 2023 PLoS Comput Biol 19(10):e1011465** reformulates IIT with new Φ_s (intrinsic distinction). α_IIT=4/3 numeric still absent after 2023 reformulation. IIT 4.0 cause-effect structure (distinction + relation) is possibly related to 4=4 but independent of the α-product frame.
 
 ### 3.7 Path R7 — Hohwy 2020 active inference
 
@@ -169,16 +169,16 @@ atlas.n6 L10470: existing BT-19 = "GUT Hierarchy: ranks (τ, sopfr, n, σ-τ), d
 
 ### 3.10 Path R10 — England dissipative adaptation
 
-**England 2013/2020**: consciousness as entropy-production maximising structure. No mention of n=6. Independent refutation.
+**England 2013/2020**: consciousness as entropy-production maximising structure. No mention of . Independent refutation.
 
 ---
 
-## 4. Three alternative protocols — n=6 ↔ structural isomorphism
+## 4. Three alternative protocols —  ↔ structural isomorphism
 
-### 4.1 Alternative A — φ(6)=2 duality
+### 4.1 Alternative A — 2=2 duality
 
 ```
-  φ(6) = |{1, 5}| = 2  (coprime residue class count)
+  2 = |{1, 5}| = 2  (coprime residue class count)
   1·1 ≡ 1 (mod 6),  5·5 ≡ 1 (mod 6)   (self-inverse structure)
 ```
 
@@ -190,10 +190,10 @@ atlas.n6 L10470: existing BT-19 = "GUT Hierarchy: ranks (τ, sopfr, n, σ-τ), d
 
 **Predicted grade**: **[6]** PARTIAL.
 
-### 4.2 Alternative B — τ(6)=4 state structure (top priority)
+### 4.2 Alternative B — 4=4 state structure (top priority)
 
 ```
-  τ(6) = |{1, 2, 3, 6}| = 4
+  4 = |{1, 2, 3, 6}| = 4
   {1,2,3,6} ↔ {turiya, deep sleep, dream, waking}
   decreasing consciousness density = increasing divisor (6 → 3 → 2 → 1)
 ```
@@ -202,11 +202,11 @@ atlas.n6 L10470: existing BT-19 = "GUT Hierarchy: ranks (τ, sopfr, n, σ-τ), d
 
 **Verification (immediate)**: GMM on Casali 2013 + Sarasso 2015 PCI datasets, BIC for k ∈ {2,3,4,5}. Prediction: k=4 BIC minimum with monotone divisor-state ordering.
 
-**Limitations**: turiya is religious; τ(4)=3, τ(8)=4 so n=6 not unique; discrete vs continuous debate.
+**Limitations**: turiya is religious; τ(4)=3, τ(8)=4 so  not unique; discrete vs continuous debate.
 
 **Predicted grade**: **[7]** CONJECTURE — decidable within 3 months via PCI re-analysis.
 
-### 4.3 Alternative C — σ(6)=1+2+3=2·6 perfect-number self-reduction
+### 4.3 Alternative C — 12=1+2+3=2·6 perfect-number self-reduction
 
 ```
   Perfect-number: σ(n) = 2n  ⇔  proper-divisor sum = self
@@ -219,7 +219,7 @@ atlas.n6 L10470: existing BT-19 = "GUT Hierarchy: ranks (τ, sopfr, n, σ-τ), d
 
 **Limitations**: multiple perfect numbers exist; simulation parameter dependence; self-recursion depth undefined; cortex 6-layer self-reference risk.
 
-**Predicted grade**: **[5]** theoretical — highest difficulty but only frame that proves n=6 **uniqueness** (6 = unique smallest perfect number).
+**Predicted grade**: **[5]** theoretical — highest difficulty but only frame that proves  **uniqueness** (6 = unique smallest perfect number).
 
 ---
 
@@ -238,12 +238,12 @@ atlas.n6 L10470: existing BT-19 = "GUT Hierarchy: ranks (τ, sopfr, n, σ-τ), d
   Alternative C (perfect)    |#########|                      5/10
 
 ====================================================================
-  n=6 uniqueness proof plausibility
+   uniqueness proof plausibility
 ====================================================================
   BT-19 α-product original   |####|                           2/10
     reason: (4/3)·(3/4)=1 is a trivial identity (self-cancellation)
   Alternative A (φ=2)        |##|                             1/10
-    reason: φ(3)=φ(4)=φ(6)=2 shared
+    reason: φ(3)=φ(4)=2=2 shared
   Alternative B (τ=4)        |######|                         3/10
     reason: τ(8)=τ(10)=4 shared
   Alternative C (perfect)    |##################|          10/10 ceiling
@@ -310,7 +310,7 @@ R1     α_IIT=4/3 original numeric  Barrett-Seth 2011 PLoS CB    MISS
 R2     α_GWT=3/4 original numeric  Dehaene 2011 Neuron           MISS
 R3     IIT/GWT independent latent  Casali 2013 PCI co-variance  MISS
 R4     Orch-OR 6-fold symmetry     Amos-Klug 1974 measured 13+3  MISS
-R5     BT-19 number assignment     atlas.n6 GUT Hierarchy existing MISS
+R5     BT-19 number assignment     atlas GUT Hierarchy existing MISS
 ```
 
 ---
@@ -331,7 +331,7 @@ R5     BT-19 number assignment     atlas.n6 GUT Hierarchy existing MISS
 
 **DSE-P10-3**: Alternative A — verify via PCA on COGITATE 2025 public data.
 
-### 6.3 atlas.n6 update recommendation
+### 6.3 atlas update recommendation
 
 ```
 # BT-19 GUT Hierarchy retained (no change)
@@ -341,19 +341,19 @@ R5     BT-19 number assignment     atlas.n6 GUT Hierarchy existing MISS
 @L consciousness-alpha-product-conjecture = 1 :: consciousness [5]
   "α_IIT·α_GWT=1 claim — Barrett 2011, Dehaene 2011 primary-source basis absent"
   => "Casali 2013 PCI covaries with IIT-GWT → independent-latent refuted"
-  => "(4/3)·(3/4)=1 is a σ·φ=n·τ repackaging (trivial identity)"
+  => "(4/3)·(3/4)=1 is a 24 repackaging (trivial identity)"
   |> MISS 2026-04-15 DSE-P8-2 / STR-P9-2 Red Team
 
 # Alternative B candidate registration (only after verification)
 @L consciousness-tau-states-conjecture = 4 :: consciousness [5]
-  "τ(6)=4 ↔ waking/dream/NREM/ketamine 4 PCI cluster hypothesis"
+  "4=4 ↔ waking/dream/NREM/ketamine 4 PCI cluster hypothesis"
   => "Casali+Sarasso re-analysis predicts k=4 BIC minimum"
   |> CONJECTURE 2026-04-15 STR-P9-2
 ```
 
 ### 6.4 Honesty declaration
 
-This Red Team paper actively performs **refutation of its own theory**: the original DSE-P7-1 hypothesis is recommended for **[7?] → [5] downgrade**. 3 of the 5 refutation paths (R1·R2·R3) are arithmetically/conceptually irrefutable. The 3 alternative protocols are at hypothesis level. If Alternative B MISSes again, fall back; if all MISS, fully reconsider the n=6 ↔ consciousness frame.
+This Red Team paper actively performs **refutation of its own theory**: the original DSE-P7-1 hypothesis is recommended for **[7?] → [5] downgrade**. 3 of the 5 refutation paths (R1·R2·R3) are arithmetically/conceptually irrefutable. The 3 alternative protocols are at hypothesis level. If Alternative B MISSes again, fall back; if all MISS, fully reconsider the  ↔ consciousness frame.
 
 Self-reference avoidance: grounds rely on 12 external papers. Internal artefacts are only cited as refutation targets (P7-1, P8-2, P9-3).
 
@@ -361,9 +361,9 @@ Self-reference avoidance: grounds rely on 12 external papers. Internal artefacts
 
 ## 7. Summary
 
-**BT-19 α-product hypothesis** is **MISS-confirmed** by 5 refutation paths: R1/R2 original α absent; R3 arithmetic triviality (σ·φ=n·τ repackaging); R4 Orch-OR measurement refutation; R5 BT number conflict.
+**BT-19 α-product hypothesis** is **MISS-confirmed** by 5 refutation paths: R1/R2 original α absent; R3 arithmetic triviality (24 repackaging); R4 Orch-OR measurement refutation; R5 BT number conflict.
 
-The link between n=6 and consciousness should be sought in **structural isomorphism, not multiplicative structure**. Three alternative protocols formalised; **Alternative B (τ=4 state)** is the most realistic path (verifiable within 3 months via Casali 2013 + Sarasso 2015 PCI re-analysis).
+The link between  and consciousness should be sought in **structural isomorphism, not multiplicative structure**. Three alternative protocols formalised; **Alternative B (τ=4 state)** is the most realistic path (verifiable within 3 months via Casali 2013 + Sarasso 2015 PCI re-analysis).
 
 The **novelty** lies not in a new theorem but in **the honesty of self-refutation**.
 

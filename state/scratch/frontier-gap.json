@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "frontier-gap-analysis",
+  "title": "hexa-codex novel lanes vs open-weight frontier labs — where we have no competition",
+  "name": "frontier-gap",
+  "summary": "Cross-reference of (a) the crowded research axes the open-weight frontier labs (DeepSeek, Qwen, GLM, Kimi, MiniMax) are all converging on, against (b) hexa-codex's in-progress lanes, to isolate NOVEL lanes the frontier does not touch. SCOPE: anima/consciousness lanes and the closed-negative/real-limits-first meta-discipline are EXCLUDED by user request — this file holds only pure technical/measurement novelties. Each novel lane carries an explicit falsifier and current status. Researched 2026-06-22 via parallel web-research (frontier capabilities) + repo inventory (ARCHITECTURE.json / DOMAINS.tape / LAB).",
+  "note": "Scratch research artifact (docs scratchDir = state/scratch/). Sibling to glm-5.2.json. NOT a hexa-codex architecture node (governance c4). tok/s and competitive claims are vendor-reported or estimated and flagged. Promote a lane into its domain SSOT (ARCHITECTURE.json) only after it reaches domain scale per the existing /paper + verify gates.",
+  "meta": {
+    "researched_on": "2026-06-22",
+    "frontier_labs_surveyed": ["DeepSeek (V4-Pro)", "Qwen (Qwen3-Next/Max)", "Zhipu GLM (GLM-5.2)", "Moonshot Kimi (K2.x)", "MiniMax (M2.x)"],
+    "excluded_by_user": ["anima / consciousness IIT-Phi lanes (LAB-09..12)", "closed-negative publishing + real-limits-first meta-discipline"],
+    "thesis": "Don't race the frontier on the 8 capital-heavy axes; advance the measurement/system gaps their homogeneous infra + benchmark-score lens cannot see."
+  },
+  "children": [
+    {
+      "kind": "section",
+      "name": "frontier-crowded-axes",
+      "summary": "The 8 axes ALL 5 open-weight frontier labs are converging on (the capital/GPU battleground — NOT where hexa-codex should compete).",
+      "children": [
+        { "kind": "leaf", "name": "trainable-sparse-attention", "summary": "DeepSeek DSA (lightning indexer + top-k=2048 → MLA); GLM IndexShare/IndexCache reuses DSA indices 1×/4 layers (~2.9× FLOP cut @1M); DeepSeek V4 CSA+HCA. The de-facto long-context primitive. Most crowded axis." },
+        { "kind": "leaf", "name": "hybrid-linear-full-attention", "summary": "Convergent ratios: Qwen3-Next 3:1 GatedDeltaNet:full, Kimi Linear 3:1 KDA:MLA, MiniMax-01 7:1 lightning:softmax. (Contested — MiniMax M2 REVERTED to full softmax after measuring linear silently breaks multi-hop/agentic reasoning.)" },
+        { "kind": "leaf", "name": "ultra-sparse-moe", "summary": "Active/total ratio dropping: Qwen3-Next & Kimi-VL ~3B active, GLM ~40B/744B, MiniMax 10B/230B. Shared experts + auxiliary-loss-free routing-bias balancing (DeepSeek-pioneered) now universal." },
+        { "kind": "leaf", "name": "grpo-variant-rl", "summary": "Named fixes to GRPO/PPO token-level-clip flaw: DeepSeek unified-GRPO, Qwen GSPO (sequence-level IS), MiniMax CISPO (weight-only clip), Kimi simple-RL. Convergent problem, divergent solutions." },
+        { "kind": "leaf", "name": "verifiable-reward-agent-envs", "summary": "Execution-environment fleets: Qwen 20k parallel envs, MiniMax 200k+, DeepSeek agentic-synthesis, Kimi 23k-tool synth. Reward = real execution/test-pass. Long-horizon tool chains (Kimi 200-300 sequential calls)." },
+        { "kind": "leaf", "name": "graded-test-time-compute", "summary": "Thinking-effort dial universal: DeepSeek Non/High/Max, GLM-5.2 High/Max, Qwen budget, Kimi 96k/128k. Reasoning is a knob, not a mode." },
+        { "kind": "leaf", "name": "mtp-speculative-decoding", "summary": "Multi-token prediction baked into pretraining (draft head shares trunk): DeepSeek, Qwen3-Next, GLM (5 draft tokens), Kimi. Now table-stakes." },
+        { "kind": "leaf", "name": "sub8bit-domestic-silicon", "summary": "FP8 universal; frontier moved to FP4 (DeepSeek V4 experts) + native INT4 QAT (Kimi K2 Thinking). DeepSeek V4-Pro post-trained on ~1000 Huawei Ascend 910C — CUDA-independence program." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "novel-lanes",
+      "summary": "hexa-codex lanes the frontier does NOT touch (anima + meta-discipline excluded). Each = a measurement/system gap invisible to homogeneous-infra, benchmark-score-only labs.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "heterogeneous-mu-erlang-c",
+          "summary": "RANK 1 (hardest). OPS group. classical M/M/c (Erlang-C) assumes HOMOGENEOUS server rate μ, under which routing policy is IRRELEVANT (ceiling=c·μ, gain=1.0× regardless of split). Heterogeneous μ has NO closed-form Erlang-C (Bolch 2006 §6.3) and makes routing first-order: equal-RR bottlenecks on the slow server (ceiling=c·μ_min, Whitt 1986 dominant-slow bound) while weighted-RR/SED is work-conserving (ceiling=Σμ_i). Deviation = weighted/equal gain G_het=Σμ_i/(c·μ_min) where homogeneous theory predicts 1.0×. EVIDENCE STATE (cycle-29 CLEAN MULTI-RATIO FIRE 2026-06-22 — DEVIATION QUANTITATIVELY CONFIRMED): closed-loop-per-host harness (1 in-flight per host = real -np1 capacity; fixed first-fire slot-contention confound so weighted-RR now reaches Σμ with 0 failures). 4 ratios on mini M3 Metal + mini-replica + aiden/ubu-1 x86 CPU (-t throttle), identical GGUF sha256 6eb923e7: R1-control(mini:8090 vs mini:8091, R=1.03) gain=0.988× (~1.0 → harness integrity PASS, no serialization bug); R-low(aiden -t8, R=1.44, G_het=1.218) gain=1.161×; R2(aiden -t2, R=2.34, G_het=1.670) gain=1.692×; R3(aiden -t1, R=2.48, G_het=1.739) gain=1.664×. MEASURED gain TRACKS G_het within 1-5% across the whole R=1.0..2.5 sweep (does NOT stay flat at homogeneous 1.0×); ≥2 het ratios (R2,R3) at gain≥1.5× within ±20% of G_het + R1≈1.0 control → design §3 KEEPS-LANE-OPEN met. equal-RR achieved≈2·μ_slow (slow-server bound) and weighted-RR≈Σμ at every ratio — both confirmed. Verdict tier: 🟢 SUPPORTED-MEASURED, lane OPEN. CAVEAT: aiden -t1==-t2 both saturate ~3.33 q/s (mem-bw bound), so achievable R capped ~2.5 with this box; genuine R≥3 tail needs a 3rd physically-slower box (pi5/ubu-2) — that point still OPEN. Detail: .verdicts/sandbox/n1_ops_heterogeneous_mmc_measured.txt. Frontier labs run homogeneous datacenters so this routing-first angle is invisible; our mixed SANDBOX (mac M3 + x86 CPU + raspberry pi) IS the moat. FALSIFIER: gain(R)=λ̂_max(weighted)/λ̂_max(equal); CLOSES if gain∈[0.85,1.15] across ≥3 host-rate ratios (incl. R≈1.0 homogeneous control); STAYS OPEN if gain≥1.5× within ±20% of het-prediction on ≥2 heterogeneous ratios. Design note: state/scratch/ops-heterogeneous-mu-design.md.",
+          "domain": "OPS",
+          "status": "active (N⭐ cycle-29 — 🟢 SUPPORTED-MEASURED: clean 4-ratio FIRE 2026-06-22, slot confound fixed (closed-loop-per-host), R1 control 0.988× PASS, het gain 1.69×/1.66× @ R=2.34/2.48 within ±5% of G_het → deviation quantitatively confirmed, KEEPS-LANE-OPEN; R≥3 tail (3rd box) still open)"
+        },
+        {
+          "kind": "leaf",
+          "name": "vlm-counting-nonmonotone",
+          "summary": "RANK 2. SUBSTRATE group. CORRECTED 2026-06-22 (deep-dive verdict re-check — earlier 'subitizing ceiling' framing was over-claimed): the VL capability ladder COUNTING axis is NON-MONOTONE (V-shape), NOT a hard ceiling. In-hand single-family rungs: counting 4/5 (SmolVLM-500M) → 4/5 (SmolVLM2-2.2B) → 2/5 (Qwen2.5-VL-3B) → 5/5 (Qwen2.5-VL-7B); perception saturates monotone. CROSS-FAMILY PROBE FIRED 2026-06-22 (cycle-28, host summer, HF transformers AutoModelForImageTextToText, greedy, byte-exact integer scorer, NO LLM self-judge; 48-image grid: subitizing 1-4 ×16, counting 5-9 ×20, dense 10-15 ×12, seed-pinned PIL dots). PER-RANGE acc (subitiz | count5-9 | dense): Qwen2.5-VL-3B 1.00|0.60|0.75; InternVL3-2B(non-Qwen) 1.00|0.65|0.00; InternVL3-8B(non-Qwen) 1.00|0.90|0.67; SmolVLM2-2.2B 0.50|0.30|0.58 (DISQUALIFIED: fails 1-4 = generic perception defect, possibly 4-bit-aggravated). FINDINGS: (1) SUBITIZING LABEL VALIDATED — every strong perceiver sits 16/16 on 1-4 and degrades on 5-9 (first 1-4-vs-5-9 contrast for this lane); (2) the 5-9 dip is CROSS-ARCHITECTURE — InternVL3-2B dips to 0.65 from a 1.00 ceiling matching Qwen-3B's 0.60, so H2 (Qwen2.5-VL-3B-LOCAL artifact) is REFUTED; (3) the dip RECOVERS at scale in BOTH families — InternVL3 counting 0.65(2B)→0.90(8B) = the same V-shape as Qwen 2/5(3B)→5/5(7B), so the surviving claim is H1′ SOFT scale-emergent counting capacity shared by ≥2 architectures (hard ceiling stays refuted); (4) DENSE 10-15 is the true family-orthogonal hard wall (all families collapse). VERDICT TIER 🟠 H1′ SUPPORTED (soft-ceiling), NOT strict-CONFIRMED: only 1 CLEAN non-Qwen matched-~3B dip family (InternVL3) — the 2nd clean non-Qwen ~3B rung (Phi-3.5-V) was UNAVAILABLE (transformers 5.8 Cache-API incompatibility; gemma-3-4b gated; moondream2 custom API). Qwen-7B + LLaVA-NeXT-7B in-flight on a saturated host (corroboration only). Detail: .verdicts/sandbox/n2_substrate_counting_family.txt (raw TSVs state/scratch/n2_harvest/). FALSIFIER (revised): STRICT-CONFIRMED (universal scale-law) if the 5-9 dip replicates from a 1-4 ceiling across ≥2 NON-Qwen families at matched ~3B; currently SUPPORTED (1 non-Qwen family + its 8B recovery); REFUTED only if ≥2 non-Qwen families show NO 3B dip (already false — InternVL3 dips). Design note: state/scratch/substrate-subitizing-design.md.",
+          "domain": "SUBSTRATE",
+          "status": "active (N⭐ cycle-28 — 🟠 H1′ SUPPORTED soft-ceiling 2026-06-22: InternVL3 non-Qwen reproduces the matched-3B dip + 8B recovery V-shape → H2 Qwen-local-artifact REFUTED, hard-ceiling refuted; strict CONFIRMED still open — needs a 2nd clean non-Qwen ~3B dip family; lane OPEN at soft-ceiling reframing)"
+        },
+        {
+          "kind": "leaf",
+          "name": "out-of-weights-routing",
+          "summary": "RANK 3 (contrarian). lm_foundry. The frontier is moving routing INTO weights (GLM ARC agentic-first, Kimi agentic) — in-weight delegation/tool-emission. hexa-codex empirically DISPROVED in-weight delegation (v0.4.x, 5 distinct failure modes; learning <|delegate|> emission degrades hexa-canon emission) and pivoted to deterministic pre-7B keyword classifier + per-vendor tier router + real SDK dispatch (Anthropic/OpenAI/Gemini). A verified counter-example to the field's direction. STATUS: GA (v0.6.0 r67; DLG-mk0 classifier 0.9833 = 295/300 on the canonical 300-task manifest, Brier 0.0242 — NOTE: the often-quoted 0.985 is r49's OLD 200-task figure (197/200); after the r51 200→300 expansion the canonical number is 0.9833, identical across r51/r54/r55. ARCHITECTURE.json L602/L675 still carry the misattributed 0.985 → separate governance fix). PREFLIGHT DONE 2026-06-22 (state/scratch/lmfoundry-out-of-weights-preflight.md): re-open recipe lm_foundry/tool/run_pod_v043.sh is buildable; budget ~$18.27 ≈ 15 GPU-hr Vast.ai A100; stopped at cost gate awaiting human GO. FALSIFIER (re-open): if a same-budget in-weight-delegation variant matches the out-of-weights router on classifier accuracy (≥0.9833 on the 300-task manifest) AND Mk.I strict (≥94.29%) WITHOUT degrading hexa-canon emission (≥99% of r39's 627 pass-set still pass, per-token KL ≤0.05, zero delegate-leak, 5-NL 96% held), the out-of-weights thesis is overturned.",
+          "domain": "lm_foundry",
+          "status": "GA (v0.6.0 r67) — thesis frozen, re-openable"
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "candidate-weak",
+      "summary": "Borderline — novel measurement ANGLE but the underlying axis is also worked by the frontier (so novelty is partial).",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "moe-vs-dense-cost-anomaly",
+          "summary": "ECONOMICS group. Frontier labs all do MoE scaling, so the axis is crowded — but our MEASUREMENT angle is differentiated: DeepSeek-V3 (active-37B / 14.8T tok) hits Chinchilla D/N=20.000 EXACTLY while 12 dense models overtrain D/N∈[22,1875]; MoE optimal D/N≈1.07 vs Chinchilla≈20. Partial novelty (measurement, not mechanism). FALSIFIER: if the D/N=20.000 exact-hit is coincidental (does not recur for ≥2 other MoE models at their reported active-param/token counts), the anomaly is noise.",
+          "domain": "ECONOMICS",
+          "status": "candidate (axis E, partial novelty)"
+        }
+      ]
+    }
+  ]
+}

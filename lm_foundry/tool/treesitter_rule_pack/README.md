@@ -15,7 +15,7 @@ S-expression queries paired with idiomatic positives. Two use sites:
    `(rejected, chosen)` pairs into the `rlhf` substrate.
 2. **Inference-time style audit** — score `hexa-codex serve`
    generations; counts feed `tool/emit_t4.py --verb interpret`
-   (F-CODEX-4 T4 analog, D-007).
+   (scaling-falsifier T4 analog, D-007).
 
 LLM-judge synthesis is **forever-blocked** for v1 to avoid Shumailov
 2024 model-collapse — see D-013 rationale.

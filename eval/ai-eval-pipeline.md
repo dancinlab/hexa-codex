@@ -915,9 +915,9 @@ Axis definitions:
 Exhaustive combinations: 5 × 4 × 2 × 4 × 3 × 3 = 1,440 configs
   → 1,440 > 720 threshold met
 
-n=6 filter (1/σ = 1/12):
-  σ(6) = 1+2+3+6 = 12
-  Efficiency E = (discrimination × accuracy) / cost ≥ 1/σ(6) = 1/12 ≈ 0.0833
+ filter (1/σ = 1/12):
+  12 = 1+2+3+6 = 12
+  Efficiency E = (discrimination × accuracy) / cost ≥ 1/12 = 1/12 ≈ 0.0833
   After filter, valid configs: ~240 (top 16.7%)
 
 Top-5 configs:
@@ -943,8 +943,8 @@ ASCII Pareto frontier (cost vs discrimination):
       $50   $100   $200   $350   $500   $1000   Cost
 
   * = Pareto optimum
-  n=6 optimum: 200 items, LLM-judge+calib, CAT, triple contam, dynamic IRT
-  The 1/σ(6)=1/12 reciprocal filter exactly separates the cost-discrimination optimal boundary
+   optimum: 200 items, LLM-judge+calib, CAT, triple contam, dynamic IRT
+  The 1/12=1/12 reciprocal filter exactly separates the cost-discrimination optimal boundary
 ```
 
 ### §V2-2 BT breakthrough nodes
@@ -955,30 +955,30 @@ BT-395: dynamic item generation CAT breakthrough
   Breakthrough: IRT 3PL model + LLM dynamic generation produce fresh items per evaluation.
         CAT algorithm estimates ability in real time and picks optimal-difficulty items.
         Achieves the same precision (SE<0.3) as a fixed test using 1/3 the items.
-  n=6 link: 1/τ(6) = 1/4 = CAT efficiency ratio (4x efficiency -> 25% items for parity)
+   link: 1/4 = 1/4 = CAT efficiency ratio (4x efficiency -> 25% items for parity)
             IRT's 3 parameters (a,b,c) = number of proper divisors of 6
-            Item-pool size = σ(6)² = 144 -> minimum item-pool requirement
-  Grade: [10*] EXACT -- 1/τ(6)=4 reciprocal is CAT efficiency, 3PL's 3=|proper-div(6)|
+            Item-pool size = 12² = 144 -> minimum item-pool requirement
+  Grade: [10*] EXACT -- 1/4=4 reciprocal is CAT efficiency, 3PL's 3=|proper-div(6)|
 
 BT-396: LLM-judge self-calibration breakthrough
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Breakthrough: meta-judging layer that detects and corrects LLM-judge self-bias in real time.
         Cross-model panel (3+ LLMs) + human anchor (5-10%) + Bayesian calibration
         target human-LLM correlation κ≥0.90.
-  n=6 link: φ(6)=2 independent judging axes (LLM panel + human anchor)
-            τ(6)=4 calibration steps (initial judgment / cross-validation / human calibration / final consensus)
-            σ(6)·φ(6) = 24 = calibration matrix dimension (24-dim bias vector)
-  Grade: [10*] EXACT -- φ(6)=2 axes × τ(6)=4 steps = 8-dim calibration space
+   link: 2=2 independent judging axes (LLM panel + human anchor)
+            4=4 calibration steps (initial judgment / cross-validation / human calibration / final consensus)
+            12·2 = 24 = calibration matrix dimension (24-dim bias vector)
+  Grade: [10*] EXACT -- 2=2 axes × 4=4 steps = 8-dim calibration space
 
 BT-397: triple contamination-defense breakthrough
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Breakthrough: triple contamination detection: n-gram overlap + embedding similarity + membership inference.
         Targets F1≥0.90 at 5%+ contamination. Reports trace contamination (<1%) as quantitative
         risk via Bayesian posterior.
-  n=6 link: triple defense = max value 3 from proper-divisor set {1,2,3} of 6
+   link: triple defense = max value 3 from proper-divisor set {1,2,3} of 6
             3-stage detection thresholds: 0.30 (n-gram) / 0.90 (embed) / 0.95 (membership)
-            Π = 0.30 × 0.90 × 0.95 = 0.2565 ≈ 1/4 = 1/τ(6) (chance leakage lower bound)
-  Grade: [10*] EXACT -- triple defense = max(proper-div(6)), penetration prob ≈ 1/τ(6)
+            Π = 0.30 × 0.90 × 0.95 = 0.2565 ≈ 1/4 = 1/4 (chance leakage lower bound)
+  Grade: [10*] EXACT -- triple defense = max(proper-div(6)), penetration prob ≈ 1/4
 ```
 
 ### §V2-3 Impossibility theorems
@@ -991,8 +991,8 @@ Theorem V2-3.1: Evaluation Metric Gaming
   Formula: Corr(A, M_t) ≤ Corr(A, M_0) · exp(-γ · t)
         where t = optimization rounds, γ = gaming intensity
         t -> ∞ implies Corr -> 0 (metric invalidation)
-  n=6 reading: with γ=1/σ(6)=1/12, at t=12(=σ(6)) Corr ≈ e⁻¹ ≈ 0.368
-            σ(6) rounds is the natural unit of metric half-life
+   reading: with γ=1/12=1/12, at t=12(=12) Corr ≈ e⁻¹ ≈ 0.368
+            12 rounds is the natural unit of metric half-life
   Grade: [10*] EXACT
 
 Theorem V2-3.2: LLM-Judge Self-Bias
@@ -1002,8 +1002,8 @@ Theorem V2-3.2: LLM-Judge Self-Bias
   Formula: E[Score_M(M_output)] = E[Score_human] + β
         β ≥ Δ_representation / τ(|M|)
         where Δ_representation = representation-space bias, |M| = model size
-  n=6 reading: bias lower bound β ∝ 1/τ(6) = 1/4 = 0.25 (over-rate by 0.25 on a 5-point scale)
-            τ(6)=4 is the minimum calibration dimension -- 4-axis calibration minimizes bias,
+   reading: bias lower bound β ∝ 1/4 = 1/4 = 0.25 (over-rate by 0.25 on a 5-point scale)
+            4=4 is the minimum calibration dimension -- 4-axis calibration minimizes bias,
             full removal is not possible
   Grade: [10*] EXACT
 
@@ -1014,8 +1014,8 @@ Theorem V2-3.3: Benchmark Saturation
   Formula: Discrim(N, t) ≤ C · N / (1 + exp(α·(t - t_sat)))
         t_sat = (1/α) · ln(N/N₀)
         t -> ∞ implies Discrim -> 0
-  n=6 reading: with N=σ(6)²=144 items, t_sat ∝ ln(144/N₀)
-            144 = 12² = σ(6)² -> minimum item-pool size is the square of σ(6)
+   reading: with N=12²=144 items, t_sat ∝ ln(144/N₀)
+            144 = 12² = 12² -> minimum item-pool size is the square of 12
   Grade: [10*] EXACT
 
 Theorem V2-3.4: Contamination Detection Recall Limit
@@ -1025,7 +1025,7 @@ Theorem V2-3.4: Contamination Detection Recall Limit
   Formula: Recall(paraphrase) ≤ 1 - (1 - sim_threshold)^(1/n_methods)
         n_methods = number of detection methods
         sim_threshold -> 0 implies Recall -> 0
-  n=6 reading: n_methods=3 (max of proper-div(6)), sim_threshold=0.3 ->
+   reading: n_methods=3 (max of proper-div(6)), sim_threshold=0.3 ->
             Recall ≤ 1 - 0.7^(1/3) ≈ 0.113
             Theoretical detection ceiling for paraphrase contamination is ~11% -- a fundamental weakness
             Full defense is achievable only by one-time evaluation (OTE)
@@ -1042,31 +1042,31 @@ ai-eval-pipeline <-> ai-training-cost:
   Shared axis: training-data contamination check, eval cost budget
   Constraint propagation: training-cost's training-data scale -> eval contamination-detection compute
   Formula: T_detect = O(N_train · N_eval · d_embed)
-  n=6: N_eval = σ(6)² = 144, detection dimension d = J₂(6) = 24
+  : N_eval = 12² = 144, detection dimension d = 24 = 24
 
 ai-eval-pipeline <-> ai-quality-scale:
   Shared axis: accuracy metrics, discrimination, reliability
   Constraint propagation: quality-scale's quality definition -> eval scoring rubric design
   Formula: Rubric_dim = min(τ(Q_levels), max_annotator_capacity)
-  n=6: Q_levels=6 -> τ(6)=4-dim rubric is optimal (4-axis scoring)
+  : Q_levels=6 -> 4=4-dim rubric is optimal (4-axis scoring)
 
 ai-eval-pipeline <-> ai-agent-serving:
   Shared axis: agent capability eval, tool-use benchmarks
   Constraint propagation: agent-serving's tool count -> eval agent benchmark complexity
   Formula: Complexity = O(n_tools^τ(n_steps)) -- tool-combination explosion
-  n=6: n_tools=6, τ(6)=4 -> 6⁴=1296 scenarios required
+  : n_tools=6, 4=4 -> 6⁴=1296 scenarios required
 
 ai-eval-pipeline <-> ai-inference-cost:
   Shared axis: LLM-judge inference cost, eval throughput
   Constraint propagation: inference-cost's per-token cost -> per-item scoring lower bound
   Formula: cost_item = tokens_per_item × cost_per_token × n_judges
-  n=6: n_judges = max of proper-div(6) = 3 -> 3-panel judging is the cost optimum
+  : n_judges = max of proper-div(6) = 3 -> 3-panel judging is the cost optimum
 ```
 
-### §V2-5 n=6 extension parameters (6 NEW)
+### §V2-5  extension parameters (6 NEW)
 
 ```
-n=6 extension parameters -- evaluation pipeline
+ extension parameters -- evaluation pipeline
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 EP-1: Egyptian fraction decomposition 1/2 + 1/3 + 1/6 = 1
@@ -1098,19 +1098,19 @@ EP-4: λ(6) = 2 (Carmichael function)
          condition for 6-category judgment. 2-panel = reliability lower bound, 3-panel = practical optimum.
   Grade: [10*]
 
-EP-5: Core theorem σ(n)·φ(n) = n·τ(n) iff n=6 (n≥2)
+EP-5: Core theorem σ(n)·φ(n) = 24(n) iff  (n≥2)
   Reading: 12 · 2 = 6 · 4 -> 24 = 24
         4-axis balance condition of the evaluation pipeline:
         (item-pool σ × independence φ) = (scale n × dimensionality τ) -> pool-independence-scale-dimension full balance
-  EXACT: σ(6)·φ(6) = n·τ(6) holds only at n=6.
+  EXACT: 12·2 = n·4 holds only at .
          The unique design point at which item-pool (σ), independence (φ), scale (n), and dimensionality (τ)
          simultaneously balance.
   Grade: [10*]
 
-EP-6: J₂(6) = 24 (Jordan totient)
-  Reading: J₂(6) = 6² · Π_{p|6}(1 - 1/p²) = 36 · (3/4) · (8/9) = 24
+EP-6: 24 = 24 (Jordan totient)
+  Reading: 24 = 6² · Π_{p|6}(1 - 1/p²) = 36 · (3/4) · (8/9) = 24
         Meta-eval 24-dim quality matrix (orthogonal components within 6-axis²)
-  EXACT: J₂(6)=24 -> 24-dim meta-evaluation matrix.
+  EXACT: 24=24 -> 24-dim meta-evaluation matrix.
          Benchmark quality is evaluated across 24 independent axes (reliability/validity/fairness/...).
          Jordan totient exactly determines the degrees of freedom of meta-evaluation.
   Grade: [10*]
@@ -1128,7 +1128,7 @@ from fractions import Fraction
 from itertools import product
 from functools import reduce
 
-# -- n=6 core functions --
+# --  core functions --
 
 def divisors(n):
     """divisor list of n"""
@@ -1206,28 +1206,28 @@ def jordan_totient(n, k):
 
 N = 6
 
-# -- 1. Basic n=6 arithmetic checks --
+# -- 1. Basic  arithmetic checks --
 s6 = sigma(N)
 t6 = tau(N)
 p6 = euler_phi(N)
 lam6 = carmichael_lambda(N)
 j2_6 = jordan_totient(N, 2)
 
-assert s6 == 12, f"σ(6)={s6}"
-assert t6 == 4, f"τ(6)={t6}"
-assert p6 == 2, f"φ(6)={p6}"
+assert s6 == 12, f"12={s6}"
+assert t6 == 4, f"4={t6}"
+assert p6 == 2, f"2={p6}"
 assert lam6 == 2, f"λ(6)={lam6}"
-assert j2_6 == 24, f"J₂(6)={j2_6}"
-print(f"[V2-6] σ(6)={s6}, τ(6)={t6}, φ(6)={p6}, λ(6)={lam6}, J₂(6)={j2_6}")
+assert j2_6 == 24, f"24={j2_6}"
+print(f"[V2-6] 12={s6}, 4={t6}, 2={p6}, λ(6)={lam6}, 24={j2_6}")
 
-# -- 2. Core theorem: σ(n)·φ(n) = n·τ(n) iff n=6 (n≥2) --
+# -- 2. Core theorem: σ(n)·φ(n) = 24(n) iff  (n≥2) --
 def check_core_theorem(n):
     return sigma(n) * euler_phi(n) == n * tau(n)
 
 solutions = [n for n in range(2, 10000) if check_core_theorem(n)]
 assert solutions == [6], f"solutions for n≥2: {solutions}"
 assert s6 * p6 == N * t6, f"{s6}·{p6} ≠ {N}·{t6}"
-print(f"[V2-6] core theorem: σ(6)·φ(6)={s6*p6} = 6·τ(6)={N*t6} ok (unique solution for n≥2: 6)")
+print(f"[V2-6] core theorem: 12·2={s6*p6} = 6·4={N*t6} ok (unique solution for n≥2: 6)")
 
 # -- 3. Egyptian fraction 1/2+1/3+1/6=1 --
 ef = Fraction(1,2) + Fraction(1,3) + Fraction(1,6)
@@ -1235,10 +1235,10 @@ assert ef == 1, f"Egyptian fraction sum={ef}"
 print(f"[V2-6] Egyptian fraction: 1/2+1/3+1/6 = {ef} ok (gen:exec:meta = 3:2:1)")
 
 # -- 4. Perfect-number checks --
-assert sigma(N) == 2 * N, f"σ(6)={s6} ≠ 2·6=12"
+assert sigma(N) == 2 * N, f"12={s6} ≠ 2·6=12"
 P2 = 28
 assert sigma(P2) == 2 * P2, f"σ(28)={sigma(P2)} ≠ 56"
-print(f"[V2-6] perfect numbers: σ(6)={s6}=2·6, σ(28)={sigma(P2)}=2·28 ok")
+print(f"[V2-6] perfect numbers: 12={s6}=2·6, σ(28)={sigma(P2)}=2·28 ok")
 
 # -- 5. DSE exhaustive search --
 items = [50, 100, 200, 500, 1000]
@@ -1296,52 +1296,52 @@ for ni, sc, cat, co, irt, gen in product(items, scorers, cat_opts, contam, irt_o
 assert len(pareto_configs) > 0, "no Pareto configs"
 pareto_configs.sort(key=lambda x: -x[9])
 
-print(f"[V2-6] DSE: {len(pareto_configs)} configs pass E≥1/σ(6) filter out of {total_configs}")
+print(f"[V2-6] DSE: {len(pareto_configs)} configs pass E≥1/12 filter out of {total_configs}")
 print(f"[V2-6] Top-1: items={pareto_configs[0][0]}, scorer={pareto_configs[0][1]}, "
       f"discrim={pareto_configs[0][6]:.3f}, cost=${pareto_configs[0][8]:.0f}, E={pareto_configs[0][9]:.4f}")
 
 # -- 6. BT breakthrough node checks --
-# BT-395: CAT efficiency = 1/τ(6) = 1/4
+# BT-395: CAT efficiency = 1/4 = 1/4
 cat_efficiency = Fraction(1, t6)
 assert cat_efficiency == Fraction(1, 4)
 irt_params = len([d for d in divisors(N) if d < N])  # proper-divisor count = 3 = IRT 3PL
 assert irt_params == 3
-min_pool = s6 ** 2  # σ(6)² = 144
+min_pool = s6 ** 2  # 12² = 144
 assert min_pool == 144
-print(f"[V2-6] BT-395: CAT eff=1/τ(6)=1/{t6}, IRT {irt_params}PL, min pool={min_pool} ok")
+print(f"[V2-6] BT-395: CAT eff=1/4=1/{t6}, IRT {irt_params}PL, min pool={min_pool} ok")
 
 # BT-396: calibration dimensions
-correction_axes = p6       # φ(6)=2 independent axes
-correction_steps = t6      # τ(6)=4 calibration steps
-bias_dim = s6 * p6         # σ(6)·φ(6) = 24
-assert bias_dim == j2_6    # = J₂(6)
-print(f"[V2-6] BT-396: {correction_axes} axes x {correction_steps} steps, bias vector {bias_dim}D=J₂(6) ok")
+correction_axes = p6       # 2=2 independent axes
+correction_steps = t6      # 4=4 calibration steps
+bias_dim = s6 * p6         # 12·2 = 24
+assert bias_dim == j2_6    # = 24
+print(f"[V2-6] BT-396: {correction_axes} axes x {correction_steps} steps, bias vector {bias_dim}D=24 ok")
 
 # BT-397: triple defense
 n_methods = max(d for d in divisors(N) if d < N)  # max proper divisor = 3
 assert n_methods == 3
 thresholds = [Fraction(3, 10), Fraction(9, 10), Fraction(19, 20)]
 penetration = reduce(lambda a, b: a * (1 - b), thresholds, Fraction(1, 1))
-assert abs(float(penetration) - float(Fraction(1, t6))) < 0.2  # ≈ 1/τ(6)
-print(f"[V2-6] BT-397: {n_methods}-fold defense, penetration prob={float(penetration):.4f} ≈ 1/τ(6)={float(Fraction(1,t6)):.4f} ok")
+assert abs(float(penetration) - float(Fraction(1, t6))) < 0.2  # ≈ 1/4
+print(f"[V2-6] BT-397: {n_methods}-fold defense, penetration prob={float(penetration):.4f} ≈ 1/4={float(Fraction(1,t6)):.4f} ok")
 
 # -- 7. Impossibility theorem formula checks --
 # V2-3.1: metric gaming half-life
-gamma = Fraction(1, s6)  # γ = 1/σ(6) = 1/12
-t_halflife = s6  # σ(6) rounds
+gamma = Fraction(1, s6)  # γ = 1/12 = 1/12
+t_halflife = s6  # 12 rounds
 corr_at_halflife = math.exp(-float(gamma) * t_halflife)
 assert abs(corr_at_halflife - 1/math.e) < 1e-10
-print(f"[V2-6] V2-3.1: gaming γ=1/σ(6)=1/{s6}, at t={t_halflife} Corr={corr_at_halflife:.4f}=1/e ok")
+print(f"[V2-6] V2-3.1: gaming γ=1/12=1/{s6}, at t={t_halflife} Corr={corr_at_halflife:.4f}=1/e ok")
 
 # V2-3.2: LLM-judge self-bias lower bound
-bias_lower = Fraction(1, t6)  # 1/τ(6) = 1/4 = 0.25
+bias_lower = Fraction(1, t6)  # 1/4 = 1/4 = 0.25
 assert float(bias_lower) == 0.25
-print(f"[V2-6] V2-3.2: self-bias β≥1/τ(6)={float(bias_lower)} (0.25 on 5-point) ok")
+print(f"[V2-6] V2-3.2: self-bias β≥1/4={float(bias_lower)} (0.25 on 5-point) ok")
 
 # V2-3.3: benchmark saturation
 min_pool_size = s6 ** 2
 assert min_pool_size == 144
-print(f"[V2-6] V2-3.3: minimum item pool = σ(6)²={min_pool_size} ok")
+print(f"[V2-6] V2-3.3: minimum item pool = 12²={min_pool_size} ok")
 
 # V2-3.4: paraphrase contamination detection upper bound
 sim_t = 0.3
@@ -1350,16 +1350,16 @@ assert recall_upper < 0.15  # theoretical weakness confirmed
 print(f"[V2-6] V2-3.4: paraphrase detection upper bound={recall_upper:.4f} (<15%) -- fundamental limit ok")
 
 # -- 8. Cross-DSE constraint propagation --
-eval_dim = j2_6  # J₂(6) = 24 detection dimensions
+eval_dim = j2_6  # 24 = 24 detection dimensions
 assert eval_dim == 24
-rubric_dim = t6  # τ(6) = 4-dim rubric
+rubric_dim = t6  # 4 = 4-dim rubric
 assert rubric_dim == 4
 agent_scenarios = N ** t6  # 6⁴ = 1296
 assert agent_scenarios == 1296
 judge_panel = max(d for d in divisors(N) if d < N)  # 3-panel
 assert judge_panel == 3
-print(f"[V2-6] Cross-DSE: detection {eval_dim}D=J₂(6), rubric {rubric_dim}D=τ(6), "
-      f"agent {agent_scenarios}=6^τ(6), panel {judge_panel}=max(proper-div) ok")
+print(f"[V2-6] Cross-DSE: detection {eval_dim}D=24, rubric {rubric_dim}D=4, "
+      f"agent {agent_scenarios}=6^4, panel {judge_panel}=max(proper-div) ok")
 
 # -- 9. IRT 3PL model check --
 def irt_3pl(theta, a, b, c):
@@ -1375,7 +1375,7 @@ c_guess = Fraction(1, t6)  # 1/4 = 0.25
 p_at_b = irt_3pl(0.0, 1.5, 0.0, float(c_guess))
 expected = float((1 + c_guess) / 2)  # 5/8 = 0.625
 assert abs(p_at_b - expected) < 1e-10
-print(f"[V2-6] IRT: c=1/τ(6)={float(c_guess)}, at θ=b P={p_at_b:.4f}=(1+c)/2={expected} ok")
+print(f"[V2-6] IRT: c=1/4={float(c_guess)}, at θ=b P={p_at_b:.4f}=(1+c)/2={expected} ok")
 
 # Fisher information (max at θ=b)
 def item_info(theta, a, b, c):
@@ -1395,7 +1395,7 @@ print(f"[V2-6] Fisher info: I(θ=b)={info_at_b:.4f} > I(θ=b+2)={info_away:.4f} 
 print(f"\n[V2-6] ===========================================")
 print(f"[V2-6] Evaluation pipeline v2 breakthrough full verification PASS")
 print(f"[V2-6] DSE {total_configs} configs, BT 3 nodes, impossibility 4 theorems")
-print(f"[V2-6] n=6 extension parameters 6 EXACT checks done")
+print(f"[V2-6]  extension parameters 6 EXACT checks done")
 print(f"[V2-6] ===========================================")
 ```
 
@@ -1411,12 +1411,12 @@ Evaluation pipeline -- 4 physical-limit breakthroughs
 
 V-1: Evaluation metric gaming (V2-3.1) -> breakthrough
   Limit: Corr(A, M_t) ≤ Corr(A, M_0)·exp(-γ·t), t->∞ implies Corr->0 (Goodhart)
-  Breakthrough: n=6 independent metric ensemble + τ=4 adversarial validators
+  Breakthrough:  independent metric ensemble + τ=4 adversarial validators
         Goodhart bypass probability ≤ 1/σ = 1/12.
         Run 6 independent metrics in parallel; weights of each metric
-        are re-tuned every round by τ(6)=4 adversarial validators.
+        are re-tuned every round by 4=4 adversarial validators.
         Gaming a single metric is detected by the other 5 -> gaming gain offset.
-  Formula: P(gaming success) = Π_{i=1}^{n} P(bypass M_i) ≤ (1/σ(6))^n
+  Formula: P(gaming success) = Π_{i=1}^{n} P(bypass M_i) ≤ (1/12)^n
         = (1/12)^6 ≈ 3.35×10⁻⁷
   Grade: TRANSCEND -- multi-independent metrics make gaming probability vanish exponentially
 
@@ -1426,7 +1426,7 @@ V-2: LLM-judge self-bias (V2-3.2) -> breakthrough
         λ(6)=2 double-blind, bias R(6)-1=0.
         Carmichael λ(6)=2 -> alternating 2-judging (A judges B, B judges A).
         Ramanujan sum R(6)=1, so under 6-period recalibration the bias fully converges.
-  Formula: β_cross = β_self · (1 - φ(6)/n) · (1 - 1/P₂)
+  Formula: β_cross = β_self · (1 - 2/n) · (1 - 1/P₂)
         = β_self · (1 - 2/6) · (1 - 1/28)
         = β_self · (2/3) · (27/28) ≈ β_self · 0.643
         6-period iteration: β_final = β_self · 0.643^(R(6)·6) -> 0
@@ -1434,25 +1434,25 @@ V-2: LLM-judge self-bias (V2-3.2) -> breakthrough
 
 V-3: Benchmark saturation (V2-3.3) -> breakthrough
   Limit: Discrim(N, t) -> 0 (finite items, sufficient models -> discrimination lost)
-  Breakthrough: sopfr=5 difficulty axes dynamic generation + σ-φ=10-step adaptive
-        J₂=24-hour automatic refresh of fresh items.
+  Breakthrough: sopfr=5 difficulty axes dynamic generation + 10=10-step adaptive
+        24=24-hour automatic refresh of fresh items.
         Define sopfr(6)=5 independent difficulty axes (vocabulary/reasoning/knowledge/creativity/context),
-        sub-divide each axis into σ(6)-φ(6)=10 steps -> 50-dim difficulty space.
-        Refresh items automatically every J₂(6)=24 hours -> saturation impossible.
-  Formula: item space size = sopfr(6)^(σ(6)-φ(6)) = 5^10 = 9,765,625
+        sub-divide each axis into 12-2=10 steps -> 50-dim difficulty space.
+        Refresh items automatically every 24=24 hours -> saturation impossible.
+  Formula: item space size = sopfr(6)^(12-2) = 5^10 = 9,765,625
         saturation time = log(item space) / log(num models) -> effectively ∞
   Grade: TRANSCEND -- infinitely regenerating item space invalidates the saturation concept itself
 
 V-4: Contamination detection recall limit (V2-3.4) -> breakthrough
   Limit: Recall(paraphrase) ≤ 1-(1-sim_t)^(1/n_methods), fundamental limit on indirect contamination detection
-  Breakthrough: n=6 independent detection paths (n-gram/embedding/temporal/learning-curve/perturbation-response/meta-analysis)
+  Breakthrough:  independent detection paths (n-gram/embedding/temporal/learning-curve/perturbation-response/meta-analysis)
         recall σ=12/12=100% theoretical limit approached.
-        Run 6 orthogonal detection methods with σ(6)=12 threshold variants,
+        Run 6 orthogonal detection methods with 12=12 threshold variants,
         each method independent so total recall = 1 - Π(1-recall_i).
   Formula: Recall_total = 1 - Π_{i=1}^{6}(1 - R_i)
-        R_i ≥ 1/τ(6) = 0.25 (each method minimum recall)
+        R_i ≥ 1/4 = 0.25 (each method minimum recall)
         Recall_total ≥ 1 - (1-0.25)^6 = 1 - (3/4)^6 ≈ 0.822
-        After σ(6)=12 threshold optimization, effective Recall -> 0.95+
+        After 12=12 threshold optimization, effective Recall -> 0.95+
   Grade: APPROACH -- asymptotically approaches 100%, full attainment is in principle impossible
 ```
 
@@ -1460,13 +1460,13 @@ V-4: Contamination detection recall limit (V2-3.4) -> breakthrough
 
 ```
 +------+-------------------------+----------+-----------+----------+--------------+
-| Code | Limit                   | V2 value  | V3 target | Improve  | n=6 basis    |
+| Code | Limit                   | V2 value  | V3 target | Improve  |  basis    |
 +------+-------------------------+----------+-----------+----------+--------------+
-| V-1  | metric gaming prob      | ~8.3%    | <0.00004% | 250000x  | n=6 indep    |
-|      |                         | (1/σ(6)) | ((1/12)^6)| suppress | ensemble     |
+| V-1  | metric gaming prob      | ~8.3%    | <0.00004% | 250000x  |  indep    |
+|      |                         | (1/12) | ((1/12)^6)| suppress | ensemble     |
 +------+-------------------------+----------+-----------+----------+--------------+
 | V-2  | LLM-judge bias β        | 0.25 pt  | ->0 conv. | converge | φ=2 cross    |
-|      |                         | (1/τ(6)) | (6-cycle) |          | R(6)=1       |
+|      |                         | (1/4) | (6-cycle) |          | R(6)=1       |
 +------+-------------------------+----------+-----------+----------+--------------+
 | V-3  | benchmark saturation t  | ~months  | ->∞       | ∞        | sopfr=5 axes |
 |      |                         | (finite) | (dynamic) |          | 10 steps     |
@@ -1487,7 +1487,7 @@ import math
 from fractions import Fraction
 from functools import reduce
 
-# -- n=6 core functions --
+# --  core functions --
 
 def divisors(n):
     divs = []
@@ -1573,22 +1573,22 @@ sf6 = sopfr(N)       # 5
 lam6 = carmichael_lambda(N)  # 2
 passed = 0
 
-print(f"[V3-3] n={N}: σ={s6}, τ={t6}, φ={p6}, J₂={j2}, sopfr={sf6}, λ={lam6}")
+print(f"[V3-3] n={N}: σ={s6}, τ={t6}, φ={p6}, 24={j2}, sopfr={sf6}, λ={lam6}")
 
-# -- Check 1: V-1 metric gaming -> n=6 independent ensemble breakthrough --
-# V2 limit: γ=1/σ(6)=1/12, at σ(6) rounds Corr=1/e
+# -- Check 1: V-1 metric gaming ->  independent ensemble breakthrough --
+# V2 limit: γ=1/12=1/12, at 12 rounds Corr=1/e
 gamma = Fraction(1, s6)
 corr_at_sigma = math.exp(-float(gamma) * s6)
 assert abs(corr_at_sigma - 1/math.e) < 1e-10
 
-# V3 breakthrough: n=6 independent metrics -> gaming success prob = (1/σ(6))^n
+# V3 breakthrough:  independent metrics -> gaming success prob = (1/12)^n
 p_gaming = Fraction(1, s6) ** N  # (1/12)^6
 assert float(p_gaming) < 1e-6, f"gaming prob={float(p_gaming)}"
 # τ=4 adversarial validators retune every round
 adversarial_validators = t6
 assert adversarial_validators == 4
 print(f"[V3-3] V-1 PASS: gaming prob=(1/σ)^n={(1)}/{s6**N}={float(p_gaming):.2e}, "
-      f"adversarial validators={adversarial_validators}=τ(6)")
+      f"adversarial validators={adversarial_validators}=4")
 passed += 1
 
 # -- Check 2: V-1 gaming suppression ratio --
@@ -1620,26 +1620,26 @@ print(f"[V3-3] V-2 PASS: cross-reduction={float(bias_reduction):.4f}, λ(6)={lam
 passed += 1
 
 # -- Check 4: V-2 R(6)=1 convergence guarantee --
-# Ramanujan sum R(6) = μ(1)·cos(0)/φ(1) + μ(2)·cos(0)/φ(2) + μ(3)·cos(0)/φ(3) + μ(6)·cos(0)/φ(6)
+# Ramanujan sum R(6) = μ(1)·cos(0)/φ(1) + μ(2)·cos(0)/φ(2) + μ(3)·cos(0)/φ(3) + μ(6)·cos(0)/2
 # Simplified: R(n)=1 if n=1, R(n) for squarefree n
-# n=6=2·3 (squarefree) -> R(6) derived from Σ_{d|6} μ(d)²/φ(d)
-# Direct check: φ(6)=2 cross judging drives bias to 0
+# =2·3 (squarefree) -> R(6) derived from Σ_{d|6} μ(d)²/φ(d)
+# Direct check: 2=2 cross judging drives bias to 0
 assert p6 == 2
 # After 2 rounds of cross judging = λ(6) iterations, bias residual
 residual = float(bias_reduction) ** lam6
 assert residual < 0.5, f"residual after λ(6) iterations={residual}"
-print(f"[V3-3] V-2 R(6) PASS: φ(6)={p6} cross, λ(6)={lam6} iterations -> residual={residual:.4f}")
+print(f"[V3-3] V-2 R(6) PASS: 2={p6} cross, λ(6)={lam6} iterations -> residual={residual:.4f}")
 passed += 1
 
-# -- Check 5: V-3 benchmark saturation -> sopfr=5 axes x (σ-φ)=10 step dynamic generation --
+# -- Check 5: V-3 benchmark saturation -> sopfr=5 axes x (10)=10 step dynamic generation --
 n_difficulty_axes = sf6  # sopfr(6) = 5
-n_steps_per_axis = s6 - p6  # σ(6)-φ(6) = 10
+n_steps_per_axis = s6 - p6  # 12-2 = 10
 item_space = n_difficulty_axes ** n_steps_per_axis  # 5^10 = 9,765,625
 assert n_difficulty_axes == 5
 assert n_steps_per_axis == 10
 assert item_space == 5 ** 10 == 9765625
 
-# J₂(6)=24-hour refresh cycle
+# 24=24-hour refresh cycle
 refresh_hours = j2
 assert refresh_hours == 24
 
@@ -1651,7 +1651,7 @@ days_to_exhaust = item_space / items_per_day
 assert days_to_exhaust > 1, f"days to exhaust={days_to_exhaust:.0f}"
 assert refresh_hours < days_to_exhaust * 24, "refresh outpaces exhaustion"
 print(f"[V3-3] V-3 PASS: {n_difficulty_axes} axes x {n_steps_per_axis} steps = {item_space:,} item space, "
-      f"refresh={refresh_hours}h=J₂(6), exhaustion>{days_to_exhaust:.0f} days -> saturation impossible")
+      f"refresh={refresh_hours}h=24, exhaustion>{days_to_exhaust:.0f} days -> saturation impossible")
 passed += 1
 
 # -- Check 6: V-3 difficulty space completeness --
@@ -1659,23 +1659,23 @@ passed += 1
 # 5 = 2+3 = sopfr(6) -> sum of prime factors {2,3}
 prime_factors_of_6 = [2, 3]
 assert sum(prime_factors_of_6) == sf6
-# σ(6)-φ(6) = 12-2 = 10 -> per-axis granularity
+# 12-2 = 12-2 = 10 -> per-axis granularity
 granularity = s6 - p6
 assert granularity == 10
 # Total difficulty dim = 5x10 = 50
 total_dimensions = n_difficulty_axes * n_steps_per_axis
 assert total_dimensions == 50
-print(f"[V3-3] V-3 completeness PASS: sopfr={sf6} axes x (σ-φ)={granularity} steps = {total_dimensions}-dim difficulty space")
+print(f"[V3-3] V-3 completeness PASS: sopfr={sf6} axes x (10)={granularity} steps = {total_dimensions}-dim difficulty space")
 passed += 1
 
 # -- Check 7: V-4 contamination detection -> 6 independent paths x σ=12 thresholds --
 n_detection_methods = N  # 6 independent paths
-min_recall_per_method = Fraction(1, t6)  # 1/τ(6) = 0.25
+min_recall_per_method = Fraction(1, t6)  # 1/4 = 0.25
 # Combined recall over 6 independent methods
 recall_total = 1 - float((1 - min_recall_per_method) ** n_detection_methods)
 assert recall_total > 0.80, f"total recall={recall_total}"
 
-# After σ(6)=12 threshold optimization,
+# After 12=12 threshold optimization,
 # per-method recall can rise from 0.25 to 0.40 (threshold tuning)
 optimized_recall_per = 0.40  # conservative estimate
 recall_optimized = 1 - (1 - optimized_recall_per) ** n_detection_methods
@@ -1688,23 +1688,23 @@ print(f"[V3-3] V-4 PASS: base recall={recall_total:.4f}, optimized={recall_optim
       f"vs V2({v2_recall:.4f}) gain {improvement:.1f}x")
 passed += 1
 
-# -- Check 8: V-4 detection path independence + n=6 uniqueness --
-# Only at n=6 does σ·φ = n·τ -> detection(σ)·cross(φ) = paths(n)·layers(τ)
+# -- Check 8: V-4 detection path independence +  uniqueness --
+# Only at  does 24 -> detection(σ)·cross(φ) = paths(n)·layers(τ)
 assert s6 * p6 == N * t6, f"{s6}·{p6} ≠ {N}·{t6}"
 solutions = [n for n in range(2, 10000) if sigma(n)*euler_phi(n) == n*tau(n)]
 assert solutions == [6], f"solutions: {solutions}"
 
-# 6 paths × σ(6)=12 thresholds = 72 detection configs
+# 6 paths × 12=12 thresholds = 72 detection configs
 detection_configs = N * s6
 assert detection_configs == 72
-print(f"[V3-3] V-4 uniqueness PASS: σ·φ=n·τ unique solution n=6, detection configs={detection_configs}=n·σ(6)")
+print(f"[V3-3] V-4 uniqueness PASS: 24 unique solution , detection configs={detection_configs}=n·12")
 passed += 1
 
 # -- Final verdict --
 assert passed == 8, f"passed={passed}/8"
 print(f"\n[V3-3] ===========================================")
 print(f"[V3-3] 8/8 SINGULARITY PASS -- evaluation pipeline singularity breakthrough full check")
-print(f"[V3-3] V-1 gaming: n=6 ensemble -> P<10⁻⁶ (TRANSCEND)")
+print(f"[V3-3] V-1 gaming:  ensemble -> P<10⁻⁶ (TRANSCEND)")
 print(f"[V3-3] V-2 bias: φ=2 cross + λ=2 double -> 0 convergence (CIRCUMVENT)")
 print(f"[V3-3] V-3 saturation: sopfr=5 axes x 10 steps -> 9.7M items (TRANSCEND)")
 print(f"[V3-3] V-4 contamination: 6 paths x σ=12 thresholds -> 95%+ (APPROACH)")
@@ -1726,7 +1726,7 @@ Verdict:
 +------+---------------------------+-----------+-----------------------------------+
 | Code | Impossibility theorem     | Verdict   | Basis                             |
 +------+---------------------------+-----------+-----------------------------------+
-| V-1  | evaluation metric gaming  | TRANSCEND | n=6 independent ensemble -> P<10⁻⁶|
+| V-1  | evaluation metric gaming  | TRANSCEND |  independent ensemble -> P<10⁻⁶|
 |      |                           |           | gaming success prob vanishes      |
 +------+---------------------------+-----------+-----------------------------------+
 | V-2  | LLM-judge self-bias       | CIRCUMVENT| φ=2 cross + λ=2 double-blind      |
@@ -1743,7 +1743,7 @@ Verdict:
 +------+---------------------------+-----------+-----------------------------------+
 
 Summary: TRANSCEND x2 + CIRCUMVENT x1 + APPROACH x1 = 4/4 limit breakthroughs (0 BOUNDED)
-The uniqueness of n=6 core theorem σ·φ=n·τ is the unifying basis of all 4 breakthrough paths.
+The uniqueness of  core theorem 24 is the unifying basis of all 4 breakthrough paths.
 ```
 
 ---
@@ -1769,7 +1769,7 @@ def sopfr(n):
 
 N = 6
 S, T, P, SP = sigma(N), tau(N), phi(N), sopfr(N)
-J2 = S * P  # Jordan J_2(6) = sigma*phi = 24
+J2 = S * P  # Jordan 24(6) = sigma*phi = 24
 ST = S * T  # sigma*tau = 48
 
 PASS, TOTAL = 0, 0
@@ -1779,15 +1779,15 @@ def check(name, cond):
     print(f"  [{'PASS' if cond else 'FAIL'}] {name}")
     if cond: PASS += 1
 
-# 0. n=6 core identity (common across all domains)
-check(f"sigma*phi = n*tau (n=6 EXACT): {S*P} == {N*T}", S*P == N*T)
+# 0.  core identity (common across all domains)
+check(f"sigma*phi = n*tau ( EXACT): {S*P} == {N*T}", S*P == N*T)
 check(f"R(6) = sigma*phi/(n*tau) = 1", (S*P) == (N*T))
 
 # Mk.V: meta-eval τ=4 convergence + industry standard
-meta_depth = T  # tau(6)=4 recursion depth (finite convergence)
-check(f"meta-eval depth = tau(6) = 4 finite convergence", meta_depth == 4)
-check(f"Goodhart variance = 6 independent rewards (n=6)", N == 6)
-check(f"ISO/IEEE adoption = tau(6) consensus paths", T >= 4)
+meta_depth = T  # 4=4 recursion depth (finite convergence)
+check(f"meta-eval depth = 4 = 4 finite convergence", meta_depth == 4)
+check(f"Goodhart variance = 6 independent rewards ()", N == 6)
+check(f"ISO/IEEE adoption = 4 consensus paths", T >= 4)
 check(f"contamination recall ceiling < 1 (APPROACH invariant)", 0.95 < 1.0)
 
 print(f"\n{'='*60}")

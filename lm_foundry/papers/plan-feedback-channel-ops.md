@@ -10,24 +10,24 @@
 | ------------ | ------------------------------------------------------------------------------------------------- |
 | status       | `DESIGN_LOCKED` — implementation gated on v0.1.3 base-model decision (D-007)                      |
 | gate         | v1.0.0 forge release requires ≥ **5 PRs landed** in hexa-codex                                    |
-| primary T4   | F-CODEX-1 (training cost) + F-CODEX-2 (inference cost) — measurement window overlaps SFT + serving |
-| secondary    | F-CODEX-3 (alignment T4) + F-CODEX-4 (interpret T4 analog)                                        |
+| primary T4   | scaling-falsifier (training cost) + scaling-falsifier (inference cost) — measurement window overlaps SFT + serving |
+| secondary    | scaling-falsifier (alignment T4) + scaling-falsifier (interpret T4 analog)                                        |
 | last updated | 2026-05-11                                                                                        |
 
 ---
 
 ## §1 Artifact → hexa-codex verb mapping (PR routing)
 
-| forge measurement / artifact                                | hexa-codex destination                                                                                | PR shape                                                                                          | F-CODEX target                  |
+| forge measurement / artifact                                | hexa-codex destination                                                                                | PR shape                                                                                          | scaling-falsifier target                  |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------- |
-| **SFT loss-vs-FLOP curve** (per scaling sweep)              | `hexa-codex/train_cost`                                                                               | `t4-empirical/forge-<run_id>.json` + parity row in `numerics_train_cost_parity.hexa`              | **F-CODEX-1 T4** (D-004)        |
-| **M4 / Mac Studio / H100 latency profile** + KV-cache curve | `hexa-codex/infer_cost`                                                                               | `t4-empirical/forge-<run_id>.json` + parity row in `numerics_infer_cost_parity.hexa`              | **F-CODEX-2 T4** (D-005)        |
+| **SFT loss-vs-FLOP curve** (per scaling sweep)              | `hexa-codex/train_cost`                                                                               | `t4-empirical/forge-<run_id>.json` + parity row in `numerics_train_cost_parity.hexa`              | **scaling-falsifier T4** (D-004)        |
+| **M4 / Mac Studio / H100 latency profile** + KV-cache curve | `hexa-codex/infer_cost`                                                                               | `t4-empirical/forge-<run_id>.json` + parity row in `numerics_infer_cost_parity.hexa`              | **scaling-falsifier T4** (D-005)        |
 | **HumanEval+ / hexa-eval / 5-NL aggregate pass rates**      | `hexa-codex/quality_scale`                                                                            | per-pillar score table + cross-cutter contribution                                                | cross-cutter                    |
-| **Refusal rate matrix** (5 NL × adversarial categories)     | `hexa-codex/safety` + `alignment` + `adversarial`                                                     | `safety/empirical/forge-refusal-<run_id>.csv` + HELM-style table                                  | **F-CODEX-3 T4** input (D-006)  |
-| **Native-first / 2026-canon-first audit** (tree-sitter rule pack outputs) | `hexa-codex/interpret`                                                                       | motif analog table — count of (idiom-correct, idiom-incorrect) patterns                           | **F-CODEX-4 T4** analog (D-007) |
+| **Refusal rate matrix** (5 NL × adversarial categories)     | `hexa-codex/safety` + `alignment` + `adversarial`                                                     | `safety/empirical/forge-refusal-<run_id>.csv` + HELM-style table                                  | **scaling-falsifier T4** input (D-006)  |
+| **Native-first / 2026-canon-first audit** (tree-sitter rule pack outputs) | `hexa-codex/interpret`                                                                       | motif analog table — count of (idiom-correct, idiom-incorrect) patterns                           | **scaling-falsifier T4** analog (D-007) |
 | **DPO yield numbers** (linter-driven pair count, quality)   | `hexa-codex/rlhf`                                                                                     | preference-data substrate annex                                                                   | substrate input                 |
 | **Eval methodology refinements** (Mk.II → Mk.III templates) | `hexa-codex/eval`                                                                                     | template diff in `eval/ai-eval-pipeline.md §S6 EVOLVE` Mk progression                             | meta — wraps F-1..4             |
-| **Tool-use schema iterations** (actual forge tool surface)  | `hexa-codex/agent_serving`                                                                            | schema diff in `agent_serving/ai-agent-serving.md`                                                | F-CODEX-2 SLO input             |
+| **Tool-use schema iterations** (actual forge tool surface)  | `hexa-codex/agent_serving`                                                                            | schema diff in `agent_serving/ai-agent-serving.md`                                                | scaling-falsifier SLO input             |
 | **Hardware-tier deployment recipes** (M4 / Studio / H100)   | `hexa-codex/deploy`                                                                                   | recipe annex in `deploy/ai-deployment.md`                                                         | ops input                       |
 | **License-clean CI audit summaries**                        | (no direct verb — feeds `enterprise`)                                                                 | data-residency annex                                                                              | ops input                       |
 
@@ -51,7 +51,7 @@ provenance discipline):
 <one paragraph — tie back to the verb's §S1 WHY>
 
 ## Falsifier closure delta
-- `F-CODEX-<N>`: T4 was `PENDING`; now `<PASS|REGRESS|UNDETERMINED>` with `<numbers>`
+- `scaling-falsifier-<N>`: T4 was `PENDING`; now `<PASS|REGRESS|UNDETERMINED>` with `<numbers>`
 - Recipe §3 `closure_pct` impact: <none / +T4 ✓ → 4/4 = 100%>
 
 ## Numbers
@@ -68,7 +68,7 @@ provenance discipline):
 ## Cross-link
 - forge-side artifact: `<path>`
 - hexa-codex landing site: `<file>` (parity row appended)
-- F-CODEX-<N> arithmetic floor (T1+T2+T3): already ✓ at v1.0.0
+- scaling-falsifier-<N> arithmetic floor (T1+T2+T3): already ✓ at v1.0.0
 
 ## License / attribution
 - corpus license tags: `<list>`
@@ -108,17 +108,17 @@ Each `emit_*.hexa` script:
 ```
 gate: forge → hexa-codex feedback channel (per docs/code-llm.md §VERIFY upstream feedback contract)
    requires: ≥ 5 PRs landed in hexa-codex (any combination from §1 routing)
-   strongly favored: at least 1 PR per F-CODEX-N to land T4 empirical floor for ≥ 2 falsifiers
+   strongly favored: at least 1 PR per scaling-falsifier-N to land T4 empirical floor for ≥ 2 falsifiers
    default targets (highest-yield, measurement-window-overlap):
-     - F-CODEX-1 T4 (train_cost) — lands when SFT sweep completes
-     - F-CODEX-2 T4 (infer_cost) — lands when M4 / Studio / H100 latency profile completes
+     - scaling-falsifier T4 (train_cost) — lands when SFT sweep completes
+     - scaling-falsifier T4 (infer_cost) — lands when M4 / Studio / H100 latency profile completes
 ```
 
 Non-blocking (nice-to-have at v1.0.0):
-- F-CODEX-3 T4 (alignment) — needs the model to actually respond to
+- scaling-falsifier T4 (alignment) — needs the model to actually respond to
   HELM-Core-style multi-axis eval; lands when refusal matrix +
   hexa-eval + 5-NL eval all complete.
-- F-CODEX-4 T4 analog (interpret) — needs SAE-trained features over
+- scaling-falsifier T4 analog (interpret) — needs SAE-trained features over
   the forge weights; this is more aspirational and may slip to v1.1.0.
 
 ## §5 Concurrency + provenance guarantees
@@ -139,7 +139,7 @@ Non-blocking (nice-to-have at v1.0.0):
 
 | failure                                                  | symptom                                                | mitigation                                                                                       |
 | -------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| Forge measures something that contradicts F-CODEX-N arithmetic floor | T1 still PASS, T4 numbers conflict                | open `D-NNN` in hexa-codex `plan-decisions-pending.md`; mark falsifier as `T4 ANOMALOUS PENDING`; do NOT auto-tombstone arithmetic. Investigate together. |
+| Forge measures something that contradicts scaling-falsifier-N arithmetic floor | T1 still PASS, T4 numbers conflict                | open `D-NNN` in hexa-codex `plan-decisions-pending.md`; mark falsifier as `T4 ANOMALOUS PENDING`; do NOT auto-tombstone arithmetic. Investigate together. |
 | Corpus license drift causes T4 retraction                | downstream regret                                      | hexa-codex `verify/cross_doc_audit.hexa` flags license-tag drift; forge re-runs with cleaned corpus |
 | Repeated forge-runs produce divergent T4 numbers         | T4 noise floor                                         | forge publishes mean ± stdev; hexa-codex parity row records range, not point estimate            |
 | LLM-judge ratio mid-run change                           | quality-scale T4 invalidated                           | freeze judge config at start of T4 sweep; recorded in PR template `Reproducibility` block        |
@@ -150,9 +150,9 @@ Non-blocking (nice-to-have at v1.0.0):
 ```
 ~/core/hexa-forge/outbox/hexa-codex/
 ├── train_cost/
-│   └── 2026-XX-XX-<run_id>.md         # F-CODEX-1 T4 PR draft
+│   └── 2026-XX-XX-<run_id>.md         # scaling-falsifier T4 PR draft
 ├── infer_cost/
-│   └── 2026-XX-XX-<run_id>.md         # F-CODEX-2 T4 PR draft
+│   └── 2026-XX-XX-<run_id>.md         # scaling-falsifier T4 PR draft
 ├── quality_scale/
 │   └── 2026-XX-XX-<run_id>.md
 ├── safety/

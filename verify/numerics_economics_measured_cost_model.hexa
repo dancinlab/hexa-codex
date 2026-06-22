@@ -1,16 +1,14 @@
 #!hexa strict
 // hexa-codex/verify/numerics_economics_measured_cost_model.hexa — M3.ECON
 // POSITIVE measured-latency cost model — the substrate's REAL latency law,
-// independent of the n=6 lattice (which is irrelevant here).
 //
 // PURPOSE.  M3.ECON's M5-release OR-branch reads (SANDBOX.md M5.ECON):
 // "v1.3.0 must EITHER re-derive a measured-τ̂ cost model OR ship the
-// falsification."  The self-generated n=6 lattice number τ=4 does NOT fit
 // the substrate (measured τ̂=0.524, residual 3.476 ≫ ε) — recorded as an
 // INTERNAL verdict `.verdicts/sandbox/m3_econ_fcodex2_latency_fit.txt`
 // (recomputed by `verify/numerics_economics_empirical_landing.hexa`, 10/10
-// 🔴).  NOTE: no paper — refuting a self-generated pre-LATTICE_POLICY
-// number is not paper-worthy (the `economics-lattice-falsified` paper was
+// 🔴).  NOTE: no paper — refuting a self-generated pre-policy
+// number is not paper-worthy (the `economics-falsified` paper was
 // REVOKED, cx_paper_violation).  THIS verifier supplies the OTHER half — the
 // POSITIVE measured cost model — so the OR-branch is satisfied with a
 // REAL law (not merely a negative).
@@ -82,7 +80,7 @@
 //   POOL_DISABLE=1 hexa run verify/numerics_economics_measured_cost_model.hexa
 //
 // @no-lock-needed
-// @resolver-bypass(reason="Pure local verifier; float arithmetic only on committed bench TSV rows. No atlas atoms touched, no model/GPU/API. Positive companion to the F-CODEX-2 falsification — satisfies M3.ECON M5-release OR-branch with a measured cost model.")
+// @resolver-bypass(reason="Pure local verifier; float arithmetic only on committed bench TSV rows. No atlas atoms touched, no model/GPU/API. Positive companion to the scaling-falsifier falsification — satisfies M3.ECON M5-release OR-branch with a measured cost model.")
 
 use "self/runtime/math_pure"
 
@@ -327,7 +325,7 @@ fn check_prefill_slope_positive(prefill_slope: float) {
 fn check_powerlaw_tau_provenance(tau: float) {
     let drift = _abs(tau - TAU_FALSIFIED)
     _check(drift < TAU_PROV_TOL,
-           "single power-law τ̂ reproduces F-CODEX-2 falsification fit (0.524) — same data, same OLS",
+           "single power-law τ̂ reproduces scaling-falsifier falsification fit (0.524) — same data, same OLS",
            "tau_hat=" + to_string(tau) + "  falsified_ref=" + to_string(TAU_FALSIFIED) +
            "  drift=" + to_string(drift))
 }
@@ -337,7 +335,7 @@ fn check_powerlaw_tau_provenance(tau: float) {
 fn main() {
     println("========================================================================")
     println("  hexa-codex ECONOMICS measured-cost-model harness — M3.ECON OR-branch")
-    println("  POSITIVE companion to the F-CODEX-2 falsification (τ=4 → measured law)")
+    println("  POSITIVE companion to the scaling-falsifier falsification (τ=4 → measured law)")
     println("  cycle-18: wall_ms = decode_fixed + prefill_slope·input_tokens (OLS)")
     println("========================================================================")
     println("  data source: .verdicts/sandbox/stage4_context_scaling.tsv (verbatim)")
@@ -400,7 +398,7 @@ fn main() {
     println("  · wall_ms = " + to_string(decode_fixed) + " + " + to_string(prefill_slope) +
             "·input_tokens   (R²=" + to_string(r2_2) + ")")
     println("  · beats single power-law (R²=" + to_string(r2_pow) +
-            ", τ̂=" + to_string(tau) + " — the falsified n=6 τ=4 fit)")
+            ", τ̂=" + to_string(tau) + " — the falsified  τ=4 fit)")
     println("  · M3.ECON M5-release OR-branch satisfied with a REAL measured law")
     println("__HEXA_CODEX_NUMERICS_ECONOMICS_MEASURED_COST_MODEL__ PASS")
     exit(0)

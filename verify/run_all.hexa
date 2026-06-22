@@ -8,18 +8,8 @@
 //
 // Inventory (42 green-core verify/*.hexa scripts):
 //
-//   T1 algebraic   : calc_{train_cost,infer_cost,alignment,interpret,
-//                          quality_scale}                                 (5)
-//                  + lattice_check                                       (+1)
-//
-//   T2 numerical   : numerics_{train_cost,infer_cost,alignment,interpret,
-//                              quality_scale}                             (5)
-//                  + their _parity / _solver siblings                   (10)
-//                  + numerics_cross_pillar
-//                  + numerics_economics_cross_pillar
-//                  + numerics_economics_scaling_laws
+//   T2 numerical   : numerics_economics_scaling_laws
 //                  + numerics_economics_pareto
-//                  + numerics_lattice_arithmetic                         (5 = 20)
 //
 //   reports        : report_economics_ladder                              (1)
 //
@@ -37,14 +27,13 @@
 // NO EXCLUSIONS (no honest-red ledger):
 //   Unlike hexa-chip where 4 falsifier scripts are deliberately tripped
 //   by real-world Moore retraction + post-GAA flattening + HBM4 spec
-//   drift, hexa-codex's surface is currently all-green: 4 F-CODEX-N
+//   drift, hexa-codex's surface is currently all-green: 4 scaling-falsifier-N
 //   pillars + the quality_scale ECONOMICS verb, each × T1+T2×3
 //   (closed-form + numerics + solver + parity) +
 //   cross-cutters + meta + 11 T4 stubs that emit PENDING (not pretend
 //   to PASS empirically) until external forge data lands.
 //
-//   DeepMind published evals) use their own metrics, not lattice-fit.
-//   Per LATTICE_POLICY.md §1.3: lattice tautologies (σ·φ=n·τ=24) alone
+//   Published evals use their own metrics. Arithmetic tautologies alone
 //   are NOT sufficient verification — the numerics_* tier carries the
 //   real-limits anchors (PAC sample complexity, Kolmogorov K(program)
 //   lower bound, undecidability of semantic equivalence — see
@@ -62,7 +51,7 @@
 //   PASS here means RC=0 from each of the 34 green-core subscripts —
 //   bookkeeping closure of the verified-empirically-stable + PENDING-
 //   honest core, NOT AI capability / safety / economics settled. The 4
-//   F-CODEX-N falsifiers remain at "arithmetic floor closed, empirical
+//   scaling-falsifier-N falsifiers remain at "arithmetic floor closed, empirical
 //   PENDING per release ladder". 11 T4 stubs emit PENDING (not PASS)
 //   until hexa-forge data PRs land per D-023.
 //
@@ -85,8 +74,7 @@ fn _root() -> str {
 let ROOT = _root()
 
 let SCRIPTS: [str] = [
-    // ─── T1 algebraic (6) ─────────────────────────────────────────
-    "verify/lattice_check.hexa",
+    // ─── T1 algebraic ─────────────────────────────────────────────
     "verify/calc_train_cost.hexa",
     "verify/calc_infer_cost.hexa",
     "verify/calc_alignment.hexa",
@@ -113,7 +101,6 @@ let SCRIPTS: [str] = [
     "verify/numerics_economics_cross_pillar.hexa",
     "verify/numerics_economics_scaling_laws.hexa",
     "verify/numerics_economics_pareto.hexa",
-    "verify/numerics_lattice_arithmetic.hexa",
 
     // ─── T4 PENDING-sentinel stubs (11; emit PENDING per D-023) ───
     "verify/numerics_train_cost_t4_parity.hexa",

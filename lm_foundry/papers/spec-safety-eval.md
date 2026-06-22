@@ -548,9 +548,9 @@ simultaneously — the largest single-run fan-out in the recipe.
 
 | forge output                                                    | hexa-codex destination                                                                    | PR shape                                                                            | falsifier T4              |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------- |
-| Refusal-matrix table (5 NL × {T1,T2,T3,T4,T5,T6})              | [`hexa-codex/safety`](../../hexa-codex/safety/ai-safety.md)                                | refusal-matrix CSV + 3-axis (refusal-correctness / jailbreak / harmful) table       | **F-CODEX-3 T4** input (D-006) |
-| HELM-style 12-axis composite where applicable                   | [`hexa-codex/alignment`](../../hexa-codex/alignment/ai-alignment.md)                       | alignment HELM-mirror table — refusal + parity + adversarial composite              | F-CODEX-3 cross-cutter    |
-| T2 jailbreak-resistance + T3 harmful-code stress results        | [`hexa-codex/adversarial`](../../hexa-codex/adversarial/ai-adversarial.md)                 | adversarial robustness annex — per-perturbation-class drop + jailbreak rotation     | F-CODEX-3 input + Mk.III  |
+| Refusal-matrix table (5 NL × {T1,T2,T3,T4,T5,T6})              | [`hexa-codex/safety`](../../hexa-codex/safety/ai-safety.md)                                | refusal-matrix CSV + 3-axis (refusal-correctness / jailbreak / harmful) table       | **scaling-falsifier T4** input (D-006) |
+| HELM-style 12-axis composite where applicable                   | [`hexa-codex/alignment`](../../hexa-codex/alignment/ai-alignment.md)                       | alignment HELM-mirror table — refusal + parity + adversarial composite              | scaling-falsifier cross-cutter    |
+| T2 jailbreak-resistance + T3 harmful-code stress results        | [`hexa-codex/adversarial`](../../hexa-codex/adversarial/ai-adversarial.md)                 | adversarial robustness annex — per-perturbation-class drop + jailbreak rotation     | scaling-falsifier input + Mk.III  |
 
 **Why three PRs from one run.** The "Refusal rate matrix" row in
 `plan-feedback-channel-ops.md §1` routes to safety + alignment +

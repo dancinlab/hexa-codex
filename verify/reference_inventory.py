@@ -30,42 +30,6 @@ ROOT = Path(__file__).resolve().parents[1]
 # (relative_path, recorded_md5, kind, what_it_proves)
 REFERENCES = [
     (
-        "papers/n6-ai-17-techniques-experimental-paper.md",
-        "145b8b294b396289bdba6a1e6502e290",
-        "paper",
-        "P1: maps the 17 verbs onto the n=6 σ·φ=n·τ=24 coordinate space",
-    ),
-    (
-        "papers/n6-ai-techniques-68-integrated-paper.md",
-        "f4d5616226515ce24baf60b6c280b072",
-        "paper",
-        "P2: situates 17 verbs inside the wider 68-AI-technique atlas",
-    ),
-    (
-        "formal/lean4/N6/InvariantLattice/Sigma.lean",
-        "77da6c22ccd0d2d27782e1fdd26afe42",
-        "lean",
-        "P3a: σ(n) computable Nat definition (consumer of SigmaLatticeCard)",
-    ),
-    (
-        "formal/lean4/N6/InvariantLattice/SigmaLatticeCard.lean",
-        "c8ed2f17322e1e4f9ded8afa697e0317",
-        "lean",
-        "P3b: F-CL-FORMAL-1 — σ(6)=12 PROVEN (rfl, no sorry)",
-    ),
-    (
-        "papers/n6-ai-ethics-governance-paper.md",
-        "8cb6ae2ddbf503aa5597b1e853cf3258",
-        "paper",
-        "P4: ai-ethics+governance σ·φ=24 overlay (atlas.n6 0/24 EXACT, MATURITY=LOW)",
-    ),
-    (
-        "papers/n6-governance-safety-urban-paper.md",
-        "cf976a760eb0128f19372060ce57960f",
-        "paper",
-        "P5: governance+safety+urban σ·φ=24 overlay (atlas.n6 58/58 EXACT, MATURITY=HIGH)",
-    ),
-    (
         "consciousness/measurement-protocol.md",
         "89486e86358b5896a78508328b13e1b1",
         "verb-deepdive",

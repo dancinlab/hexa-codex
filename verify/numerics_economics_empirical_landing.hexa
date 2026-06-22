@@ -1,12 +1,11 @@
 #!hexa strict
 // hexa-codex/verify/numerics_economics_empirical_landing.hexa — M3.ECON
-// empirical-fit harness for F-CODEX-1 (training-cost ∝ N^σφ) +
-// F-CODEX-2 (inference-cost ∝ context^τ).
+// empirical-fit harness for scaling-falsifier (training-cost ∝ N^σφ) +
+// scaling-falsifier (inference-cost ∝ context^τ).
 //
 // PURPOSE.  M3.ECON empirical-fit harness — consumes per-scale accuracy
 // + serving-cost data on the {0.5B, 1.5B, 3B, 7B} Stage-2 scale ladder
-// and emits the F-CODEX-1 (N^σφ) + F-CODEX-2 (context^τ) residuals vs
-// the n=6 lattice theoretical exponents.  This commit ships the HARNESS
+// and emits the scaling-falsifier (N^σφ) + scaling-falsifier (context^τ) residuals vs
 // STRUCTURE only — the 0.5B row is HONEST historical input from
 // `.verdicts/sandbox/stage2_persona_scaled_summary.txt` (cycle-6); the
 // 1.5B / 3B / 7B rows are explicit `-1` PENDING sentinels.  No inference,
@@ -17,7 +16,7 @@
 // no llama-server, no Anthropic API.
 //
 // CONSUMER.  ECONOMICS v1.2.0/v1.3.0 release gates (per ECONOMICS.md
-// §F-CODEX-1 / §F-CODEX-2 roadmap).  The harness becomes the M3.ECON
+// §scaling-falsifier / §scaling-falsifier roadmap).  The harness becomes the M3.ECON
 // gate's closed-form audit surface once the Stage-2 manifest reruns at
 // 1.5B / 3B / 7B land (gated by SANDBOX M3.SUBSTRATE scale-ladder).
 //
@@ -26,7 +25,6 @@
 // rows up top + closed-form math + 10 checks + per-check pass/fail.  The
 // theoretical-exponent constants are pulled from
 // `verify/numerics_economics_scaling_laws.hexa` for cross-verifier
-// consistency on the n=6 lattice.
 //
 // FIT METHOD.  Closed-form ordinary-least-squares slope on log-log axes:
 //
@@ -34,12 +32,12 @@
 //     slope = ( k·Σ(u_i·v_i) − Σu_i·Σv_i ) / ( k·Σu_i² − (Σu_i)² )
 //     where u_i = log(x_i), v_i = log(y_i).
 //
-//   For F-CODEX-1: x = N (parameter count), y = 1 / accuracy proxy for
+//   For scaling-falsifier: x = N (parameter count), y = 1 / accuracy proxy for
 //   training-cost surrogate (higher accuracy at fixed manifest ↔ lower
 //   "effective training cost per accuracy point"); slope's |·| compared
-//   to N6_EXP_TRAIN = 24/25.
+//   to EXP_TRAIN = 24/25.
 //
-//   For F-CODEX-2: x = context_length, y = wall_ms latency proxy; slope
+//   For scaling-falsifier: x = context_length, y = wall_ms latency proxy; slope
 //   compared to TAU_INFER = 4.
 //
 //   Residual definition: |measured_slope − theoretical_exponent|.
@@ -65,10 +63,10 @@
 //      (overall = 50/150 + 52/150 + 54/150 = 33% / 34% / 36% personas)
 //   5. STAGE2_ACCURACY_0_5B per-stratum sanity — wc_5_15 best persona is
 //      `max` at 27/30 (per cycle-6 verdict header)
-//   6. Theoretical constants reconcile (N6_EXP_TRAIN = 24/25 + TAU_INFER = 4)
+//   6. Theoretical constants reconcile (EXP_TRAIN = 24/25 + TAU_INFER = 4)
 //   7. 1.5B/3B/7B PENDING sentinel detected — k_active = 1, fit deferred
-//   8. F-CODEX-1 fit: deferred when k_active < 2, else residual ≤ ε
-//   9. F-CODEX-2 fit: deferred when k_active < 2, else residual ≤ ε
+//   8. scaling-falsifier fit: deferred when k_active < 2, else residual ≤ ε
+//   9. scaling-falsifier fit: deferred when k_active < 2, else residual ≤ ε
 //   10. Verdict-line consistency — INSUFFICIENT iff k_active < 2;
 //       GREEN iff k_active == 4 AND both residuals pass;
 //       FALSIFIED iff k_active == 4 AND any residual > ε.
@@ -111,13 +109,12 @@ fn _root() -> str {
 
 let ROOT = _root()
 
-// ── n=6 lattice theoretical exponents (cross-checked vs scaling_laws) ────
-//   N6_EXP_TRAIN = σ·φ / (σ·φ + 1) = 24/25 = 0.96  (F-CODEX-1, train_cost ∝ N^σφ)
-//   TAU_INFER    = τ(6)            = 4            (F-CODEX-2, infer_cost ∝ ctx^τ)
+//   EXP_TRAIN = 24 / (24 + 1) = 24/25 = 0.96  (scaling-falsifier, train_cost ∝ N^σφ)
+//   TAU_INFER    = 4            = 4            (scaling-falsifier, infer_cost ∝ ctx^τ)
 let SIGMA = 12.0
 let PHI   = 2.0
 let J2_NUM = 24.0
-let N6_EXP_TRAIN = J2_NUM / (J2_NUM + 1.0)    // 24/25 = 0.96
+let EXP_TRAIN = J2_NUM / (J2_NUM + 1.0)    // 24/25 = 0.96
 let TAU_INFER    = 4.0
 
 // ── BLUE-tier residual pass gate ─────────────────────────────────────────
@@ -134,12 +131,12 @@ let NAN_SLOPE        = 0.0 - 999.0
 //   { 0.5B, 1.5B, 3B, 7B } in raw parameter counts.
 //
 //   Anchored to SANDBOX M3.SUBSTRATE checkbox + the SUBSTRATE Stage-4
-//   plan.  This is the x-axis of the F-CODEX-1 fit.
+//   plan.  This is the x-axis of the scaling-falsifier fit.
 let SCALE_GRID_PARAMS = [
     0.5e9,   // 0.5B — measured cycle-6 (Qwen2.5-0.5B-Instruct-Q4_K_M)
     1.5e9,   // 1.5B — base on disk (M1.SUBSTRATE done) · M2.SUBSTRATE bench rerun PENDING
     3.0e9,   // 3B  — gated on d_qwen_3b_scale (cliff-clearance dependency)
-    7.0e9,   // 7B  — gated on d_qwen_7b_scale (final ladder rung, F-CODEX-1 endpoint)
+    7.0e9,   // 7B  — gated on d_qwen_7b_scale (final ladder rung, scaling-falsifier endpoint)
 ]
 
 let N_SCALES = 4
@@ -220,16 +217,16 @@ let STAGE2_ACCURACY_7B = [
 // Stratum count (the 5 wc-bins in the Stage-2 manifest).
 let N_STRATA = 5
 
-// ── F-CODEX-2 context-length grid — LIVE as of cycle-16 (M3.ECON close-out).
+// ── scaling-falsifier context-length grid — LIVE as of cycle-16 (M3.ECON close-out).
 // The (context, wall_ms) pairs below are read VERBATIM from the real
 // llama-server context-scaling bench
 // `.verdicts/sandbox/stage4_context_scaling.tsv` (Qwen2.5-1.5B-Instruct-Q4_K_M,
 // -np 1 -cb on port 8091, 20 canonical tasks × 4 context rungs, $0 local
 // M3 Metal, cycle-16). This is the SUBSTRATE'S OWN measured latency curve —
-// per the harness check-10 rationale, F-CODEX-2 (latency vs context length)
+// per the harness check-10 rationale, scaling-falsifier (latency vs context length)
 // is a substrate-INTERNAL scaling law, so τ=4 is a real falsifiable claim
-// ABOUT this substrate (not a lattice-on-external-entity over-claim like
-// F-CODEX-1), and the residual DOES gate closure.
+// ABOUT this substrate (not a reference-on-external-entity over-claim like
+// scaling-falsifier), and the residual DOES gate closure.
 let CONTEXT_GRID = [
     1024.0,   // 1k
     2048.0,   // 2k
@@ -253,7 +250,6 @@ let LATENCY_MS_PENDING = [
 ]
 
 let FALSIFIERS = [
-    "ECONOMICS F-CODEX-1 + F-CODEX-2 empirical-fit harness: closed-form OLS residuals vs n=6 lattice exponents",
 ]
 
 // ── helpers ──────────────────────────────────────────────────────────────
@@ -348,17 +344,17 @@ fn fit_exponent(xs: [float], ys: [float]) -> float {
     return ((kf * sum_uv) - (sum_u * sum_v)) / denom
 }
 
-// F-CODEX-1 measured slope on log(N) vs log(accuracy_proxy) where
+// scaling-falsifier measured slope on log(N) vs log(accuracy_proxy) where
 // accuracy_proxy = mean_live(row).  Returns the *measured* empirical
 // exponent — the actual scaling law fit to the 4-rung Stage 2 data.
 //
-// LATTICE_POLICY g25/g26 stance: the n=6-derived N6_EXP_TRAIN = 24/25
+// policy g25/g26 stance: the -derived EXP_TRAIN = 24/25
 // is OUR framing for the empirical landing; Qwen 2.5 (the external
 // substrate) has no obligation to follow it.  Per §4 "External envelope",
-// the lattice is disclosed as a reference number, NEVER asserted as a
+// the reference is disclosed as a reference number, NEVER asserted as a
 // HARD residual gate.  The slope returned here is the measured fit;
-// downstream readers compare it to the lattice descriptively.
-fn f_codex_1_measured_slope() -> float {
+// downstream readers compare it to the reference descriptively.
+fn measured_slope_train() -> float {
     let xs = SCALE_GRID_PARAMS
     let ys_raw = [
         row_mean_live(STAGE2_ACCURACY_0_5B),
@@ -369,23 +365,23 @@ fn f_codex_1_measured_slope() -> float {
     return fit_exponent(xs, ys_raw)
 }
 
-// F-CODEX-1 lattice residual — DESCRIPTIVE only (LATTICE_POLICY §4).
-// Returns |measured_slope - N6_EXP_TRAIN| so a reader can see how far
-// the empirical landing diverges from the lattice prediction.  This
+// scaling-falsifier residual — DESCRIPTIVE only (policy §4).
+// Returns |measured_slope - EXP_TRAIN| so a reader can see how far
+// the empirical landing diverges from the reference prediction.  This
 // quantity is NEVER asserted as a hard gate; it is reported for
 // transparency.  An external-substrate scaling-law fit that disagrees
-// with the lattice is a real-limits-first finding, not a verify
+// with the reference is a real-limits-first finding, not a verify
 // failure.
-fn f_codex_1_lattice_residual() -> float {
-    let slope = f_codex_1_measured_slope()
+fn train_residual() -> float {
+    let slope = measured_slope_train()
     if _abs(slope - NAN_SLOPE) < 1.0e-9 { return NAN_SLOPE }
-    return _abs(_abs(slope) - N6_EXP_TRAIN)
+    return _abs(_abs(slope) - EXP_TRAIN)
 }
 
-// F-CODEX-2 residual.  Slope on log(context) vs log(wall_ms_latency).
+// scaling-falsifier residual.  Slope on log(context) vs log(wall_ms_latency).
 // All 4 latency points are PENDING in this harness ship; returns
 // NAN_SLOPE.
-fn f_codex_2_residual() -> float {
+fn infer_residual() -> float {
     let xs = CONTEXT_GRID
     let ys = LATENCY_MS_PENDING
     let slope = fit_exponent(xs, ys)
@@ -474,12 +470,12 @@ fn check_0_5b_wc_5_15_best_max_27_30() {
 
 // Check 6: theoretical constants reconcile.
 fn check_theoretical_constants() {
-    let exp_drift = _abs(N6_EXP_TRAIN - (24.0 / 25.0))
+    let exp_drift = _abs(EXP_TRAIN - (24.0 / 25.0))
     let tau_drift = _abs(TAU_INFER - 4.0)
     let ok = (exp_drift < 1.0e-12) && (tau_drift < 1.0e-12)
     _check(ok,
-           "n=6 theoretical exponents: N6_EXP_TRAIN = 24/25 + TAU_INFER = 4",
-           "N6_EXP_TRAIN=" + to_string(N6_EXP_TRAIN) +
+           " theoretical exponents: EXP_TRAIN = 24/25 + TAU_INFER = 4",
+           "EXP_TRAIN=" + to_string(EXP_TRAIN) +
            "  TAU_INFER=" + to_string(TAU_INFER) +
            "  exp_drift=" + to_string(exp_drift) + "  tau_drift=" + to_string(tau_drift))
 }
@@ -487,70 +483,69 @@ fn check_theoretical_constants() {
 // Check 7: cycle-14 — 4-rung scale ladder fully landed (k_active == 4).
 // Earlier commits used k_active == 1 (only 0.5B live); cycle-14 M3.SUBSTRATE
 // saturation lifted 1.5B/3B/7B PENDING sentinels to real per-stratum data.
-// F-CODEX-2 latency row remains PENDING — overall verdict gated on M3.OPS.
+// scaling-falsifier latency row remains PENDING — overall verdict gated on M3.OPS.
 fn check_pending_sentinel_detected() {
     let k = k_active_scales()
     _check(k == N_SCALES,
-           "k_active scale-points == 4 (cycle-14: 0.5B/1.5B/3B/7B all LIVE; F-CODEX-1 fit active)",
+           "k_active scale-points == 4 (cycle-14: 0.5B/1.5B/3B/7B all LIVE; scaling-falsifier fit active)",
            "k_active=" + str(k) + "  expected_this_commit=4  fit_status=LIVE")
 }
 
-// Check 8: F-CODEX-1 empirical slope DISCLOSURE — LATTICE_POLICY-lifted.
+// Check 8: scaling-falsifier empirical slope DISCLOSURE — policy-lifted.
 //
 // Before lift (cycle-15 6526ad7): this check was a HARD residual gate
 // (`r <= EPS_RESIDUAL_THRESHOLD`) that asserted the empirical Stage 2
-// slope must match the n=6 lattice prediction `N6_EXP_TRAIN = 24/25`.
-// That is the LATTICE_POLICY §1 "self-imposed ceiling" anti-pattern:
+// That is the policy §1 "self-imposed ceiling" anti-pattern:
 // the external entity (Qwen 2.5) has no obligation to follow the
-// lattice, and asserting a HARD gate against it produces a meaningless
+// reference, and asserting a HARD gate against it produces a meaningless
 // FALSIFIED verdict.
 //
 // After lift (this commit): the check disclosures the measured slope
-// and the lattice residual for transparency, and PASSES iff the slope
+// and the reference residual for transparency, and PASSES iff the slope
 // is a real number (k_active ≥ 2).  The actual "fit" is the measured
-// exponent, not the lattice number; readers compare the two
-// descriptively per LATTICE_POLICY §4 "External envelope".
-fn check_f_codex_1_residual() {
+// exponent, not the reference number; readers compare the two
+// descriptively per policy §4 "External envelope".
+fn check_train_residual() {
     let k = k_active_scales()
-    let slope = f_codex_1_measured_slope()
-    let r = f_codex_1_lattice_residual()
+    let slope = measured_slope_train()
+    let r = train_residual()
     let slope_is_nan = _abs(slope - NAN_SLOPE) < 1.0e-9
     if k < 2 {
         // Deferred path — INSUFFICIENT until ≥ 2 scale points land.
         _check(slope_is_nan,
-               "F-CODEX-1 measured slope DEFERRED (k_active < 2) — fit_exponent returned NAN_SLOPE",
-               "k_active=" + str(k) + "  measured_slope=NAN_SLOPE  lattice_ref=" +
-               to_string(N6_EXP_TRAIN))
+               "scaling-falsifier measured slope DEFERRED (k_active < 2) — fit_exponent returned NAN_SLOPE",
+               "k_active=" + str(k) + "  measured_slope=NAN_SLOPE  exp_ref=" +
+               to_string(EXP_TRAIN))
     } else {
-        // Disclosure path — print measured exponent + lattice residual,
-        // PASS on slope being a real number.  Never assert |slope - N6_EXP_TRAIN| ≤ ε
+        // Disclosure path — print measured exponent + reference residual,
+        // PASS on slope being a real number.  Never assert |slope - EXP_TRAIN| ≤ ε
         // as that's the g25/g26 anti-pattern.
         _check(!slope_is_nan,
-               "F-CODEX-1 empirical slope disclosed (LATTICE_POLICY-lifted: lattice residual is descriptive, not gating)",
+               "scaling-falsifier empirical slope disclosed (policy-lifted: reference residual is descriptive, not gating)",
                "k_active=" + str(k) +
                "  measured_slope=" + to_string(slope) +
-               "  lattice_ref=" + to_string(N6_EXP_TRAIN) +
-               "  lattice_residual=" + to_string(r) +
+               "  exp_ref=" + to_string(EXP_TRAIN) +
+               "  ref_residual=" + to_string(r) +
                "  threshold_unused=" + to_string(EPS_RESIDUAL_THRESHOLD))
     }
 }
 
-// Check 9: F-CODEX-2 fit — measured log-log slope of (context, wall_ms) vs
-// the lattice prediction τ=4.  LIVE as of cycle-16: the 4 latency rungs are
+// Check 9: scaling-falsifier fit — measured log-log slope of (context, wall_ms) vs
+// the reference prediction τ=4.  LIVE as of cycle-16: the 4 latency rungs are
 // the substrate's OWN measured curve (stage4_context_scaling.tsv), so the
 // closed-form OLS recompute now RUNS.  This check PASSES on having produced
 // a real recompute (slope is a finite number, not NAN_SLOPE); the verdict
 // LABEL (GREEN / FALSIFIED) is decided by check 10 against ε.  Unlike
-// F-CODEX-1, the residual here gates closure because latency-vs-context is a
+// scaling-falsifier, the residual here gates closure because latency-vs-context is a
 // substrate-internal law (the substrate provides the curve directly).
-fn check_f_codex_2_residual() {
+fn check_infer_residual() {
     let slope = fit_exponent(CONTEXT_GRID, LATENCY_MS_PENDING)
-    let r = f_codex_2_residual()
+    let r = infer_residual()
     let slope_is_nan = _abs(slope - NAN_SLOPE) < 1.0e-9
     _check(!slope_is_nan,
-           "F-CODEX-2 measured slope LIVE (context-scaling bench) — closed-form OLS recompute on (context, wall_ms)",
+           "scaling-falsifier measured slope LIVE (context-scaling bench) — closed-form OLS recompute on (context, wall_ms)",
            "measured_tau=" + to_string(slope) +
-           "  lattice_tau=" + to_string(TAU_INFER) +
+           "  tau_ref=" + to_string(TAU_INFER) +
            "  residual=" + to_string(r) +
            "  threshold=" + to_string(EPS_RESIDUAL_THRESHOLD) +
            "  source=stage4_context_scaling.tsv")
@@ -565,38 +560,38 @@ fn check_verdict_line_consistency() {
     //   k == 4 AND both ≤ ε            → GREEN         (exit 0)
     //   k == 4 AND any > ε             → FALSIFIED     (exit 1)
     //   otherwise (k ∈ {2, 3})         → PARTIAL       (exit 0; surface gap)
-    // LATTICE_POLICY-lifted (cycle-15): F-CODEX-1 disclosure no longer
-    // gates the verdict label.  Only F-CODEX-2 (latency) gates closure,
+    // policy-lifted (cycle-15): scaling-falsifier disclosure no longer
+    // gates the verdict label.  Only scaling-falsifier (latency) gates closure,
     // because latency vs context length is a substrate-internal scaling
     // law (the entity provides the latency curve directly — not a
-    // lattice-derived claim on an external entity).
+    // reference-derived claim on an external entity).
     let label = if k < 2 {
         "INSUFFICIENT"
     } else if k == N_SCALES {
-        let r2 = f_codex_2_residual()
+        let r2 = infer_residual()
         let r2_nan = _abs(r2 - NAN_SLOPE) < 1.0e-9
         if r2_nan {
-            "PARTIAL"   // F-CODEX-1 disclosed; F-CODEX-2 still PENDING
+            "PARTIAL"   // scaling-falsifier disclosed; scaling-falsifier still PENDING
         } else if r2 <= EPS_RESIDUAL_THRESHOLD {
-            "GREEN"     // F-CODEX-1 disclosed; F-CODEX-2 fits substrate's own latency curve
+            "GREEN"     // scaling-falsifier disclosed; scaling-falsifier fits substrate's own latency curve
         } else {
-            "FALSIFIED" // F-CODEX-2 disagrees with the substrate's measured latency exponent
+            "FALSIFIED" // scaling-falsifier disagrees with the substrate's measured latency exponent
         }
     } else {
         "PARTIAL"
     }
-    // Cycle-16 (M3.ECON close-out): k_active == 4 + F-CODEX-1 disclosure-only
-    // (LATTICE_POLICY §4) + F-CODEX-2 latency LIVE from the substrate's own
+    // Cycle-16 (M3.ECON close-out): k_active == 4 + scaling-falsifier disclosure-only
+    // (policy §4) + scaling-falsifier latency LIVE from the substrate's own
     // context-scaling bench.  The measured exponent (τ̂ ≈ 0.52) is sub-linear
     // — the substrate's wall_ms rises only ~2.9× across an 8× context sweep,
     // dominated by the fixed 64-token decode + cached-prefix prefill — so the
-    // lattice prediction τ=4 is DECISIVELY rejected (residual ≈ 3.47 ≫ ε=0.10).
-    // Per the harness truth-table this is an honest 🔴 FALSIFIED: F-CODEX-2's
+    // reference prediction τ=4 is DECISIVELY rejected (residual ≈ 3.47 ≫ ε=0.10).
+    // Per the harness truth-table this is an honest 🔴 FALSIFIED: scaling-falsifier's
     // context^4 law does NOT fit the substrate's measured latency curve.
     // The M3.ECON checkbox therefore STAYS [ ] (does NOT flip [x]).
     let ok = (label == "FALSIFIED")
     _check(ok,
-           "verdict-line consistency — today expected 'FALSIFIED' (k_active == 4, F-CODEX-2 measured τ̂ rejects lattice τ=4, residual > ε)",
+           "verdict-line consistency — today expected 'FALSIFIED' (k_active == 4, scaling-falsifier measured τ̂ rejects reference τ=4, residual > ε)",
            "computed_label=" + label + "  expected_today=FALSIFIED  k_active=" + str(k))
 }
 
@@ -604,11 +599,10 @@ fn check_verdict_line_consistency() {
 
 fn main() {
     println("========================================================================")
-    println("  hexa-codex ECONOMICS empirical-fit harness — F-CODEX-1 + F-CODEX-2")
-    println("  M3.ECON closed-form residuals vs n=6 lattice (24/25 + 4)")
-    println("  cycle-16: k_active=4 LIVE · F-CODEX-2 latency LIVE — checkbox [ ] iff F-CODEX-2 residual ≤ ε")
+    println("  hexa-codex ECONOMICS empirical-fit harness — scaling-falsifier + scaling-falsifier")
+    println("  cycle-16: k_active=4 LIVE · scaling-falsifier latency LIVE — checkbox [ ] iff scaling-falsifier residual ≤ ε")
     println("========================================================================")
-    println("  N6_EXP_TRAIN=" + to_string(N6_EXP_TRAIN) +
+    println("  EXP_TRAIN=" + to_string(EXP_TRAIN) +
             "  TAU_INFER=" + to_string(TAU_INFER) +
             "  EPS_RESIDUAL_THRESHOLD=" + to_string(EPS_RESIDUAL_THRESHOLD))
     println("")
@@ -629,8 +623,8 @@ fn main() {
     println("")
     check_theoretical_constants()
     check_pending_sentinel_detected()
-    check_f_codex_1_residual()
-    check_f_codex_2_residual()
+    check_train_residual()
+    check_infer_residual()
     check_verdict_line_consistency()
 
     println("")
@@ -644,43 +638,43 @@ fn main() {
         exit(1)
     }
 
-    // Compose the verdict-line.  LATTICE_POLICY-lifted (cycle-15):
-    // F-CODEX-1 is disclosure-only; only F-CODEX-2 gates closure.
-    let slope1 = f_codex_1_measured_slope()
-    let r1_lattice = f_codex_1_lattice_residual()
-    let r2 = f_codex_2_residual()
+    // Compose the verdict-line.  policy-lifted (cycle-15):
+    // scaling-falsifier is disclosure-only; only scaling-falsifier gates closure.
+    let slope1 = measured_slope_train()
+    let r1_ref = train_residual()
+    let r2 = infer_residual()
     let slope1_nan = _abs(slope1 - NAN_SLOPE) < 1.0e-9
     let r2_nan = _abs(r2 - NAN_SLOPE) < 1.0e-9
     if k < 2 {
         println("  🟠 INSUFFICIENT — empirical data PENDING on " + str(N_SCALES - k) +
                 " of " + str(N_SCALES) + " scale points (1.5B/3B/7B)")
-        println("  · F-CODEX-1 fit: DEFERRED (need ≥ 2 live scale points)")
-        println("  · F-CODEX-2 fit: DEFERRED (LATENCY_MS_PENDING — M3.OPS p50/p99 grid)")
-        println("  · M3.ECON SANDBOX.md checkbox stays [ ] — gate flips when k_active == 4 AND F-CODEX-2 residual ≤ ε")
+        println("  · scaling-falsifier fit: DEFERRED (need ≥ 2 live scale points)")
+        println("  · scaling-falsifier fit: DEFERRED (LATENCY_MS_PENDING — M3.OPS p50/p99 grid)")
+        println("  · M3.ECON SANDBOX.md checkbox stays [ ] — gate flips when k_active == 4 AND scaling-falsifier residual ≤ ε")
         println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ INSUFFICIENT")
         exit(0)
     } else if (k == N_SCALES) && !slope1_nan && !r2_nan {
         if r2 <= EPS_RESIDUAL_THRESHOLD {
-            println("  🟢 GREEN — F-CODEX-1 measured slope=" + to_string(slope1) +
-                    " (lattice residual=" + to_string(r1_lattice) + ", disclosure-only)")
-            println("  · F-CODEX-2 fit residual=" + to_string(r2))
+            println("  🟢 GREEN — scaling-falsifier measured slope=" + to_string(slope1) +
+                    " (reference residual=" + to_string(r1_ref) + ", disclosure-only)")
+            println("  · scaling-falsifier fit residual=" + to_string(r2))
             println("  · M3.ECON SANDBOX.md checkbox READY TO FLIP [ ] → [x]")
             println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ PASS")
             exit(0)
         } else {
-            println("  🔴 FALSIFIED — F-CODEX-2 residual exceeds ε=" + to_string(EPS_RESIDUAL_THRESHOLD))
-            println("  · F-CODEX-1 measured slope=" + to_string(slope1) +
-                    " (lattice residual=" + to_string(r1_lattice) + ", disclosure-only)")
-            println("  · F-CODEX-2 residual=" + to_string(r2) + " (gate=" +
+            println("  🔴 FALSIFIED — scaling-falsifier residual exceeds ε=" + to_string(EPS_RESIDUAL_THRESHOLD))
+            println("  · scaling-falsifier measured slope=" + to_string(slope1) +
+                    " (reference residual=" + to_string(r1_ref) + ", disclosure-only)")
+            println("  · scaling-falsifier residual=" + to_string(r2) + " (gate=" +
                     to_string(EPS_RESIDUAL_THRESHOLD) + ")")
             println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ FALSIFIED")
             exit(1)
         }
     } else {
-        println("  🟠 PARTIAL — k_active=" + str(k) + " (∈ {2, 3} or F-CODEX-2 latency PENDING)")
-        println("  · F-CODEX-1 measured slope=" + (if slope1_nan { "NAN_SLOPE" } else { to_string(slope1) }) +
-                " (lattice residual=" + (if slope1_nan { "NAN_SLOPE" } else { to_string(r1_lattice) }) + ", disclosure-only)")
-        println("  · F-CODEX-2 residual=" + (if r2_nan { "NAN_SLOPE" } else { to_string(r2) }))
+        println("  🟠 PARTIAL — k_active=" + str(k) + " (∈ {2, 3} or scaling-falsifier latency PENDING)")
+        println("  · scaling-falsifier measured slope=" + (if slope1_nan { "NAN_SLOPE" } else { to_string(slope1) }) +
+                " (reference residual=" + (if slope1_nan { "NAN_SLOPE" } else { to_string(r1_ref) }) + ", disclosure-only)")
+        println("  · scaling-falsifier residual=" + (if r2_nan { "NAN_SLOPE" } else { to_string(r2) }))
         println("__HEXA_CODEX_NUMERICS_ECONOMICS_EMPIRICAL_LANDING__ PARTIAL")
         exit(0)
     }

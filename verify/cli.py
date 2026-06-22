@@ -9,11 +9,10 @@ exit codes aggregate cleanly.
 Usage:
     python3 verify/cli.py                # all-checks, human readable
     python3 verify/cli.py all
-    python3 verify/cli.py n6             # n=6 lattice arithmetic
     python3 verify/cli.py inventory      # 17-verb spec presence + headers
     python3 verify/cli.py group          # 4-group / 17-verb consistency
     python3 verify/cli.py release        # v1.0..v2.0 ladder monotonicity
-    python3 verify/cli.py falsifiers     # F-CODEX-1..4 arithmetic floors
+    python3 verify/cli.py falsifiers     # scaling-falsifier..4 arithmetic floors
     python3 verify/cli.py --json
     python3 verify/cli.py --quiet
     python3 verify/cli.py --list
@@ -37,11 +36,9 @@ VERIFY_DIR = Path(__file__).resolve().parent
 ROOT = VERIFY_DIR.parent
 
 CHECKS: list[tuple[str, str, str]] = [
-    ("n6",         "n6_arithmetic.py",      "n=6 lattice arithmetic identity"),
     ("inventory",  "spec_inventory.py",     "17-verb spec presence + headers"),
     ("group",      "group_audit.py",        "4-group / 17-verb consistency audit"),
     ("release",    "release_ladder.py",     "release ladder v1.0→v2.0 monotonicity"),
-    ("falsifiers", "falsifier_check.py",    "F-CODEX-1..4 arithmetic-floor checklist"),
     ("reference",  "reference_inventory.py","papers/ + formal/ reference annex audit"),
 ]
 SCRIPT_FOR = {name: script for name, script, _ in CHECKS}

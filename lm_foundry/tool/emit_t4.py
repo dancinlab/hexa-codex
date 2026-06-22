@@ -21,17 +21,17 @@ per verb), aggregates the numbers, and writes
 `outbox/hexa-codex/<verb>/<run_id>.md`. The draft is immutable; if
 re-emission is required, allocate a new run_id (e.g. append `-r2`).
 
-VERB -> F-CODEX MAPPING (mirrors plan-feedback-channel-ops.md §1)
-    train_cost     -> F-CODEX-1 T4 (D-004) — SFT loss-vs-FLOP curve
-    infer_cost     -> F-CODEX-2 T4 (D-005) — latency + KV-cache profile
+VERB -> scaling-falsifier MAPPING (mirrors plan-feedback-channel-ops.md §1)
+    train_cost     -> scaling-falsifier T4 (D-004) — SFT loss-vs-FLOP curve
+    infer_cost     -> scaling-falsifier T4 (D-005) — latency + KV-cache profile
     quality_scale  -> cross-cutter — HumanEval+/hexa-eval/5-NL aggregate
-    safety         -> F-CODEX-3 T4 input — refusal matrix
-    alignment      -> F-CODEX-3 T4 — HELM-Core 12-axis
-    adversarial    -> F-CODEX-3 stress — red-team failure modes
-    interpret      -> F-CODEX-4 T4 analog — tree-sitter idiom audit
+    safety         -> scaling-falsifier T4 input — refusal matrix
+    alignment      -> scaling-falsifier T4 — HELM-Core 12-axis
+    adversarial    -> scaling-falsifier stress — red-team failure modes
+    interpret      -> scaling-falsifier T4 analog — tree-sitter idiom audit
     rlhf           -> substrate — DPO yield + judge quality
     eval           -> meta — Mk progression refinements
-    agent_serving  -> F-CODEX-2 SLO input — tool-use schema iter
+    agent_serving  -> scaling-falsifier SLO input — tool-use schema iter
     deploy         -> ops — hardware-tier recipes
 """
 from __future__ import annotations
@@ -60,16 +60,16 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parent.parent
 
 
 VERB_FALSIFIER = {
-    "train_cost":    ("F-CODEX-1", "T4 (D-004)",        "SFT loss-vs-FLOP curve"),
-    "infer_cost":    ("F-CODEX-2", "T4 (D-005)",        "latency + KV-cache profile"),
-    "quality_scale": ("F-CODEX-1/2", "cross-cutter",    "HumanEval+ / hexa-eval / 5-NL aggregate"),
-    "safety":        ("F-CODEX-3", "T4 input (D-006)",  "5-NL x adversarial refusal matrix"),
-    "alignment":     ("F-CODEX-3", "T4 (D-006)",        "HELM-Core 12-axis composite"),
-    "adversarial":   ("F-CODEX-3", "stress input",      "red-team failure modes"),
-    "interpret":     ("F-CODEX-4", "T4 analog (D-007)", "tree-sitter idiom audit motif count"),
+    "train_cost":    ("scaling-falsifier", "T4 (D-004)",        "SFT loss-vs-FLOP curve"),
+    "infer_cost":    ("scaling-falsifier", "T4 (D-005)",        "latency + KV-cache profile"),
+    "quality_scale": ("scaling-falsifier/2", "cross-cutter",    "HumanEval+ / hexa-eval / 5-NL aggregate"),
+    "safety":        ("scaling-falsifier", "T4 input (D-006)",  "5-NL x adversarial refusal matrix"),
+    "alignment":     ("scaling-falsifier", "T4 (D-006)",        "HELM-Core 12-axis composite"),
+    "adversarial":   ("scaling-falsifier", "stress input",      "red-team failure modes"),
+    "interpret":     ("scaling-falsifier", "T4 analog (D-007)", "tree-sitter idiom audit motif count"),
     "rlhf":          (None,        "substrate input",   "DPO pair yield + judge quality"),
     "eval":          (None,        "meta (wraps F-1..4)", "Mk progression refinements"),
-    "agent_serving": ("F-CODEX-2", "SLO input",         "tool-use schema iteration"),
+    "agent_serving": ("scaling-falsifier", "SLO input",         "tool-use schema iteration"),
     "deploy":        (None,        "ops input",         "hardware-tier deployment recipe"),
 }
 
@@ -147,7 +147,7 @@ def render_draft(draft: T4Draft) -> str:
         draft.verb, ("<n/a>", "<n/a>", "<n/a>")
     )
 
-    f_label = f"`{falsifier}`" if falsifier else "(no direct F-CODEX bind)"
+    f_label = f"`{falsifier}`" if falsifier else "(no direct scaling-falsifier bind)"
     f_status_line = (
         f"- {f_label}: T4 was `PENDING`; now `UNDETERMINED` "
         f"(stub — awaiting real forge run)"
@@ -208,7 +208,7 @@ For details, consult the verb spec at
 ## Cross-link
 - forge-side artifact: `<TODO: runs/{draft.run_id}/...>`
 - hexa-codex landing site: `verify/numerics_{draft.verb}_t4_parity.hexa` (new)
-- F-CODEX arithmetic floor (T1+T2+T3): already PASS at hexa-codex v1.0.0
+- scaling-falsifier arithmetic floor (T1+T2+T3): already PASS at hexa-codex v1.0.0
 
 ## License / attribution
 ### corpus license tags

@@ -1,6 +1,5 @@
 cff-version: 1.2.0
 message: "If you use hexa-codex in academic work, please cite as below."
-title: "hexa-codex: HEXA family substrate (n=6 invariant lattice)"
 authors:
   - family-names: Park
     given-names: Min Woo

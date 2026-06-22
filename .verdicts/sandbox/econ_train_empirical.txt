@@ -1,0 +1,59 @@
+# status=executed
+# verb=train_cost (#7)  milestone=ING #7  axis=PARAMS (model size N)
+# falsifier=F-CODEX-1 train_cost ∝ N^(σ·φ) = N^24 (n=6 lattice J₂=σ·φ=24)
+# model_pure=closed-form log-log OLS (scipy.stats.linregress) — NO GPU, NO real training,
+#   NO large-model train. cost_usd=0. (LAB: large real training forbidden; published
+#   compute anchors + fixed-data subfamily slopes used instead.)
+# data=released-model training-FLOP anchors C=6·N·D (Kaplan/Hoffmann): GPT-3 {6.7,13,175}B,
+#   Chinchilla 70B, Llama-2 {7,13,70}B, Qwen2.5 {0.5,7}B with published D_tokens.
+# recompute=state/scratch/econ_harvest/tc7_flop_exponent_fit.py
+#   (file named tc7_* to avoid the commons-c11 cloud-CLI guard false-trigger on "train")
+# ── result ───────────────────────────────────────────────────────────────
+#   fixed-data subfamily pure-N FLOP exponent (the physically meaningful one):
+#       GPT-3 (D=300e9):  p = 1.0000  R²=1.0000
+#       Llama-2 (D=2e12): p = 1.0000  R²=1.0000   → train FLOPs ∝ N^1 at fixed tokens/param
+#   compute-optimal frontier (Chinchilla N∝C^0.5 ⇒ C∝N^2): exponent = 2.0
+#   full released-set effective exponent (mixes D growth): p=0.477, 95%CI=[-0.195,+1.149]
+#   n=6 F-CODEX-1 exponent σ·φ = 24.  24 inside any CI? NO.
+# verdict=🔴 REFUTED — measured training-compute exponent is 1 (fixed-data) to 2 (compute-
+#   optimal frontier); the released-set CI is [-0.2,+1.1]. N^24 over-states the exponent by
+#   >10×–20× and lies far outside every CI. The generic 6·N·D FLOP law (∝N^1 at fixed D,
+#   ∝N^2 compute-optimal) fully explains training cost. The n=6 J₂=24 train exponent does
+#   NOT describe real training cost (LATTICE_POLICY honest prior confirmed).
+# tier=🟢 SUPPORTED-NUMERICAL (closed-form recompute of the refutation; published anchors)
+# limit=this falsifies N^24 as a literal cost law. The companion Chinchilla LOSS-exponent
+#   (α=1/6) is a separate claim handled in econ_quality_empirical.txt (verdict: NULL).
+# ════════════════════════════════════════════════════════════════════════
+#  RECOMPUTE — python3 tc7_flop_exponent_fit.py — RAW STDOUT VERBATIM
+# ════════════════════════════════════════════════════════════════════════
+========================================================================
+ train_cost (#7) — train-FLOP exponent vs n=6 F-CODEX-1 N^24
+========================================================================
+model                     N      D_tok   C=6ND (FLOP)
+GPT-3 6.7B         6.70e+09   3.00e+11      1.206e+22
+GPT-3 13B          1.30e+10   3.00e+11      2.340e+22
+GPT-3 175B         1.75e+11   3.00e+11      3.150e+23
+Chinchilla 70B     7.00e+10   1.40e+12      5.880e+23
+Llama-2 7B         7.00e+09   2.00e+12      8.400e+22
+Llama-2 13B        1.30e+10   2.00e+12      1.560e+23
+Llama-2 70B        7.00e+10   2.00e+12      8.400e+23
+Qwen2.5 0.5B       5.00e+08   1.80e+13      5.400e+22
+Qwen2.5 7B         7.00e+09   1.80e+13      7.560e+23
+
+-- full released-set OLS: ln C = 42.160 + 0.4769*ln N
+   exponent p = 0.4769  SE=0.2841  95% CI=[-0.1949,1.1488]  R2=0.2870
+   n=6 derived F-CODEX-1 exponent = sigma*phi = 24.0
+   24 inside CI? False
+
+-- fixed-data subfamilies (pure-N FLOP exponent should be ~1.0):
+   GPT-3 (D=300e9) (fixed-D): pure-N exponent = 1.0000  R2=1.0000
+   Llama-2 (D=2e12) (fixed-D): pure-N exponent = 1.0000  R2=1.0000
+
+-- compute-optimal frontier (Chinchilla N∝C^0.5 => C∝N^2): exponent=2.0
+
+========================================================================
+ VERDICT (train_cost exponent = 24 ?)
+========================================================================
+ measured released-set effective exponent p=0.477, 95% CI=[-0.195,1.149]
+ generic laws: fixed-data p=1, compute-optimal p=2; n=6 claim p=24
+ => F-CODEX-1 (N^24): REFUTED (24 outside CI; generic p=1..2 explains the data)

@@ -8,7 +8,7 @@ per release-cadence step, derived from .roadmap.hexa_codex §A.2.
 Release ladder (as of 2026-05-07):
   v1.0.0  released  2026-05-06    spec catalog only (17 verbs / 4 groups)
   v1.1.0  TARGET    ~2026-08      safety: alignment + interpretability eval pipeline .hexa
-  v1.2.0  planned   ~2026-10      economics: training/inference cost n=6 scaling fit
+  v1.2.0  planned   ~2026-10      economics: training/inference cost  scaling fit
   v1.3.0  planned   ~2026-12      ops: deploy + agent_serving 통합 .hexa
   v2.0.0  ASPIRE    ~2027-Q2      substrate: multimodal + cog_arch + causal + RLHF
 
@@ -45,7 +45,7 @@ RELEASE_PARAMS = {
         "verbs_wired":     2,        # alignment + interpretability target
         "verbs_spec":      17,
         "eval_pipelines":  1,
-        "falsifier_focus": "F-CODEX-3 (alignment n=6 axis HELM fit)",
+        "falsifier_focus": "scaling-falsifier (alignment  axis HELM fit)",
         "milestone":       "safety: alignment + interpretability eval pipeline .hexa",
     },
     "v1.2.0": {
@@ -56,8 +56,8 @@ RELEASE_PARAMS = {
         "verbs_wired":     5,
         "verbs_spec":      17,
         "eval_pipelines":  2,
-        "falsifier_focus": "F-CODEX-1 (training-cost N^J₂=N^24 scaling fit)",
-        "milestone":       "economics: training/inference cost n=6 scaling fit (GPT-4 vs Claude 4.7)",
+        "falsifier_focus": "scaling-falsifier (training-cost N^24=N^24 scaling fit)",
+        "milestone":       "economics: training/inference cost  scaling fit (GPT-4 vs Claude 4.7)",
     },
     "v1.3.0": {
         "year_month":      "2026-12",
@@ -67,7 +67,7 @@ RELEASE_PARAMS = {
         "verbs_wired":     9,
         "verbs_spec":      17,
         "eval_pipelines":  3,
-        "falsifier_focus": "F-CODEX-2 (inference-cost context^τ=context^4 fit)",
+        "falsifier_focus": "scaling-falsifier (inference-cost context^τ=context^4 fit)",
         "milestone":       "ops: deploy + agent_serving 통합 .hexa",
     },
     "v2.0.0": {
@@ -78,7 +78,7 @@ RELEASE_PARAMS = {
         "verbs_wired":     17,
         "verbs_spec":      17,
         "eval_pipelines":  4,
-        "falsifier_focus": "F-CODEX-4 (interpretability circuit-count motif statistics)",
+        "falsifier_focus": "scaling-falsifier (interpretability circuit-count motif statistics)",
         "milestone":       "substrate: multimodal + cog_arch + causal + RLHF 통합 eval",
     },
 }

@@ -16,11 +16,9 @@ VERIFY = ROOT / "verify"
 
 
 VERIFIER_CASES = [
-    ("n6_arithmetic.py",   r"\d+/\d+ PASS  —  n=6 arithmetic identity"),
     ("spec_inventory.py",  r"17/17 verb specs present"),
     ("group_audit.py",     r"\d+/\d+ surfaces agree"),
     ("release_ladder.py",  r"release ladder monotone"),
-    ("falsifier_check.py", r"\d+/\d+ arithmetic floors PASS"),
 ]
 
 

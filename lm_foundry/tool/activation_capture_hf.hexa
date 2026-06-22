@@ -169,7 +169,7 @@
 //      cycle-10 narrowing entry). The M1.SAFETY+ row in SANDBOX.md
 //      becomes [x] HF backend when this self-test PASSes; the
 //      intermediate-tensor surface is then immediately usable by:
-//       - `interpret` (F-CODEX-4 SAE motif count σ−φ=10)
+//       - `interpret` (scaling-falsifier SAE motif count 10=10)
 //       - intermediate-layer refusal-matrix margin probes
 //       - circuit-motif tracing across the residual stream
 //

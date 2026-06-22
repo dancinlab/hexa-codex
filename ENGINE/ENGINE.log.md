@@ -264,7 +264,7 @@ CODEX archive + FRONTIER retire 후, 흡수된 12 도메인 N⭐ finding 을 ENG
 ### 잔여 (frontier OPEN · perpetual)
 
 - **BIODATA axis G**: protein/DNA/MedQA 의 wireable T4 measured finding 확보 시 개통.
-- **N1 ledger 확장**: 이제 A1·B1·C1·D1·E1·F1 = 6 wire data point — 다음 cheap 라운드에서 n=2→n=6+ 재계산 (sibling current cycle: ECON=51·OPS=29·SUBSTRATE=29·SANDBOX=29·SAFETY=30·NEUROEXP=13).
+- **N1 ledger 확장**: 이제 A1·B1·C1·D1·E1·F1 = 6 wire data point — 다음 cheap 라운드에서 n=2→+ 재계산 (sibling current cycle: ECON=51·OPS=29·SUBSTRATE=29·SANDBOX=29·SAFETY=30·NEUROEXP=13).
 - **cost-bearing fire** (off-ENGINE-domain · sign-off+도메인 전환 필요): B1 runtime · C1 2-host · D1 non-Qwen · E1 5-rung re-run · F1 early-exit scaling.
 
 ## 2026-05-27 — cycle-6 E1 wire (SANDBOX harness auto-gen) · 🟢 6/6 PASS
@@ -603,7 +603,7 @@ cycle-10 reorg 가 13 sibling finding 을 흡수→wire 한 시점이 같은 cyc
 
 ### 통계 재계산
 
-| 지표 | cycle-8 (n=6) | cycle-10 (n=19) |
+| 지표 | cycle-8 () | cycle-10 (n=19) |
 |------|---------------|------------------|
 | sum ΔM | 12 | 12 (신규 13 모두 0) |
 | mean ΔM | 2.0 | **0.63** (63/100, integer×100 ledger) |

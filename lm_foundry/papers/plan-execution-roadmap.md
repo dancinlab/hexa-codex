@@ -249,7 +249,7 @@ training compute yet.**
 | handoff                                    | `hexa-codex serve` E2E accepted                  |
 | reproducibility                            | pretrain → SFT → DPO on 1× H100 box in ≤ 14 days |
 | hardware tier                              | 7B Q5/Q6 GGUF runs on M4 Mini 16GB (inline use)  |
-| **hexa-codex upstream contribution**       | ≥ **5 PRs landed** in hexa-codex from forge findings; T4 empirical floor delivered for ≥ 2 F-CODEX-N falsifiers (F-CODEX-1 + F-CODEX-2 default targets — measurement window overlaps SFT/inference dev) |
+| **hexa-codex upstream contribution**       | ≥ **5 PRs landed** in hexa-codex from forge findings; T4 empirical floor delivered for ≥ 2 scaling-falsifier-N falsifiers (scaling-falsifier + scaling-falsifier default targets — measurement window overlaps SFT/inference dev) |
 
 ### Out of scope
 

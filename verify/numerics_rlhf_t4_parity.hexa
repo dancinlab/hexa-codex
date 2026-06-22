@@ -11,7 +11,7 @@
 // a PENDING sentinel and explains what it will check.
 //
 // Pattern source:   verify/numerics_alignment_parity.hexa  (T3 layer)
-// F-CODEX bind:     substrate input (no single F-CODEX bind; DPO yield)
+// scaling-falsifier bind:     substrate input (no single scaling-falsifier bind; DPO yield)
 // Forge landing:    ~/core/hexa-forge/outbox/hexa-codex/rlhf/
 // Verb spec:        rlhf/youth-ai-labeling-rlhf-hub.md  (S7 VERIFY tol band)
 //
@@ -21,7 +21,7 @@
 //   FAIL    = T4 anomaly (forge nums contradict substrate floor)
 //
 // Per plan-decisions-pending.md D-023:
-//   T4 anomaly does NOT auto-tombstone the F-CODEX arithmetic floor.
+//   T4 anomaly does NOT auto-tombstone the scaling-falsifier arithmetic floor.
 //   Open a paired decision in this ledger instead.
 
 let HOME = env("HOME")
@@ -37,7 +37,7 @@ fn _root() -> str {
 let ROOT = _root()
 let VERB = "rlhf"
 let VERB_UPPER = "RLHF"
-let F_CODEX = "substrate input (DPO yield + judge quality; no single F-CODEX bind)"
+let scaling-falsifier = "substrate input (DPO yield + judge quality; no single scaling-falsifier bind)"
 let OUTBOX = HOME + "/core/hexa-forge/outbox/hexa-codex/" + VERB
 
 // Expected numeric fields per ~/core/hexa-forge/tool/emit_t4.py load_measured():
@@ -49,15 +49,15 @@ fn sentinel_pending() {
     println("__HEXA_CODEX_T4_" + VERB_UPPER + "_PARITY__ PENDING")
     println("  reason: no forge T4 PR found at outbox/hexa-codex/" + VERB + "/")
     println("  expected fields (per ~/core/hexa-forge/tool/emit_t4.py): " + EXPECTED_FIELDS)
-    println("  F-CODEX bind: " + F_CODEX)
+    println("  scaling-falsifier bind: " + scaling-falsifier)
     println("  lift trigger: forge v0.1.3 DPO pair builder lands (D-023)")
-    println("  T3 archival floor: none (rlhf is substrate input, not a primary F-CODEX pillar)")
+    println("  T3 archival floor: none (rlhf is substrate input, not a primary scaling-falsifier pillar)")
 }
 
 fn sentinel_pass(run_id: str) {
     println("__HEXA_CODEX_T4_" + VERB_UPPER + "_PARITY__ PASS")
     println("  forge run: " + run_id)
-    println("  F-CODEX bind: " + F_CODEX)
+    println("  scaling-falsifier bind: " + scaling-falsifier)
     println("  closure_pct: substrate input row +T4 layer")
 }
 
@@ -80,7 +80,7 @@ fn check_t4_parity() {
 fn main() {
     println("========================================================================")
     println("  hexa-codex T4 parity verifier (stage 0 stub) verb: " + VERB)
-    println("  F-CODEX bind: " + F_CODEX)
+    println("  scaling-falsifier bind: " + scaling-falsifier)
     println("  Outbox watch: " + OUTBOX + "/")
     println("========================================================================")
     check_t4_parity()

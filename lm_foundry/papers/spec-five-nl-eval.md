@@ -438,7 +438,7 @@ Per [`plan-feedback-channel-ops.md §1`](plan-feedback-channel-ops.md),
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | -------------------------- |
 | Aggregate 5-NL pass rate + per-NL slice                       | [`hexa-codex/quality_scale`](../../hexa-codex/quality_scale/ai-quality-scale.md)         | cross-cutter contribution: multilingual axis added to quality table               | cross-cutter               |
 | Per-NL parity table + adversarial-perturbation drop           | [`hexa-codex/eval`](../../hexa-codex/eval/ai-eval-pipeline.md) §S6 EVOLVE Mk.II item     | direct empirical input to **Mk.II "multilingual eval-set design"** item           | meta (wraps F-1..4)        |
-| Refusal-rate matrix (5 NL × F6) + cross-NL refusal probe      | [`hexa-codex/safety`](../../hexa-codex/safety/ai-safety.md) + alignment + adversarial    | refusal table per [`plan-feedback-channel-ops.md §1`](plan-feedback-channel-ops.md) | **F-CODEX-3 T4** input    |
+| Refusal-rate matrix (5 NL × F6) + cross-NL refusal probe      | [`hexa-codex/safety`](../../hexa-codex/safety/ai-safety.md) + alignment + adversarial    | refusal table per [`plan-feedback-channel-ops.md §1`](plan-feedback-channel-ops.md) | **scaling-falsifier T4** input    |
 
 The hexa-codex `eval` verb's Mk.II promotion criterion **explicitly
 lists** "multilingual eval-set design" as a deliverable. 5-NL eval
@@ -504,7 +504,7 @@ makes a candidate model available.
 - [ ] **D-NEW-F (this spec)** — Should F5 (issue triage) hypothesis
       text feed back into `hexa-codex/alignment` as diagnostic
       training-signal data? *Proposed: diagnostic-only at v1.0.0;
-      revisit if SAE-trained F-CODEX-4 analog wants the texture.*
+      revisit if SAE-trained scaling-falsifier analog wants the texture.*
 - [ ] **D-NEW-G (this spec)** — Per-NL parity bar of 15pp: should
       it tighten over Mk.IV → Mk.V? *Proposed: hold at 15pp through
       v1.0.0; tighten to 10pp at v2.0.0 only if v1.0.0 demonstrably

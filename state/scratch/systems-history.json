@@ -1,0 +1,184 @@
+{
+  "schemaVersion": 1,
+  "kind": "ai-knowledge-section",
+  "title": "AI knowledge SSOT — training systems/infra + history/lineage",
+  "name": "systems-history",
+  "summary": "Reference dictionary slice of the AI knowledge SSOT: (A) the systems/infra layer that makes large-model training and serving tractable, and (B) the dated lineage from the 1958 perceptron through the reasoning-model and MoE-at-scale eras.",
+  "note": "Compiled from model knowledge; dates cross-checked, no fabrication. Each leaf is one dense English-term sentence (<=220 chars). For ingestion as a child node under the hexa-codex architecture tree, NOT a replacement for any existing node.",
+  "meta": {
+    "compiled_on": "2026-06-22"
+  },
+  "children": [
+    {
+      "kind": "section",
+      "name": "training-systems",
+      "title": "Training systems & infrastructure",
+      "summary": "Parallelism, memory, kernel, serving, queueing, and hardware substrate behind large-model training and inference.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "data-parallelism",
+          "summary": "Data parallelism replicates the whole model per device, splits the global batch across them, and averages gradients by all-reduce each step; near-linear throughput but capped by per-device memory holding the full model."
+        },
+        {
+          "kind": "leaf",
+          "name": "model-parallelism",
+          "summary": "Model (inter-op) parallelism partitions a model's layers across devices so one model spans many GPUs, lifting the single-device memory cap at the cost of cross-device activation transfer and pipeline-bubble idle time."
+        },
+        {
+          "kind": "leaf",
+          "name": "tensor-parallelism",
+          "summary": "Tensor (intra-op) parallelism shards weight matrices row/column-wise across devices, computing matmuls in parallel and stitching via all-reduce/all-gather; communication-heavy, so kept within a fast NVLink island."
+        },
+        {
+          "kind": "leaf",
+          "name": "pipeline-parallelism",
+          "summary": "Pipeline parallelism maps contiguous layer stages to devices and streams micro-batches through them (GPipe/1F1B), trading a startup/drain bubble to train models larger than one device while keeping stages busy."
+        },
+        {
+          "kind": "leaf",
+          "name": "sequence-parallelism",
+          "summary": "Sequence/context parallelism splits the token dimension across devices (sharded LayerNorm/dropout, Ring/Ulysses attention), cutting activation memory for very long contexts that tensor parallelism alone cannot fit."
+        },
+        {
+          "kind": "leaf",
+          "name": "zero-fsdp-deepspeed",
+          "summary": "ZeRO (DeepSpeed) and PyTorch FSDP shard optimizer states, gradients, and parameters across data-parallel ranks (ZeRO 1/2/3), gathering each shard per layer for model-parallel savings with a data-parallel API."
+        },
+        {
+          "kind": "leaf",
+          "name": "megatron-lm",
+          "summary": "Megatron-LM is NVIDIA's reference framework composing tensor + pipeline + data parallelism (3D, often with ZeRO) plus fused kernels to train transformer LLMs efficiently across thousands of GPUs."
+        },
+        {
+          "kind": "leaf",
+          "name": "gradient-accumulation",
+          "summary": "Gradient accumulation sums gradients over several forward/backward micro-batches before one optimizer step, emulating a large effective batch on limited memory at the cost of more steps per weight update."
+        },
+        {
+          "kind": "leaf",
+          "name": "activation-checkpointing",
+          "summary": "Activation (gradient) checkpointing discards intermediate activations in the forward pass and recomputes them in backward, trading roughly one extra forward of compute for a large cut in peak activation memory."
+        },
+        {
+          "kind": "leaf",
+          "name": "mixed-precision-training",
+          "summary": "Mixed-precision training runs matmuls in 16-bit (FP16/BF16, now FP8) while keeping FP32 master weights and (for FP16) loss scaling, roughly halving memory/bandwidth and using tensor cores with little accuracy loss."
+        },
+        {
+          "kind": "leaf",
+          "name": "collective-all-reduce",
+          "summary": "Distributed training relies on collectives (all-reduce, all-gather, reduce-scatter, broadcast) via NCCL with ring/tree algorithms over NVLink/InfiniBand; gradient all-reduce dominates synchronous data-parallel traffic."
+        },
+        {
+          "kind": "leaf",
+          "name": "accelerators-hbm-memory-wall",
+          "summary": "GPUs/TPUs and other accelerators pair many parallel ALUs with high-bandwidth memory (HBM); since FLOPs grow faster than bandwidth, large-model speed is increasingly bound by the memory wall, not raw arithmetic."
+        },
+        {
+          "kind": "leaf",
+          "name": "kernel-fusion-flashattention",
+          "summary": "Kernel fusion merges ops into one GPU kernel to cut HBM round-trips; FlashAttention is the canonical case, an IO-aware tiled kernel that never materializes the full score matrix, making attention memory-linear."
+        },
+        {
+          "kind": "leaf",
+          "name": "vllm-pagedattention",
+          "summary": "vLLM serves LLMs with PagedAttention, storing the KV cache in non-contiguous fixed-size blocks (OS-style paging) to nearly eliminate fragmentation, enabling high-throughput continuous batching and KV sharing."
+        },
+        {
+          "kind": "leaf",
+          "name": "batching-throughput-vs-latency",
+          "summary": "Inference trades throughput against latency: bigger/continuous batches amortize weight loads but add queueing delay, so capacity is sized via queueing theory (M/M/c, Erlang-C) for a tail-latency SLO (hexa-codex OPS)."
+        },
+        {
+          "kind": "leaf",
+          "name": "roofline-model",
+          "summary": "The roofline model plots attainable FLOP/s vs arithmetic intensity (FLOPs per byte): low-intensity kernels are bandwidth-bound and high-intensity ones compute-bound, diagnosing whether to fuse/recompute or add FLOPs."
+        },
+        {
+          "kind": "leaf",
+          "name": "training-cost-economics",
+          "summary": "Training cost is GPU-hours × price, driven by total FLOPs (~6·N·D for N params over D tokens), achieved utilization (MFU), interconnect efficiency, and restart overhead; frontier runs reach tens of millions of dollars."
+        },
+        {
+          "kind": "leaf",
+          "name": "domestic-silicon-ascend",
+          "summary": "Sovereign/domestic accelerators (Huawei Ascend with CANN, Google TPU, AWS Trainium/Inferentia) pursue non-NVIDIA capacity, trading a less mature software stack for supply-chain and export-control independence."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "history-lineage",
+      "title": "AI history & lineage",
+      "summary": "Dated lineage of the ideas and models leading to modern LLMs, from the 1958 perceptron to the reasoning-model and MoE-at-scale eras.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "perceptron-1958",
+          "summary": "In 1958 Frank Rosenblatt introduced the perceptron, a trainable single-layer linear threshold classifier; its inability to learn XOR (Minsky & Papert, 1969) helped trigger the first AI winter."
+        },
+        {
+          "kind": "leaf",
+          "name": "backprop-1986",
+          "summary": "Backpropagation, efficient chain-rule gradient computation through layers, was popularized for neural nets by Rumelhart, Hinton & Williams in 1986, making multi-layer deep networks trainable."
+        },
+        {
+          "kind": "leaf",
+          "name": "cnn-lenet-alexnet-1989-2012",
+          "summary": "Convolutional nets matured from LeCun's backprop-trained digit recognizer (LeNet, ~1989/1998) to AlexNet (Krizhevsky, Sutskever & Hinton, 2012), whose GPU ImageNet win launched the deep-learning boom."
+        },
+        {
+          "kind": "leaf",
+          "name": "word2vec-embeddings-2013",
+          "summary": "In 2013 Mikolov et al. released word2vec (skip-gram/CBOW), learning dense distributed word embeddings whose vector geometry captures semantic and analogical relations, establishing learned representations in NLP."
+        },
+        {
+          "kind": "leaf",
+          "name": "seq2seq-attention-2014",
+          "summary": "In 2014 Sutskever et al. introduced sequence-to-sequence encoder-decoder RNNs, and Bahdanau et al. added attention letting the decoder soft-align to encoder states, fixing the fixed-vector bottleneck in translation."
+        },
+        {
+          "kind": "leaf",
+          "name": "transformer-2017",
+          "summary": "The 2017 paper 'Attention Is All You Need' (Vaswani et al.) introduced the Transformer, replacing recurrence with stacked self-attention and feed-forward blocks; its parallelizable architecture became the LLM backbone."
+        },
+        {
+          "kind": "leaf",
+          "name": "bert-gpt-2018",
+          "summary": "In 2018 two transformer pretraining paradigms emerged: OpenAI's GPT (autoregressive decoder, generative) and Google's BERT (bidirectional masked-LM encoder), establishing self-supervised pretrain-then-finetune."
+        },
+        {
+          "kind": "leaf",
+          "name": "scaling-laws-gpt3-2020",
+          "summary": "In 2020 Kaplan et al. published neural scaling laws (loss as a power law in params, data, compute) and OpenAI's 175B-parameter GPT-3 showed strong few-shot in-context learning, validating scale as a primary lever."
+        },
+        {
+          "kind": "leaf",
+          "name": "instructgpt-rlhf-2022",
+          "summary": "In 2022 OpenAI's InstructGPT showed reinforcement learning from human feedback (RLHF) — instruction tuning plus a learned reward model optimized with PPO — aligns outputs to human intent far better than scale alone."
+        },
+        {
+          "kind": "leaf",
+          "name": "chatgpt-moment-2022",
+          "summary": "ChatGPT, released November 2022, packaged an RLHF-tuned GPT-3.5 as a free conversational interface and reached ~100M users within two months, igniting mainstream awareness and the generative-AI race."
+        },
+        {
+          "kind": "leaf",
+          "name": "open-weight-era-2023",
+          "summary": "From Meta's LLaMA (Feb 2023) and openly licensed Llama 2 (July 2023), alongside Mistral, Falcon, and later Qwen/DeepSeek, downloadable open-weight models enabled local finetuning and a fast community ecosystem."
+        },
+        {
+          "kind": "leaf",
+          "name": "reasoning-model-era-2024",
+          "summary": "From late 2024 the reasoning-model era began with OpenAI's o1 (then o3, DeepSeek-R1), spending extra inference-time compute on long RL-trained chain-of-thought, sharply improving math, coding, and multi-step reasoning."
+        },
+        {
+          "kind": "leaf",
+          "name": "moe-at-scale-era",
+          "summary": "Sparse mixture-of-experts (MoE) scaling, popularized by GShard/Switch Transformer and reaching the frontier with Mixtral and DeepSeek-V3, routes each token to a few of many expert FFNs: huge params, low active cost."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "kind": "frontier-models",
+  "title": "open-weight frontier LLM architectural ideas — full family survey (June 2026)",
+  "name": "frontier-models",
+  "summary": "Status snapshot of the DISTINCTIVE architectural ideas across ALL major open-weight LLM families as of 2026-06-22 — extending the prior frontier-gap.json crowded-axes (5 Chinese labs) to the full field: + Google Gemma, Meta Llama, Mistral, OpenAI gpt-oss, AI2 OLMo, Microsoft Phi, Cohere Command. Two sections: (1) crowded-axes = convergent ideas ≥2 labs share (extends the original 8 to 14), (2) per-family-ideas = each lab's distinctive bets. Vendor-claimed-unverified items flagged vendor_claimed:true. Grafts as children under the frontier-gap node.",
+  "note": "Scratch research artifact (docs scratchDir = state/scratch/). Sibling to frontier-gap.json / glm-5.2.json. NOT a hexa-codex architecture node until grafted (governance c4). Latest-flagship performance numbers (V4 KV%, GLM IndexShare 2.9x, Kimi agentic depth, M3 MSA, Mistral/Cohere 2026 specs) are vendor-claimed and just-released; foundational mechanisms (KDA/GSPO/CISPO/MLA/aux-loss-free/MatFormer/MXFP4) are paper-confirmed. CORRECTION vs prior baseline: KDA lives in the separate Kimi Linear research model, NOT the K2 flagship line (K2/K2.5/K2.6 use MLA full attention).",
+  "meta": {
+    "researched_on": "2026-06-22",
+    "families_covered": ["DeepSeek (V4-Pro/V4-Flash)", "Qwen (Qwen3.5/3.6; Qwen-Max closed)", "Zhipu GLM (GLM-5.2)", "Moonshot Kimi (K2.6; Kimi Linear)", "MiniMax (M3)", "Google Gemma (Gemma 4 12B Unified)", "Meta Llama (Llama 4 Scout/Maverick)", "Mistral (Medium 3.5 / Small 4 / Magistral)", "OpenAI gpt-oss (120b/20b)", "AI2 OLMo (OLMo 3 / OLMo Hybrid / OLMoE)", "Microsoft Phi (Phi-4-reasoning-vision)", "Cohere Command (Command A+)"],
+    "gemma4_finding": "Gemma 4 EXISTS — released 2026-03/04 (E2B/E4B/31B dense/26B-A4B MoE); latest is Gemma 4 12B Unified (2026-06-03, encoder-free unified image+audio+text). Gemma 3/3n are the PRIOR generation. The user's '젬마4' is real, not fabricated.",
+    "llama_finding": "Meta's latest OPEN-WEIGHT model is still Llama 4 Scout+Maverick (2025-04-05). Behemoth (~2T) never shipped (shelved). No Llama 5. Meta reportedly pivoted to a closed API reasoning model in 2026 — open-weight frontier stalled at Llama 4. (Behemoth/Llama-5 status via tech press, not a Meta technical report.)",
+    "new_axes_beyond_original_8": ["learned-attention-sink", "cross-layer-index-reuse", "fully-open-data-stack", "teacher-distillation-and-synthetic-data", "encoder-free-unified-multimodal", "matformer-elastic-edge-inference"],
+    "sources": [
+      "https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/",
+      "https://ai.google.dev/gemma/docs/releases",
+      "https://arxiv.org/abs/2503.19786",
+      "https://developers.googleblog.com/en/introducing-gemma-3n-developer-guide/",
+      "https://arxiv.org/pdf/2408.00118",
+      "https://huggingface.co/blog/llama4-release",
+      "https://ai.meta.com/blog/llama-4-multimodal-intelligence/",
+      "https://arxiv.org/pdf/2407.21783",
+      "https://www.theregister.com/2025/04/08/meta_llama4_cheating/",
+      "https://www.computerworld.com/article/3987990/meta-hits-pause-on-llama-4-behemoth-ai-model-amid-capability-concerns.html",
+      "https://arxiv.org/abs/2401.04088",
+      "https://arxiv.org/abs/2310.06825",
+      "https://arxiv.org/abs/2506.10910",
+      "https://arxiv.org/abs/2508.10925",
+      "https://github.com/openai/gpt-oss",
+      "https://huggingface.co/amd/gpt-oss-120b-w-mxfp4-a-fp8",
+      "https://arxiv.org/abs/2501.00656",
+      "https://arxiv.org/abs/2409.02060",
+      "https://allenai.org/blog/olmo3",
+      "https://cohere.com/blog/command-a-plus",
+      "https://arxiv.org/abs/2507.18071",
+      "https://arxiv.org/abs/2603.12201",
+      "https://arxiv.org/abs/2510.26692",
+      "https://arxiv.org/abs/2507.20534",
+      "https://arxiv.org/abs/2506.13585"
+    ]
+  },
+  "children": [
+    {
+      "kind": "section",
+      "name": "crowded-axes",
+      "summary": "Convergent architectural ideas ≥2 open-weight labs share (the capital/GPU battleground — NOT where hexa-codex competes). Original 8 from the 5 Chinese labs, SHARPENED with June-2026 flagships, + 6 NEW axes surfaced by the full-field survey (Gemma/Llama/Mistral/gpt-oss/OLMo/Phi/Cohere). 14 total.",
+      "children": [
+        { "kind": "leaf", "name": "trainable-sparse-attention", "summary": "Lightning-indexer + top-k token/block pre-selection feeding MLA. DeepSeek DSA (top-k=2048, V3.2) → V4 alternating CSA (compress-KV-4x→sparse-block-pick) + HCA (compress-128x→dense); GLM-5.2 MLA+DSA; MiniMax M3 MSA. The de-facto 1M-context primitive; most crowded axis." },
+        { "kind": "leaf", "name": "hybrid-linear-full-attention", "summary": "Linear-RNN:full interleave to cut KV cache: Qwen3.5 GatedDeltaNet 3:1, Kimi Linear KDA 3:1 (per-channel-gate refinement), OLMo Hybrid 3:1, Jamba (Mamba). CONTESTED — MiniMax M2 reverted to full softmax (multi-hop reasoning silently degraded); Kimi flagship K2.x stays MLA-full." },
+        { "kind": "leaf", "name": "ultra-sparse-moe", "summary": "Active/total ratio collapsing toward ~3-5%: Qwen3.5 17B/397B (256 experts, 8+1), Mistral Small 4 6B/119B (128 experts top-4), gpt-oss 5.1B/117B, OLMoE 1.3B/6.9B (64 top-8), DeepSeek V4 49B/1.6T. Shared experts + DeepSeek aux-loss-free routing-bias (±γ per-step nudge) now universal." },
+        { "kind": "leaf", "name": "grpo-variant-rl", "summary": "Named fixes to GRPO/PPO token-level-clip flaw, divergent per lab: Qwen GSPO (sequence-level IS, kills MoE Routing-Replay), MiniMax CISPO (clip IS-weight not token), Mistral Magistral GRPO+Clip-Higher (no-KL), DeepSeek unified-GRPO, OLMo Tülu-RLVR." },
+        { "kind": "leaf", "name": "verifiable-reward-agent-envs", "summary": "Execution-environment fleets with reward = real test-pass/tool-execution (no LLM judge): Qwen 20k parallel envs, MiniMax 200k+, Kimi 23k-tool synth, DeepSeek agentic-synthesis, OLMo RLVR. Long-horizon tool chains (Kimi K2.6 vendor-claims 300 sub-agents / 4000 steps / 12h runs — unverified)." },
+        { "kind": "leaf", "name": "graded-test-time-compute", "summary": "Thinking-effort dial universal: DeepSeek Non/High/Max, GLM-5.2 High/Max, Qwen budget, Kimi 96k/128k, gpt-oss low/med/high (system-prompt keyword), Mistral Medium 3.5 configurable. Reasoning is a knob, not a mode." },
+        { "kind": "leaf", "name": "mtp-speculative-decoding", "summary": "Multi-token prediction baked into pretraining (draft head shares trunk) for self-speculative decode: DeepSeek, Qwen3-Next, GLM (5 draft tokens), Kimi; Cohere Command A+ MoE-optimized spec-decode (1.5-1.6x). Now table-stakes for serving throughput." },
+        { "kind": "leaf", "name": "sub8bit-quant-domestic-silicon", "summary": "Sub-8bit weights now standard: DeepSeek V4 FP4-MoE+QAT (rest FP8), Kimi native INT4 weight-only QAT in post-training (~2x speed, ~50% mem), gpt-oss MXFP4 (E2M1, 4.25-bit, MoE-only, single-80GB-GPU). DeepSeek V4-Pro vendor-claims ~1000 Huawei Ascend 910C post-training (CUDA-independence; unverified)." },
+        { "kind": "leaf", "name": "learned-attention-sink", "summary": "NEW. Each head learns a trainable scalar added to the softmax denominator so it can 'opt out' of all tokens — a learned generalization of StreamingLLM's fixed sink token. gpt-oss (alternating 128-tok banded/dense layers + per-head sink bias). Generalizes Mistral SWA / Gemma local-global interleave." },
+        { "kind": "leaf", "name": "cross-layer-index-reuse", "summary": "NEW. Adjacent DSA layers share 70-100% of selected sparse indices → run the indexer once per N layers and reuse: GLM-5.2 IndexShare (1 index/4 layers, ~2.9x FLOP cut @1M, vendor-claimed). Generalized as IndexCache (arXiv 2603.12201 — vLLM/SGLang patch for any DSA model, 1.82x prefill; has code, strongest-evidenced)." },
+        { "kind": "leaf", "name": "local-global-attention-interleave", "summary": "NEW. Cheap local sliding-window layers alternated with sparse global layers to bound long-ctx KV: Gemma 2 1:1 → Gemma 3 5:1 (1024-tok window), Mistral 7B SWA (W=4096, rolling KV cache), gpt-oss banded. Window-based (vs indexer-based sparse-attn); distinct from Llama 4 iRoPE NoPE/RoPE interleave." },
+        { "kind": "leaf", "name": "teacher-distillation-synthetic-data", "summary": "NEW. Data-quality-over-architecture: train small models on larger-teacher soft logits / curated synthetic CoT. Gemma distills from Gemini teachers; Phi-4-reasoning distills o3-mini traces + multi-agent self-revising synthetic data (GPT-4-class at ~200B tok vs ~1T); Qwen distills. The SLM thesis Phi pioneered." },
+        { "kind": "leaf", "name": "early-fusion-unified-multimodal", "summary": "NEW. Native early-fusion of text+vision(+audio) tokens into ONE backbone (vs late vision adapter): Llama 4 early-fusion, Gemma 4 12B Unified encoder-free image+audio+text, Mistral Pixtral, Cohere Command A+ vision. Converging direction; Gemma 4 encoder-free unified + Llama 4 early-fusion lead." },
+        { "kind": "leaf", "name": "matformer-elastic-edge-inference", "summary": "NEW. On-device elastic-inference stack: Gemma 3n MatFormer (Matryoshka transformer — smaller fully-functional submodels nested in a big one) + Per-Layer-Embeddings offloaded to CPU RAM (E2B/E4B in ~2-3GB accel mem). Largely Gemma-unique; Ministral/Phi-mini target edge but without MatFormer nesting.", "vendor_claimed": true }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "per-family-ideas",
+      "summary": "Each open-weight family's DISTINCTIVE architectural bets (current flagship as of 2026-06-22). Convergent ideas live in crowded-axes above; this section keeps only what differentiates each lab.",
+      "children": [
+        { "kind": "leaf", "name": "deepseek", "summary": "DeepSeek-V4 (Apr 2026, MIT; V4-Pro 49B/1.6T, 1M ctx). DISTINCTIVE: alternating CSA(sparse-block)+HCA(dense-compressed) attention replacing single DSA; FP4-MoE QAT training; Muon optimizer + mHC (Manifold-Constrained Hyper-Connections) residual; pioneered MLA latent-KV + aux-loss-free routing (now field-wide).", "vendor_claimed": true },
+        { "kind": "leaf", "name": "qwen", "summary": "Qwen open flagship Qwen3.5-397B-A17B (Feb 2026) → Qwen3.6 agentic-coding; Qwen-Max stays closed. DISTINCTIVE: productionized GatedDeltaNet 3:1 linear:full hybrid at scale (256 experts, 8+1 shared, 262K ctx); GSPO RL (sequence-level IS+clip) that eliminates the MoE Routing-Replay trick (arXiv 2507.18071)." },
+        { "kind": "leaf", "name": "glm-zhipu", "summary": "GLM-5.2 (Jun 2026, MIT; ~744B/40B, 1M ctx, ARC agentic-reasoning-coding). DISTINCTIVE: IndexShare runs the DSA indexer 1x/4 layers reusing top-k indices (~2.9x FLOP cut @1M, vendor-claimed); inherits DeepSeek MLA+DSA; co-published IndexCache (arXiv 2603.12201, 70-100% cross-layer index overlap)." },
+        { "kind": "leaf", "name": "kimi-moonshot", "summary": "Kimi K2.6 (Apr 2026; K2/K2.5/K2.6 all MLA FULL attention). DISTINCTIVE: MuonClip = Muon+QK-Clip (bounds attention logits → 15.5T-tok pretrain, zero loss spikes, arXiv 2507.20534); native INT4 weight-only QAT on 1T-MoE. NOTE: KDA (per-channel-gated linear attn) is in the SEPARATE Kimi Linear model, NOT the K2 flagship." },
+        { "kind": "leaf", "name": "minimax", "summary": "MiniMax-M3 (Jun 2026, open, 1M ctx): M1 lightning/linear → M2 full-softmax REVERSION → M3 re-adds block-sparse MSA. DISTINCTIVE: documented M2 revert (hybrid had multi-hop-reasoning deficits worsening with context) — a public counter-narrative to linear hybrids; CISPO RL (clip IS-weight not token, arXiv 2506.13585)." },
+        { "kind": "leaf", "name": "gemma-google", "summary": "Gemma 4 EXISTS (latest = Gemma 4 12B Unified, Jun 3 2026, Apache-2.0, 256K ctx; E2B/E4B/31B-dense/26B-A4B-MoE). DISTINCTIVE: 5:1 local-window:global attn (G3); Gemini-teacher distillation; G2 logit soft-capping (dropped for QK-norm); G3n MatFormer+Per-Layer-Embeddings edge; G4 encoder-free unified image+audio+text." },
+        { "kind": "leaf", "name": "llama-meta", "summary": "Llama 4 Scout+Maverick (Apr 2025) — Meta's latest OPEN weights; Behemoth shelved, no Llama 5. DISTINCTIVE: first Llama MoE (Scout 17B/109B; Maverick 17B/400B 128-expert); iRoPE interleaved NoPE/RoPE + attn-temp scaling claiming 10M-ctx on Scout (vendor-claimed, unreproduced); native early-fusion multimodal + GQA.", "vendor_claimed": true },
+        { "kind": "leaf", "name": "mistral", "summary": "Latest open: Mistral Medium 3.5 (Apr 2026, ~128B dense) + Small 4 (6B/119B MoE). DISTINCTIVE: first competitive fully-open SMoE (Mixtral top-2-of-8 → top-4-of-128 ~5% active); sliding-window+rolling-KV legacy (now deprecated for full-attn 256K); Magistral pure-RL reasoning (GRPO Clip-Higher, NO distillation, arXiv 2506.10910)." },
+        { "kind": "leaf", "name": "openai-gpt-oss", "summary": "gpt-oss-120b/20b (Aug 2025, Apache-2.0, genuinely open weights; 117B/5.1B & 21B/3.6B, top-4 MoE). DISTINCTIVE: MXFP4 quant on MoE FFN weights only (4.25-bit, attn/embed BF16 → 120b fits one 80GB GPU); learned per-head attention-sink bias on alternating banded/dense layers; Harmony 3-channel format (analysis/commentary/final)." },
+        { "kind": "leaf", "name": "ai2-olmo", "summary": "OLMo 3 (Nov 2025) + OLMo Hybrid (GatedDeltaNet 3:1) + OLMoE (1.3B/6.9B). DISTINCTIVE: radical FULL openness — weights+full data (Dolma)+code+1000s of checkpoints (unique at scale; OLMo 3-Think = first fully-open reasoning model); post-sublayer RMSNorm+QK-Norm+Z-loss stability (arXiv 2501.00656); Dolmino anneal + model souping." },
+        { "kind": "leaf", "name": "microsoft-phi", "summary": "Phi-4-reasoning-vision-15B (Mar 2026; Phi-5 unannounced). DISTINCTIVE: 'data quality > architecture' — multi-agent self-revising synthetic data + CoT distillation (distills o3-mini traces on curated 'teachable' prompts), GPT-4-class reasoning at ~200B tok vs ~1T. Dense+GQA no MoE; pioneered the textbook-synthetic-data SLM line." },
+        { "kind": "leaf", "name": "cohere-command", "summary": "Command A+ (May 2026, Apache-2.0; 218B/25B-active MoE, top-8-of-128 + shared always-on expert, 128K). DISTINCTIVE: enterprise/sovereign — native citation-grounded RAG, 48 langs (all EU-official), MoE-optimized spec-decode (1.5-1.6x), runs on 2xH100/1xB200. Shared-expert MoE echoes DeepSeek-MoE.", "vendor_claimed": true }
+      ]
+    }
+  ]
+}

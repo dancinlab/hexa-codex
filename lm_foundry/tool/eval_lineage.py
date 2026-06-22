@@ -97,7 +97,7 @@ KNOWN_VERBS: frozenset[str] = frozenset({
 })
 
 KNOWN_FALSIFIERS: frozenset[str] = frozenset({
-    "F-CODEX-1", "F-CODEX-2", "F-CODEX-3", "F-CODEX-4", "cross-cutter",
+    "scaling-falsifier", "scaling-falsifier", "scaling-falsifier", "scaling-falsifier", "cross-cutter",
 })
 
 KNOWN_RUN_STATUS: frozenset[str] = frozenset({
@@ -790,13 +790,13 @@ def gate_check(conn: Any) -> dict:
     """Compute v1.0.0 forge gate ⑬ status.
 
     The gate text (ROADMAP.md §2 line 81): "≥ 5 PRs landed in hexa-codex;
-    T4 empirical floor for ≥ 2 F-CODEX-N falsifiers (default F-CODEX-1
-    train_cost + F-CODEX-2 infer_cost)".
+    T4 empirical floor for ≥ 2 scaling-falsifier-N falsifiers (default scaling-falsifier
+    train_cost + scaling-falsifier infer_cost)".
 
     We compute landed_pr_count as `COUNT(DISTINCT pr_id) WHERE
     landed_at IS NOT NULL`. The by_verb / by_falsifier breakdowns let
     callers see which falsifiers are still uncovered (specifically
-    F-CODEX-1 and F-CODEX-2 must both be > 0 for the second clause).
+    scaling-falsifier and scaling-falsifier must both be > 0 for the second clause).
     """
     landed = conn.execute(
         "SELECT COUNT(DISTINCT pr_id) FROM forge_upstream_prs "
@@ -818,10 +818,10 @@ def gate_check(conn: Any) -> dict:
     by_verb = {row[0]: row[1] for row in by_verb_rows}
     by_falsifier = {row[0]: row[1] for row in by_falsifier_rows}
 
-    # Second clause: T4 empirical floor for ≥ 2 F-CODEX-N falsifiers.
+    # Second clause: T4 empirical floor for ≥ 2 scaling-falsifier-N falsifiers.
     distinct_falsifiers_covered = sum(
         1 for f, n in by_falsifier.items()
-        if n > 0 and f in ("F-CODEX-1", "F-CODEX-2", "F-CODEX-3", "F-CODEX-4")
+        if n > 0 and f in ("scaling-falsifier", "scaling-falsifier", "scaling-falsifier", "scaling-falsifier")
     )
 
     quorum_met = bool(landed >= GATE_13_MIN_LANDED_PRS)
@@ -975,7 +975,7 @@ def render_audit(conn: Any, run_id: Optional[str] = None) -> str:
     parts.append("")
     parts.append(f"- landed PRs: **{gate['landed_pr_count']}** / required {gate['min_required']}")
     parts.append(f"- gate met: **{gate['v1.0.0_gate_13_met']}**")
-    parts.append(f"- distinct F-CODEX-N landed: {gate['distinct_falsifiers_landed']}")
+    parts.append(f"- distinct scaling-falsifier-N landed: {gate['distinct_falsifiers_landed']}")
     parts.append(f"- by verb: {gate['by_verb']}")
     parts.append(f"- by falsifier: {gate['by_falsifier']}")
     parts.append("")
@@ -1239,7 +1239,7 @@ def build_argparser() -> argparse.ArgumentParser:
                       help="outbox/hexa-codex/<verb>/<pr_id>.md path")
     p_pr.add_argument("--falsifier", default=None,
                       choices=sorted(KNOWN_FALSIFIERS),
-                      help="optional F-CODEX-N tag (or 'cross-cutter')")
+                      help="optional scaling-falsifier-N tag (or 'cross-cutter')")
     p_pr.add_argument("--submitted-at", default=None,
                       help="ISO-8601 timestamp when PR was opened upstream")
     p_pr.add_argument("--landed-at", default=None,
@@ -1450,13 +1450,13 @@ def _selftest() -> int:
         if runs and len(runs[0]["scores"]) != 2:
             failures.append(f"query_runs scores len {len(runs[0]['scores'])} != 2")
 
-        # link-pr: tie 5 PRs to this run, with 2 distinct F-CODEX-N falsifiers,
+        # link-pr: tie 5 PRs to this run, with 2 distinct scaling-falsifier-N falsifiers,
         # so the gate ⑬ should flip to True after we mark all 5 landed.
         for i, (verb, falsifier) in enumerate([
-            ("train_cost", "F-CODEX-1"),
-            ("infer_cost", "F-CODEX-2"),
+            ("train_cost", "scaling-falsifier"),
+            ("infer_cost", "scaling-falsifier"),
             ("quality_scale", "cross-cutter"),
-            ("safety", "F-CODEX-3"),
+            ("safety", "scaling-falsifier"),
             ("eval", None),
         ]):
             insert_upstream_pr(
@@ -1497,7 +1497,7 @@ def _selftest() -> int:
         # Bad verb / bad falsifier guards.
         for kwargs in (
             {"verb": "not_a_verb", "falsifier": None},
-            {"verb": "train_cost", "falsifier": "F-CODEX-99"},
+            {"verb": "train_cost", "falsifier": "scaling-falsifier-99"},
         ):
             try:
                 insert_upstream_pr(
@@ -1533,7 +1533,7 @@ def _selftest() -> int:
             failures.append("post-land gate should be True")
         if after["distinct_falsifiers_landed"] < 2:
             failures.append(
-                f"post-land distinct F-CODEX-N {after['distinct_falsifiers_landed']} < 2"
+                f"post-land distinct scaling-falsifier-N {after['distinct_falsifiers_landed']} < 2"
             )
 
         # Audit renders for the ingested run.

@@ -8,7 +8,7 @@
 > sister spec catalog `hexa-codex` upstream as a side effect. Every
 > real number forge measures (training cost, inference latency, eval
 > rates, refusal accuracy, hexa-fidelity rate, DPO yield) is a
-> candidate T4 empirical contribution to hexa-codex's 4 F-CODEX
+> candidate T4 empirical contribution to hexa-codex's 4 scaling-falsifier
 > falsifiers and 17 verb specs. See §VERIFY "upstream feedback
 > contract" + Cross-link policy "feedback channel".
 
@@ -109,7 +109,7 @@ preference, refusal) — not bolted on as a system prompt.
 
 > **sibling spec (live):** scaling/cost numbers (N, D, FLOP budget) follow
 > the canon in [`hexa-codex/train_cost`](../../hexa-codex/train_cost/ai-training-cost.md)
-> (F-CODEX-1: training_cost ∝ N^24). Do NOT duplicate the formula here —
+> (scaling-falsifier: training_cost ∝ N^24). Do NOT duplicate the formula here —
 > consult that spec at planning time.
 
 > **Conflict note (D-NEW-TC-C).** hexa-codex `quality_scale` BT-388 favours
@@ -178,7 +178,7 @@ preference, refusal) — not bolted on as a system prompt.
    - **optimizer:** AdamW with WSD schedule (D-NEW-TC-D),
      lr=3e-4, β=(0.9, 0.999), wd=0.1.
    - **batch:** `grad_accum_steps = 24` per hexa-codex BT-54 / P-TRN-6
-     (`J₂(6) = 24`); sequence packing on.
+     (`24 = 24`); sequence packing on.
 4. **Stage 3 — DPO/KTO.** Preference pairs from CI signal: passing
    patch ≻ failing patch. No human raters at v0.1.0. Tree-sitter
    rule pack v1 is the scoring substrate (per D-013).
@@ -212,7 +212,7 @@ preference, refusal) — not bolted on as a system prompt.
 > [`hexa-codex/quality_scale`](../../hexa-codex/quality_scale/ai-quality-scale.md).
 > **Bidirectional feedback:** real eval outputs from forge runs feed
 > back into `hexa-codex/eval` Mk.I → Mk.V refinement and into the
-> F-CODEX-3 (alignment) + F-CODEX-4 (interpret) T4 empirical floors
+> scaling-falsifier (alignment) + scaling-falsifier (interpret) T4 empirical floors
 > (see [Cross-link policy](#cross-link-policy) "feedback channel").
 
 > **Eval methodology (D)**: forge inherits dynamic-item-gen + contamination
@@ -262,7 +262,7 @@ preference, refusal) — not bolted on as a system prompt.
 > When this doc and hexa-codex disagree, **hexa-codex wins** — update here, do
 > not fork:
 > - tool-use + agent-loop schema → [`hexa-codex/agent_serving`](../../hexa-codex/agent_serving/ai-agent-serving.md)
-> - inference cost / context scaling → [`hexa-codex/infer_cost`](../../hexa-codex/infer_cost/ai-inference-cost.md) (F-CODEX-2: cost ∝ context^4)
+> - inference cost / context scaling → [`hexa-codex/infer_cost`](../../hexa-codex/infer_cost/ai-inference-cost.md) (scaling-falsifier: cost ∝ context^4)
 > - deployment patterns → [`hexa-codex/deploy`](../../hexa-codex/deploy/ai-deployment.md)
 > - refusal / safety guardrails → [`hexa-codex/safety`](../../hexa-codex/safety/ai-safety.md), [`alignment`](../../hexa-codex/alignment/ai-alignment.md), [`adversarial`](../../hexa-codex/adversarial/ai-adversarial.md)
 > - style/idiom audit at inference → [`hexa-codex/interpret`](../../hexa-codex/interpret/ai-interpretability.md)
@@ -324,7 +324,7 @@ preference, refusal) — not bolted on as a system prompt.
   [`adversarial`](../../hexa-codex/adversarial/ai-adversarial.md).
 - **hardware tier** (laptop-serve via `hexa-codex`; cost canon per
   [`hexa-codex/infer_cost`](../../hexa-codex/infer_cost/ai-inference-cost.md)
-  F-CODEX-2 context^4 scaling — each Q-tier change implies a ~4× cost
+  scaling-falsifier context^4 scaling — each Q-tier change implies a ~4× cost
   rotation per the canon, so down-tiering is never free):
   - **M4 Mini 16GB** → **7B @ Q5_K_M / Q6_K** (default laptop tier;
     leaves headroom for 16-32k KV + IDE + browser)
@@ -358,11 +358,11 @@ preference, refusal) — not bolted on as a system prompt.
     inference latency curve, eval pass rate, refusal accuracy,
     a11y compliance, hexa-fidelity rate) becomes a **PR candidate
     to `hexa-codex/<verb>`** as T4 live-hardware empirical data.
-  - Specifically: forge SFT runs → `train_cost` T4 (F-CODEX-1);
-    inference latency on M4 tiers → `infer_cost` T4 (F-CODEX-2);
+  - Specifically: forge SFT runs → `train_cost` T4 (scaling-falsifier);
+    inference latency on M4 tiers → `infer_cost` T4 (scaling-falsifier);
     HumanEval+ / hexa-eval / 5-NL pass rates → `quality_scale`;
     safety refusal rate → `safety` / `alignment` / `adversarial`;
-    style-audit results (native-first / 2026-canon-first compliance) → `interpret` (F-CODEX-4 motif analog);
+    style-audit results (native-first / 2026-canon-first compliance) → `interpret` (scaling-falsifier motif analog);
     eval methodology learnings → `eval` Mk.I → Mk.V refinement;
     DPO yield + judge-quality numbers → `rlhf`.
   - **Acceptance bar (v1.0.0 gate, see Cross-link policy "feedback channel"):**
@@ -388,26 +388,26 @@ preference, refusal) — not bolted on as a system prompt.
 >   compliance, hexa-fidelity rate, DPO yield) is a PR candidate to
 >   the matching hexa-codex verb — landing T4 live-hardware empirical
 >   data per `hexa-codex/<verb>` Mk.I → Mk.V progression and per
->   F-CODEX-N falsifier closure_pct at recipe §9 layer.
+>   scaling-falsifier-N falsifier closure_pct at recipe §9 layer.
 >
 > ### Feedback channel (forge → codex PR map)
 >
 > | forge artifact                                  | hexa-codex target                                                                                   | falsifier T4 lands at        |
 > | ----------------------------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------- |
-> | SFT compute curve (real FLOPs vs loss)          | [`hexa-codex/train_cost`](../../hexa-codex/train_cost/ai-training-cost.md)                          | **F-CODEX-1 T4** (D-004)     |
-> | M4 tier latency profile + KV-cache curves       | [`hexa-codex/infer_cost`](../../hexa-codex/infer_cost/ai-inference-cost.md)                         | **F-CODEX-2 T4** (D-005)     |
+> | SFT compute curve (real FLOPs vs loss)          | [`hexa-codex/train_cost`](../../hexa-codex/train_cost/ai-training-cost.md)                          | **scaling-falsifier T4** (D-004)     |
+> | M4 tier latency profile + KV-cache curves       | [`hexa-codex/infer_cost`](../../hexa-codex/infer_cost/ai-inference-cost.md)                         | **scaling-falsifier T4** (D-005)     |
 > | HumanEval+ / hexa-eval / 5-NL pass aggregate    | [`hexa-codex/quality_scale`](../../hexa-codex/quality_scale/ai-quality-scale.md)                    | cross-cutter                 |
-> | Refusal rate (5-NL × off-domain matrix)         | [`hexa-codex/safety`](../../hexa-codex/safety/ai-safety.md) + [`alignment`](../../hexa-codex/alignment/ai-alignment.md) + [`adversarial`](../../hexa-codex/adversarial/ai-adversarial.md) | **F-CODEX-3 T4** input (D-006) |
-> | Native-first / 2026-canon-first audit (tree-sitter rule pack outputs) | [`hexa-codex/interpret`](../../hexa-codex/interpret/ai-interpretability.md)         | **F-CODEX-4 T4** analog (D-007) |
+> | Refusal rate (5-NL × off-domain matrix)         | [`hexa-codex/safety`](../../hexa-codex/safety/ai-safety.md) + [`alignment`](../../hexa-codex/alignment/ai-alignment.md) + [`adversarial`](../../hexa-codex/adversarial/ai-adversarial.md) | **scaling-falsifier T4** input (D-006) |
+> | Native-first / 2026-canon-first audit (tree-sitter rule pack outputs) | [`hexa-codex/interpret`](../../hexa-codex/interpret/ai-interpretability.md)         | **scaling-falsifier T4** analog (D-007) |
 > | DPO yield + judge-quality numbers               | [`hexa-codex/rlhf`](../../hexa-codex/rlhf/youth-ai-labeling-rlhf-hub.md)                            | substrate input              |
-> | Eval methodology refinements (Mk.II → Mk.III handoff template) | [`hexa-codex/eval`](../../hexa-codex/eval/ai-eval-pipeline.md)                                       | meta — wraps F-CODEX-1..4   |
-> | Tool-use schema iterations (forge's actual tool surface) | [`hexa-codex/agent_serving`](../../hexa-codex/agent_serving/ai-agent-serving.md)                    | F-CODEX-2 SLO input          |
+> | Eval methodology refinements (Mk.II → Mk.III handoff template) | [`hexa-codex/eval`](../../hexa-codex/eval/ai-eval-pipeline.md)                                       | meta — wraps scaling-falsifier..4   |
+> | Tool-use schema iterations (forge's actual tool surface) | [`hexa-codex/agent_serving`](../../hexa-codex/agent_serving/ai-agent-serving.md)                    | scaling-falsifier SLO input          |
 > | Hardware-tier deployment recipes (M4 / Mac Studio / H100) | [`hexa-codex/deploy`](../../hexa-codex/deploy/ai-deployment.md)                                     | ops input                    |
 > | License-clean CI signals + corpus-license audits | (no direct verb — feeds `enterprise` data-residency)                                                 | ops input                    |
 >
 > **v1.0.0 forge gate** includes: ≥ 5 PRs landed in hexa-codex from
-> forge findings; T4 empirical floor delivered for ≥ 2 F-CODEX-N
-> falsifiers (target: F-CODEX-1 + F-CODEX-2 since those have the
+> forge findings; T4 empirical floor delivered for ≥ 2 scaling-falsifier-N
+> falsifiers (target: scaling-falsifier + scaling-falsifier since those have the
 > measurement window during SFT/inference dev).
 >
 > ### Cross-cutting concerns table
@@ -415,8 +415,8 @@ preference, refusal) — not bolted on as a system prompt.
 | concern                              | sibling                                                                                                |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------ |
 | inference / serving (runtime)        | `hexa-codex serve` *(planned CLI)*                                                                     |
-| training cost / scaling              | [`hexa-codex/train_cost`](../../hexa-codex/train_cost/ai-training-cost.md) (F-CODEX-1)                |
-| inference cost / context scaling     | [`hexa-codex/infer_cost`](../../hexa-codex/infer_cost/ai-inference-cost.md) (F-CODEX-2)               |
+| training cost / scaling              | [`hexa-codex/train_cost`](../../hexa-codex/train_cost/ai-training-cost.md) (scaling-falsifier)                |
+| inference cost / context scaling     | [`hexa-codex/infer_cost`](../../hexa-codex/infer_cost/ai-inference-cost.md) (scaling-falsifier)               |
 | quality-scale acceptance bars        | [`hexa-codex/quality_scale`](../../hexa-codex/quality_scale/ai-quality-scale.md)                      |
 | eval pipeline / capability gates     | [`hexa-codex/eval`](../../hexa-codex/eval/ai-eval-pipeline.md)                                        |
 | agent serving (tool-use schema)      | [`hexa-codex/agent_serving`](../../hexa-codex/agent_serving/ai-agent-serving.md)                      |
@@ -424,7 +424,7 @@ preference, refusal) — not bolted on as a system prompt.
 | safety / refusal guardrails          | [`hexa-codex/safety`](../../hexa-codex/safety/ai-safety.md)                                           |
 | alignment / objective alignment      | [`hexa-codex/alignment`](../../hexa-codex/alignment/ai-alignment.md)                                  |
 | adversarial / red-team robustness    | [`hexa-codex/adversarial`](../../hexa-codex/adversarial/ai-adversarial.md)                            |
-| interpretability (style / idiom)     | [`hexa-codex/interpret`](../../hexa-codex/interpret/ai-interpretability.md) (F-CODEX-4)               |
+| interpretability (style / idiom)     | [`hexa-codex/interpret`](../../hexa-codex/interpret/ai-interpretability.md) (scaling-falsifier)               |
 | RLHF / preference-data substrate     | [`hexa-codex/rlhf`](../../hexa-codex/rlhf/youth-ai-labeling-rlhf-hub.md)                              |
 | neuromorphic training fabric         | `hexa-chip`                                                                                            |
 | federated training transport         | `hexa-grid`                                                                                            |

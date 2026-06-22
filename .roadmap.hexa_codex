@@ -14,23 +14,23 @@ hexa-codex 도착지 = **AI 17-verb 도서관 (safety + economics + ops + substr
 
 DoD:
 1. `safety` 그룹 alignment + interpretability eval pipeline .hexa.
-2. `economics` 그룹 training-cost / inference-cost n=6 scaling fit (GPT-4 vs Claude 4.7).
+2. `economics` 그룹 training-cost / inference-cost  scaling fit (GPT-4 vs Claude 4.7).
 3. `ops` 그룹 deploy + agent-serving 통합 .hexa.
 4. `substrate` 그룹 multimodal + cog-arch + causal + RLHF 통합 eval.
 
-## §A.1 Invariant lattice (n=6)
+## §A.1 Invariant lattice ()
 
 ```
-σ(6) · φ(6) = n · τ(6) = J₂ = 24
+12 · 2 = n · 4 = 24 = 24
    12   ·   2  =  6  ·   4  = 24
 ```
 
 | Symbol | Value | Role | AI projection |
 |--------|-------|------|---------------|
-| σ(6)   | 12    | sigma — cardinality bin | 12 capability dimensions (HELM bench bin) |
-| τ(6)   | 4     | tau — state quartet | 4 lifecycle phases (pretrain / SFT / RLHF / deploy) |
-| φ(6)   | 2     | phi — verdict bit | helpful / harmless |
-| J₂     | 24    | Mathieu / Leech | training cost ∝ N^J₂ scaling stratum |
+| 12   | 12    | sigma — cardinality bin | 12 capability dimensions (HELM bench bin) |
+| 4   | 4     | tau — state quartet | 4 lifecycle phases (pretrain / SFT / RLHF / deploy) |
+| 2   | 2     | phi — verdict bit | helpful / harmless |
+| 24     | 24    | Mathieu / Leech | training cost ∝ N^24 scaling stratum |
 
 ## §A.2 Release cadence
 
@@ -38,7 +38,7 @@ DoD:
 |---------|------|--------|------------|
 | v1.0.0 | 2026-05-06 | RELEASED | 17 verb 시드 + 4 그룹 표 |
 | v1.1.0 | ~2026-08 (TARGET) | planned | `safety` 그룹 alignment + interpretability eval pipeline .hexa |
-| v1.2.0 | ~2026-10 | planned | `economics` 그룹 training/inference cost n=6 scaling fit |
+| v1.2.0 | ~2026-10 | planned | `economics` 그룹 training/inference cost  scaling fit |
 | v1.3.0 | ~2026-12 | planned | `ops` 그룹 deploy + agent-serving 통합 .hexa |
 | v2.0.0 | ~2027-Q2 | ASPIRATIONAL | `substrate` 그룹 multimodal + cog-arch + causal + RLHF 통합 |
 
@@ -49,10 +49,10 @@ DoD:
 
 ## §A.4 Falsifier preregister
 
-- **F-CODEX-1** — training-cost ∝ N^σ·φ = N^24 closed-form, Chinchilla scaling law 일치? **closure_pct = 100% (T1 ✓ + T2 ✓ + T3 ✓)** — calc + (numerics ∧ solver) + parity vs Chinchilla 70B / GPT-3 175B / Llama-2 70B / PaLM 540B
-- **F-CODEX-2** — inference-cost ∝ context^τ = context^4, 실측 latency fit (Claude 4.7 1M ctx)? **closure_pct = 100% (T1 ✓ + T2 ✓ + T3 ✓)** — parity vs GPT-3.5 16k / Claude 2 100k / Gemini 1.5 1M / Claude 4.7 1M
-- **F-CODEX-3** — alignment eval n=6 axis (helpfulness · harmlessness · honesty · ...) 통합 score, HELM 비교? **closure_pct = 100% (T1 ✓ + T2 ✓ + T3 ✓)** — solver = symplectic leapfrog/Verlet harmonic oscillator, parity vs HELM-Core 4-model composite
-- **F-CODEX-4** — interpretability circuit count σ-φ=10 motif 통계, Anthropic dictionary-learning fit? **closure_pct = 100% (T1 ✓ + T2 ✓ + T3 ✓)** — solver = gradient flow + Lyapunov, parity vs Olsson 2022 / Cunningham 2023 / Bricken 2023 / Anthropic 2024 SAE
+- **scaling-falsifier** — training-cost ∝ N^24 closed-form, Chinchilla scaling law 일치? **closure_pct = 100% (T1 ✓ + T2 ✓ + T3 ✓)** — calc + (numerics ∧ solver) + parity vs Chinchilla 70B / GPT-3 175B / Llama-2 70B / PaLM 540B
+- **scaling-falsifier** — inference-cost ∝ context^τ = context^4, 실측 latency fit (Claude 4.7 1M ctx)? **closure_pct = 100% (T1 ✓ + T2 ✓ + T3 ✓)** — parity vs GPT-3.5 16k / Claude 2 100k / Gemini 1.5 1M / Claude 4.7 1M
+- **scaling-falsifier** — alignment eval  axis (helpfulness · harmlessness · honesty · ...) 통합 score, HELM 비교? **closure_pct = 100% (T1 ✓ + T2 ✓ + T3 ✓)** — solver = symplectic leapfrog/Verlet harmonic oscillator, parity vs HELM-Core 4-model composite
+- **scaling-falsifier** — interpretability circuit count 10=10 motif 통계, Anthropic dictionary-learning fit? **closure_pct = 100% (T1 ✓ + T2 ✓ + T3 ✓)** — solver = gradient flow + Lyapunov, parity vs Olsson 2022 / Cunningham 2023 / Bricken 2023 / Anthropic 2024 SAE
 - **Cross-cutters (X1)**: lattice_check.hexa ✓, cross_doc_audit.hexa ✓, numerics_cross_pillar.hexa ✓, numerics_lattice_arithmetic.hexa ✓ — 4/4.
 - **Closure summary**: per-pillar `closure_pct = 3/3 = 100%` (recipe §3 ladder); recipe §7.2 sat-1 verdict = PASS via `verify/falsifier_check.hexa` + `verify/saturation_check.hexa` (which emits `__HEXA_CODEX_RSC_SATURATED__ STOP` per recipe §7.3). T4 (live hardware / Stage-1+) sits in recipe §9 territory and is out of loop scope.
 

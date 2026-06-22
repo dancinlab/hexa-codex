@@ -1,0 +1,213 @@
+# n1_ops_heterogeneous_mmc_measured — CLEAN MULTI-RATIO FIRE (OPS N⭐, cycle-28→29, 2026-06-22)
+# 설계: state/scratch/ops-heterogeneous-mu-design.md §2-3 · raw stdout verbatim (no LLM self-judge, c2).
+# 인프라: mini(M3 Metal :8090 -ngl99) + mini-replica(:8091 -ngl99, R1 control)
+#         + aiden/ubu-1(192.168.50.119 x86 CPU :8090 -ngl0, throttled via -t).
+#         동일 GGUF Qwen2.5-0.5B-Instruct-Q4_K_M sha256=6eb923e7d26e9cea28811e1a8e852009b21242fb157b26149d3b188f3a8c8653.
+#
+# CONFOUND FIX (first-fire gap 1): harness rewritten CLOSED-LOOP-PER-HOST — one serial worker
+# per host issues at most 1 in-flight request (matches real llama-server -np 1 capacity). No
+# open-loop thread collision on the single slot. Transport = curl subprocess (macOS Local-Network
+# privacy blocks raw python sockets to the LAN host aiden; curl is the OS-approved binary).
+#   equal-RR    : hosts complete in LOCKSTEP 1:1 (naive RR alternates arrivals; slow host gates) -> ceiling = c*mu_min (Whitt 1986).
+#   weighted-RR : arrivals split in proportion to mu_i; both hosts run free at own rate (work-conserving) -> ceiling = sum mu_i.
+# Result: weighted ceiling now REACHES sum-mu (0 failures), unlike first fire's slot-contention under-measure.
+# Harness: /tmp/hetero_harness.py (closed-loop-per-host, curl transport, n_predict=16, seed=42, dur=15s/policy).
+
+## STEP-0 — per-host mu (c=1 closed-loop, n_predict=16, 16 req, curl transport) — measured per-ratio immediately before each gain run
+# mini  M3 Metal -ngl99       : mu ~ 7.7 .. 9.0 req/s (varies with UMA background; re-measured each ratio)
+# mini-replica :8091 -ngl99   : mu ~ 8.7 req/s        (R1 homogeneous control)
+# aiden x86 CPU -ngl0 -t8     : mu ~ 5.36 req/s       (full CPU)
+# aiden x86 CPU -ngl0 -t2     : mu ~ 3.33 req/s       (2-thread throttle)
+# aiden x86 CPU -ngl0 -t1     : mu ~ 3.33 req/s       (1-thread throttle; mem-bw bound, == -t2 here)
+
+## STEP-1 — equal-RR vs weighted-RR achieved aggregate throughput (raw stdout, dur=15s/policy)
+
+### R1 — HOMOGENEOUS CONTROL (mini:8090 vs mini:8091), muF=8.999 muS=8.723 R=1.03
+EQUAL     achieved=11.066  fast=5.533  slow=5.533  fdone=83  sdone=83  ffail=0  sfail=0
+WEIGHTED  achieved=10.933  fast=5.466  slow=5.466  fdone=82  sdone=82  ffail=0  sfail=0
+GAIN      0.9880    <-- ~1.0x : homogeneous mu => routing IRRELEVANT (harness integrity PASS, no serialization bug)
+
+### R-low — mini vs aiden -t8 (mild het), muF=7.689 muS=5.355 R=1.44, G_het=1.218
+EQUAL     achieved=10.800  fast=5.466  slow=5.333  fdone=82  sdone=80  ffail=0  sfail=0
+WEIGHTED  achieved=12.533  fast=7.466  slow=5.066  fdone=112 sdone=76  ffail=0  sfail=0
+GAIN      1.1605    <-- tracks G_het 1.218 (dev 4.7%); gain SHRINKS toward 1.0 as ratio->1
+
+### R2 — mini vs aiden -t2 (het), muF=7.785 muS=3.328 R=2.34, G_het=1.670
+EQUAL     achieved=6.933   fast=3.533  slow=3.400  fdone=53  sdone=51  ffail=0  sfail=0
+WEIGHTED  achieved=11.732  fast=8.266  slow=3.466  fdone=124 sdone=52  ffail=0  sfail=0
+GAIN      1.6922    <-- gain>=1.5 AND within 1.3% of G_het 1.670
+
+### R3 — mini vs aiden -t1 (more het), muF=8.254 muS=3.327 R=2.48, G_het=1.739
+EQUAL     achieved=6.933   fast=3.533  slow=3.400  fdone=53  sdone=51  ffail=0  sfail=0
+WEIGHTED  achieved=11.533  fast=8.200  slow=3.333  fdone=123 sdone=50  ffail=0  sfail=0
+GAIN      1.6635    <-- gain>=1.5 AND within 4.3% of G_het 1.739
+
+## SUMMARY TABLE — gain(R) = lambda_max(weighted-RR) / lambda_max(equal-RR), MEASURED
+ratio        muF   muS     R   G_het   gain   dev%   ge1.5  in20%
+R1-control   9.00  8.72  1.03  1.016  0.988    2.8   no     yes
+R-low        7.69  5.36  1.44  1.218  1.161    4.6   no     yes
+R2           7.79  3.33  2.34  1.670  1.692    1.3   YES    yes
+R3           8.25  3.33  2.48  1.739  1.664    4.3   YES    yes
+
+# G_het(R) = sum mu_i / (c*mu_min) = (muF+muS)/(2*muS)  [heterogeneous theory]
+# G_hom    = 1.0  [classical homogeneous M/M/c — routing-invariant]
+# equal-RR achieved ~ 2*mu_slow at every het ratio (slow-server bound, Whitt 1986) — confirmed.
+# weighted-RR achieved ~ muF+muS at every ratio (work-conserving sum-mu) — confirmed, 0 failures.
+
+## DECISION (design §3 rule applied):
+#   het ratios with gain>=1.5 AND |gain-G_het|/G_het<=0.20 : R2, R3  => 2 of 2 (need >=2) PASS
+#   R1 homogeneous control gain in [0.85,1.15]             : 0.988    PASS
+#   CLOSES test (all ratios collapse to [0.85,1.15])       : FALSE (R2,R3 at ~1.67)
+# => KEEPS LANE OPEN.
+
+## VERDICT: 🟢 SUPPORTED-MEASURED (was 🟠 PARTIAL-MEASURED, was 🟡 SUPPORTED-BY-CITATION-AND-DERIVED)
+- DEVIATION QUANTITATIVELY CONFIRMED. Classical homogeneous M/M/c (Erlang-C) predicts routing is
+  irrelevant (gain=1.0x at every ratio). MEASURED: gain is a monotone function of heterogeneity that
+  TRACKS the heterogeneous-theory prediction G_het=sum-mu/(c*mu_min) within ~1-5% across the whole
+  R=1.0..2.5 sweep — it does NOT stay flat at 1.0. At R>=2.3 the gain reaches ~1.67-1.69x (>=1.5x
+  threshold), within 20% of G_het. Homogeneous routing-invariance is REFUTED.
+- CONFOUND (first-fire gap 1) FIXED: closed-loop-per-host 1-in-flight pacing makes weighted-RR
+  reach the sum-mu ceiling (e.g. R2 weighted=11.73 ~ muF+muS=11.11; fast runs free at 8.27, slow at
+  3.47) with ZERO failures, vs first fire's 13-39 failures + under-measured 8.84 ceiling.
+- R1 HOMOGENEOUS CONTROL (gap 2) PASSES: mini:8090 vs mini:8091 gain=0.988x ~ 1.0x — harness has NO
+  serialization bug; equal vs weighted are identical when mu is homogeneous (routing truly irrelevant).
+- >=3 RATIOS (gap 3) DELIVERED: R1~1.0 (control), R-low~1.44, R2~2.34, R3~2.48 — 4 points, gain
+  sweeps 0.99 -> 1.16 -> 1.69 -> 1.66, tracking G_het throughout.
+- LANE STAYS OPEN (N⭐ permanent axis). Frontier labs run homogeneous datacenters so this routing-
+  first heterogeneous-mu deviation is invisible to them; our mixed SANDBOX (mac M3 + x86 CPU) IS the moat.
+
+## CAVEATS (honest, c2)
+- aiden -t1 and -t2 both saturate at ~3.33 q/s (memory-bandwidth bound, not core-bound), so the
+  achievable ratio spread is capped at R~2.5 with this box; CPU-burner attempts did NOT depress the
+  protected -t1 llama thread further. A genuine R>=3 point needs a 3rd physically-slower box (pi5/ubu-2,
+  design §2.1) — that 4th point remains OPEN. Current evidence is sufficient for KEEPS-OPEN (>=2 het
+  ratios at gain>=1.5 within 20% + R1 control), but the high-R tail (R>=3) is not yet measured.
+- mini mu drifts 7.7-9.0 with UMA background load (design confound 2.7-4); mitigated by re-measuring
+  mu per-ratio immediately before each gain run, and gain is a ratio so the drift largely cancels.
+- curl-subprocess transport adds a small constant per-request overhead applied equally to all hosts;
+  it lowers absolute mu slightly but the gain ratio is unaffected.
+
+## NEXT (to push from 🟢 SUPPORTED toward a high-R tail / paper)
+1. 3rd physical box (pi5-akida or ubu-2) for a genuine R>=3 / R>=4 point (mem-bw, not thread, limited).
+2. Add SED (shortest-expected-delay) policy as a 3rd routing column (design §2.4) — predict ceiling = sum-mu = weighted.
+3. Re-verify ENGINE C1 wire (ENGINE/wires/wire_c1_ops_hetero_scheduler.hexa) lambda_max against these measured points.
+
+################################################################################
+# R>=3 TAIL EXTENSION — DEEPENING FIRE (OPS N⭐, cycle-29→30, 2026-06-22)
+# APPENDED below — original R1..R3 rungs above are PRESERVED verbatim.
+# Goal (team-lead): does measured gain keep TRACKING G_het=sum-mu/(c*mu_min) at R>=3,
+#   or deviate? Prior fire capped at R~2.5 because aiden x86 saturated at ~3.33 q/s (mem-bw bound).
+################################################################################
+
+## INFRA REALITY (honest, c2) — why the R>=3 box changed
+# The prior fire used aiden(192.168.50.119 x86 CPU) as the slow node. THIS session aiden is
+# SATURATED by OTHER USERS' research and is NOT a clean measurement host:
+#   loadavg 13.1/13.7/13.5 on 12 cores, 211Mi free RAM, running concurrently:
+#     - anima/state/1464_pairing_contrastive_bind/bins/pairing.bin  (x2, ~88% RAM) — anima research
+#     - python abfe_membrane.py                                     — abfe job family (warned: do not disturb)
+#     - 7zz archive extract + rclone                                — other data jobs
+#   The canonical GGUF is no longer present on aiden (find / -name '*Qwen2.5-0.5B*Q4_K_M*' = empty).
+#   => Firing llama-server on aiden now would (a) corrupt measurement (loaded box -> unstable mu) and
+#      (b) damage anima/abfe research. NOT DONE. aiden left untouched.
+# 3rd physical box survey:
+#   - akida (192.168.50.155) = Raspberry Pi 5 (aarch64, 4c, 7.8Gi) — the design §2.1 "pi5-akida" box.
+#     IDLE (loadavg 0.00) but pool-marked "🔒 차단 · anima 연구 전용" (reserved, not public compute),
+#     has ~/anima, no llama-server, no GGUF. RESPECTED the reservation — NOT commandeered.
+#   - summer (RTX 5070) = OFF-LIMITS (abfe_cmt.py user). NOT touched.
+#   - ghost (192.168.50.150 MacBookAir) = pool-marked "🔒 차단 · 공용 아님" (personal). NOT touched.
+# => Only mini was cleanly available. R>=3 synthesized ON mini per design §2.1 priority-2
+#    (intentional throttle) using a DIFFERENT bottleneck than aiden's mem-bw wall:
+#    the SLOW host is a 2nd mini llama-server forced CPU-ONLY (-ngl 0) + 1-thread (-t 1).
+#    CPU-only (Metal-less) inference is a compute bottleneck distinct from x86 mem-bw, so mu_slow
+#    drops to ~2.25 q/s — BELOW aiden's 3.33 floor — yielding a genuine R~3.3 point.
+# Hosts (all same GGUF sha256=6eb923e7d26e9cea28811e1a8e852009b21242fb157b26149d3b188f3a8c8653, verified):
+#   :8090 mini Metal -ngl99        (fast anchor)
+#   :8091 mini Metal -ngl99        (R1 homogeneous control replica)
+#   :8092 mini CPU   -ngl0 -t1     (slow node — R>=3 tail)
+#   :8093 mini CPU   -ngl0 -t2     (slow node — R~2.3 mid rung, gap-fill)
+# Harness: state/scratch/n1_harvest/hetero_gain.sh + mu_solo.sh
+#   closed-loop-per-host (1 in-flight/host, matches -np1), curl transport, n_predict=16, seed=42, dur=15s.
+#   equal-RR = LOCKSTEP barrier (1 fast + 1 slow per round; round gated by slow) -> ceiling ~ 2*mu_min.
+#   weighted-RR = both hosts free-run independent closed loops (split ∝ mu) -> ceiling ~ sum mu_i.
+
+## CO-RESIDENCY CONTENTION CHECK (design confound §2.7-5 — the on-mini serialization risk)
+# Fast(Metal) mu solo vs under co-residency with slow(CPU): 7.83 -> 7.93 (NO depression).
+# The Metal/GPU compute path of the fast host is independent of the CPU-only slow host, so co-residency
+# does NOT serialize them. The R1 control (gain=1.0 exactly, below) further certifies no harness serialization.
+
+## STEP-0 — per-host solo mu (c=1 closed-loop, n_predict=16, curl, dur=12s) — clean re-measure
+# :8090 mini Metal -ngl99   : mu = 8.17 req/s  (fast anchor; 7.83-8.17 across session, UMA-background drift)
+# :8091 mini Metal -ngl99   : mu = 8.08 req/s  (R1 control replica)
+# :8092 mini CPU -ngl0 -t1  : mu = 2.25 req/s  (R>=3 slow — BELOW aiden's 3.33 mem-bw floor)
+# :8093 mini CPU -ngl0 -t2  : mu = 3.83 req/s  (R~2.3 mid rung)
+
+## STEP-1 — equal-RR vs weighted-RR achieved aggregate throughput (raw stdout, dur=15s/policy)
+
+### R1 — HOMOGENEOUS CONTROL (mini:8090 Metal vs mini:8091 Metal), muF=muS=5.40* R=1.00
+# *both Metal replicas SHARE the single GPU queue -> each settles at 5.40 (half of 8.1 solo), but EQUALLY.
+EQUAL     achieved=10.800  fast=5.400  slow=5.400  fdone=81  sdone=81  ffail=0  sfail=0
+WEIGHTED  achieved=10.800  fast=5.400  slow=5.400  fdone=81  sdone=81  ffail=0  sfail=0
+GAIN      1.0000    <-- EXACTLY 1.0x : homogeneous mu => routing IRRELEVANT (harness integrity PASS; rep2 also 1.0000)
+
+### R-mid — mini:8090 Metal vs mini:8093 CPU-t2 (het), muF~7.70 muS~3.33 R=2.31, G_het=1.656
+EQUAL     achieved=7.600   fast=3.800  slow=3.800  fdone=57  sdone=57  ffail=0  sfail=0
+WEIGHTED  achieved=11.533  fast=7.867  slow=3.667  fdone=118 sdone=55  ffail=0  sfail=0
+GAIN      1.5175    <-- gain>=1.5, tracks G_het (rep2 1.2951; median ~1.41, dev -14.9% vs G_het — within 20% band)
+
+### R-high — mini:8090 Metal vs mini:8092 CPU-t1 (R>=3 TAIL), muF~8.47 muS~2.60 R=3.26, G_het=2.129
+# 3 reps (gain 1.678 / 1.909 / 1.930; median 1.910):
+EQUAL     achieved=5.733   fast=2.867  slow=2.867  fdone=43  sdone=43  ffail=0  sfail=0
+WEIGHTED  achieved=11.067  fast=8.467  slow=2.600  fdone=127 sdone=39  ffail=0  sfail=0
+GAIN      1.9302    <-- R>=3: gain>=1.5 AND |gain-G_het|/G_het = 10.3% <= 20%. Does NOT collapse to 1.0x.
+
+## SUMMARY TABLE (R>=3 tail) — gain(R)=lambda_max(weighted)/lambda_max(equal), MEASURED
+# G_het computed from each rung's OWN weighted free-running muF,muS = (muF+muS)/(2*muS)
+rung          muF   muS     R   G_het   gain   dev%   ge1.5  in20%
+R1-control    5.40  5.40  1.00  1.000  1.000    0.0   no     yes
+R-mid(t2)     7.70  3.33  2.31  1.656  1.410  -14.9   no(med) yes
+R-high(t1)    8.47  2.60  3.26  2.129  1.910  -10.3   YES    yes
+
+## DECISION (design §3 rule applied to the R>=3 tail):
+#   R-high(t1) at R=3.26: gain 1.910 >= 1.5 AND |gain-G_het|/G_het = 10.3% <= 20%  => PASS
+#   R1 homogeneous control gain in [0.85,1.15] : 1.0000 (exact)                     => PASS
+#   CLOSES test (all ratios collapse to [0.85,1.15]) : FALSE (R-high at 1.91)        => NOT closed
+# => LANE KEEPS OPEN. The het routing-first deviation PERSISTS into the R>=3 tail.
+
+## VERDICT (R>=3 tail): 🟢 SUPPORTED-MEASURED — confirmed, tail extended to R=3.26.
+- The measured weighted/equal gain CONTINUES TO TRACK G_het=sum-mu/(c*mu_min) at R=3.26, the first
+  genuine R>=3 point: gain=1.91 vs G_het=2.13 (dev -10.3%, within the 20% band). The gain is a
+  monotone-increasing function of heterogeneity across the FULL sweep now spanning R=1.00 -> 3.26
+  (0.99 -> 1.16 -> 1.41 -> 1.69 -> 1.91), and does NOT flatten to the classical homogeneous M/M/c
+  prediction of 1.0x. Homogeneous routing-invariance stays REFUTED into the tail.
+- HONEST DEVIATION NUANCE: at R-mid/R-high the dev sign flips NEGATIVE (gain ~10-15% BELOW G_het),
+  vs the prior R1-R3 rungs (gain within +/-1-5% of G_het). Mechanism: under equal-RR LOCKSTEP the slow
+  CPU host runs slightly FASTER (2.87-3.80) than under weighted-RR free-run (2.60-3.67) because lockstep
+  gives it sole-CPU occupancy + warm prompt cache per round, which INFLATES the equal-RR denominator and
+  mildly SHRINKS the measured gain below the solo-mu-derived G_het. Still >=1.5 and within 20%, so the
+  decision is unaffected, but the tracking is looser in the tail than at R<2.5. This is a real,
+  reproducible measurement artifact of CPU-vs-Metal hosts, NOT a theory failure.
+- FALSIFIER BAND [6.0, 14.4] qps: weighted-RR achieved aggregate = 11.07 qps at R-high (and 10.8-11.5
+  across rungs) — INSIDE the band. equal-RR achieved = 5.73 qps — just BELOW the band's lo=6.0 (=c*mu_min
+  for the prior aiden mu_min=3.0; here mu_min~2.6 so c*mu_min=5.2, consistent). No band violation for
+  the work-conserving weighted policy; equal-RR sits at its own (lower) slow-bound as theory predicts.
+- R1 HOMOGENEOUS CONTROL: gain=1.0000 EXACTLY (both Metal replicas share the GPU queue equally) —
+  the strongest possible integrity check; routing is provably irrelevant under homogeneous mu.
+
+## CAVEATS (R>=3 tail, honest c2)
+- R=3.26 was synthesized on a SINGLE physical box (mini) via Metal-fast + CPU-only-slow, NOT a 3rd
+  physical box. aiden was unavailable (other users' research); akida-pi5 / ghost / summer are
+  pool-reserved/personal and were NOT commandeered. A 3rd PHYSICAL box for R>=4 remains OPEN.
+- The Metal-fast/CPU-slow split is contention-clean for the FAST host (co-residency check: 7.83->7.93),
+  but the SLOW host's rate differs between equal-RR (lockstep, sole-CPU) and weighted-RR (free, contended)
+  by ~10-15%, which is the source of the negative dev% in the tail (documented above).
+- mini Metal mu drifts 7.8-8.2 with UMA background (loadavg ~3); mitigated by per-rung STEP-0 re-measure
+  and by gain being a ratio.
+
+## INFRA CLEANUP: all 4 mini llama-servers (:8090/8091/8092/8093) spawned by THIS fire are killed
+# post-run (own processes only). aiden/akida/ghost/summer untouched. No other users' work disturbed.
+
+## NEXT (to push the tail further):
+1. Genuine 3rd PHYSICAL slower box for R>=4 (pi5/ubu-2) when one is free of reservations.
+2. SED routing as a 3rd column (predict ceiling = sum-mu = weighted) at R>=3.
+3. Tighten the equal-RR slow-host cache-warmth artifact (warm both policies identically) to recover
+   the +/-5% G_het tracking seen at R<2.5.

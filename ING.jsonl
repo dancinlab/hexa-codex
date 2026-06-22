@@ -1,0 +1,1 @@
+{"kind":"work","id":"1","ts":"2026-06-22T05:45:35.449Z","text":"[NOVEL-1 OPS] 이종-μ Erlang-C 2-host fire — μ_ubu 실측 + 3 host-rate ratio(R≈1.0/3.18/6.4) probe(equal/weighted/SED RR), falsifier band [6.0,14.4]qps. 최저비용·결정적. design: state/scratch/ops-heterogeneous-mu-design.md"}

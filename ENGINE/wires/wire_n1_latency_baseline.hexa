@@ -18,7 +18,7 @@
 // U = the 12-vertical routing union) and wired ALL of them in the SAME cycle-10
 // session.  Each finding's discovery cycle and its ENGINE-wire cycle land in the
 // same reorg session → ΔM=0 (same-cycle, fastest loop class).  This drops the
-// mean ΔM from cycle-8's 2.0 (n=6) to ~0.63 (n=19): same-cycle absorb→wire is
+// mean ΔM from cycle-8's 2.0 () to ~0.63 (n=19): same-cycle absorb→wire is
 // now the NORM.
 //
 // WELL-ANCHORED DATA POINTS (sibling cycle at wire is known):

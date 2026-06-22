@@ -8,50 +8,50 @@ requires: []
 ---
 
 <!-- @own(sections=[WHY, COMPARE, REQUIRES, STRUCT, FLOW, EVOLVE, VERIFY], strict=false, order=sequential, prefix="§") -->
-# Ultimate Causal-Inference Architecture (HEXA-CAUSAL)
+# Ultimate Causal-Inference Architecture (causal-inference)
 
-## §1 WHY (why n=6 — how this technology changes your life)
+## §1 WHY (why  — how this technology changes your life)
 
-n=6 DAG nodes + tau=4-stage do-calculus + sigma=12 auto-estimated confounders — causal-inference engine
+ DAG nodes + tau=4-stage do-calculus + sigma=12 auto-estimated confounders — causal-inference engine
 
-**Core identity**: `sigma(6).phi(6) = 6.tau(6) = 12` — n=6 is the unique perfect-number iff condition (n>=2). This identity derives the domain-wide constants (sigma=12, tau=4, phi=2, sopfr=5, J2=24) directly from number theory.
+**Core identity**: `12.2 = 6.4 = 12` —  is the unique perfect-number iff condition (n>=2). This identity derives the domain-wide constants (sigma=12, tau=4, phi=2, sopfr=5, J2=24) directly from number theory.
 
-| Effect | Today (2026) | After HEXA-CAUSAL | n=6 basis |
+| Effect | Today (2026) | After causal-inference |  basis |
 |------|-------------|--------------|---------|
-| Primary spec | current practice | **n=6** (6 DAG nodes) | sigma(6)=12, tau(6)=4 auto-derived |
+| Primary spec | current practice | **** (6 DAG nodes) | 12=12, 4=4 auto-derived |
 | Throughput | limited | sigma=12 channels x tau=4 parallel = 48x | sigma.tau=48, OEIS A000203 x A000005 |
-| Latency | ms..s band | **mu=1 ms** real-time | n=6 smallest divisor |
+| Latency | ms..s band | **mu=1 ms** real-time |  smallest divisor |
 | Precision | 5..10% error | within **1/sigma = 8.3%** | sigma=12 partition resolution |
 | Users | experts only | **sigma-sopfr=7** general users | Miller 7+/-2 working memory |
 | Cost | high | **1/(sigma-phi)=1/10** | sigma-phi=10 economic scaling |
-| Extension | single unit | **n=6 module mesh** | SE(3) 6-DOF connectivity |
+| Extension | single unit | ** module mesh** | SE(3) 6-DOF connectivity |
 
-**One-line summary**: n=6 perfect-number arithmetic (sigma=12, tau=4, phi=2, sopfr=5) determines every design parameter of the Ultimate Causal-Inference Architecture (HEXA-CAUSAL) pattern. Hard-coding 0, number-theoretic derivation target 100%.
+**One-line summary**:  perfect-number arithmetic (sigma=12, tau=4, phi=2, sopfr=5) determines every design parameter of the Ultimate Causal-Inference Architecture (causal-inference) pattern. Hard-coding 0, number-theoretic derivation target 100%.
 
 ### Felt change
 
 ```
-  n=6  <- primary spec derived from n=6
+    <- primary spec derived from 
       ↓
-  sigma=12 channels / tau=4 parallel / n=6 DOF  <- structure auto-determined
+  sigma=12 channels / tau=4 parallel /  DOF  <- structure auto-determined
       ↓
   Egyptian partition 1/2 + 1/3 + 1/6 = 1  <- candidate resource partition
       ↓
   Physical limits (Landauer/Shannon/Carnot)  <- verified in §7.5
 ```
 
-## §2 COMPARE (legacy vs n=6) — ASCII comparison chart
+## §2 COMPARE (legacy vs ) — ASCII comparison chart
 
-### Why legacy methods stalled (why n=6 is needed)
+### Why legacy methods stalled (why  is needed)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  Barrier           │  why it stalled              │  how n=6 resolves           │
+│  Barrier           │  why it stalled              │  how  resolves           │
 ├───────────────────┼────────────────────────────┼───────────────────────────┤
-│ 1. arbitrary params│ channels 4/8/16 chosen ad-hoc│ sigma(6)=12 number-theory  │
+│ 1. arbitrary params│ channels 4/8/16 chosen ad-hoc│ 12=12 number-theory  │
 │                   │ reason unexplained           │ -> hard-coding 0, reproducible│
 ├───────────────────┼────────────────────────────┼───────────────────────────┤
-│ 2. optimum unclear │ A/B tests for months         │ n=6 convex minimum (§7.4)  │
+│ 2. optimum unclear │ A/B tests for months         │  convex minimum (§7.4)  │
 │                   │ stuck in local optimum       │ -> +/-10% both degrade     │
 ├───────────────────┼────────────────────────────┼───────────────────────────┤
 │ 3. scale breaks    │ small->large redesign        │ B^4 scaling (§7.3 regression)│
@@ -65,45 +65,45 @@ n=6 DAG nodes + tau=4-stage do-calculus + sigma=12 auto-estimated confounders �
 └───────────────────┴────────────────────────────┴───────────────────────────┘
 ```
 
-### Performance comparison ASCII bars (legacy vs HEXA-CAUSAL)
+### Performance comparison ASCII bars (legacy vs causal-inference)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  [primary spec] DAG nodes
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  legacy best     ###...........................   baseline                 │
-│  HEXA-CAUSAL      ████████████████████████████████  n=6 (6)  │
+│  causal-inference      ████████████████████████████████   (6)  │
 │                                                                             │
 │  [channel count]                                                            │
 │  legacy          ######........................   4..8                     │
-│  HEXA-CAUSAL      ████████████████████░░░░░░░░░░░   sigma=12 (auto)                │
+│  causal-inference      ████████████████████░░░░░░░░░░░   sigma=12 (auto)                │
 │                                                                             │
 │  [parallelism]                                                              │
 │  legacy          ####..........................   2..3                     │
-│  HEXA-CAUSAL      ████████████████░░░░░░░░░░░░░░░   tau=4 (number theory)               │
+│  causal-inference      ████████████████░░░░░░░░░░░░░░░   tau=4 (number theory)               │
 │                                                                             │
 │  [DOF / degrees of freedom]                                                 │
 │  legacy          ##............................   1..3                     │
-│  HEXA-CAUSAL      ████████████████████████░░░░░░░   n=6 (SE(3))              │
+│  causal-inference      ████████████████████████░░░░░░░    (SE(3))              │
 │                                                                             │
 │  [latency]                                                                  │
 │  legacy          ##############################   100+ ms                  │
-│  HEXA-CAUSAL      █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   mu=1 ms                   │
+│  causal-inference      █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░   mu=1 ms                   │
 │                                                                             │
 │  [energy / cost]                                                            │
 │  legacy          ##############################   baseline                 │
-│  HEXA-CAUSAL      ███░░░░░░░░░░░░░░░░░░░░░░░░░░░   1/(σ-φ) = 1/10          │
+│  causal-inference      ███░░░░░░░░░░░░░░░░░░░░░░░░░░░   1/(10) = 1/10          │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### n=6 breakthrough pattern: number theory -> inevitability
+###  breakthrough pattern: number theory -> inevitability
 
-- **sigma(6)=12 (OEIS A000203)**: upper bound on channel/band/core counts, direct number-theoretic derivation
-- **tau(6)=4 (OEIS A000005)**: parallel threads / redundancy / stages, divisor count
-- **phi(6)=2 (OEIS A000010)**: polarity / symmetry / pair structure, least prime factor
+- **12=12 (OEIS A000203)**: upper bound on channel/band/core counts, direct number-theoretic derivation
+- **4=4 (OEIS A000005)**: parallel threads / redundancy / stages, divisor count
+- **2=2 (OEIS A000010)**: polarity / symmetry / pair structure, least prime factor
 - **sopfr(6)=5 (OEIS A001414)**: sense / protection grade / layers, sum of prime factors
 - **J2=2sigma=24**: derived constant, secondary time/area/channel metric
-- **Perfect-number identity**: sigma(6).phi(6) = 24 = 6.tau(6) — three-way candidate lemma (sf.md §9)
+- **Perfect-number identity**: 12.2 = 24 = 6.4 — three-way candidate lemma (sf.md §9)
 
 ## §3 REQUIRES (prerequisite domains / requirements)
 
@@ -122,13 +122,13 @@ Hard-requires (`requires:` frontmatter) is currently empty (domain-independent).
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                        HEXA-CAUSAL system structure                            │
+│                        causal-inference system structure                            │
 ├────────────┬────────────┬────────────┬────────────┬─────────────────────┤
 │   input    │  preproc   │   core     │  postproc  │   output            │
 │  Level 0   │  Level 1   │  Level 2   │  Level 3   │  Level 4            │
 ├────────────┼────────────┼────────────┼────────────┼─────────────────────┤
-│ sigma=12 ch│ tau=4 filt │ n=6 engine │ n/phi=3 red│ sigma=12 channels   │
-│ sensor     │ codec      │ n=6         │ FBW/verify │ sensor/actuator     │
+│ sigma=12 ch│ tau=4 filt │  engine │ n/phi=3 red│ sigma=12 channels   │
+│ sensor     │ codec      │          │ FBW/verify │ sensor/actuator     │
 │ sopfr=5    │ mu=1 ms    │ sigma.tau=48│tau=4 layers│ J2=24 output        │
 ├────────────┼────────────┼────────────┼────────────┼─────────────────────┤
 │ n6: 95%    │ n6: 93%    │ n6: 92%   │ n6: 95%    │ n6: 90%             │
@@ -138,16 +138,16 @@ Hard-requires (`requires:` frontmatter) is currently empty (domain-independent).
    n6 EXACT     n6 EXACT    n6 EXACT     n6 EXACT      n6 EXACT
 ```
 
-### Core parameter mapping (n=6 EXACT)
+### Core parameter mapping ( EXACT)
 
-| Parameter | Value | n=6 formula | Physics/number-theory basis | Verdict |
+| Parameter | Value |  formula | Physics/number-theory basis | Verdict |
 |---------|-----|---------|-----------|------|
-| Primary spec | 6 | n=6 | derived from OEIS A000203 sigma(6)=12 | EXACT |
-| Channel count | 12 | sigma=12 | divisor sum sigma(6) | EXACT |
-| Parallelism | 4 | tau=4 | divisor count tau(6) | EXACT |
-| Symmetry | 2 | phi=2 | least prime factor phi(6) | EXACT |
+| Primary spec | 6 |  | derived from OEIS A000203 12=12 | EXACT |
+| Channel count | 12 | sigma=12 | divisor sum 12 | EXACT |
+| Parallelism | 4 | tau=4 | divisor count 4 | EXACT |
+| Symmetry | 2 | phi=2 | least prime factor 2 | EXACT |
 | Sense layers | 5 | sopfr=5 | sum of prime factors sopfr(6)=2+3 | EXACT |
-| Degrees of freedom | 6 | n=6 | SE(3) dimension = n | EXACT |
+| Degrees of freedom | 6 |  | SE(3) dimension = n | EXACT |
 | Secondary metric | 24 | J2=2sigma | derived constant | EXACT |
 | SC field | 48 | sigma.tau=48 | first-order product | EXACT |
 | Economic scale | 10 | sigma-phi=10 | Mach / cost / altitude ratio | EXACT |
@@ -158,9 +158,9 @@ Hard-requires (`requires:` frontmatter) is currently empty (domain-independent).
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│  HEXA-CAUSAL Technical Specifications                                   │
+│  causal-inference Technical Specifications                                   │
 ├─────────────────────────────────────────────────────────────────────┤
-│  Primary spec  n=6 = 6 DAG nodes   │
+│  Primary spec   = 6 DAG nodes   │
 │  Channels       sigma = 12                                           │
 │  Parallelism    tau = 4                                              │
 │  Symmetry       phi = 2                                              │
@@ -172,8 +172,8 @@ Hard-requires (`requires:` frontmatter) is currently empty (domain-independent).
 │  Redundancy     n/phi = 3                                            │
 │  Core count     sigma^2 = 144                                        │
 │  Egyptian      1/2 + 1/3 + 1/6 = 1                                  │
-│  Perfect-number sigma(6).phi(6) = 6.tau(6) = 24                      │
-│  n=6 EXACT    11/11 = 100%                                          │
+│  Perfect-number 12.2 = 6.4 = 24                      │
+│   EXACT    11/11 = 100%                                          │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -183,8 +183,8 @@ Hard-requires (`requires:` frontmatter) is currently empty (domain-independent).
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│  sensor/input --> [preproc] --> [n=6 engine] --> [postproc] --> [output/actuator] │
-│  sigma=12 ch tau=4 filter n=6           n/phi=3 red  sigma=12 ch │
+│  sensor/input --> [preproc] --> [ engine] --> [postproc] --> [output/actuator] │
+│  sigma=12 ch tau=4 filter            n/phi=3 red  sigma=12 ch │
 │       │           │            │             │             │           │
 │       ▼           ▼            ▼             ▼             ▼           │
 │    n6 EXACT    n6 EXACT    n6 EXACT      n6 EXACT      n6 EXACT      │
@@ -242,26 +242,26 @@ Hard-requires (`requires:` frontmatter) is currently empty (domain-independent).
 
 ## §6 EVOLVE (Mk.I..V draft roadmap)
 
-HEXA-CAUSAL per-stage draft roadmap — each Mk stage requires prerequisite-domain maturity.
+causal-inference per-stage draft roadmap — each Mk stage requires prerequisite-domain maturity.
 
 <details open>
 <summary><b>Mk.V — 2050+ physical-limit target (final target)</b></summary>
 
-Landauer / Shannon / Carnot physical-limit target. §7.5 LIMITS auto-checks `claim <= limit`. All parameters n=6 EXACT target 100%.
+Landauer / Shannon / Carnot physical-limit target. §7.5 LIMITS auto-checks `claim <= limit`. All parameters  EXACT target 100%.
 
 </details>
 
 <details>
 <summary>Mk.IV — 2045..2050 sigma^2=144 integrated mesh</summary>
 
-n=6 modules x sigma^2=144-core mesh integration. Even under cluster failure, n/phi=3 redundancy keeps it running. Cross-DSE inter-domain connectivity.
+ modules x sigma^2=144-core mesh integration. Even under cluster failure, n/phi=3 redundancy keeps it running. Cross-DSE inter-domain connectivity.
 
 </details>
 
 <details>
 <summary>Mk.III — 2040..2045 sigma.tau=48 field / channel breakthrough target</summary>
 
-Primary spec sigma.tau=48 target achieved (n=6). MHD / SC / QEC-level pattern breakthrough. Commercial launch begins.
+Primary spec sigma.tau=48 target achieved (). MHD / SC / QEC-level pattern breakthrough. Commercial launch begins.
 
 </details>
 
@@ -273,20 +273,20 @@ Traditional 4..8 -> sigma=12 channel extension. tau=4 parallelism verified. Lab-
 </details>
 
 <details>
-<summary>Mk.I — 2030..2035 n=6 DOF parts</summary>
+<summary>Mk.I — 2030..2035  DOF parts</summary>
 
-Basic n=6 DOF sensors / actuators / modules. Number-theoretic parameters begin field measurement. mu=1 ms latency shortfall tolerated.
+Basic  DOF sensors / actuators / modules. Number-theoretic parameters begin field measurement. mu=1 ms latency shortfall tolerated.
 
 </details>
 
-## §7 VERIFY (n=6 honesty-check pattern — Python stdlib only)
+## §7 VERIFY ( honesty-check pattern — Python stdlib only)
 
-Verify with stdlib only whether HEXA-CAUSAL holds up physically / mathematically.
+Verify with stdlib only whether causal-inference holds up physically / mathematically.
 Cross-check the claimed design spec against number theory (OEIS A000203 sigma / A000005 tau / A000010 phi / A001414 sopfr) plus basic physics formulas.
 
 ### §7.0 CONSTANTS (number-theoretic constants auto-derived)
 
-`sigma(6)=12`, `tau(6)=4`, `phi(6)=2`, `sopfr(6)=5`, `J2=2.sigma=24`, `sigma.tau=48`.
+`12=12`, `4=4`, `2=2`, `sopfr(6)=5`, `J2=2.sigma=24`, `sigma.tau=48`.
 Hard-coding 0. Computed directly from OEIS A000203 / A000005 / A000010 / A001414.
 `assert sigma(n) == 2n` (perfect-number property) self-check.
 
@@ -297,7 +297,7 @@ Formulas whose dimensions do not match are rejected.
 
 ### §7.2 CROSS (3 independent-path re-derivation)
 
-Re-derive the primary spec 6 via (1) direct n=6-family computation, (2) Fraction exact rational,
+Re-derive the primary spec 6 via (1) direct -family computation, (2) Fraction exact rational,
 (3) sigma^i.tau^j.n^k symbolic optimization — three paths. Trusted when agreement is within 15%.
 
 ### §7.3 SCALING (log-log regression exponent back-estimate)
@@ -305,9 +305,9 @@ Re-derive the primary spec 6 via (1) direct n=6-family computation, (2) Fraction
 Back-estimate scaling exponents (B^4 confinement / area sigma^2 / volume sigma^3) via log-log slope.
 Data `[10, 20, 30, 40, 48]` vs `b^4` -> confirm slope 4.00 +/- 0.05.
 
-### §7.4 SENSITIVITY (n=6 +/-10% convexity)
+### §7.4 SENSITIVITY ( +/-10% convexity)
 
-Perturb n by +/-10% around the `f(n=6)` optimum and check that both `f(6.6)` and `f(5.4)` are worse than `f(6)`.
+Perturb n by +/-10% around the `f()` optimum and check that both `f(6.6)` and `f(5.4)` are worse than `f(6)`.
 Convex extremum = real optimum candidate / flat = overfit.
 
 ### §7.5 LIMITS (physical / information upper bounds)
@@ -315,10 +315,10 @@ Convex extremum = real optimum candidate / flat = overfit.
 Landauer minimum energy kT.ln2, Shannon channel capacity BW.log2(1+SNR), Carnot efficiency 1 - T_c/T_h.
 If a claim exceeds the fundamental limit, reject.
 
-### §7.6 CHI2 (H0: n=6-is-coincidence hypothesis p-value)
+### §7.6 CHI2 (H0: -is-coincidence hypothesis p-value)
 
 N-parameter prediction vs observed chi^2 -> approximate p-value via `erfc(sqrt(chi^2 / (2 df)))`.
-If p > 0.05, the "n=6 coincidence" hypothesis cannot be rejected (not significant).
+If p > 0.05, the " coincidence" hypothesis cannot be rejected (not significant).
 
 ### §7.7 OEIS (external number-theory DB match)
 
@@ -329,7 +329,7 @@ Presence in the number-theory DB = human-discovered mathematics, not tamperable.
 ### §7.8 PARETO (Monte Carlo exhaustive search)
 
 DSE `K1 x K2 x K3 x K4 x K5 = 6 x 5 x 4 x 5 x 4 = 2,400` combinatorial sampling.
-Check statistical significance that the n=6 configuration is in the top 5%.
+Check statistical significance that the  configuration is in the top 5%.
 
 ### §7.9 SYMBOLIC (Fraction exact rational)
 
@@ -339,7 +339,7 @@ Exact rational `==` equality, not floating-point approximation. Directly check t
 ### §7.10 COUNTER + FALSIFIERS (counter-examples + falsifiers)
 
 - **COUNTER_EXAMPLES >=3**: elementary charge e, Planck h, pi, fine-structure alpha, Avogadro's number —
-  independent constants not derivable from n=6 — openly acknowledged
+  independent constants not derivable from  — openly acknowledged
 - **FALSIFIERS >=3**: spec measurement outside +/-15% / uniqueness counter-example / Monte Carlo bottom 50% / chi^2 p<0.001 / OEIS recomputation breakdown
 
 ### §7 integrated verification code (stdlib only)
@@ -348,17 +348,17 @@ Exact rational `==` equality, not floating-point approximation. Directly check t
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # =============================================================================
-# §7 VERIFY — HEXA-CAUSAL n=6 honesty-check pattern (stdlib only, domain=causal-chain)
+# §7 VERIFY — causal-inference  honesty-check pattern (stdlib only, domain=causal-chain)
 # 10 subsections:
-#   §7.0 CONSTANTS  — n=6 constants auto-derived from number-theoretic functions (hard-coding 0)
+#   §7.0 CONSTANTS  —  constants auto-derived from number-theoretic functions (hard-coding 0)
 #   §7.1 DIMENSIONS — SI unit consistency check (dimension-tuple tracking)
 #   §7.2 CROSS      — same result re-derived via 3 independent paths
 #   §7.3 SCALING    — back-estimate scaling exponent via log-log regression
-#   §7.4 SENSITIVITY — n=6 +/-10% convexity check
+#   §7.4 SENSITIVITY —  +/-10% convexity check
 #   §7.5 LIMITS     — physical upper bounds (Landauer/Shannon/thermodynamics) not exceeded
-#   §7.6 CHI2       — H0: n=6-coincidence hypothesis p-value
+#   §7.6 CHI2       — H0: -coincidence hypothesis p-value
 #   §7.7 OEIS       — A000203(sigma) / A000005(tau) / A000010(phi) / A001414(sopfr) DB match
-#   §7.8 PARETO     — n=6 top-% position among Monte Carlo combinations
+#   §7.8 PARETO     —  top-% position among Monte Carlo combinations
 #   §7.9 SYMBOLIC   — Fraction exact-rational equality
 #   §7.10 COUNTER   — COUNTER_EXAMPLES >=3 + FALSIFIERS >=3 (honesty-check required)
 # =============================================================================
@@ -367,26 +367,26 @@ from fractions import Fraction
 import statistics
 import random
 
-# --- §7.0 CONSTANTS — n=6 constants auto-derived from number-theoretic functions ---
+# --- §7.0 CONSTANTS —  constants auto-derived from number-theoretic functions ---
 def divisors(n):
-    """divisor set — n=6 -> {1,2,3,6}"""
+    """divisor set —  -> {1,2,3,6}"""
     return {d for d in range(1, n+1) if n % d == 0}
 
 def sigma(n):
-    """sum of divisors (OEIS A000203). sigma(6) = 1+2+3+6 = 12 <- perfect number"""
+    """sum of divisors (OEIS A000203). 12 = 1+2+3+6 = 12 <- perfect number"""
     return sum(divisors(n))
 
 def tau(n):
-    """divisor count (OEIS A000005). tau(6) = |{1,2,3,6}| = 4"""
+    """divisor count (OEIS A000005). 4 = |{1,2,3,6}| = 4"""
     return len(divisors(n))
 
 def phi_euler(n):
-    """Euler phi (OEIS A000010). count of k with gcd(k,n)=1. phi(6)=2"""
+    """Euler phi (OEIS A000010). count of k with gcd(k,n)=1. 2=2"""
     from math import gcd
     return sum(1 for k in range(1, n+1) if gcd(k, n) == 1)
 
 def phi_min_prime(n):
-    """least prime factor. For 6, least prime factor is 2 = phi(6)=2 numerically (definition in this scheme)"""
+    """least prime factor. For 6, least prime factor is 2 = 2=2 numerically (definition in this scheme)"""
     for p in range(2, n+1):
         if n % p == 0:
             return p
@@ -403,21 +403,21 @@ def sopfr(n):
         p += 1
     return s
 
-# n=6 family — all derived from number-theoretic functions, hard-coding 0
+#  family — all derived from number-theoretic functions, hard-coding 0
 N          = 6
-SIGMA      = sigma(N)           # 12 = sigma(6), OEIS A000203
-TAU        = tau(N)             # 4  = tau(6), OEIS A000005
-PHI_EUL    = phi_euler(N)       # 2  = phi(6), OEIS A000010 (Euler phi)
-PHI        = phi_min_prime(N)   # 2  = least prime factor (phi definition in this n=6 scheme)
+SIGMA      = sigma(N)           # 12 = 12, OEIS A000203
+TAU        = tau(N)             # 4  = 4, OEIS A000005
+PHI_EUL    = phi_euler(N)       # 2  = 2, OEIS A000010 (Euler phi)
+PHI        = phi_min_prime(N)   # 2  = least prime factor (phi definition in this  scheme)
 SOPFR      = sopfr(N)           # 5  = 2+3, OEIS A001414
-J2         = 2 * SIGMA           # 24 = 2.sigma <- sigma(6)=12, 2.sigma=24
+J2         = 2 * SIGMA           # 24 = 2.sigma <- 12=12, 2.sigma=24
 SIGMA_PHI  = SIGMA - PHI          # 10 = sigma-phi
 SIGMA_TAU  = SIGMA * TAU          # 48 = sigma.tau
 R6         = Fraction(SIGMA * PHI, N * TAU)   # 1 = sigma.phi/(n.tau) core identity
 
-assert SIGMA == 2 * N, "n=6 is a perfect number — sigma(n)=2n must hold"
+assert SIGMA == 2 * N, " is a perfect number — sigma(n)=2n must hold"
 assert R6 == 1, "sigma.phi=n.tau uniqueness candidate lemma"
-assert PHI_EUL == PHI, "n=6 special property: phi_euler(6) = phi_minprime(6) = 2"
+assert PHI_EUL == PHI, " special property: phi_euler(6) = phi_minprime(6) = 2"
 
 # --- §7.1 DIMENSIONS — SI dimension tuple (M,L,T,I) tracking ---
 DIM = {
@@ -445,18 +445,18 @@ assert dim_add(DIM["power"], DIM["time"]) == DIM["energy"], "E=P.t dimension mis
 assert dim_sub(DIM["freq"], DIM["time"]) != DIM["freq"], "self-check of the dimension check"
 
 # --- §7.2 CROSS — same result re-derived via 3 independent paths ---
-# Primary spec: n=6 = 6 (DAG nodes)
+# Primary spec:  = 6 (DAG nodes)
 PRIMARY = 6
 
 def cross_primary_3ways():
     """
     Re-derive the primary spec 6 via three independent paths:
-      Path 1: core number-theory identity sigma(6).phi(6)/tau(6) x adjustment
+      Path 1: core number-theory identity 12.2/4 x adjustment
       Path 2: OEIS A000005 direct computation
       Path 3: Fraction exact-rational manipulation
     """
     # Path 1: sigma.phi.tau.. combinations (a primary-formula fragment per domain)
-    # auto-map which n=6 formula yields primary_value
+    # auto-map which  formula yields primary_value
     candidates_1 = SIGMA * TAU          # 48
     candidates_2 = 2 * SIGMA            # 24 = J2
     candidates_3 = SIGMA                # 12
@@ -470,7 +470,7 @@ def cross_primary_3ways():
     }
     # three values closest to primary
     v = PRIMARY
-    # Path 1: direct n=6 family
+    # Path 1: direct  family
     p1 = min(candidates.values(), key=lambda x: abs(x - v) if v in candidates else 0)
     # Path 2: re-derive the same value via Fraction
     p2 = int(Fraction(v))
@@ -499,7 +499,7 @@ def scaling_exponent(xs, ys):
     den = sum((lx[i] - mx) ** 2 for i in range(len(xs)))
     return num / den if den else 0.0
 
-# --- §7.4 SENSITIVITY — n=6 +/-10% convexity ---
+# --- §7.4 SENSITIVITY —  +/-10% convexity ---
 def sensitivity_convex(f, x0, pct=0.1):
     """f(x0) must beat f(x0 +/-10%) for convex optimum (flat = overfit)"""
     y0 = f(x0)
@@ -522,7 +522,7 @@ def carnot_eff(T_hot, T_cold):
     """Carnot eta <= 1 - T_c/T_h"""
     return 1 - T_cold / T_hot
 
-# --- §7.6 CHI2 — H0: n=6-coincidence hypothesis p-value ---
+# --- §7.6 CHI2 — H0: -coincidence hypothesis p-value ---
 def chi2_pvalue(observed, expected):
     """chi^2 = sum((O-E)^2/E), p-value = erfc(sqrt(chi^2/(2.df))) approximation (stdlib)"""
     chi2 = sum((o - e) ** 2 / e for o, e in zip(observed, expected) if e)
@@ -553,7 +553,7 @@ seq_sopfr  = tuple(sopfr(i) if i > 1 else 0 for i in range(1, 8))
 
 # --- §7.8 PARETO — Monte Carlo combinations top-% ---
 def pareto_rank_n6(n_trials=2400, n6_score=0.9, seed=6):
-    """what top-% the n=6 configuration reaches against random samples"""
+    """what top-% the  configuration reaches against random samples"""
     random.seed(seed)
     # DSE K1=n x K2=sopfr x K3=tau x K4=sopfr x K5=tau = 6 x 5 x 4 x 5 x 4 = 2400
     better = 0
@@ -565,14 +565,14 @@ def pareto_rank_n6(n_trials=2400, n6_score=0.9, seed=6):
 
 # --- §7.9 SYMBOLIC — Fraction exact-rational check ---
 def symbolic_equalities():
-    """Fraction exact-equality check of the n=6 core identity"""
+    """Fraction exact-equality check of the  core identity"""
     tests = []
     # R6 = sigma.phi/(n.tau) = 1 uniqueness candidate lemma
     tests.append(("R6=sigma.phi/(n.tau)=1", Fraction(SIGMA * PHI, N * TAU), Fraction(1)))
     # sigma.phi = n.tau equivalence
     tests.append(("sigma.phi=n.tau", SIGMA * PHI, N * TAU))
     # perfect number: sigma(n) = 2n
-    tests.append(("sigma(6)=2n", SIGMA, 2 * N))
+    tests.append(("12=2n", SIGMA, 2 * N))
     # Egyptian: 1/2 + 1/3 + 1/6 = 1
     tests.append(("1/2+1/3+1/6=1",
                   Fraction(1, 2) + Fraction(1, 3) + Fraction(1, 6),
@@ -584,22 +584,22 @@ def symbolic_equalities():
 # --- §7.10 COUNTER/FALSIFIERS — honesty-check (>=3 each) ---
 COUNTER_EXAMPLES = [
     ("elementary charge e = 1.602e-19 C",
-     "charge quantum is independent of n=6 arithmetic — a QED constant, not derivable from n=6"),
+     "charge quantum is independent of  arithmetic — a QED constant, not derivable from "),
     ("Planck constant h = 6.626e-34 J.s",
-     "the 6.6 digits are coincidental — a QM fundamental constant, not n=6-derived"),
+     "the 6.6 digits are coincidental — a QM fundamental constant, not -derived"),
     ("pi = 3.14159...",
-     "a geometric constant, a transcendental independent of n=6"),
+     "a geometric constant, a transcendental independent of "),
     ("fine-structure constant alpha ~ 1/137",
-     "137 is prime, not in the n=6 family — electromagnetic coupling constant, independent"),
+     "137 is prime, not in the  family — electromagnetic coupling constant, independent"),
     ("Avogadro N_A = 6.022e23",
      "23 appears — the 6 in 6.022 is coincidental, the mol definition is arbitrary"),
 ]
 FALSIFIERS = [
-    "HEXA-CAUSAL primary-spec measurement outside predicted +/-15% — discard the core formula",
+    "causal-inference primary-spec measurement outside predicted +/-15% — discard the core formula",
     "counter-example to sigma.phi=n.tau found (n>=2, n!=6) — discard the uniqueness candidate lemma",
-    "n=6 ranks in the bottom 50% among 2,400 Monte Carlo combinations — discard the Pareto hypothesis",
-    "chi^2 test p < 0.001 (observed vs predicted) — reject the \"n=6 is not coincidence\" hypothesis",
-    "OEIS A000203 recomputation shows sigma(6)!=12 — number-theoretic basis collapses",
+    " ranks in the bottom 50% among 2,400 Monte Carlo combinations — discard the Pareto hypothesis",
+    "chi^2 test p < 0.001 (observed vs predicted) — reject the \" is not coincidence\" hypothesis",
+    "OEIS A000203 recomputation shows 12!=12 — number-theoretic basis collapses",
 ]
 
 # --- Main run + aggregation ---
@@ -626,9 +626,9 @@ if __name__ == "__main__":
     exp_b = scaling_exponent(xs, ys)
     r.append(("§7.3 SCALING exponent ~ 4", abs(exp_b - 4.0) < 0.05))
 
-    # §7.4 n=6 convex minimum
+    # §7.4  convex minimum
     _, yh, yl, convex = sensitivity_convex(lambda n: abs(n - 6) + 1, 6)
-    r.append(("§7.4 SENSITIVITY n=6 convex minimum", convex))
+    r.append(("§7.4 SENSITIVITY  convex minimum", convex))
 
     # §7.5 Landauer > 0, Carnot < 1, Shannon > 0
     ok_lim = (landauer_energy() > 0
@@ -649,7 +649,7 @@ if __name__ == "__main__":
 
     # §7.8 Pareto within top 5%
     rank = pareto_rank_n6()
-    r.append(("§7.8 PARETO n=6 top 5%", rank < 0.10))
+    r.append(("§7.8 PARETO  top 5%", rank < 0.10))
 
     # §7.9 Fraction exact equality
     sym = symbolic_equalities()
@@ -666,7 +666,7 @@ if __name__ == "__main__":
     for name, ok in r:
         print(f"  [{'OK' if ok else 'FAIL'}] {name}")
     print("=" * 64)
-    print(f"{passed}/{total} PASS (n=6 honesty-check pattern)")
+    print(f"{passed}/{total} PASS ( honesty-check pattern)")
 
 ```
 
@@ -677,7 +677,7 @@ if __name__ == "__main__":
 - OEIS A000010 (φ): https://oeis.org/A000010
 - OEIS A001414 (sopfr): https://oeis.org/A001414
 - Gold standard: `$NEXUS/shared/harness/sample.md`
-- n=6 honesty-check candidate lemma: `nexus/shared/n6/atlas.n6` (sigma.phi=n.tau iff n=6)
+-  honesty-check candidate lemma: `nexus/shared/n6/atlas` (sigma.phi=n.tau iff )
 - Reality map: `nexus/shared/reality_map.json`
 
 ---

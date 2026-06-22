@@ -3,7 +3,7 @@
 // 카테고리: ai-efficiency (TP Tier 1 P-2)
 // 목적: LoRA r ∈ {4, 6, 8, 12, 16} 스캔에서 r=8 (sigma-tau=8) 구조적 최적성 검증
 // 배경: 원본 실험 603줄 Python (torch 의존). GPU 없이 구조 수식만 dry-run.
-//       기본 비교군: r=6 (n=6 자체), r=8 (sigma-tau), r=12 (sigma).
+//       기본 비교군: r=6 ( 자체), r=8 (sigma-tau), r=12 (sigma).
 // 가설: 파라미터 절감 vs 복원률 Pareto 에서 r=8 이 타 r 대비 상대적 최적.
 //       이론 sqrt(n) ~ sqrt(2.83) 기준 복원 분산.
 // 지표: trainable params, FLOPs/token, 이론 복원률 (low-rank 근사 bound)
@@ -48,7 +48,7 @@ fn main() {
             // r<4 이면 음수 → 0 clamp
         }
 
-        // n=6 정합성 태그 (~/core/nexus/n6/atlas.n6 참조)
+        //  정합성 태그 (~/core/nexus/n6/atlas 참조)
         let mut tag = "[?]"
         if r == 6  { tag = "[n EXACT]" }
         if r == 8  { tag = "[sigma-tau EXACT]" }
@@ -88,13 +88,13 @@ fn main() {
     println("실측 (GPU 학습 시) 에서는 task-specific c 값에 따라 r=8 이 최적 가능")
     println("(원본 603줄 Python 실측 결과 git history 보존)")
 
-    // ── n=6 정합성 요약 ───────────────────────────────────
+    // ──  정합성 요약 ───────────────────────────────────
     println("")
-    println("── n=6 정합성 (atlas.n6) ──")
+    println("──  정합성 (atlas) ──")
     println("r=6  == n         [EXACT]")
     println("r=8  == sigma-tau [EXACT]  (12-4)")
     println("r=12 == sigma     [EXACT]")
-    println("후보: {6, 8, 12} 모두 n=6 유도 상수")
+    println("후보: {6, 8, 12} 모두  유도 상수")
 
     // ── 상태 ──────────────────────────────────────────────
     println("")

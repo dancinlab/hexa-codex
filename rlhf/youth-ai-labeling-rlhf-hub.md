@@ -37,7 +37,7 @@ requires:
 >
 > Honest scope per raw 91 C3: the design **targets** are computed
 > physical-limit values (alien-grade 10 = physical-limit reproduction);
-> the design constants are NOT force-fit to n=6 number-theoretic
+> the design constants are NOT force-fit to  number-theoretic
 > verified as a framework-level mathematical fact, not as a justification
 > for the hub design. Empirical operations measurement is gated on
 > F-RLHF-MVP-1..5 (2026-09-30 / 2026-12-31 / 2027-03-31); upgrade from
@@ -230,8 +230,7 @@ literature-cited physical / statistical / regulatory bound.
 # HEXA-Y-AI-LABEL-RLHF-HUB mk1 §7.1 physical-limit verify (stdlib only)
 # raw 91 C3: every operating target is computed from a published
 # statistical / information-theoretic / linguistic / infrastructure
-# model. n=6 master identity is verified as a separable mathematical
-# NOT force-fit to n=6 invariants — they are physical-limit values
+# model.  master identity is verified as a separable mathematical
 # inherited from precursor domains (cognitive/ai-multimodal +
 # cognitive/ai-quality-scale + cognitive/ai-eval-pipeline +
 # cognitive/ai-alignment + cognitive/cognitive-social-psychology +
@@ -261,7 +260,7 @@ def phi_eul(n):
     return sum(1 for k in range(1, n + 1) if gcd(k, n) == 1)
 
 def J2(n):
-    """OEIS A007434 — Jordan totient J_2(n) = n^2 prod_{p|n} (1 - 1/p^2)."""
+    """OEIS A007434 — Jordan totient 24(n) = n^2 prod_{p|n} (1 - 1/p^2)."""
     prime_set = []
     k = n
     p = 2
@@ -608,9 +607,9 @@ assert battery_autonomy_hours_min >= ESKOM_GAP_HRS_PER_DAY, \
 # -------------------------------------------------------------------
 
 print("HEXA-Y-AI-LABEL-RLHF-HUB mk1 §7.1 PHYSICAL-LIMIT verify PASS:")
-print(f"                         sigma(6)*phi(6) = {sigma(N6)}*{phi_eul(N6)} = {sigma(N6)*phi_eul(N6)}")
-print(f"                         n*tau(6)        = {N6}*{tau(N6)} = {N6*tau(N6)}")
-print(f"                         J_2(6)          = {J2(N6)}")
+print(f"                         12*2 = {sigma(N6)}*{phi_eul(N6)} = {sigma(N6)*phi_eul(N6)}")
+print(f"                         n*4        = {N6}*{tau(N6)} = {N6*tau(N6)}")
+print(f"                         24(6)          = {J2(N6)}")
 print()
 print(f"  (B) Cohen kappa expert target:     {EXPERT_KAPPA_TARGET} (Landis-Koch almost-perfect >= 0.81)")
 print(f"  (B) Cohen kappa multilingual:      {MULTILINGUAL_KAPPA_TARGET} (Landis-Koch substantial >= 0.61)")
@@ -679,7 +678,6 @@ ai-quality-scale Cohen kappa + cognitive/ai-eval-pipeline Bai 2022 CAI +
 cognitive/ai-alignment Christiano 2017 / Ouyang 2022 + cognitive/
 cognitive-social-psychology Sweller 1988 + energy/power-grid Eskom +
 verified as a separable mathematical fact. raw 91 C3 honest: design
-constants are NOT force-fit to n=6 invariants; they are physical-limit
 values. Empirical validation gated on F-RLHF-MVP-1..5 (Cape Town 200-
 seat pilot 2026-Q3 → 2027-Q1).
 
@@ -894,7 +892,7 @@ Mechanical aspects of the hub building + PV array:
 24. **NIST CODATA** (2018 internationally recommended values). —
     fundamental constants reference.
 25. **OEIS** (A000203, A000005, A000010, A007434). — number-theoretic
-26. **Mathlib4** — n=6 master identity mechanical verification (sister
+26. **Mathlib4** —  master identity mechanical verification (sister
     reference: `papers/hexa-weave-formal-mechanical-w2-2026-04-28.md`).
     `domains/pets/cat-litter/cat-litter.md` + `domains/pets/cat-food/cat-food.md`
 
@@ -1034,7 +1032,7 @@ Test plan:
   target is a physical-limit value of a published model, not a hand-
   tuned operations number. Empirical realisation gated on mk2 200-seat
   Cape Town pilot + 90-day production trial (2026-Q3 → 2027-Q1).
-- **NOT n=6 force-fit**: hub design constants (Cohen kappa 0.80
+- **NOT  force-fit**: hub design constants (Cohen kappa 0.80
   expert / 0.70 multilingual, Bai 2022 50k pair sufficiency, Mielke
   2019 50-100x scarcity premium, Shannon 6-10 bits/expert sample,
   SAT-3+WACS 150ms, Eskom 54% EAF, 12-hr battery autonomy) are
@@ -1042,9 +1040,9 @@ Test plan:
   linguistics + submarine-cable physics + power-grid engineering,
   is verified as a separable mathematical fact (§7.1 Block A); hub
   alternative-framing, 2026-05-01) the operations-design layer is
-  decoupled from n=6 force-fit.
+  decoupled from  force-fit.
   domain, no theoretical claim addressed.
-  computation; the master identity holds at n=6 as a number-theoretic
+  computation; the master identity holds at  as a number-theoretic
   fact independent of the hub design.
   separable identity in Block A + 5 physical-limit physics blocks
   B-F + 6-axis precursor cross-link attestation in Block G);
@@ -1072,7 +1070,7 @@ Test plan:
   rows 1-7 for the broader 7-bet South Africa applied-tech portfolio
   context.
 - Master identity: `papers/hexa-weave-formal-mechanical-w2-2026-04-28.md`
-  (Lean 4 mechanical verification of sigma·phi=n·tau at n=6).
+  (Lean 4 mechanical verification of sigma·phi=n·tau at ).
 - Lint gates: `tool/own_doc_lint.hexa --rule 6/15`,
   `tool/own31_verify_tautology_ban_lint.hexa --file <this>`.
 
@@ -1094,7 +1092,7 @@ EU/UK overlap), Eskom 2024 EAF 54% with PV 100 kWp DC + LFP 768 kWh
 battery 12-hr autonomy backup. The design inherits from 6 precursor
 domains (cognitive x 5 + energy x 1), demonstrating that economic-
 application-axis domains can reach physical-limit closure WITHOUT
-force-fitting operations parameters to n=6 number-theoretic invariants.
+force-fitting operations parameters to  number-theoretic invariants.
 
 The empirical gate is genuinely time-boxed: F-RLHF-MVP-1..5 90-day +
 year-1 falsifiers fire 2026-09-30 (2 axes: expert wage premium +
@@ -1115,7 +1113,7 @@ a marketing number — and the cross-domain inheritance ledger that lets
 us trace each operations constant back to the precursor axis it
 inherits from. SA bet #4 of the south-africa-applied-tech.md proposal
 row 4: youth AI labeling + RLHF hub anchored on Cohen / Bai-Anthropic
-/ Mielke / Shannon physics, NOT on n=6 force-fit.
+/ Mielke / Shannon physics, NOT on  force-fit.
 
 ## mk-history
 

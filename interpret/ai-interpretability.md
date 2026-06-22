@@ -742,7 +742,7 @@ print("=" * 60)
 |---|------|---------------|-----------------|
 | 1 | Hierarchical latent-dim SAE | Does extracting features simultaneously at multiple resolutions improve quality? | High |
 | 2 | Egyptian-fraction feature decomposition | Does decomposing features in 1/2+1/3+1/6=1 hierarchical structure improve interpretability? | Medium |
-| 3 | Dedekind feature lattice | Does imposing partial order between features reveal a semantic hierarchy? | Medium |
+| 3 | Dedekind feature partial-order | Does imposing partial order between features reveal a semantic hierarchy? | Medium |
 | 4 | Feature lifecycle tracking | Are there regularities in feature emergence/disappearance during training? | High |
 | 5 | Cross-layer SAE correlation | Does feature correspondence across layers reveal circuit structure? | High |
 | 6 | Attention-pattern SAE | Does applying SAE to attention weights uncover new features? | Medium |

@@ -25,7 +25,7 @@ def _run_json(script: str, *args: str) -> dict:
     return json.loads(rc.stdout)
 
 
-# ----- F-CODEX-1 training cost ---------------------------------------------
+# ----- scaling-falsifier training cost ---------------------------------------------
 
 @pytest.mark.auto
 def test_calc_train_cost_default_passes_arithmetic_floor():
@@ -42,7 +42,7 @@ def test_calc_train_cost_scales_with_size():
     assert large["n6_cost_ratio"] > small["n6_cost_ratio"]
 
 
-# ----- F-CODEX-2 inference cost --------------------------------------------
+# ----- scaling-falsifier inference cost --------------------------------------------
 
 @pytest.mark.auto
 def test_calc_infer_cost_default_arithmetic_floor():
@@ -59,7 +59,7 @@ def test_calc_infer_cost_long_context():
     assert d["n6_cost_ratio"] > 1.0
 
 
-# ----- F-CODEX-3 alignment --------------------------------------------------
+# ----- scaling-falsifier alignment --------------------------------------------------
 
 @pytest.mark.auto
 def test_calc_alignment_axis_count_is_sigma_6():
@@ -74,7 +74,7 @@ def test_calc_alignment_aggregates():
     assert 0.6 <= d["n6_aggregate"] <= 1.0
 
 
-# ----- F-CODEX-4 interpret --------------------------------------------------
+# ----- scaling-falsifier interpret --------------------------------------------------
 
 @pytest.mark.auto
 def test_calc_interpret_predicted_motif_count_is_10():

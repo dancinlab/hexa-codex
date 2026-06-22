@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 1,
+  "kind": "ai-knowledge-section",
+  "title": "Multimodal / Vision / Generative — AI knowledge SSOT section (beyond-text modalities)",
+  "name": "multimodal",
+  "summary": "Concept dictionary for the non-text-modality slice of the AI knowledge SSOT: vision encoders, vision-language fusion, image generation, tokenized image, audio-speech, video, 3D, OCR/document, perception-counting limits, and any-to-any omni models. Modality-specific only; generic attention/transformer live in ml-foundations.json.",
+  "note": "Scratch artifact (docs scratchDir = state/scratch/). NOT yet an ARCHITECTURE.json node — staged for ingestion (governance c4). Definitions are own-knowledge distillations of established literature, deliberately disjoint from ml-foundations.json (no transformer/attention/optimizer basics). English technical terms throughout; each leaf summary <=220 chars.",
+  "meta": {
+    "compiled_on": "2026-06-22"
+  },
+  "children": [
+    {
+      "kind": "section",
+      "name": "vision-encoders",
+      "summary": "Models mapping pixels to feature vectors — the perception front-end of vision and vision-language systems.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "cnn-recap",
+          "summary": "Convolutional nets (AlexNet/VGG/ResNet) build a spatial feature hierarchy via learned local kernels with weight-sharing, pooling, and residual skips, giving translation-equivariance and strong small-data bias."
+        },
+        {
+          "kind": "leaf",
+          "name": "vit-patch-embedding",
+          "summary": "Vision Transformer cuts an image into fixed patches (e.g. 16x16), linearly projects each into a token, adds positional embeddings plus a [CLS] token, then runs a plain transformer — trading CNN bias for scale."
+        },
+        {
+          "kind": "leaf",
+          "name": "clip-contrastive",
+          "summary": "CLIP co-trains image and text encoders with an InfoNCE contrastive loss pulling matched image-caption pairs together and mismatches apart in a shared space, enabling zero-shot open-vocabulary transfer from web pairs."
+        },
+        {
+          "kind": "leaf",
+          "name": "siglip",
+          "summary": "SigLIP swaps CLIP's softmax-over-batch loss for a pairwise sigmoid loss per image-text pair, decoupling from giant batch sizes, improving small-batch efficiency, and yielding stronger frozen features for VLM backbones."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "vlm-fusion",
+      "summary": "How vision features are injected into a language model to form a vision-language model (VLM).",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "cross-attention-vs-early-fusion",
+          "summary": "Cross-attention fusion (Flamingo) keeps the LLM frozen and inserts gated cross-attention to vision features, while early-fusion/token-merge concatenates projected image tokens so one self-attention mixes both."
+        },
+        {
+          "kind": "leaf",
+          "name": "projector-connector",
+          "summary": "The projector (connector/adapter) bridges frozen vision-encoder embeddings into LLM token space and dimensionality — a linear layer, MLP, Q-Former, or perceiver-resampler — often the only module trained in stage-1."
+        },
+        {
+          "kind": "leaf",
+          "name": "llava-style",
+          "summary": "LLaVA wires a frozen CLIP/SigLIP encoder to an LLM via a light MLP projector, trained on GPT-generated visual-instruction data in two stages (projector pretrain then end-to-end tune) — the dominant open VLM recipe."
+        },
+        {
+          "kind": "leaf",
+          "name": "native-multimodal",
+          "summary": "Natively-multimodal models (GPT-4o, Gemini, Chameleon) pretrain from scratch on interleaved text-image(-audio) tokens in one transformer rather than bolting a vision adapter onto a text LLM, enabling tighter grounding."
+        },
+        {
+          "kind": "leaf",
+          "name": "any-resolution-tiling",
+          "summary": "AnyRes / dynamic high-res tiling (LLaVA-NeXT, Qwen2-VL, InternVL) splits a large image into a grid of separately-encoded sub-tiles plus a global thumbnail, raising resolution for OCR and dense scenes at more tokens."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "image-generation",
+      "summary": "Likelihood and sampling families for synthesizing images from noise or conditions.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "gan",
+          "summary": "Generative Adversarial Networks train a generator against a discriminator in a minimax game so samples become indistinguishable from real, giving sharp single-step synthesis (StyleGAN) but mode collapse and instability."
+        },
+        {
+          "kind": "leaf",
+          "name": "vae",
+          "summary": "Variational Autoencoders encode inputs to a regularized latent distribution and decode samples, maximizing the ELBO (reconstruction + KL-to-prior); they give a structured continuous latent and stable training, but blur."
+        },
+        {
+          "kind": "leaf",
+          "name": "ddpm",
+          "summary": "Denoising Diffusion Probabilistic Models add Gaussian noise over T forward steps and train a net to predict that noise (epsilon-prediction) for the reverse denoising chain, yielding high-fidelity samples over many steps."
+        },
+        {
+          "kind": "leaf",
+          "name": "ddim",
+          "summary": "DDIM recasts the diffusion reverse process as a deterministic non-Markovian ODE trajectory, enabling far fewer sampling steps and reproducible, interpolatable generations from a noise seed without retraining."
+        },
+        {
+          "kind": "leaf",
+          "name": "latent-diffusion-stable-diffusion",
+          "summary": "Latent Diffusion (Stable Diffusion) runs diffusion in a VAE-compressed latent not pixel space, slashing compute, with a U-Net/DiT denoiser conditioned on text via cross-attention — the canonical text-to-image stack."
+        },
+        {
+          "kind": "leaf",
+          "name": "classifier-free-guidance",
+          "summary": "Classifier-free guidance trains conditional and unconditional denoisers jointly (random condition dropout) and at sampling extrapolates from the unconditional prediction by a guidance scale, trading diversity for fit."
+        },
+        {
+          "kind": "leaf",
+          "name": "flow-matching",
+          "summary": "Flow matching trains a continuous-time vector field by regressing a conditional probability-path velocity (simulation-free), generalizing diffusion as a continuous normalizing flow and underpinning SD3 and Flux."
+        },
+        {
+          "kind": "leaf",
+          "name": "rectified-flow",
+          "summary": "Rectified flow learns straight transport paths between noise and data by linear interpolation plus optional reflow, straightening trajectories so samples need very few (even one) ODE steps — fast SD3/Flux sampling."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "autoregressive-image",
+      "summary": "Treating images as discrete token sequences for transformer next-token generation.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "vq-vae",
+          "summary": "VQ-VAE encodes an image to a grid of discrete codes by nearest-neighbor lookup into a learned codebook (straight-through gradient + commitment loss), turning pixels into a compact token map an AR prior can model."
+        },
+        {
+          "kind": "leaf",
+          "name": "vqgan-tokenized-image",
+          "summary": "VQGAN adds adversarial and perceptual losses to VQ-VAE for sharper high-res reconstructions; its image tokens feed transformer priors (DALL-E 1, Parti, MaskGIT) so image synthesis becomes sequence modeling."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "audio-speech",
+      "summary": "Speech recognition, neural audio compression, and speech synthesis.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "whisper-asr",
+          "summary": "Whisper is an encoder-decoder transformer trained on ~680k hours of weakly-supervised multilingual audio for robust ASR, translation, and language ID over log-Mel spectrograms with task tokens and zero-shot robustness."
+        },
+        {
+          "kind": "leaf",
+          "name": "neural-audio-codec",
+          "summary": "Neural codecs (SoundStream, EnCodec, DAC) use a convolutional VQ-VAE with residual vector quantization to compress waveforms into stacked discrete audio tokens, the vocabulary audio LMs (AudioLM, MusicGen, VALL-E) model."
+        },
+        {
+          "kind": "leaf",
+          "name": "tts",
+          "summary": "Text-to-speech moved from concatenative to neural acoustic models (Tacotron, FastSpeech) plus vocoders (WaveNet, HiFi-GAN), and now token-based zero-shot voice cloning (VALL-E) and diffusion/flow with natural prosody."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "video-3d",
+      "summary": "Temporal video generation and 3D scene representation (brief coverage).",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "video-generation",
+          "summary": "Video models extend latent diffusion with spatiotemporal (often factorized space-time) attention over a learned video VAE; Sora and Veo generate temporally-coherent clips from text on long-context DiT backbones."
+        },
+        {
+          "kind": "leaf",
+          "name": "nerf-3d",
+          "summary": "Neural Radiance Fields encode a scene as an MLP from 3D position and view direction to color and density, rendered via differentiable volume ray-marching from posed images; 3D Gaussian Splatting later replaced it."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "document-perception",
+      "summary": "Reading text in images, structured document understanding, and perception-counting limits relevant to hexa-codex's SANDBOX subitizing lane.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "ocr",
+          "summary": "Optical Character Recognition localizes and transcribes image text; classical pipelines (detection + CRNN/CTC, Tesseract) gave way to transformer OCR (TrOCR) and general VLMs reading text end-to-end without an OCR stage."
+        },
+        {
+          "kind": "leaf",
+          "name": "document-understanding",
+          "summary": "Document AI (LayoutLM, Donut, Pix2Struct) jointly models text, 2D layout coordinates, and image features to answer over forms, tables, charts, and receipts; OCR-free models read page pixels into structured output."
+        },
+        {
+          "kind": "leaf",
+          "name": "subitizing-counting-limit",
+          "summary": "Subitizing is instant accurate enumeration of ~1-4 items; VLMs show an analogous ceiling where counting 5-9 dense objects breaks the monotone capability-vs-scale trend (hexa-codex SANDBOX: Qwen2.5-VL-3B drops to 2/5)."
+        }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "omni-models",
+      "summary": "Unified any-to-any models spanning many modalities in one network.",
+      "children": [
+        {
+          "kind": "leaf",
+          "name": "any-to-any-omni",
+          "summary": "Any-to-any / omni models (GPT-4o, Gemini, AnyGPT, Unified-IO) accept and emit arbitrary combinations of text, image, audio, and video through a shared token space and one transformer for unified understand-and-generate."
+        }
+      ]
+    }
+  ]
+}

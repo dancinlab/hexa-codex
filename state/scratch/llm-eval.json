@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "kind": "ai-knowledge-section",
+  "title": "LLM Evaluation & Benchmarking — how models are measured",
+  "name": "llm-eval",
+  "summary": "A dense reference dictionary of LLM evaluation and benchmarking: the benchmark families used to score models, the scalar metrics that summarize outputs, the prompting/judging methodology that shapes scores, the reliability properties that make scores trustworthy or not, and the pitfalls (contamination, gaming, Goodhart) that silently inflate them. This is the measurement slice of an AI knowledge SSOT — it describes how a model's capability is turned into a number, and why that number is fragile.",
+  "note": "Scratch research artifact (docs scratchDir = state/scratch/). NOT a hexa-codex architecture node (governance c4); promote into ARCHITECTURE.json only via the /paper + verify gates. Compiled from model knowledge (cutoff Jan 2026); benchmark saturation levels and Arena standings drift continuously — treat any specific score as illustrative, not a live claim.",
+  "meta": {
+    "compiled_on": "2026-06-22"
+  },
+  "children": [
+    {
+      "kind": "section",
+      "name": "benchmark-families",
+      "summary": "Standardized datasets/leaderboards that probe a capability axis (knowledge, math, code, reasoning, instruction-following, dialogue, agentic) and emit a comparable score.",
+      "children": [
+        { "kind": "leaf", "name": "MMLU / MMLU-Pro", "summary": "Massive Multitask Language Understanding: 4-choice exam over 57 academic subjects; near-saturated (>90%), so MMLU-Pro hardened it to 10 choices, reasoning-heavy questions, and reduced answer-pattern leakage." },
+        { "kind": "leaf", "name": "GPQA", "summary": "Graduate-level Google-Proof Q&A: ~448 PhD-written biology/chemistry/physics MCQs, expert-validated to resist web lookup; the 'Diamond' subset is the hard-difficulty standard for frontier reasoning models." },
+        { "kind": "leaf", "name": "GSM8K / MATH", "summary": "GSM8K = ~8.5k grade-school multi-step arithmetic word problems (now largely saturated); MATH = 12.5k competition problems across 5 difficulty levels, the canonical harder math benchmark before AIME-class evals." },
+        { "kind": "leaf", "name": "HumanEval / MBPP", "summary": "Function-synthesis code benchmarks: HumanEval = 164 hand-written Python problems scored by hidden unit tests via pass@k; MBPP = ~1k entry-level tasks. Both small, saturated, and contamination-prone." },
+        { "kind": "leaf", "name": "SWE-bench", "summary": "Real GitHub issues where the model must produce a patch passing the repo's tests; SWE-bench Verified (~500 human-validated tasks) is the agentic software-engineering standard, far harder than HumanEval." },
+        { "kind": "leaf", "name": "BIG-Bench / BBH", "summary": "BIG-Bench = 200+ collaboratively-authored diverse tasks; BBH (BIG-Bench Hard) = the 23 tasks where models then trailed humans, and the benchmark that popularized chain-of-thought lifting accuracy sharply." },
+        { "kind": "leaf", "name": "HellaSwag / ARC / Winogrande", "summary": "Classic commonsense MCQ suites (sentence completion, science exam, Winograd coreference) once core to leaderboards; now saturated by frontier models, mainly used for small-model and pretraining-quality comparison." },
+        { "kind": "leaf", "name": "IFEval", "summary": "Instruction-Following Eval: prompts with verifiable constraints (word count, JSON format, forbidden words, casing) checked by deterministic code, giving a judge-free objective measure of literal instruction adherence." },
+        { "kind": "leaf", "name": "MT-Bench", "summary": "80 multi-turn open-ended prompts across 8 categories scored 1-10 by an LLM judge (typically GPT-4); an early, cheap, automated proxy for chat quality, now superseded by larger arena-style evals." },
+        { "kind": "leaf", "name": "Chatbot Arena / Elo", "summary": "Crowdsourced blind pairwise human votes between two anonymous models on real prompts, aggregated into Bradley-Terry/Elo ratings; the de-facto human-preference leaderboard, though style/length-biased and gameable." },
+        { "kind": "leaf", "name": "LiveBench", "summary": "Contamination-resistant benchmark that continuously refreshes questions from recent sources (news, papers, competitions) with objective ground-truth answers, designed so models cannot have trained on the test items." },
+        { "kind": "leaf", "name": "AIME", "summary": "American Invitational Mathematics Examination: 15 integer-answer competition problems per year; a hard exact-match math benchmark used to differentiate reasoning models, but tiny (high variance) and freshness-sensitive." },
+        { "kind": "leaf", "name": "tau-bench (τ-bench)", "summary": "Agentic tool-use benchmark simulating customer-service workflows (retail/airline): the model follows domain policy, calls tools, and converses with a simulated user; scored by end-state correctness + pass^k consistency." },
+        { "kind": "leaf", "name": "GAIA", "summary": "General AI Assistants benchmark: 466 real-world questions needing multi-step web browsing, tool use, and multimodal reasoning with unambiguous answers; easy for humans (~92%) but hard for assistants." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "metrics",
+      "summary": "Scalar functions that reduce model outputs to a comparable number — correctness, fluency-overlap, preference, and calibration measures.",
+      "children": [
+        { "kind": "leaf", "name": "pass@k", "summary": "Probability that at least one of k sampled generations passes the (usually test-based) checker; an unbiased estimator from n>=k samples rewarding coverage under sampling (pass@1 = single-shot correctness)." },
+        { "kind": "leaf", "name": "exact-match / accuracy", "summary": "Binary scoring of whether the normalized output equals the gold answer; reproducible for MCQ/integer tasks but brittle to formatting, needing answer-extraction (e.g. \\boxed{} parsing) so correct outputs aren't failed." },
+        { "kind": "leaf", "name": "perplexity", "summary": "exp of the mean per-token negative log-likelihood on held-out text; an intrinsic LM metric (lower = better next-token prediction) for pretraining quality, but tokenizer-dependent and weakly correlated with task ability." },
+        { "kind": "leaf", "name": "BLEU / ROUGE", "summary": "N-gram-overlap metrics for translation (BLEU, precision + brevity penalty) and summarization (ROUGE, recall-oriented); cheap and reproducible but reward surface lexical match, missing paraphrase and valid alternatives." },
+        { "kind": "leaf", "name": "win-rate", "summary": "Fraction of pairwise comparisons a model wins against a baseline (human or LLM judge), often length/position-controlled (e.g. AlpacaEval LC); the core aggregate behind preference leaderboards, prone to verbosity bias." },
+        { "kind": "leaf", "name": "calibration: Brier / ECE", "summary": "Whether stated confidence matches empirical accuracy: Brier = mean squared error of probabilistic predictions; ECE (Expected Calibration Error) = binned accuracy-vs-confidence gap. RLHF often hurts it (overconfidence)." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "methodology",
+      "summary": "Evaluation protocol choices — how prompts are constructed, how reasoning is elicited, how outputs are judged, and how test-time compute is scaled — that materially move scores at fixed model weights.",
+      "children": [
+        { "kind": "leaf", "name": "zero-shot vs few-shot", "summary": "Whether the prompt includes in-context worked examples (k-shot) before the test item; few-shot fixes output format and lifts weaker models, but shot count and exemplar choice are a tunable knob that confounds comparison." },
+        { "kind": "leaf", "name": "chain-of-thought (CoT) effect", "summary": "Prompting step-by-step reasoning before the answer; raises accuracy on multi-step math/logic (the BBH lift) but inflates tokens, so the benchmark measures reasoning-with-scaffolding, not single-pass ability." },
+        { "kind": "leaf", "name": "contamination / leakage", "summary": "Test items (or near-duplicates) in pretraining data inflate scores without real capability; detected via n-gram overlap, canary strings, and memorization probes — the central threat to any static public benchmark." },
+        { "kind": "leaf", "name": "LLM-as-judge & its biases", "summary": "Scoring outputs with a strong model scales cheaply but injects biases: position bias (first/second), verbosity bias, self-enhancement (favoring its own family), and sycophancy; mitigated by order-swapping." },
+        { "kind": "leaf", "name": "self-consistency", "summary": "Sample multiple CoT reasoning paths and take the majority-vote answer; trades extra inference compute for accuracy on discrete-answer tasks — a standard test-time-compute method, distinct from but related to pass@k." },
+        { "kind": "leaf", "name": "test-time scaling eval", "summary": "Measuring accuracy as a function of inference compute (samples, reasoning-token budget, best-of-n search) rather than a single point; needed to compare reasoning models fairly since score depends on thinking budget." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "reliability",
+      "summary": "Properties governing whether a benchmark number is stable, meaningful, and still discriminative — variance, sensitivity, headroom, and the proxy-vs-target failure mode.",
+      "children": [
+        { "kind": "leaf", "name": "variance / statistical significance", "summary": "Small benchmarks (AIME 15q, GPQA Diamond ~198q) and stochastic sampling give wide confidence intervals, so leaderboard gaps of a few points are often noise; honest reporting needs multiple seeds and CIs." },
+        { "kind": "leaf", "name": "prompt sensitivity", "summary": "Scores swing several points from cosmetic changes — option ordering, MCQ labels, system-prompt wording, whitespace, answer-extraction regex — so a number reflects the harness's prompt template as much as the model." },
+        { "kind": "leaf", "name": "saturation", "summary": "When top models cluster near the ceiling (MMLU/GSM8K/HellaSwag >90%), the benchmark loses discriminative power and gaps are dominated by label noise, forcing migration to harder successors (MMLU-Pro, GPQA, FrontierMath)." },
+        { "kind": "leaf", "name": "Goodhart's law on benchmarks", "summary": "When a benchmark becomes a target it ceases to be a good measure: optimizing directly toward leaderboard scores decouples them from real capability, so a headline metric decays as a proxy as the field competes on it." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "pitfalls",
+      "summary": "Concrete ways reported scores mislead — deliberate gaming, train-on-test leakage, and format artifacts — that an evaluator must actively defend against.",
+      "children": [
+        { "kind": "leaf", "name": "benchmark gaming", "summary": "Tailoring a model to known eval distributions — style/verbosity tuning for Arena, format-matching the judge, picking best-of-many checkpoints on the test set — lifting the number without real capability gain." },
+        { "kind": "leaf", "name": "train-on-test", "summary": "Including benchmark test splits (or their solutions) in training data, accidental or deliberate; the most direct score inflation, defended by held-out sets, canaries, and fresh questions (LiveBench)." },
+        { "kind": "leaf", "name": "format bias", "summary": "Scores distorted by output-format mismatch not reasoning: exact-match failing differently-wrapped answers, MCQ first-token-logit vs free-generation disagreeing, parse failures counted wrong — a harness artifact." }
+      ]
+    }
+  ]
+}

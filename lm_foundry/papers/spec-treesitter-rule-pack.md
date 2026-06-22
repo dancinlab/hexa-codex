@@ -35,7 +35,7 @@ positive form. It is consumed in **two places**:
    `rlhf` substrate per `plan-feedback-channel-ops.md §1`.
 2. **Inference-time style audit** — at serving time, generated
    code passes through the pack; matches become evidence rows in
-   the **F-CODEX-4 T4 motif analog** consumed by
+   the **scaling-falsifier T4 motif analog** consumed by
    `outbox/hexa-codex/interpret/` (per
    `tool/emit_t4.py --verb interpret`).
 
@@ -372,7 +372,7 @@ python tool/emit_t4.py --verb interpret --run-id 2026-05-xx-aaa \
 ```
 
 This emits an outbox draft at
-`outbox/hexa-codex/interpret/<run_id>.md` per the F-CODEX-4 T4
+`outbox/hexa-codex/interpret/<run_id>.md` per the scaling-falsifier T4
 analog convention (D-007).
 
 ### §7.3 Cross-validation against linters

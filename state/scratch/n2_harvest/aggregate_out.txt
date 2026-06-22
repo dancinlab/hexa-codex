@@ -1,0 +1,63 @@
+==============================================================================
+n2 SUBSTRATE — VLM counting non-monotone — cross-family matched-scale table
+byte-exact integer scorer (first int in greedy reply == N); NO LLM self-judge
+==============================================================================
+
+family        params  N1   N2   N3   N4   N5   N6   N7   N8   N9   N10  N12  N15  
+----------------------------------------------------------------------------------
+qwen25vl      3.0  b 4/4  4/4  4/4  4/4  2/4  2/4  2/4  3/4  3/4  4/4  1/4  4/4    [Q]
+qwen25vl      7.0  b 4/4  4/4  4/4  4/4  4/4  3/4  4/4  2/4  1/4  3/4  1/4  1/4    [Q]
+internvl3     2.0  b 4/4  4/4  4/4  4/4  3/4  4/4  2/4  4/4  0/4  0/4  0/4  0/4    [nonQ]
+internvl3     8.0  b 4/4  4/4  4/4  4/4  4/4  4/4  3/4  4/4  3/4  3/4  4/4  1/4    [nonQ]
+llavanext     7.0  b 4/4  4/4  3/4  2/4  2/4  1/4  0/4  1/4  0/4  1/4  2/4  0/4    [nonQ]
+smolvlm2      2.2  b 4/4  3/4  0/4  1/4  1/4  2/4  0/4  3/4  0/4  3/4  2/4  2/4    [nonQ]
+
+per-range accuracy (subitizing 1-4 | counting 5-9 | dense 10-15):
+family        params  subitiz   count5-9  dense     overall   fam
+----------------------------------------------------------------------
+qwen25vl      3.0     16/16=1.00 12/20=0.60 9/12=0.75 37/48=0.77 Qwen  dip(sub-cnt)=+0.40
+qwen25vl      7.0     16/16=1.00 14/20=0.70 5/12=0.42 35/48=0.73 Qwen  dip(sub-cnt)=+0.30
+internvl3     2.0     16/16=1.00 13/20=0.65 0/12=0.00 29/48=0.60 non-Qwen  dip(sub-cnt)=+0.35
+internvl3     8.0     16/16=1.00 18/20=0.90 8/12=0.67 42/48=0.88 non-Qwen  dip(sub-cnt)=+0.10
+llavanext     7.0     13/16=0.81 4/20=0.20 3/12=0.25 20/48=0.42 non-Qwen  dip(sub-cnt)=+0.61
+smolvlm2      2.2     8/16=0.50 6/20=0.30 7/12=0.58 21/48=0.44 non-Qwen  dip(sub-cnt)=+0.20
+
+==============================================================================
+DECISION (design §3.5)
+==============================================================================
+
+[subitizing-label] 1-4 range accuracy across all rungs:
+    qwen25vl 3.0b: 1.000
+    qwen25vl 7.0b: 1.000
+    internvl3 2.0b: 1.000
+    internvl3 8.0b: 1.000
+    llavanext 7.0b: 0.812
+    smolvlm2 2.2b: 0.500
+  -> NOT all at ceiling (min smolvlm2 2.2b = 0.500). Where 1-4
+     itself breaks, the failure is generic perception, not subitizing-specific.
+
+[matched-scale ~3B dip] non-Qwen families at ~2-4B; a QUALIFYING dip needs
+  subitizing>=0.9 (1-4 ceiling) AND dip(sub-cnt)>=0.15:
+    internvl3 2.0b: subitiz=1.00 count5-9=0.65 dip=+0.35 -> QUALIFYING DIP
+    smolvlm2 2.2b: subitiz=0.50 count5-9=0.30 dip=+0.20 -> DISQUALIFIED (1-4 not at ceiling = generic perception defect)
+  -> 1 distinct NON-Qwen family(ies) show a QUALIFYING 5-9 dip (1-4 at ceiling) at matched scale.
+
+[7B+ non-Qwen recovery] counting acc at 7-8B (recovery if >> matched-scale):
+    internvl3 8.0b: count5-9=0.90 subitiz=1.00
+    llavanext 7.0b: count5-9=0.20 subitiz=0.81
+
+[within-family V-shape] non-Qwen families that DIP at ~3B AND RECOVER at 7-8B:
+    internvl3: count5-9 0.65 (~2-3B) -> 0.90 (7-8B)  V-SHAPE
+
+------------------------------------------------------------------------------
+VERDICT: H1' SUPPORTED — soft scale-emergent counting capacity (design §3.5,
+  third clause). A NON-Qwen family (InternVL3) reproduces the FULL V-shape:
+  counting dips at matched ~2-3B from a 1-4 ceiling AND recovers at 7-8B —
+  the SAME dip-then-recover Qwen2.5-VL shows (3B 2/5 -> 7B 5/5, cycle-23c).
+  => H2 (Qwen-3B-LOCAL artifact) is REFUTED: the dip is cross-architecture.
+     The HARD ceiling was already refuted (7-8B recovers). The surviving claim
+     is H1' soft, scale-emergent counting capacity shared across >=2 architectures.
+  (strict >=2-non-Qwen-at-matched-3B not met: only 1 clean non-Qwen
+   3B-dip family; a 2nd clean non-Qwen ~3B rung (Phi-3.5-V) was unavailable.)
+------------------------------------------------------------------------------
+RESULT_JSON {"verdict": "H1_PRIME_SUPPORTED_SOFT_CEILING", "n_nonqwen_3b_dip": 1, "subitizing_ceiling": false, "nonqwen_vshape": [{"fam": "internvl3", "cnt_lo": 0.65, "cnt_hi": 0.9}], "rows": [{"fam": "qwen25vl", "pb": 3.0, "tag": "Qwen", "sub": 1.0, "cnt": 0.6, "den": 0.75, "all": 0.7708, "dip": 0.4}, {"fam": "qwen25vl", "pb": 7.0, "tag": "Qwen", "sub": 1.0, "cnt": 0.7, "den": 0.4167, "all": 0.7292, "dip": 0.3}, {"fam": "internvl3", "pb": 2.0, "tag": "non-Qwen", "sub": 1.0, "cnt": 0.65, "den": 0.0, "all": 0.6042, "dip": 0.35}, {"fam": "internvl3", "pb": 8.0, "tag": "non-Qwen", "sub": 1.0, "cnt": 0.9, "den": 0.6667, "all": 0.875, "dip": 0.1}, {"fam": "llavanext", "pb": 7.0, "tag": "non-Qwen", "sub": 0.8125, "cnt": 0.2, "den": 0.25, "all": 0.4167, "dip": 0.6125}, {"fam": "smolvlm2", "pb": 2.2, "tag": "non-Qwen", "sub": 0.5, "cnt": 0.3, "den": 0.5833, "all": 0.4375, "dip": 0.2}]}

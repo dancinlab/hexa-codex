@@ -120,7 +120,7 @@
 //
 //   4. CONSUMER REFERENCE — SAFETY interp probes per SAFETY.log.md
 //      2026-05-24 entry (commit a233bff). Status: SAFETY group's
-//      F-CODEX-4 SAE motif count (`interpret_motifs = σ−φ = 10`)
+//      scaling-falsifier SAE motif count (`interpret_motifs = 10`)
 //      depends on this wrapper's residual-stream path landing — which is
 //      BLOCKED_AT_BUILD today.
 //

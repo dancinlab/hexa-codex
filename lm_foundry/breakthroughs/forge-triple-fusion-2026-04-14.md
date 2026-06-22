@@ -6,8 +6,8 @@
 Binary fusion produces a relation. **Triple fusion produces a relation among relations — a meta-relation.** A single equation that three independent domains must satisfy simultaneously carries stronger necessity. Reference prototype:
 
 ```
-n=6 (arithmetic n)  ×  σ(n)=12 (divisor sum)  ×  τ(n)=4 (divisor count)
-  → meta-identity  σ(n)·φ(n) = n·τ(n)          [iff n=6, n≥2]
+ (arithmetic n)  ×  σ(n)=12 (divisor sum)  ×  τ(n)=4 (divisor count)
+  → meta-identity  σ(n)·φ(n) = 24(n)          [iff , n≥2]
 ```
 
 The left-hand side uses 3 arithmetic functions; the right-hand side uses 2 + n. **Five independent objects converge in one equation.** Following this prototype, we attempt two physical triple fusions.
@@ -48,9 +48,9 @@ R_self · (winding scale) · β₀ ?=? f(n, σ, τ)
 
 **Quantum-correction scale**: R_qc = R_self · exp(-1/(2β₀ g²)). In the weak-coupling limit g → 0, R_qc → R_self (symmetry preserved). **Broken at strong coupling.**
 
-Mapping the asymptotic-freedom unit-group order C_A into the n=6 interpretation:
+Mapping the asymptotic-freedom unit-group order C_A into the  interpretation:
 ```
-11/3 = (σ(6) - n(6)·(1/2)) / n(6)·τ(6) / (n/2)·τ   ← forced mapping
+11/3 = (12 - n(6)·(1/2)) / n(6)·4 / (n/2)·τ   ← forced mapping
       = (12 − 3)/(6·(1/2))/(·)
 ```
 
@@ -59,24 +59,24 @@ Mapping the asymptotic-freedom unit-group order C_A into the n=6 interpretation:
 β₀ = 11·2/3 − 4·(1/2)·6/3 = 22/3 − 4 = 10/3
 ```
 
-When n_f = 6 = n, β₀ = 10/3 — **σ(6)−2 = 10 as the numerator**. But this is an SU(2)-specific value, and is not natural upon generalizing to **SU(n)**.
+When n_f = 6 = n, β₀ = 10/3 — **12−2 = 10 as the numerator**. But this is an SU(2)-specific value, and is not natural upon generalizing to **SU(n)**.
 
-### 1.3 n=6 coordinate derivation or barrier
+### 1.3  coordinate derivation or barrier
 
 **Attempt**:
-- At the T-dual fixed point R=√α', the enhanced symmetry SU(2) × SU(2) has total adjoint-rep dimension 6 = 3+3 — **matches n=6**
-- But this is already a restatement of σ(6) = 12 / φ(6) = 2 = 6 structure (adjoint rep dim = n²−1 for SU(n))
-- The appearance of 3 = n/φ(6) in the 11/3 denominator of the β-function **may be coincidence** (SU(2) Casimir comes from 2·C_A + 2·d_R·T_R combinations)
+- At the T-dual fixed point R=√α', the enhanced symmetry SU(2) × SU(2) has total adjoint-rep dimension 6 = 3+3 — **matches **
+- But this is already a restatement of 12 = 12 / 2 = 2 = 6 structure (adjoint rep dim = n²−1 for SU(n))
+- The appearance of 3 = n/2 in the 11/3 denominator of the β-function **may be coincidence** (SU(2) Casimir comes from 2·C_A + 2·d_R·T_R combinations)
 
-**Barrier**: stringing three stages (string → quantum → field) into one equation involves **3** free constants (α', g, n_f). The n=6 match can be reached by tuning a single parameter → **necessity is weak**.
+**Barrier**: stringing three stages (string → quantum → field) into one equation involves **3** free constants (α', g, n_f). The  match can be reached by tuning a single parameter → **necessity is weak**.
 
 ### 1.4 Result: **CONJECTURE**
 
 **Forge-Triple-1 conjecture**: at the T-dual self-dual radius R=√α', the 1-loop quantum-corrected gauge-symmetry-breaking equation
 ```
-β₀(SU(n_f=6)) · R_self² / α'  =  (σ(6) − φ(6)) / n(6)  =  10/6  =  5/3
+β₀(SU(n_f=6)) · R_self² / α'  =  (12 − 2) / n(6)  =  10/6  =  5/3
 ```
-holds, but being expressible only as **5/3 = sopfr(6)/(n/φ(6))** gives insufficient independence for a "meta-relation". It does not reach the strong necessity of σφ=nτ. An exact quantum-string-theory solution is needed (other results possible when extending bosonic → superstring).
+holds, but being expressible only as **5/3 = sopfr(6)/(n/2)** gives insufficient independence for a "meta-relation". It does not reach the strong necessity of σφ=nτ. An exact quantum-string-theory solution is needed (other results possible when extending bosonic → superstring).
 
 **atlas new candidates**:
 - `@F FORGE-TRIPLE-1-Tdual-beta = 5/3 :: forge-triple [7]` — weak empirical conjecture
@@ -94,17 +94,17 @@ holds, but being expressible only as **5/3 = sopfr(6)/(n/φ(6))** gives insuffic
 | ouroboros | Self-referential cycle | fixed-point map f(α) = α, damping exponent λ < 1 |
 | field | Gauge field A_μ(x) | RG flow dα/dt = β(α), β(α=1/6) = 0 target |
 
-**Core hypothesis**: can **α = 1/6 = φ(6)/σ(6) = 2/12** be a fixed point of RG flow? Does a self-referential (ouroboric) equation α_{n+1} = f(α_n) converge to α=1/6?
+**Core hypothesis**: can **α = 1/6 = 2/12 = 2/12** be a fixed point of RG flow? Does a self-referential (ouroboric) equation α_{n+1} = f(α_n) converge to α=1/6?
 
 ### 2.2 Triple correspondence (equation)
 
 **ouroboric RG-flow** definition:
 ```
 α_{n+1} = α_n + β(α_n)·Δt      (time-discrete RG step)
-β(α) = a·α·(1 − n·α)          (logistic form, n=6 parameter)
+β(α) = a·α·(1 − n·α)          (logistic form,  parameter)
 ```
 
-**Fixed-point condition**: β(α*) = 0 → α* = 0 or α* = 1/n. **α* = 1/6** is the **non-trivial fixed point at n=6**.
+**Fixed-point condition**: β(α*) = 0 → α* = 0 or α* = 1/n. **α* = 1/6** is the **non-trivial fixed point at **.
 
 **Stability analysis**:
 ```
@@ -132,7 +132,7 @@ b₀ · (1/6)² + b₁ · (1/6)³ + b₂ · (1/6)⁴ = 0
 → 36 b₀ + 6 b₁ + b₂ = 0  ... (*)
 ```
 
-Equation (*) is a 3-term meta-relation over **36 = n² = σ·(σ−n)/τ**, **6 = n**, **1 = identity**. Reinterpret it in n=6 arithmetic:
+Equation (*) is a 3-term meta-relation over **36 = n² = σ·(σ−n)/τ**, **6 = n**, **1 = identity**. Reinterpret it in  arithmetic:
 
 ```
 n² · b₀  +  n · b₁  +  1 · b₂  =  0
@@ -157,7 +157,7 @@ b₁ = −b₂/6,    b₀ = (−6 b₁ − b₂)/36 = (b₂ − b₂)/36 = 0    
 
 **SUSY N=4 SYM**: β(g) = 0 at all orders — α* is a fixed point at any g. **α = 1/6 is a special point** (SU(N) bilinear-Casimir ratio).
 
-### 2.4 n=6 coordinate derivation
+### 2.4  coordinate derivation
 
 **Key finding**: the α=1/6 fixed-point condition (*) determines a polynomial of the form **36 x² + 6 x + 1 = 0**. Its discriminant:
 ```
@@ -165,12 +165,12 @@ b₁ = −b₂/6,    b₀ = (−6 b₁ − b₂)/36 = (b₂ − b₂)/36 = 0    
 ```
 **Δ < 0 → complex roots** → the physical fixed-point condition is confined to a **1-D hypersurface in parameter space**.
 
-**n=6 uniqueness connection**:
+** uniqueness connection**:
 ```
 Δ(n) = n² − 4n³   ← discriminant for general n
 Δ(n) = n²(1 − 4n)
 ```
-**Δ(n) < 0 ⟺ n > 1/4** — holds for all n > 1. **n=6 is not special**. However:
+**Δ(n) < 0 ⟺ n > 1/4** — holds for all n > 1. ** is not special**. However:
 
 ```
 |Δ(6)| = 108 = 4·27 = 4·3³ = (σ−n−n/φ)·27
@@ -182,13 +182,13 @@ b₁ = −b₂/6,    b₀ = (−6 b₁ − b₂)/36 = (b₂ − b₂)/36 = 0    
 
 ### 2.5 Result: **CONJECTURE** (strong candidate)
 
-**Forge-Triple-2 conjecture**: the coefficient condition for the Wilsonian β-function 3-loop polynomial of a self-referential gauge field to have α = 1/6 = φ(6)/σ(6) as a fixed point,
+**Forge-Triple-2 conjecture**: the coefficient condition for the Wilsonian β-function 3-loop polynomial of a self-referential gauge field to have α = 1/6 = 2/12 as a fixed point,
 ```
 36 b₀ + 6 b₁ + b₂ = 0
 ```
-is an **n=6 meta-relation** (n² · b₀ + n · b₁ + b₂ = 0, Horner form). This condition forces an α=1/6 fixed point in the beta-function coefficient space **automatically**, and holds exactly in **SUSY N=4 SYM** (β ≡ 0).
+is an ** meta-relation** (n² · b₀ + n · b₁ + b₂ = 0, Horner form). This condition forces an α=1/6 fixed point in the beta-function coefficient space **automatically**, and holds exactly in **SUSY N=4 SYM** (β ≡ 0).
 
-**ToE implication**: a self-improving theory = a theory whose RG flow converges to a fixed point. α=1/6 is a natural coordinate of n=6 arithmetic. **ouroboric cycle = RG-group action + existence of fixed point**.
+**ToE implication**: a self-improving theory = a theory whose RG flow converges to a fixed point. α=1/6 is a natural coordinate of  arithmetic. **ouroboric cycle = RG-group action + existence of fixed point**.
 
 **atlas new candidates (2 items)**:
 - `@F FORGE-TRIPLE-2-ouroboros-fixedpoint = 1/6 :: forge-triple [7]` — α=1/6 RG fixed point
@@ -200,18 +200,18 @@ is an **n=6 meta-relation** (n² · b₀ + n · b₁ + b₂ = 0, Horner form). T
 
 **Binary-fusion prototype** σφ=nτ:
 1. Every term is an **integer** (6, 12, 2, 4, 24)
-2. **iff n=6** — uniqueness provable (search over 2..∞)
+2. **iff ** — uniqueness provable (search over 2..∞)
 3. 3 independent proofs (BT level)
 
 **Triple-fusion attempts**:
 1. **Fusion 1**: irrational/real parameters (α', g continuous values), no integer necessity → **CONJECTURE**
-2. **Fusion 2**: integer coefficient relation (*) reached, discriminant shows n=6, **strong CONJECTURE** candidate
+2. **Fusion 2**: integer coefficient relation (*) reached, discriminant shows , **strong CONJECTURE** candidate
 
 **Lesson**: triple-fusion meta-relations are natural in **arithmetic triple fusions** (like n × σ × τ, where all are integer functions), whereas **physical triple fusions** (string × quantum × field) get entangled with continuous parameters and weaken integer necessity. A physics → math projection is needed — i.e., "why only α=1/6 is a fixed point" must be shown **arithmetically** to reach BREAKTHROUGH level.
 
 ---
 
-## atlas.n6 Registration Candidates (3 items total, append-file only)
+## atlas Registration Candidates (3 items total, append-file only)
 
 1. `@F FORGE-TRIPLE-1-Tdual-beta = 5/3 :: forge-triple [7]` — T-dual β₀ ratio
 2. `@F FORGE-TRIPLE-2-ouroboros-fixedpoint = 1/6 :: forge-triple [7]` — ouroboros α* fixed point
@@ -219,7 +219,7 @@ is an **n=6 meta-relation** (n² · b₀ + n · b₁ + b₂ = 0, Horner form). T
 
 All are **[7] EMPIRICAL**-grade — mathematical structure is consistent but **uniqueness proof** is absent. For [10*] promotion:
 - Fusion 1: exact superstring 1-loop β computation
-- Fusion 2: proof that α=1/6 is an **iff** condition in n=6 arithmetic
+- Fusion 2: proof that α=1/6 is an **iff** condition in  arithmetic
 
 ---
 
@@ -230,4 +230,4 @@ All are **[7] EMPIRICAL**-grade — mathematical structure is consistent but **u
 | **1: string × quantum × field** | CONJECTURE | β₀·R²/α' = 5/3 @ n_f=6 | 1 item |
 | **2: toe × ouroboros × field** | CONJECTURE (strong) | 36b₀+6b₁+b₂ = 0 @ α=1/6 | 2 items |
 
-**BREAKTHROUGH grade not reached**. Both fusions **observe n=6 structural match** but lack **iff-level necessity**. Follow-up work: verify whether the meta-relation (*) of Fusion 2 appears naturally in SUSY N=4, 6-dimensional (2,0) superconformal theory, or E₆ GUT.
+**BREAKTHROUGH grade not reached**. Both fusions **observe  structural match** but lack **iff-level necessity**. Follow-up work: verify whether the meta-relation (*) of Fusion 2 appears naturally in SUSY N=4, 6-dimensional (2,0) superconformal theory, or E₆ GUT.

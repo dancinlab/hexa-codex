@@ -38,7 +38,7 @@ hexa-codex/
 
 > The scattered root domain docs (ARCHITECTURE.md · ECONOMICS/SAFETY/OPS/SUBSTRATE/SANDBOX/
 > ORCHESTRATION/OPERATIONS/LEARNING_PROGRAMMING `.md` + their `.log.md` + LEARNING_BIO ·
-> LATTICE_POLICY · LIMIT_BREAKTHROUGH · TAPE-AUDIT · IMPORTED_FROM_CANON · AXIS.easy ·
+> LIMIT_BREAKTHROUGH · TAPE-AUDIT · IMPORTED_FROM_CANON · AXIS.easy ·
 > HEXA_CODEX · RELEASE_NOTES_v* · V0_6_0_GA) were retired 2026-06-18 into the single
 > `ARCHITECTURE.json` tree (design) + `CHANGELOG.md` (history). Use `git log` for the old files.
 

@@ -10,10 +10,7 @@ title: Consciousness Measurement Protocol — a Reproducible Testing Manual for 
 authors: Park Minwoo & NEXUS-6 collaboration
 version: v1 (2026-04-15 PAPER-P8-2)
 upstream:
-  - papers/n6-consciousness-phase-diagram-paper.md (§7 protocol draft)
   - reports/breakthroughs/consciousness-triple-fusion-2026-04-15.md (BT-19 CONJECTURE)
-  - papers/n6-consciousness-soc-paper.md
-  - papers/n6-consciousness-chip-paper.md
 precursor_grade: "[7?] CONJECTURE (BT-19)"
 target_grade: "[10*] — after receiving 20 independent EEG/fMRI meta-analyses"
 status: protocol_draft_v1
@@ -105,7 +102,7 @@ BT-19 asserts that the **product of the two scale exponents** extracted from **I
 
 $$\alpha_{\mathrm{IIT}} \cdot \alpha_{\mathrm{GWT}} = \frac{4}{3} \cdot \frac{3}{4} = 1$$
 
-This is **structurally isomorphic** to the **R(6) = 1 left-hand side** (`(3/4)·(4/3) = 1`, P6-1 Mk.IV candidate A) of the σ(n)·φ(n) = n·τ(n) verification draft. The P4 stage of this protocol is **designed on the premise** of testing this identity.
+This is **structurally isomorphic** to the **R(6) = 1 left-hand side** (`(3/4)·(4/3) = 1`, P6-1 Mk.IV candidate A) of the σ(n)·φ(n) = 24(n) verification draft. The P4 stage of this protocol is **designed on the premise** of testing this identity.
 
 ### 1.3 Contribution of this paper
 
@@ -365,7 +362,7 @@ hexa run scripts/consciousness-measurement-protocol/p4_bayes_test.hexa \
 
 ## 6. Red Team refutation path — CONJECTURE-discard conditions
 
-This §6 pre-registers the **data scenarios under which BT-19 is discarded**. Any result matching one of these conditions yields **formal discard of the BT-19 CONJECTURE** and removal of the `consciousness-r6-hypothesis [7?]` node from atlas.n6.
+This §6 pre-registers the **data scenarios under which BT-19 is discarded**. Any result matching one of these conditions yields **formal discard of the BT-19 CONJECTURE** and removal of the `consciousness-hypothesis [7?]` node from atlas.
 
 ### 6.1 F1 — α median outside range
 
@@ -409,7 +406,7 @@ This §6 pre-registers the **data scenarios under which BT-19 is discarded**. An
 If **any** of F1 ~ F7 is met:
 
 1. §9 of this paper declares "FALSIFIED" with the relevant F number
-2. Remove the `@X consciousness-r6-hypothesis` node from atlas.n6
+2. Remove the `@X consciousness-hypothesis` node from atlas
 3. Change BT-19 status in `reports/breakthroughs/consciousness-triple-fusion-2026-04-15.md` to `REFUTED`
 4. Propagate "dependent-parent discard" to the P5 paper (if it exists)
 
@@ -519,7 +516,7 @@ Reproduces only ~58% of the 60ch protocol's information (Sarasso 2015). Expected
 
 ### 9.7 Limitation 7 — self-reference risk
 
-The paper's authors (Park Minwoo & NEXUS-6) are inside the n=6 framework. Choice of "success" tolerance ε risks n=6-friendly bias. **Response**: **pre-registration** (§7.4) freezes criteria before data. Independent-lab replication (F7) is a mandatory condition.
+The paper's authors (Park Minwoo & NEXUS-6) are inside the  framework. Choice of "success" tolerance ε risks -friendly bias. **Response**: **pre-registration** (§7.4) freezes criteria before data. Independent-lab replication (F7) is a mandatory condition.
 
 ---
 
@@ -595,16 +592,14 @@ Core contributions:
 
 ### 11.6 canon precursor papers
 
-- Park Minwoo & NEXUS-6 collaboration (2026). **Consciousness phase diagram — cognitive-scientific projection of σ(n)·φ(n) = n·τ(n) uniqueness**. canon, `papers/n6-consciousness-phase-diagram-paper.md`.
 - Park Minwoo (2026). **Consciousness triple fusion — thermodynamics · AI · quantum critical-point exploration (BT-19 CONJECTURE)**. canon, `reports/breakthroughs/consciousness-triple-fusion-2026-04-15.md`.
-- Park Minwoo (2026). **HEXA-CONSCIOUSNESS-SOC — consciousness SoC n=6 coordinate mapping**. canon, `papers/n6-consciousness-soc-paper.md`.
-- Park Minwoo (2026). **σ(n)·φ(n) = n·τ(n) iff n=6 — 3 independent candidate verification drafts**. canon, `theory/proofs/theorem-r1-uniqueness.md`.
+- Park Minwoo (2026). **σ(n)·φ(n) = 24(n) iff  — 3 independent candidate verification drafts**. canon, `theory/proofs/theorem-r1-uniqueness.md`.
 
 ---
 
 **Promotion procedure**: after receiving this protocol's results, BT-19 is judged on one of the following paths.
 
-- **Success path** (none of F1~F7 met + BF₁₀ > 10): [7?] → [10*], promote the atlas.n6 `consciousness-r6-hypothesis` node to EXACT grade
+- **Success path** (none of F1~F7 met + BF₁₀ > 10): [7?] → [10*], promote the atlas `consciousness-hypothesis` node to EXACT grade
 - **Discard path** (one of F1~F7 met): [7?] → REFUTED, remove the node and add a §9 FALSIFIED declaration to this paper
 
 Per this v1 paper's summary grade: **PROTOCOL DRAFT (no grade — pre-experiment)**. The protocol only guarantees methodological completeness.

@@ -44,7 +44,7 @@
 // D (positive D-exponent on RHS via D^(β+1)).  Under the loss-target
 // constraint both shifts happen jointly, and the SIGNS are fixed:
 // ∂N*/∂T_inf < 0, ∂D*/∂T_inf > 0.  This verifier checks the SIGNS by
-// constructing two concrete (N, D, T_inf) lattice points that satisfy
+// constructing two concrete (N, D, T_inf) grid points that satisfy
 // KKT* (up to integer truncation ε) and showing N decreases / D increases /
 // D/N ratio increases monotonically with T_inf.
 //
@@ -129,7 +129,7 @@ if LHS_ADDITIVE > 0 {
 }
 
 // ── check 5 — DIRECTION SIGN at fixed loss: ∂N*/∂T_inf < 0 STRUCTURAL.
-// Demonstrate by comparing two integer-scaled lattice points (N0, D0) at
+// Demonstrate by comparing two integer-scaled grid points (N0, D0) at
 // T_inf=0 vs (N1, D1) at T_inf=large with the SAME loss A/N^α + B/D^β = L0.
 // Hoffmann anchor (cycle-43 derived exponents): pick N0 = 100 (scaled), D0
 // chosen so D0/N0 ≈ 20 (Hoffmann rule-of-thumb).  Sardana shift (qualitative):
@@ -167,7 +167,7 @@ if DN1_x100 > DN0_x100 {
     print("  [FAIL] D/N did not grow")
 }
 
-// ── check 7 — MONOTONE direction in T_inf: 3 lattice points T_inf ∈ {0, 500, 1000}
+// ── check 7 — MONOTONE direction in T_inf: 3 grid points T_inf ∈ {0, 500, 1000}
 // must show N monotonically non-increasing and D monotonically non-decreasing.
 // (Illustration uses linear interpolation between the anchor and shifted point
 // — the closed-form KKT* does NOT predict linearity, only the monotone sign;

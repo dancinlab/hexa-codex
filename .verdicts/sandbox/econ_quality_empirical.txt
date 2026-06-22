@@ -1,0 +1,71 @@
+# status=executed
+# verb=quality_scale (#6)  milestone=ING #6  axis=PARAMS (model size N)
+# falsifier=quality loss-fit α = φ(6)/σ(6) = 1/6 = 0.16667 (n=6 lattice; Chinchilla L=E+A·N^-α)
+# model_pure=closed-form OLS curve_fit (scipy) — no GPU, no API, cost_usd=0
+# ladder_A=SANDBOX measured accuracy Qwen2.5-{0.5,1.5,3,7}B (persona-scaled bench, verbatim
+#   from .verdicts/sandbox/stage2_persona_scaled*_summary.txt → empirical_landing means),
+#   loss proxy L = -ln(mean_acc)
+# ladder_B=published Chinchilla-family compute-optimal text-loss vs N (Hoffmann 2022 anchors)
+# fit_method=3-param Chinchilla L=E+A·N^-α free-fit + α=1/6 constrained fit + extra-sum F-test
+# recompute=state/scratch/econ_harvest/quality_scale_fit.py
+# ── result ───────────────────────────────────────────────────────────────
+#   ladder A (acc proxy): free-fit α=0.0002, 95%CI=[-12.2,+12.2] (dof=1, 4 rungs → under-
+#       determined 3-param fit); α=1/6 inside CI=True but CI is vacuous (everything inside).
+#   ladder B (Chinchilla): free-fit α=0.207, 95%CI=[-0.86,+1.27]; α=1/6 inside CI=True.
+#   F-test (free vs α=1/6): A p=0.766, B p=0.720 → α=1/6 NOT rejected on either ladder.
+# ── interpretation (honest LATTICE_POLICY prior) ─────────────────────────
+#   α=1/6 is NOT distinguishable from a generic Chinchilla power law with only 4 rungs:
+#   the CI is so wide that essentially any α∈(−1,1.3) fits equally. The point estimate on
+#   real Chinchilla data (α≈0.21) is the generic loss-exponent regime, NOT uniquely 1/6.
+#   "α=1/6 inside CI" is NON-DISTINGUISHABILITY, not support.
+# verdict=⚪ NULL / NOT-SUPPORTED — measured quality-vs-N exponent is statistically
+#   indistinguishable from a generic Chinchilla power law; the n=6 α=φ/σ=1/6 claim is
+#   neither uniquely confirmed nor sharply refuted by 4-rung data. Honest prior (lattice =
+#   vocabulary, not law) holds: no evidence that 1/6 specifically governs quality scaling.
+#   To REFUTE/SUPPORT sharply needs a ≥6-rung same-recipe loss ladder (recorded as the open
+#   measurement). Closed-NEGATIVE-leaning: not SUPPORTED.
+# tier=🟢 SUPPORTED-NUMERICAL (closed-form recompute) for the NON-DISTINGUISHABILITY finding
+# ════════════════════════════════════════════════════════════════════════
+#  RECOMPUTE — python3 state/scratch/econ_harvest/quality_scale_fit.py — RAW STDOUT VERBATIM
+# ════════════════════════════════════════════════════════════════════════
+========================================================================
+ quality_scale (#6) — Chinchilla loss-fit alpha vs n=6 phi/sigma=1/6
+========================================================================
+
+=== ladder A: SANDBOX accuracy proxy L=-ln(acc)  (n=4 rungs) ===
+N(params)	loss
+5.000e+08	1.0032
+1.500e+09	0.7621
+3.000e+09	0.7765
+7.000e+09	0.5108
+free-fit Chinchilla L=E+A*N^-alpha:
+  E=-787.4579  A=7.9191e+02  alpha=0.0002
+  alpha SE=0.9622  95% CI=[-12.2261, 12.2265]  (dof=1)
+  R2=0.91088
+  n=6 derived alpha = phi/sigma = 1/6 = 0.16667
+  alpha=1/6 inside 95% CI? True
+  constrained(alpha=1/6) R2=0.89767  SS_res=0.01243 vs free SS_res=0.01083
+  F-test (free vs alpha=1/6): F=0.148 p=0.7660
+    p>0.05 => alpha=1/6 NOT rejected (data can't distinguish from generic)
+
+=== ladder B: Chinchilla published text-loss  (n=4 rungs) ===
+N(params)	loss
+4.000e+08	2.5100
+1.000e+09	2.3100
+6.800e+09	2.0800
+7.000e+10	1.8500
+free-fit Chinchilla L=E+A*N^-alpha:
+  E=1.5188  A=5.9508e+01  alpha=0.2073
+  alpha SE=0.0840  95% CI=[-0.8604, 1.2749]  (dof=1)
+  R2=0.99678
+  n=6 derived alpha = phi/sigma = 1/6 = 0.16667
+  alpha=1/6 inside 95% CI? True
+  constrained(alpha=1/6) R2=0.99607  SS_res=0.00096 vs free SS_res=0.00079
+  F-test (free vs alpha=1/6): F=0.221 p=0.7202
+    p>0.05 => alpha=1/6 NOT rejected (data can't distinguish from generic)
+
+========================================================================
+ VERDICT (quality_scale alpha = 1/6 ?)
+========================================================================
+ ladder A alpha=1/6 inside CI: True
+ ladder B alpha=1/6 inside CI: True

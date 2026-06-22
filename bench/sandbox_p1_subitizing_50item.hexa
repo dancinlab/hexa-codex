@@ -316,7 +316,7 @@ fn main() {
         println("    RUNG " + rname + " : " + str(n_correct) + "/" + str(total) +
                 " (" + str(acc_x100 / 100) + "." + str(acc_x100 % 100) + "%)" +
                 "  [n=5 " + str(c_n5) + "/" + str(SAMPLES_PER_COUNT) +
-                "  n=6 " + str(c_n6) + "/" + str(SAMPLES_PER_COUNT) +
+                "   " + str(c_n6) + "/" + str(SAMPLES_PER_COUNT) +
                 "  n=7 " + str(c_n7) + "/" + str(SAMPLES_PER_COUNT) +
                 "  n=8 " + str(c_n8) + "/" + str(SAMPLES_PER_COUNT) +
                 "  n=9 " + str(c_n9) + "/" + str(SAMPLES_PER_COUNT) + "]" +
@@ -344,7 +344,7 @@ fn main() {
         println("  rung " + str(k) + "  " + ladder_params[k] + "B  " +
                 ladder_correct_total[k] + "/" + str(total) + "  = " + str(ax100 / 100) + "." + str(ax100 % 100) + "%  " +
                 "[n=5 " + per_n_5[k] + "/" + str(SAMPLES_PER_COUNT) +
-                "  n=6 " + per_n_6[k] + "/" + str(SAMPLES_PER_COUNT) +
+                "   " + per_n_6[k] + "/" + str(SAMPLES_PER_COUNT) +
                 "  n=7 " + per_n_7[k] + "/" + str(SAMPLES_PER_COUNT) +
                 "  n=8 " + per_n_8[k] + "/" + str(SAMPLES_PER_COUNT) +
                 "  n=9 " + per_n_9[k] + "/" + str(SAMPLES_PER_COUNT) + "]  " +

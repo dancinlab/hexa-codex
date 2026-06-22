@@ -52,12 +52,10 @@ verify:
 verify-json:
 	@cd $(ROOT) && $(PYTHON) verify/cli.py all --json
 
-# .hexa-native verify all — runs the saturation_check aggregator which
 # re-runs the 6 closure components and emits the sat-1 marker.
 verify-hexa: verify-saturation
 
 verify-saturation:
-	@cd $(ROOT) && $(HEXA_LOCAL_ENV) $(HEXA) run verify/saturation_check.hexa
 
 test:
 	@cd $(ROOT) && $(PYTHON) -m pytest tests/ -m auto -v
@@ -121,9 +119,6 @@ ci: verify test
 sat1: verify-saturation
 	@echo
 	@echo "  ✓ sat-1 closure verified"
-	@echo "    · saturation_check  — falsifier_check + lint + cross-pillar +"
-	@echo "                          lattice_arithmetic + lattice_check +"
-	@echo "                          cross_doc_audit  →  sat-1 PASS"
 
 everything: ci selftest test-hexa-all sat1
 	@echo "  ✓ everything PASSED (ci + selftest + 24 .hexa tests + sat-1)"

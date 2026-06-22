@@ -11,7 +11,7 @@
 // HF model cards + arXiv papers, citation URL per row) and checks the
 // Hoffmann-DeepMind 2022 closed-form envelope:
 //
-//     loss(N, D) = E + A · N^-α + B · D^-β        (Hoffmann eq.3, n=6: α=β=1/6)
+//     loss(N, D) = E + A · N^-α + B · D^-β        (Hoffmann eq.3, : α=β=1/6)
 //     D_opt(N)   = 20 · N                          (Hoffmann eq.4 rule-of-thumb)
 //     C_opt(N)   = 6 · N · D_opt                   (FLOPs-optimal compute, eq.5)
 //     Lagrangian optimum: (N/D)^α = A/B
@@ -21,24 +21,23 @@
 // citation-only.  What we DO recompute closed-form:
 //   - Chinchilla D_opt = 20 · N for each row (deterministic).
 //   - actual D/N ratio + deviation factor (= ratio / 20).
-//   - n=6 Lagrangian optimum (N/D)_opt = (A/B)^(1/α) (deterministic).
+//   -  Lagrangian optimum (N/D)_opt = (A/B)^(1/α) (deterministic).
 //   - per-row whether the landing "matches Chinchilla" (deviation_factor ≈ 1)
 //     vs "Chinchilla-deviating overtraining" (deviation_factor ≫ 1).
 //
 // FALSIFIER.  C1's falsifier is "Lagrangian 최적 (N/D)^α ≠ A/B".  At the
-// closed-form level (n=6 lattice α=1/6, A=406.4, B=410.7) this is an IDENTITY
 // — already verified by `verify/numerics_economics_pareto.hexa` check 2.
 // The EMPIRICAL flavour of C1's falsifier is: "no modern landing sits at the
-// n=6 Lagrangian D/N ≈ 1.07 — they ALL sit at D/N ∈ [22, 1875]".  This
+//  Lagrangian D/N ≈ 1.07 — they ALL sit at D/N ∈ [22, 1875]".  This
 // verifier QUANTIFIES that gap per row.
 //
 // STRUCTURAL CHECKS (10, closed-form, all 🟢-tier numerical except where
 // flagged 🟡 citation-only):
 //   1. Hoffmann D_opt(N) = 20 · N — closed-form identity per row.
 //   2. deviation_factor = (D/N) / 20 — closed-form ratio per row.
-//   3. n=6 Lagrangian D/N optimum = (B/A)^(1/α) ≈ 1.065 (Pareto verifier
+//   3.  Lagrangian D/N optimum = (B/A)^(1/α) ≈ 1.065 (Pareto verifier
 //      check 2 cross-link; identity at math_pure precision).
-//   4. n=6 vs Chinchilla optimum gap: |1.065 − 20| > 18 — distinct envelopes.
+//   4.  vs Chinchilla optimum gap: |1.065 − 20| > 18 — distinct envelopes.
 //   5. EVERY modern landing (≥ 2024) has deviation_factor > 1 — universal
 //      overtraining vs Chinchilla rule-of-thumb.
 //   6. The ONLY row at deviation_factor ≈ 1 is the historical Chinchilla
@@ -130,15 +129,14 @@ let IS_ANCHOR = [
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
 ]
 
-// ── Chinchilla / n=6 lattice constants ────────────────────────────────────
 let CHIN_TOK_PER_PARAM = 20.0     // Hoffmann eq.4 rule-of-thumb
-let N6_ALPHA           = 2.0 / 12.0   // φ/σ = 1/6
+let ALPHA_Q           = 2.0 / 12.0   // φ/σ = 1/6
 let A_COEF             = 406.4    // Hoffmann fit
 let B_COEF             = 410.7    // Hoffmann fit
 
 let EPS_RATIO          = 1.0e-9   // strict identity tolerance
 let EPS_ANCHOR         = 1.0e-9   // anchor row tolerance
-let MIN_GAP_N6_VS_CHIN = 18.0     // check 4 threshold
+let MIN_GAP_VS_CHIN = 18.0     // check 4 threshold
 let DEEPSEEK_TOTAL_CAP = 1.5      // check 8 threshold (≤ 1.5)
 let MAX_DEV_FLOOR      = 50.0     // check 7 threshold (≥ 50)
 let DEEPSEEK_ACTIVE_EXACT = 20.0  // check 9 (factor ≈ 20)
@@ -221,25 +219,25 @@ fn check_deviation_factor_per_row() {
            "13/13 rows match at EPS=" + to_string(EPS_RATIO))
 }
 
-// Check 3: n=6 Lagrangian D/N optimum = (B/A)^(1/α) — cross-link with
+// Check 3:  Lagrangian D/N optimum = (B/A)^(1/α) — cross-link with
 // `verify/numerics_economics_pareto.hexa` check 2 (the Pareto verifier
 // stores N/D = (A/B)^6, we invert to D/N = (B/A)^6).
-fn check_n6_lagrangian_optimum() {
-    let inv_alpha = 1.0 / N6_ALPHA   // = 6
-    let dn_opt_n6 = pow_pure(B_COEF / A_COEF, inv_alpha)
-    // For n=6 the optimum is (B/A)^6 ≈ 1.065 — close to symmetric.
-    let close = dn_opt_n6 > 1.0 && dn_opt_n6 < 1.2
+fn check_lagrangian_optimum() {
+    let inv_alpha = 1.0 / ALPHA_Q   // = 6
+    let dn_opt = pow_pure(B_COEF / A_COEF, inv_alpha)
+    // For  the optimum is (B/A)^6 ≈ 1.065 — close to symmetric.
+    let close = dn_opt > 1.0 && dn_opt < 1.2
     _check(close,
-           "n=6 Lagrangian D/N optimum = (B/A)^6 (≈ 1.065, near-symmetric)",
-           "(B/A)^6=" + to_string(dn_opt_n6))
+           " Lagrangian D/N optimum = (B/A)^6 (≈ 1.065, near-symmetric)",
+           "(B/A)^6=" + to_string(dn_opt))
 }
 
-// Check 4: n=6 vs Chinchilla optimum gap |20 − 1.065| > 18.
-fn check_n6_vs_chin_gap() {
-    let dn_opt_n6 = pow_pure(B_COEF / A_COEF, 1.0 / N6_ALPHA)
-    let gap = _abs(CHIN_TOK_PER_PARAM - dn_opt_n6)
-    _check(gap > MIN_GAP_N6_VS_CHIN,
-           "n=6 (~1.065) vs Chinchilla (~20) D/N optimum gap > 18",
+// Check 4:  vs Chinchilla optimum gap |20 − 1.065| > 18.
+fn check_chin_gap() {
+    let dn_opt = pow_pure(B_COEF / A_COEF, 1.0 / ALPHA_Q)
+    let gap = _abs(CHIN_TOK_PER_PARAM - dn_opt)
+    _check(gap > MIN_GAP_VS_CHIN,
+           " (~1.065) vs Chinchilla (~20) D/N optimum gap > 18",
            "gap=" + to_string(gap))
 }
 
@@ -352,7 +350,6 @@ fn main() {
     println("  Tier per row: 🟡 SUPPORTED-BY-CITATION (loss NOT recomputed)")
     println("========================================================================")
     println("  Chinchilla rule-of-thumb tokens/param = " + to_string(CHIN_TOK_PER_PARAM))
-    println("  n=6 lattice α = " + to_string(N6_ALPHA) +
             "  A = " + to_string(A_COEF) +
             "  B = " + to_string(B_COEF))
     println("  Rows = " + to_string(MODEL_IDS.len()) + " (12 modern + 1 anchor)")
@@ -360,8 +357,8 @@ fn main() {
 
     check_d_opt_identity()
     check_deviation_factor_per_row()
-    check_n6_lagrangian_optimum()
-    check_n6_vs_chin_gap()
+    check_lagrangian_optimum()
+    check_chin_gap()
     println("")
     check_universal_modern_overtraining()
     check_chinchilla_anchor_at_unity()

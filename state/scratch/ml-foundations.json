@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "kind": "ml-foundations",
+  "title": "Deep Learning / LLM Foundations — universal-기초 concept dictionary",
+  "name": "ml-foundations",
+  "summary": "Concise reference of the timeless, textbook mechanisms shared by all modern deep-learning models and LLMs (learning-mechanics · architecture-primitives · training-paradigms · numerics-and-inference). This is the universal base layer that frontier-models.json (per-lab tricks) builds on; entries are general mechanisms, not vendor-specific.",
+  "note": "reference primer for ARCHITECTURE.json ingestion; standard textbook concepts, timeless",
+  "meta": { "compiled_on": "2026-06-22" },
+  "children": [
+    {
+      "kind": "section",
+      "name": "learning-mechanics",
+      "children": [
+        { "kind": "leaf", "name": "역전파(backpropagation)", "summary": "역전파(backpropagation): reverse-mode automatic differentiation applying the chain rule backward through the computation graph to compute every parameter's gradient in one pass — the engine of all neural-net training." },
+        { "kind": "leaf", "name": "forward/backward pass", "summary": "forward/backward pass: forward computes outputs+loss layer-by-layer caching activations; backward propagates gradients from loss to inputs reusing those caches — one training step is forward then backward then update." },
+        { "kind": "leaf", "name": "computational graph", "summary": "computational graph: a DAG of tensor ops (nodes) and data dependencies (edges) that autodiff traverses; static (compiled) or dynamic (define-by-run) graphs enable automatic gradient computation and op fusion." },
+        { "kind": "leaf", "name": "경사하강법(gradient descent / SGD)", "summary": "경사하강법(gradient descent): iteratively step parameters opposite the loss gradient; SGD uses noisy mini-batch gradients, trading exactness for speed and an implicit regularizing noise that aids generalization." },
+        { "kind": "leaf", "name": "momentum & Nesterov", "summary": "momentum: accumulate an exponentially-decayed velocity of past gradients to dampen oscillation and accelerate down ravines; Nesterov evaluates the gradient at the look-ahead point for a more responsive correction." },
+        { "kind": "leaf", "name": "Adam / AdamW", "summary": "Adam: per-parameter adaptive LR from running 1st+2nd gradient moments; AdamW decouples weight decay from the adaptive step, fixing Adam's broken L2 and becoming the default LLM optimizer." },
+        { "kind": "leaf", "name": "RMSprop / Adagrad", "summary": "RMSprop/Adagrad: scale each parameter's step by a running average of squared gradients so rare/large-gradient directions get smaller steps; Adagrad's sum monotonically shrinks LR, RMSprop's decay keeps it alive." },
+        { "kind": "leaf", "name": "Adafactor", "summary": "Adafactor: memory-frugal Adam variant that factorizes the second-moment matrix into row/column statistics instead of storing it per-parameter, enabling large-model training under tight optimizer-state memory." },
+        { "kind": "leaf", "name": "Muon", "summary": "Muon: a recent optimizer that orthogonalizes momentum updates for 2D weight matrices (via Newton–Schulz iteration), reported to improve token-efficiency on large LM pretraining versus AdamW." },
+        { "kind": "leaf", "name": "learning-rate schedules", "summary": "LR schedules: vary step size over training — linear warmup ramps LR from ~0 to stabilize early unstable updates, then cosine/linear decay anneals toward 0 for a sharper final minimum." },
+        { "kind": "leaf", "name": "loss functions", "summary": "loss functions: cross-entropy for classification/next-token (matches softmax, penalizes confident errors), MSE for regression, contrastive/InfoNCE pulls matched pairs together and pushes negatives apart." },
+        { "kind": "leaf", "name": "vanishing/exploding gradients", "summary": "vanishing/exploding gradients: in deep/recurrent nets repeated Jacobian multiplication shrinks gradients to ~0 (no learning) or blows them up (instability); mitigated by residuals, normalization, init, and gating." },
+        { "kind": "leaf", "name": "gradient clipping", "summary": "gradient clipping: cap the global gradient norm (or value) before the update so rare large gradients can't destabilize training — a cheap standard guard for exploding gradients in transformers and RNNs." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "architecture-primitives",
+      "children": [
+        { "kind": "leaf", "name": "artificial neuron / MLP", "summary": "neuron/MLP: a neuron computes a weighted sum + bias through a nonlinearity; stacking fully-connected layers forms a multilayer perceptron, a universal function approximator and the transformer's FFN building block." },
+        { "kind": "leaf", "name": "activation functions", "summary": "activations: nonlinearities that let nets model nonlinear maps — ReLU (cheap, sparse), GELU (smooth, transformer default), sigmoid/tanh (bounded, gate signals), SwiGLU (gated FFN boosting LLM quality)." },
+        { "kind": "leaf", "name": "softmax", "summary": "softmax: exponentiate-and-normalize a vector into a probability distribution; turns logits into class/token probabilities and forms attention weights, with temperature controlling sharpness." },
+        { "kind": "leaf", "name": "어텐션(scaled dot-product attention)", "summary": "어텐션(attention): each query scores all keys via dot product scaled by 1/√d, softmaxes into weights, and returns a weighted sum of values — content-based routing that lets any token read from any other." },
+        { "kind": "leaf", "name": "self vs cross attention", "summary": "self vs cross attention: self-attention has Q,K,V from the same sequence (modeling internal dependencies); cross-attention draws Q from one sequence and K,V from another (e.g. decoder attending to encoder)." },
+        { "kind": "leaf", "name": "multi-head attention (MHA)", "summary": "multi-head attention: run several attention heads in parallel on learned low-dim projections and concatenate, letting the model attend to different relationships/subspaces simultaneously." },
+        { "kind": "leaf", "name": "MQA / GQA", "summary": "MQA/GQA: share K,V across heads to shrink the KV-cache — Multi-Query uses one K,V for all heads, Grouped-Query shares within head-groups, trading a little quality for big inference-memory/bandwidth savings." },
+        { "kind": "leaf", "name": "KV-cache", "summary": "KV-cache: store past tokens' keys/values during autoregressive decoding so each new token attends without recomputing them — turns generation from O(n²) per step into O(n), at the cost of growing memory." },
+        { "kind": "leaf", "name": "FlashAttention", "summary": "FlashAttention: IO-aware exact-attention kernel that tiles Q,K,V through fast SRAM and never materializes the full n×n score matrix, giving large speedups and linear memory in sequence length." },
+        { "kind": "leaf", "name": "linear/sparse attention", "summary": "linear/sparse attention: approximate or restrict full attention to beat its O(n²) cost — sparse patterns (windowed/strided/global) or kernel linearizations trade some global reach for long-context scalability." },
+        { "kind": "leaf", "name": "Transformer block & residual connections", "summary": "transformer block: stacked (attention + position-wise FFN) sublayers each wrapped with a residual skip connection so gradients flow and the block learns a refinement on top of identity." },
+        { "kind": "leaf", "name": "LayerNorm vs RMSNorm", "summary": "LayerNorm vs RMSNorm: LayerNorm re-centers and re-scales activations per token (mean+variance); RMSNorm drops the mean step and normalizes by root-mean-square only — cheaper and now common in LLMs." },
+        { "kind": "leaf", "name": "pre-norm vs post-norm", "summary": "pre-norm vs post-norm: post-norm (original) normalizes after the residual add; pre-norm normalizes inside the residual branch, giving much more stable gradients and enabling very deep transformer training." },
+        { "kind": "leaf", "name": "FFN (feed-forward network)", "summary": "FFN: the per-token MLP in each transformer block (up-project → nonlinearity → down-project, typically 4×width); holds most parameters and acts as the model's key-value associative memory." },
+        { "kind": "leaf", "name": "positional encoding", "summary": "positional encoding: inject token-order into permutation-invariant attention — fixed sinusoidal, learned embeddings, RoPE (rotate Q/K by position for relative encoding), or ALiBi (linear distance bias on scores)." },
+        { "kind": "leaf", "name": "embeddings & embedding matrix", "summary": "embeddings: a lookup matrix maps each token id to a dense vector the model operates on; tied embeddings reuse this matrix as the output projection, saving parameters and coupling input/output token spaces." },
+        { "kind": "leaf", "name": "tokenization (BPE)", "summary": "tokenization: split text into subword units so a fixed vocabulary covers any string; Byte-Pair Encoding (and byte-level BPE) greedily merges frequent pairs, balancing vocab size against sequence length." },
+        { "kind": "leaf", "name": "Mixture-of-Experts (MoE)", "summary": "MoE: replace the FFN with many expert sub-networks plus a router that top-k-gates each token to a few experts, scaling total parameters while keeping per-token compute (active params) low." },
+        { "kind": "leaf", "name": "MoE routing & load balancing", "summary": "MoE routing: the gating network picks experts per token; an auxiliary load-balancing loss (or aux-free bias) spreads tokens evenly so no expert is starved or overloaded and capacity isn't wasted." },
+        { "kind": "leaf", "name": "convolution (CNN)", "summary": "convolution: slide shared learnable kernels over spatial input to extract translation-equivariant local features with weight sharing — the dominant vision primitive pre-transformers and still common in hybrids." },
+        { "kind": "leaf", "name": "RNN / LSTM / GRU", "summary": "RNN/LSTM: process sequences step-by-step through a recurrent hidden state; LSTM/GRU add gates to carry long-range information past vanishing gradients — the pre-transformer sequence model, now mostly historical." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "training-paradigms",
+      "children": [
+        { "kind": "leaf", "name": "pretraining (causal/masked LM)", "summary": "pretraining: self-supervised learning on raw text — causal LM predicts the next token left-to-right (GPT-style), masked LM predicts held-out tokens from both sides (BERT-style); builds general representations cheaply." },
+        { "kind": "leaf", "name": "fine-tuning (full)", "summary": "full fine-tuning: continue training all weights of a pretrained model on a downstream task/dataset — maximally expressive but costly in compute and storage and prone to overwriting general knowledge." },
+        { "kind": "leaf", "name": "PEFT: LoRA / QLoRA / adapters", "summary": "PEFT: adapt a frozen model by training few extra params — LoRA injects low-rank ΔW matrices, QLoRA does LoRA over a 4-bit-quantized base, adapters insert small bottleneck layers; cheap, swappable, memory-light." },
+        { "kind": "leaf", "name": "instruction tuning", "summary": "instruction tuning: supervised fine-tuning on (instruction, response) pairs so a base model follows natural-language commands and adopts a helpful assistant format — the SFT stage before preference alignment." },
+        { "kind": "leaf", "name": "RLHF", "summary": "RLHF: align a model to human preferences — train a reward model from comparison data, then optimize the policy against it (often with PPO) under a KL penalty to stay near the reference model." },
+        { "kind": "leaf", "name": "reward model", "summary": "reward model: a model trained on human (or AI) preference comparisons to score outputs, providing the scalar signal that RLHF/PPO optimizes — the learned proxy for 'what humans prefer'." },
+        { "kind": "leaf", "name": "PPO", "summary": "PPO: the policy-gradient RL algorithm typical in RLHF; a clipped surrogate objective limits how far each update moves the policy, keeping training stable while maximizing the reward model's score." },
+        { "kind": "leaf", "name": "DPO", "summary": "DPO (Direct Preference Optimization): skip the explicit reward model and RL loop by optimizing a closed-form classification loss directly on preference pairs — simpler and more stable than PPO-based RLHF." },
+        { "kind": "leaf", "name": "GRPO", "summary": "GRPO (Group Relative Policy Optimization): a critic-free RL method that estimates advantage from the mean reward of a sampled group of responses, cutting memory vs PPO; popular for reasoning/RLVR training." },
+        { "kind": "leaf", "name": "KL penalty", "summary": "KL penalty: a divergence term keeping the trained policy close to the reference (SFT) model during RL, preventing reward-hacking and degeneration while still letting it improve on the reward signal." },
+        { "kind": "leaf", "name": "knowledge distillation", "summary": "knowledge distillation: train a small student to mimic a large teacher's soft output distribution (and/or hidden states), transferring capability into a cheaper model that learns from richer-than-hard-label signal." },
+        { "kind": "leaf", "name": "curriculum learning", "summary": "curriculum learning: order training data from easy to hard (or by quality/length) so the model builds foundations before difficult examples, often improving convergence speed and final quality." },
+        { "kind": "leaf", "name": "data mixing", "summary": "data mixing: choose the proportions of corpora/domains (web, code, math, books) in the training mixture; weights strongly shape capabilities and are tuned, sometimes annealed, for the target skill profile." },
+        { "kind": "leaf", "name": "catastrophic forgetting", "summary": "catastrophic forgetting: fine-tuning on new data erodes previously learned abilities as weights overwrite; countered by data replay, PEFT, regularization, or rehearsal to preserve old knowledge." },
+        { "kind": "leaf", "name": "scaling laws (Chinchilla)", "summary": "scaling laws: loss falls as a smooth power law in params N, data D, and compute C; Chinchilla shows compute-optimal training scales D and N together (~20 tokens per parameter), favoring more data over sheer size." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "numerics-and-inference",
+      "children": [
+        { "kind": "leaf", "name": "mixed precision (FP16/BF16/FP8/FP4)", "summary": "mixed precision: compute in low precision (FP16/BF16, increasingly FP8/FP4) while keeping a master FP32 copy and loss-scaling, slashing memory+bandwidth and speeding tensor-core matmuls with little accuracy loss." },
+        { "kind": "leaf", "name": "quantization (PTQ / QAT)", "summary": "quantization: represent weights/activations in low-bit ints/floats to shrink and accelerate models — PTQ calibrates an already-trained model, quantization-aware training (QAT) simulates it during training for accuracy." },
+        { "kind": "leaf", "name": "GPTQ / AWQ", "summary": "GPTQ/AWQ: weight-only PTQ for LLMs — GPTQ minimizes per-layer reconstruction error via second-order updates, AWQ scales activation-salient weights before rounding; both give ~4-bit inference with minimal quality drop." },
+        { "kind": "leaf", "name": "GGUF k-quants", "summary": "GGUF k-quants: the llama.cpp file format and block-wise mixed-bit quantization schemes (Q4_K, Q5_K, …) that allocate more bits to sensitive weights, enabling efficient CPU/consumer-GPU local inference." },
+        { "kind": "leaf", "name": "sampling/decoding", "summary": "decoding: choose the next token from the output distribution — greedy/argmax (deterministic), temperature (rescale randomness), top-k (k likeliest), top-p/nucleus (smallest mass-p set), balancing quality vs diversity." },
+        { "kind": "leaf", "name": "beam search", "summary": "beam search: keep the top-B partial sequences by cumulative log-prob at each step, exploring multiple hypotheses for higher-likelihood outputs; strong for translation but tends to bland text in open-ended generation." },
+        { "kind": "leaf", "name": "speculative decoding", "summary": "speculative decoding: a cheap draft model proposes several tokens that the big model verifies in one parallel pass, accepting the matching prefix — lossless speedup that exploits spare compute to cut latency." },
+        { "kind": "leaf", "name": "continuous batching", "summary": "continuous/in-flight batching: serving scheduler that adds and evicts requests at the token level instead of waiting for a whole batch, keeping the GPU saturated and maximizing throughput under mixed-length traffic." },
+        { "kind": "leaf", "name": "bias-variance tradeoff", "summary": "bias-variance tradeoff: error decomposes into bias (underfitting, too-simple model) and variance (overfitting, too data-sensitive); generalization comes from balancing the two via capacity and regularization." },
+        { "kind": "leaf", "name": "regularization", "summary": "regularization: techniques to curb overfitting — dropout randomly zeros activations, weight decay penalizes large weights, label smoothing softens targets, early stopping halts at best validation loss." }
+      ]
+    }
+  ]
+}

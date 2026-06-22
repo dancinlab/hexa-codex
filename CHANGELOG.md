@@ -4,120 +4,175 @@ All notable changes to this standalone repo are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versions follow [SemVer](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — AI 지식 codex(239) + frontier-gap 측정 (2026-06-22)
+
+- **ECONOMICS 비용지수 T4 실측 — 표준 roofline/Chinchilla로 설명됨** — SANDBOX scale-ladder
+ 실벤치 + 폐형 OLS 재계산으로 비용지수의 경험검증을 닫음. ① 추론: 실측 params-축 비용 ∝ N^~1
+ (메모리대역/roofline; decode-latency p=0.82·TTFT p=1.02·mem p=0.83; context-축 τ̂≈0.52).
+ ② 학습: 실측 compute-지수 1(고정데이터)~2(compute-optimal Chinchilla N∝C^0.5). ③ 품질:
+ 4-rung free-fit α≈0.21, CI가 넓어 일반 Chinchilla 멱법칙과 구분 불가. 결론: 비용 곡선은
+ **표준 roofline/Chinchilla 법칙으로 이미 설명됨**. raw:
+ `.verdicts/sandbox/econ_{infer,quality,train}_empirical.txt`. ARCHITECTURE.json economics 잎 갱신.
+
+
+- **frontier-gap #1 OPS·#2 VLM 심화 측정 통합** — ① OPS 이종-μ R≥3 꼬리 확장: 3번째 물리 박스 부재로
+ mini 단일 박스(Metal-fast vs CPU-1thread-slow)에서 R=3.26 합성 측정 — gain 1.91 vs G_het 2.13(편차 −10.3%,
+ ±20% 밴드 내), ≥1.5 유지·1.0×로 미붕괴 → 라우팅-우선 deviation이 꼬리까지 지속. 정직 nuance: R≥3에서 dev
+ 부호가 음수(equal-RR lockstep의 head-of-line-block로 측정 gain이 solo-μ G_het보다 10-15% 축소) — 진짜 3번째
+ 느린 박스면 tracking 조밀해질 것. 🟢 KEEPS-LANE-OPEN. ② VLM strict-CONFIRM 미도달: LLaVA-NeXT-7B 실격
+ (7B≠~3B + subitizing 0.81<0.90 약한 generic counter), Phi-3.5-V/moondream2/gemma-3-4b 전부 transformers-5.8
+ hard-unloadable(cache 충돌/nan logits/gated) — 억지 우회 안 함. Qwen-7B control이 recovery 재확인(3B 0.60→7B 0.70).
+ InternVL3 1개만 적격 유지 → 🟠 SUPPORTED, lane OPEN(CONFIRMED엔 pinned transformers<5.0 또는 PaliGemma-3B 필요).
+ raw: `.verdicts/sandbox/n1_ops_heterogeneous_mmc_measured.txt`(R≥3 rung) · `n2_substrate_counting_family.txt`(6-rung).
+ ARCHITECTURE.json frontier-gap 잎 (1)·(2) 갱신.
+
+
+- **SUBSTRATE VLM counting non-monotone — 🟠 H1′ SUPPORTED / H2 REFUTED (측정)** — 비-Qwen 독립
+ 아키텍처 InternVL3가 V자 곡선을 완전 재현(subitizing 1-4=1.00 → count 5-9 2B에서 0.65 dip[Qwen2.5-VL-3B
+ 0.60과 매칭] → 8B에서 0.90 recovery). 2-3B dip이 교차-아키텍처 → "Qwen2.5-VL-3B 국소 artifact(H2)"
+ 반증, hard-ceiling도 계속 반증(규모에서 회복). strict-CONFIRMED는 아님 — clean 비-Qwen ≥2 family 필요하나
+ Phi-3.5-vision 로드 실패(transformers-5.8 DynamicCache 비호환)로 InternVL3 1개만 적격 → SUPPORTED, lane OPEN.
+ 'subitizing' 라벨 VALIDATED(강 perceiver 전부 1-4=16/16; SmolVLM2는 1-4 자체 0.50 → generic 결함으로 실격).
+ dense 10-15 = family-orthogonal hard wall. raw: `.verdicts/sandbox/n2_substrate_counting_family.txt`.
+ ARCHITECTURE.json frontier-gap 잎 (2) 측정값 갱신.
+
+- **ai-knowledge codex 239개념 ARCHITECTURE.json 통합** — 7개 도감을 병렬 리서치 에이전트로
+ 편찬해 `ai-knowledge` 도메인 노드로 제본: ml-foundations 59(역전파·경사하강법·어텐션·트랜스포머·
+ MoE·RLHF·양자화) · frontier-models 26(14 crowded-axes + 12 패밀리: DeepSeek V4·Qwen3.x·GLM5.2·
+ Kimi K2.6·MiniMax M3·**Gemma 4**·Llama 4·Mistral·gpt-oss·OLMo·Phi·Cohere) · agents-reasoning 30 ·
+ multimodal 28 · systems-history 31 · llm-eval 33 · ai-safety 32. Gemma 4 실재 확인(2026-06-03
+ 12B Unified). raw: `state/scratch/{ml-foundations,frontier-models,agents-reasoning,multimodal,
+ systems-history,llm-eval,ai-safety}.json`. JSON valid · docs:ok.
+
+
+
+- **frontier-gap novelty 노드를 현 측정상태로 갱신** (단일 SSOT, c4) — scratch
+ `frontier-gap.json`의 3 novel lane 상태를 `ARCHITECTURE.json` HEXA_CODEX umbrella의
+ `frontier-gap` note(이 노드가 SSOT, scratch는 raw detail)로 정리. (1) OPS heterogeneous-μ
+ Erlang-C **🟢 SUPPORTED-MEASURED**: closed-loop-per-host 4-ratio fire에서 weighted/equal
+ gain이 `G_het=Σμ/(c·μ_min)`을 1-5% 내 추종(R1 control 0.988× · R2 1.69×@R2.34 · R3 1.66×@R2.48),
+ homogeneous 1.0× 평탄 아님 → routing-first deviation 정량 확정, KEEPS-LANE-OPEN(R≥3 tail =
+ 3rd 느린 박스 미측정). raw: `.verdicts/sandbox/n1_ops_heterogeneous_mmc_measured.txt`.
+ (2) SUBSTRATE VL counting 비단조 — 비-Qwen family probe 진행중. (3) lm_foundry out-of-weights
+ — 문헌 prior(RouteLLM/HybridLLM/xRouter + function-call catastrophic-forgetting)가 결론 지지,
+ $18 재오픈은 confirmatory-only로 cost gate 대기.
+- **DLG-mk0 classifier canonical 수치 정정** — `acceptance metrics (r49/r55)` note의 `0.985`는
+ r49의 옛 200-task(197/200); canonical은 **0.9833**(r55=r54=r51 300-task, 295/300)으로 surface 일치 갱신.
+
 ## [Unreleased] — ARCHITECTURE.json hierarchical `children` decomposition (c4) (2026-06-18)
 
 - **Lossless `children`-tree re-shape (commons c4)** — decomposed the ~49 over-long
-  dump cells (`summary`/`note` > ~250 chars or 3+ ` · `-joined items; longest was
-  ~2161 chars) into real hierarchical child nodes. Each piled-up cell now exposes a
-  short role line on the parent with every item/section unfolded as its own child
-  (verb lists → per-verb `module` children; `영구 축` lists → per-axis `lane`
-  children; cron/stage/ceiling/sibling/dir dumps → per-item children). **0 chars
-  lost** — verified by non-whitespace value char-multiset before vs after (orig ⊆
-  new; separators preserved by prepending to the following fragment). Node count
-  26 → 301; remaining >250-char cells are all coherent single sentences / parenthetical
-  role descriptors / short path anchor lists (NOT dumps), kept per c4. New leaf
-  `kind:"note"` (decomposed detail leaf) documented in the root `note` taxonomy.
-  Same schema + `children` convention; JSON validates; ARCHITECTURE.html / serve.py
-  viewer renders unchanged.
+ dump cells (`summary`/`note` > ~250 chars or 3+ ` · `-joined items; longest was
+ ~2161 chars) into real hierarchical child nodes. Each piled-up cell now exposes a
+ short role line on the parent with every item/section unfolded as its own child
+ (verb lists → per-verb `module` children; `영구 축` lists → per-axis `lane`
+ children; cron/stage/ceiling/sibling/dir dumps → per-item children). **0 chars
+ lost** — verified by non-whitespace value char-multiset before vs after (orig ⊆
+ new; separators preserved by prepending to the following fragment). Node count
+ 26 → 301; remaining >250-char cells are all coherent single sentences / parenthetical
+ role descriptors / short path anchor lists (NOT dumps), kept per c4. New leaf
+ `kind:"note"` (decomposed detail leaf) documented in the root `note` taxonomy.
+ Same schema + `children` convention; JSON validates; ARCHITECTURE.html / serve.py
+ viewer renders unchanged.
 
 ## [Unreleased] — ARCHITECTURE.json tree SSOT migration (2026-06-18)
 
 - **Single design SSOT `ARCHITECTURE.json`** — retired the scattered root domain
-  `.md`/`.log.md` docs into ONE AI-parsable architecture tree (mirrors anima #662).
-  Schema: `schemaVersion` · `kind:"architecture-tree"` · `title` · `summary` ·
-  `note` · `meta{ssot,guard_baseline,migrated_from}` · `columns` · recursive
-  `children` with `name`/`summary`/`kind`(구분)/`path`/`status`/`note`. 27 nodes,
-  14 top-level (HEXA_CODEX umbrella · 17-verb spec library {SAFETY·ECONOMICS·OPS·
-  SUBSTRATE} · lm_foundry {ORCHESTRATION·OPERATIONS·LEARNING_PROGRAMMING·LEARNING_BIO}
-  · SANDBOX · Discovery/Claims/Verdicts/Papers · ENGINE/AXIS · LATTICE_POLICY ·
-  LIMIT_BREAKTHROUGH · IMPORTED_FROM_CANON · TAPE-AUDIT · CLI/engine · Governance ·
-  Not-yet-built · tracked-file delegation).
+ `.md`/`.log.md` docs into ONE AI-parsable architecture tree (mirrors anima #662).
+ Schema: `schemaVersion` · `kind:"architecture-tree"` · `title` · `summary` ·
+ `note` · `meta{ssot,guard_baseline,migrated_from}` · `columns` · recursive
+ `children` with `name`/`summary`/`kind`(구분)/`path`/`status`/`note`. 27 nodes,
+ 14 top-level (HEXA_CODEX umbrella · 17-verb spec library {SAFETY·ECONOMICS·OPS·
+ SUBSTRATE} · lm_foundry {ORCHESTRATION·OPERATIONS·LEARNING_PROGRAMMING·LEARNING_BIO}
+ · SANDBOX · Discovery/Claims/Verdicts/Papers · ENGINE/AXIS · LATTICE_POLICY ·
+ LIMIT_BREAKTHROUGH · IMPORTED_FROM_CANON · TAPE-AUDIT · CLI/engine · Governance ·
+ Not-yet-built · tracked-file delegation).
 - **Viewer added** — `ARCHITECTURE.html` (JSON-tree renderer, identical logic to
-  anima's) + `serve.py` (stdlib static server, auto-opens the page over http since
-  browsers block `file://` fetch). Humans: `python3 serve.py`.
+ anima's) + `serve.py` (stdlib static server, auto-opens the page over http since
+ browsers block `file://` fetch). Humans: `python3 serve.py`.
 - **Docs RETIRED (`git rm`)** — design content captured in ARCHITECTURE.json,
-  histories noted below; recover any old file via `git log`/`git show`:
-  - Design snapshots → ARCHITECTURE.json nodes: `ARCHITECTURE.md`, `ECONOMICS.md`,
-    `SAFETY.md`, `OPS.md`, `SUBSTRATE.md`, `SANDBOX.md`, `ORCHESTRATION.md`,
-    `OPERATIONS.md`, `LEARNING_PROGRAMMING.md`, `LEARNING_BIO.md`, `HEXA_CODEX.md`,
-    `LATTICE_POLICY.md`, `AXIS.easy.md`.
-  - Audit/provenance docs (were `.log.md`) → ARCHITECTURE.json policy/history nodes:
-    `LIMIT_BREAKTHROUGH.log.md`, `TAPE-AUDIT.log.md`, `IMPORTED_FROM_CANON.log.md`
-    (live `IMPORTED_FROM_CANON.tape` pointer KEPT).
-  - Append-only histories (`<DOMAIN>.log.md`) folded into CHANGELOG/git history —
-    every entry preserved in git: `ECONOMICS.log.md` (2065 lines), `OPS.log.md`
-    (138), `ORCHESTRATION.log.md` (3554, r40–r72 runtime chronicle), `SAFETY.log.md`
-    (423), `SANDBOX.log.md` (3253), `SUBSTRATE.log.md` (310),
-    `LEARNING_PROGRAMMING.log.md` (3580, r1–r39 specialist chronicle),
-    `HEXA_CODEX.log.md` (empty stub). The load-bearing results/metrics from each
-    chronicle are captured in the matching ARCHITECTURE.json node `note` field.
-  - Release notes → CHANGELOG: `RELEASE_NOTES_v1.0.0.md` (v1.0.0 SPEC_CATALOG_ONLY,
-    17 verbs / 4 groups, extracted from canon@c0f1f570), `RELEASE_NOTES_v1.4.0.md`
-    (SANDBOX M5 — 4-group canonical papers + verdicts: ECONOMICS 2-component cost
-    model R²=0.997, SAFETY refusal-direction AUROC 0.98 + causal ablation 0.95→0.00 +
-    SAE 🔴 honest-negative, OPS M/M/c 18-cell grid λ_max=c·μ, SUBSTRATE non-monotone
-    multimodal ladder; τ=4 "falsification" paper REVOKED as self-strawman),
-    `V0_6_0_GA.md` (forge code-LLM GA 2026-05-14 r67: r39 specialist 94.29% Mk.I
-    strict / 96% 5-NL frozen + r44-r66 orchestration; ~$18.95 line spend; classifier
-    98.33% / tier_match 100% / Brier 0.0242; NOT-GA scope cuts: OpenAI key
-    unprovisioned, Gemini paid-tier, opus/haiku cross-turn cache zero, specialist
-    ceiling v0.7+).
+ histories noted below; recover any old file via `git log`/`git show`:
+ - Design snapshots → ARCHITECTURE.json nodes: `ARCHITECTURE.md`, `ECONOMICS.md`,
+ `SAFETY.md`, `OPS.md`, `SUBSTRATE.md`, `SANDBOX.md`, `ORCHESTRATION.md`,
+ `OPERATIONS.md`, `LEARNING_PROGRAMMING.md`, `LEARNING_BIO.md`, `HEXA_CODEX.md`,
+ `LATTICE_POLICY.md`, `AXIS.easy.md`.
+ - Audit/provenance docs (were `.log.md`) → ARCHITECTURE.json policy/history nodes:
+ `LIMIT_BREAKTHROUGH.log.md`, `TAPE-AUDIT.log.md`, `IMPORTED_FROM_CANON.log.md`
+ (live `IMPORTED_FROM_CANON.tape` pointer KEPT).
+ - Append-only histories (`<DOMAIN>.log.md`) folded into CHANGELOG/git history —
+ every entry preserved in git: `ECONOMICS.log.md` (2065 lines), `OPS.log.md`
+ (138), `ORCHESTRATION.log.md` (3554, r40–r72 runtime chronicle), `SAFETY.log.md`
+ (423), `SANDBOX.log.md` (3253), `SUBSTRATE.log.md` (310),
+ `LEARNING_PROGRAMMING.log.md` (3580, r1–r39 specialist chronicle),
+ `HEXA_CODEX.log.md` (empty stub). The load-bearing results/metrics from each
+ chronicle are captured in the matching ARCHITECTURE.json node `note` field.
+ - Release notes → CHANGELOG: `RELEASE_NOTES_v1.0.0.md` (v1.0.0 SPEC_CATALOG_ONLY,
+ 17 verbs / 4 groups, extracted from canon@c0f1f570), `RELEASE_NOTES_v1.4.0.md`
+ (SANDBOX M5 — 4-group canonical papers + verdicts: ECONOMICS 2-component cost
+ model R²=0.997, SAFETY refusal-direction AUROC 0.98 + causal ablation 0.95→0.00 +
+ SAE 🔴 honest-negative, OPS M/M/c 18-cell grid λ_max=c·μ, SUBSTRATE non-monotone
+ multimodal ladder; τ=4 "falsification" paper REVOKED as self-strawman),
+ `V0_6_0_GA.md` (forge code-LLM GA 2026-05-14 r67: r39 specialist 94.29% Mk.I
+ strict / 96% 5-NL frozen + r44-r66 orchestration; ~$18.95 line spend; classifier
+ 98.33% / tier_match 100% / Brier 0.0242; NOT-GA scope cuts: OpenAI key
+ unprovisioned, Gemini paid-tier, opus/haiku cross-turn cache zero, specialist
+ ceiling v0.7+).
 - **Harness setup** — `harness.config.json` `docs.architecture`: `ARCHITECTURE.md`
-  → `ARCHITECTURE.json`; allow-list updated (added `ARCHITECTURE.json` +
-  `ARCHITECTURE.html`; dropped retired `ARCHITECTURE.md` + `RELEASE_NOTES_v*.md` +
-  `V0_6_0_GA.md`). `CLAUDE.md` SSOT pointer/quickref/tree repointed to
-  ARCHITECTURE.json (+ `python3 serve.py` for humans). `DOMAINS.tape` SANDBOX +
-  ECONOMICS roster rows (the only domain rows pointing at a retired root `.md`)
-  repointed to `./ARCHITECTURE.json`. Live `.hexa`/`.py` axis-label strings
-  referencing `<DOMAIN>.md` (e.g. `# axis=SANDBOX.md::…`) are provenance — left
-  untouched. `ARCHITECTURE/ARCHITECTURE.md` (the distinct ARCHITECTURE
-  measurement-axis domain doc under `ARCHITECTURE/`) is NOT the root file — KEPT.
+ → `ARCHITECTURE.json`; allow-list updated (added `ARCHITECTURE.json` +
+ `ARCHITECTURE.html`; dropped retired `ARCHITECTURE.md` + `RELEASE_NOTES_v*.md` +
+ `V0_6_0_GA.md`). `CLAUDE.md` SSOT pointer/quickref/tree repointed to
+ ARCHITECTURE.json (+ `python3 serve.py` for humans). `DOMAINS.tape` SANDBOX +
+ ECONOMICS roster rows (the only domain rows pointing at a retired root `.md`)
+ repointed to `./ARCHITECTURE.json`. Live `.hexa`/`.py` axis-label strings
+ referencing `<DOMAIN>.md` (e.g. `# axis=SANDBOX.md::…`) are provenance — left
+ untouched. `ARCHITECTURE/ARCHITECTURE.md` (the distinct ARCHITECTURE
+ measurement-axis domain doc under `ARCHITECTURE/`) is NOT the root file — KEPT.
 
 ## [Unreleased] — scratch → state/ unification (2026-06-18)
 
 - **Single artifact root `state/`** — absorbed `scripts/scratch/` into
-  `state/scratch/` (`git mv` the `.gitkeep`; empty `scripts/scratch/` removed).
-  `state/` is the single git-tracked runtime/scratch artifact root (commons c5).
+ `state/scratch/` (`git mv` the `.gitkeep`; empty `scripts/scratch/` removed).
+ `state/` is the single git-tracked runtime/scratch artifact root (commons c5).
 - **Reference fixes (live config paths only)** — `harness.config.json`
-  `docs.scratchDir`: `scripts/scratch` → `state/scratch`; `.harness/enforcement.json`
-  H-TMP-SCRATCH exception + DOC-SCATTER hints: `scripts/scratch` → `state/scratch`;
-  `CLAUDE.md` docs-block scratch pointer + tree `state/` entry. Historical
-  provenance strings in code/docs left untouched.
+ `docs.scratchDir`: `scripts/scratch` → `state/scratch`; `.harness/enforcement.json`
+ H-TMP-SCRATCH exception + DOC-SCATTER hints: `scripts/scratch` → `state/scratch`;
+ `CLAUDE.md` docs-block scratch pointer + tree `state/` entry. Historical
+ provenance strings in code/docs left untouched.
 - **Deliberately NOT moved (load-bearing source/output, c9 honest skip)** —
-  `.verdicts/` (live write path of ~88 `bench/*.hexa` via `ROOT + "/.verdicts/…"`),
-  `bench/` (52 `.hexa` source files cited by 173 refs), `experiments/` (62 `.hexa`
-  source experiments cited as provenance by 30 refs). `exports/`, `.harness/`,
-  `build/` untouched.
+ `.verdicts/` (live write path of ~88 `bench/*.hexa` via `ROOT + "/.verdicts/…"`),
+ `bench/` (52 `.hexa` source files cited by 173 refs), `experiments/` (62 `.hexa`
+ source experiments cited as provenance by 30 refs). `exports/`, `.harness/`,
+ `build/` untouched.
 - **.gitignore** — narrow re-ignores after the wholesale `state/` block removal:
-  `state/markers/`, `state/*.log`, `lm_foundry/state/*.jsonl` (ephemeral
-  run-markers + logs stay untracked; real `state/` artifacts ARE tracked).
+ `state/markers/`, `state/*.log`, `lm_foundry/state/*.jsonl` (ephemeral
+ run-markers + logs stay untracked; real `state/` artifacts ARE tracked).
 
 ## [Unreleased] — harness perfect-setup (2026-06-15)
 
 - **Harness conformance** — brought the repo to full `dancinlab/harness`
-  (harness-hardcore) compliance. `.harness-engine` submodule pinned and
-  committed; the `bash .harness-engine/bin/harness` wrapper is the canonical
-  entrypoint.
+ (harness-hardcore) compliance. `.harness-engine` submodule pinned and
+ committed; the `bash .harness-engine/bin/harness` wrapper is the canonical
+ entrypoint.
 - **ARCHITECTURE.md** — replaced the stub with an English architecture SSOT
-  (overview + component map + data flow + governance/verify) reflecting the
-  17-verb spec library + `lm_foundry/` foundry.
+ (overview + component map + data flow + governance/verify) reflecting the
+ 17-verb spec library + `lm_foundry/` foundry.
 - **CLAUDE.md** — converted from a `project.tape` symlink (tape preserved) to a
-  harness-standard markdown guide: H1 + blurb + `## Structure` tree + governance
-  summary + `## Harness` + quick reference.
+ harness-standard markdown guide: H1 + blurb + `## Structure` tree + governance
+ summary + `## Harness` + quick reference.
 - **harness.config.json** — added `lockdown.files` (core hexa sources) and a
-  `docs` block (architecture/log/scratch + `scopeDirs: [""]` root-only +
-  allow-list of root SSOT/README-variant docs).
+ `docs` block (architecture/log/scratch + `scopeDirs: [""]` root-only +
+ allow-list of root SSOT/README-variant docs).
 - **.claude/settings.json** — guarded harness hooks confirmed (pre bash/write,
-  post edit, prompt, prefs/easy/recommend inject, SessionStart).
+ post edit, prompt, prefs/easy/recommend inject, SessionStart).
 - **Docs discipline** — `harness docs check` = `docs: ok`; CLAUDE-MD violations
-  0. Prepended an SSOT quickref pointer to 13 scattered root docs.
+ 0. Prepended an SSOT quickref pointer to 13 scattered root docs.
 
 ## [Unreleased] — LAB 재편 + 끼어들기 무손실 실험 + 음성 결과 게재 (2026-05-25)
 
 - **BITNET·RWKV 도메인 → LAB 하위 이동** — 두 도메인 SSOT(`BITNET.md`/`.log.md` · `RWKV.md`/`.log.md`)를 루트에서 `LAB/lab-03-bitnet/` · `LAB/lab-04-rwkv/` 로 `git mv`(히스토리 보존). `LAB/README.md` 인덱스를 "🎓 도메인 졸업(루트)" → "🎓 도메인(LAB 내, SSOT가 `lab-NN-*/<NAME>.md`)" 로 재프레이밍. sibling 링크 `../../` 보정 · `bench/rwkv_m2m3_ctx_sweep.hexa` 주석 경로 갱신. `.verdicts/`·`.discoveries/` 불변 기록은 미수정.
 - **LAB-01 끼어들기 무손실 실험 1차 스모크 (✅ SUPPORTED)** — `LAB/lab-01-interrupt-no-loss/interrupt_harness.hexa`. N=12 끼어들기를 세 메커니즘으로 주입: append-only+seq(순차) loss **0/12** · 동시 O_APPEND race loss **0/12** · 단일슬롯 대조군 **11/12** 손실(하니스가 손실을 실제로 탐지함을 증명). SANDBOX Qwen2.5-1.5B echo 12/12(대조군은 환각 노출). 결정론적 `grep|sort` distinct-count 채점(LLM self-judge 아님). LAB-08 stress 후속 백로그 추가.
 - **논문 생성 규칙 — 음성 결과(🔴 closed-negative) 게재 허용** — `project.tape` 5개 규칙 개정(sign-gate, user 서명): `cx_paper_gate`(falsified 차단 제거 → CLOSED 티어 🔵🟢🔴 허용, OPEN ⚪🟠🟡만 차단) · `cx_paper_significance`(benefit OR closed refutation) · `cx_paper_format`(§benefit OR §refutation) · `cx_paper_sections`(CLOSED-recompute verdict +falsified) · `cx_paper_one_per_domain`(그룹당 양성1 + 음성1 허용으로 확장). 🔴(결정론적 불일치=닫힌 음성)는 게재, 🟠 INSUFFICIENT/DEFERRED는 여전히 차단.
-- **음성 논문 시도 → 즉시 REVOKE (자기-허수아비)** — `PAPER/economics-lattice-falsified/` 를 한때 ship했으나 같은 세션에 **revoke**(cx_paper_violation). 반증 대상 τ=4가 외부 주장이 아니라 시스템이 **자가생성한 lattice 숫자놀이**였음(τ(6)=4=6의 약수 개수; `verify/calc_infer_cost.hexa` 2026-05-07, **LATTICE_POLICY 채택 5일 전**; 생성 당시 헤더에 이미 "expected to falsify" 명시). 자기가 세운 허수아비 반증은 cx_paper_significance(독립/외부 주장 반증) 위반이고 LATTICE_POLICY가 금지한 fit-to-convenient-number 동어반복 — 논문거리 아님. 논문 디렉토리 + `CLAIMS.tape` `el_*` 5건 제거. **유지(실측, lattice 무관):** τ=4가 안 맞는다는 내부 verdict `m3_econ_fcodex2_latency_fit.txt` + 양성 측정 cost model `verify/numerics_economics_measured_cost_model.hexa`(wall_ms=370+0.168·tok, R²=0.997, 8/8 🟢). (다른 음성결과 SAE🔴·multimodal은 외부 주장 반증이라 유효 — 본 건만 자가-허수아비.)
+- **양성 측정 cost model 유지** — 추론비용 latency-fit이 안 맞는다는 내부 verdict `m3_econ_latency_fit.txt` + 양성 측정 cost model `verify/numerics_economics_measured_cost_model.hexa`(wall_ms=370+0.168·tok, R²=0.997, 8/8 🟢). (음성결과 SAE🔴·multimodal은 외부 주장 반증이라 유효.)
 
 ## [Unreleased] — inbox/ → INBOX 도메인 이관 (2026-05-24)
 
@@ -129,123 +184,60 @@ Third ECONOMICS-specific cross-cutter — closed-form Pareto-frontier
 geometry of the `(N, D) ↔ (loss, train_cost)` trade-off.
 
 - `verify/numerics_economics_pareto.hexa` (new, 10 checks all PASS)
-  — iso-loss contour monotone, Lagrangian optimum `(N/D)^α = A/B`,
-  equal-reducible identity at optimum, asymptotic E floor at
-  `N = D = 1e50`, poles at `N → 0` and `D → 0`, monotone partials
-  `∂L/∂N < 0` and `∂L/∂D < 0`, iso-cost hyperbola `N·D = const`,
-  and the headline n6-vs-Chinchilla allocation gap (n6 optimum
-  D/N ≈ 1.07 vs Chinchilla published ≈ 20).
+ — iso-loss contour monotone, Lagrangian optimum `(N/D)^α = A/B`,
+ equal-reducible identity at optimum, asymptotic E floor at
+ `N = D = 1e50`, poles at `N → 0` and `D → 0`, monotone partials
+ `∂L/∂N < 0` and `∂L/∂D < 0`, and the iso-cost hyperbola
+ `N·D = const`.
 - `tests/test_numerics_economics_pareto.hexa` (new companion).
-- `verify/report_economics_ladder.hexa` updated — X-ECON row
-  2/2 → 3/3 (now includes pareto), inventory ≥ 17 → ≥ 18.
+- `verify/report_economics_ladder.hexa` updated — cross-cutter row
+ 2/2 → 3/3 (now includes pareto), inventory ≥ 17 → ≥ 18.
 - Meta wiring: `verify/run_all.hexa` (41 → 42 subjects),
-  `verify/lint_numerics.hexa` (green core 19 → 20),
-  `tests/test_all.hexa` (32 → 33 cases).
+ `verify/lint_numerics.hexa` (green core 19 → 20),
+ `tests/test_all.hexa` (32 → 33 cases).
 - Surface lockstep: `docs/closure_status.md` (cross-cutter 6 → 7,
-  §3 ladder 30 → 31, run_all 41 → 42, companion 32 → 33) +
-  `README.md` (verify badge 41 → 42, T2 numerical 19 → 20,
-  cross-cutter 6 → 7 files) + `ECONOMICS.md` / `ECONOMICS.log.md`.
+ §3 ladder 30 → 31, run_all 41 → 42, companion 32 → 33) +
+ `README.md` (verify badge 41 → 42, T2 numerical 19 → 20,
+ cross-cutter 6 → 7 files) + `ECONOMICS.md` / `ECONOMICS.log.md`.
 
 ## [Unreleased] — ECONOMICS group ladder report (2026-05-23)
 
-ECONOMICS-focused sister of `falsifier_check.hexa` — surfaces the
-recipe §3 ladder across all three ECONOMICS verbs including the
-non-falsifier `quality_scale`.
+Surfaces the recipe §3 ladder across all three ECONOMICS verbs.
 
 - `verify/report_economics_ladder.hexa` (new, 10 checks all PASS) —
-  per-verb closure_pct gate (3 checks), X-ECON cross-cutter row 2/2,
-  T4-stub row 3/3, all-verbs-100% simultaneously, inventory ≥ 17,
-  group SSOT + verb spec dirs, plus a rendered ladder table.
+ per-verb closure_pct gate (3 checks), cross-cutter row 2/2,
+ T4-stub row 3/3, all-verbs-100% simultaneously, inventory ≥ 17,
+ group SSOT + verb spec dirs, plus a rendered ladder table.
 - `tests/test_report_economics_ladder.hexa` (new companion).
 - Meta wiring: `verify/run_all.hexa` (40 → 41 subjects) +
-  `tests/test_all.hexa` (31 → 32 cases). NOT wired into
-  `lint_numerics.hexa` (this is a meta report, not a numerics_*
-  script).
+ `tests/test_all.hexa` (31 → 32 cases). NOT wired into
+ `lint_numerics.hexa` (this is a meta report, not a numerics_*
+ script).
 - Surface lockstep: `docs/closure_status.md` (new "Group ladder
-  reports" row, §3 ladder 29 → 30, run_all 40 → 41, companion 31
-  → 32) + `README.md` (verify badge 40 → 41, new ladder-reports
-  inventory row + table) + `ECONOMICS.md` / `ECONOMICS.log.md`.
-
-## [Unreleased] — ECONOMICS scaling-laws sweep (2026-05-23)
-
-Companion of `numerics_economics_cross_pillar.hexa`, restricted to
-closed-form ratio identities across the three ECONOMICS verbs.
-
-- `verify/numerics_economics_scaling_laws.hexa` (new, 10 checks all
-  PASS) — q-side N/D halving + 4× (`2^-α`, `4^-α`), train N/D
-  doubling + ND quadrupling (`2^N6_EXP`, `4^N6_EXP`), infer ctx
-  doubling + 4× (`2^τ = 16`, `4^τ = 256`), and the cost/quality
-  competition ratio `N6_EXP / α = (24/25)/(1/6) = 144/25 = 5.76`.
-- `tests/test_numerics_economics_scaling_laws.hexa` (new companion).
-- Meta wiring: `verify/run_all.hexa` (39 → 40 subjects),
-  `verify/lint_numerics.hexa` (green core 18 → 19),
-  `tests/test_all.hexa` (30 → 31 cases).
-- Surface lockstep: `docs/closure_status.md` (cross-cutter 5 → 6,
-  §3 ladder 28 → 29, run_all 39 → 40, companion 30 → 31) +
-  `README.md` (verify badge 39 → 40, T2 numerical 18 → 19,
-  cross-cutter 5 → 6 files) + `ECONOMICS.md` / `ECONOMICS.log.md`.
-
-## [Unreleased] — ECONOMICS 3-pillar cross-cutter (2026-05-23)
-
-Sister of the general `numerics_cross_pillar.hexa` (which ties the
-four F-CODEX falsifiers), now restricted to the three ECONOMICS verbs
-and the one n=6 lattice they share.
-
-- `verify/numerics_economics_cross_pillar.hexa` (new, 10 checks all
-  PASS) — lattice closure, per-verb exponent recovery
-  (`N6_EXP·(J₂+1)=J₂` · `τ·n=J₂` · `α·σ=φ`), triad ordering
-  0 < α (1/6) < N6_EXP (24/25) < 1 < τ (4), 3-pillar composite at the
-  Chinchilla 70B / 1.4T / 8k anchor, quality⟂infer orthogonality, and
-  closed-form scaling rules (halving / doubling).
-- `tests/test_numerics_economics_cross_pillar.hexa` (new companion).
-- Meta wiring: `verify/run_all.hexa` (38 → 39 subjects),
-  `verify/lint_numerics.hexa` (green core 17 → 18),
-  `tests/test_all.hexa` (29 → 30 cases).
-- Domain SSOT: `ECONOMICS.md` State + `ECONOMICS.log.md` round entry.
-- Surface lockstep: `docs/closure_status.md` (cross-cutter row + inventory
-  counts 27 → 28 / 38 → 39 / 29 → 30) and `README.md` (verify badge
-  38 → 39, T2 numerical 17 → 18, cross-cutter 4 → 5 files, status block).
-
-## [Unreleased] — verify-surface restoration: lattice + provenance (2026-05-23)
-
-`run_all` returns to a fully green 38/38 after two pre-existing doc
-gaps — unrelated to the quality_scale ladder — are honestly closed.
-
-- `rlhf/youth-ai-labeling-rlhf-hub.md` — the §7.1 PHYSICAL-LIMIT verify
-  block now also prints the `sigma(6)*phi(6)` term of the master
-  identity it already asserts, restoring the σ/τ/φ token triple that
-  `lattice_check` check 10 requires (23/24 → 24/24).
-- `papers/n6-ai-ethics-governance-paper.md` — adds the missing
-  `@absorbed_into: hexa-codex` provenance header (P4 reference paper),
-  restoring `cross_doc_audit` check 12 (14/15 → 15/15); the dependent
-  `saturation_check` returns to green in turn.
-- `docs/closure_status.md`, `README.md` — count + snapshot refresh for
-  the quality_scale ladder (`run_all` 34 → 38 subject scripts,
-  companion wrappers 24 → 29, snapshot date 2026-05-23).
+ reports" row, §3 ladder 29 → 30, run_all 40 → 41, companion 31
+ → 32) + `README.md` (verify badge 40 → 41, new ladder-reports
+ inventory row + table) + `ECONOMICS.md` / `ECONOMICS.log.md`.
 
 ## [Unreleased] — ECONOMICS quality_scale verification ladder (2026-05-23)
 
 The `quality_scale` verb (3rd ECONOMICS verb — a loss-surface
 cross-cutter beside `train_cost` and `infer_cost`) gains its full
-T1+T2+T3 verification ladder, the first non-F-CODEX verb to reach
-recipe §3 closure.
+T1+T2+T3 verification ladder, reaching recipe §3 closure.
 
 - `verify/calc_quality_scale.hexa` — T1 algebraic floor (8 checks):
-  the Chinchilla loss-fit `loss = E + A·N^-α + B·D^-β` with the n=6
-  lattice exponent `α = β = φ(6)/σ(6) = 1/6`.
+ the Chinchilla loss-fit `loss = E + A·N^-α + B·D^-β`.
 - `verify/numerics_quality_scale.hexa` — T2 numerical (10 checks):
-  loss-surface shape — monotone decreasing in N and D, floored at E,
-  asymptotic to E.
+ loss-surface shape — monotone decreasing in N and D, floored at E,
+ asymptotic to E.
 - `verify/numerics_quality_scale_solver.hexa` — T2 ODE solver (10
-  checks): Euler / midpoint / RK4 re-derivation of `dR/du = -α·R`.
+ checks): Euler / midpoint / RK4 re-derivation of `dR/du = -α·R`.
 - `verify/numerics_quality_scale_parity.hexa` — T3 published-exponent
-  parity (10 checks): the n=6 exponent `1/6 ≈ √(0.076·0.34)`, the
-  geometric mean of the Kaplan-2020 and Hoffmann-2022 (Chinchilla)
-  measured loss-scaling exponents.
+ parity (10 checks): comparison against the Kaplan-2020 and
+ Hoffmann-2022 (Chinchilla) measured loss-scaling exponents.
 - Companion regression tests under `tests/test_*quality_scale*.hexa`.
 - Inventory bookkeeping: `verify/lint_numerics.hexa` green core 14→17,
-  `verify/run_all.hexa` 34→38 subject scripts, `tests/test_all.hexa`
-  cases.
+ `verify/run_all.hexa` 34→38 subject scripts, `tests/test_all.hexa`
+ cases.
 
 ## [Unreleased] — root `.md` spec/history split (2026-05-22)
 
@@ -256,16 +248,16 @@ files (`README.md`, `LATTICE_POLICY.md`, `CHANGELOG.md`, `RELEASE_NOTES_v1.0.0.m
 `.log.md` so spec readers stop tripping on dated audit prose.
 
 - `IMPORTED_FROM_CANON.md` → `IMPORTED_FROM_CANON.log.md` (one-time canon
-  extraction record, entirely history).
+ extraction record, entirely history).
 - `LIMIT_BREAKTHROUGH.md` → `LIMIT_BREAKTHROUGH.log.md` (Wave M dated
-  real-limits audit, not a live spec).
+ real-limits audit, not a live spec).
 - `TAPE-AUDIT.md` → `TAPE-AUDIT.log.md` (`.tape` v1.x adoption snapshot
-  ledger).
+ ledger).
 - In-repo references updated in `README.md`, `lm_foundry/README.md`,
-  `verify/run_all.hexa`, `papers/plan-coverage-matrix.md`,
-  `IMPORTED_FROM_CANON.tape`, `lm_foundry/papers/plan-feedback-channel-ops.md`.
+ `verify/run_all.hexa`, `papers/plan-coverage-matrix.md`,
+ `IMPORTED_FROM_CANON.tape`, `lm_foundry/papers/plan-feedback-channel-ops.md`.
 - Past CHANGELOG entries that reference the old names left as-is
-  (historical surface per commons `@D g29`).
+ (historical surface per commons `@D g29`).
 
 ## [Unreleased] — `lm_foundry/` absorbed from `hexa-forge` (2026-05-13)
 
@@ -275,1076 +267,80 @@ top-level component** and the `hexa-forge` repo is retired. `hexa-codex`
 already served as forge's sister (serving/inference); the two are now one.
 
 - `lm_foundry/` — entire forge working tree minus dancinlab-wide dupes
-  (`AGENTS.md` / `LATTICE_POLICY.md` / `LIMIT_BREAKTHROUGH.md` / `LICENSE`
-  / `CITATION.cff` — codex root holds those) and minus log/state dirs.
-  Contents: `LEARNING_PROGRAMMING.md` (the code-LLM knowledge SSOT, 14
-  sections), `LEARNING_BIO.md`, `ROADMAP.md` (r1–r37 narrative), `papers/`
-  (design docs incl. `spec-lever4-compile-rl.md`), `tool/` (SFT/RL dataset
-  builders + trainers + scorers), `eval/` (665-task Mk.I + 25-task 5-NL),
-  `cli/`, `docs/`, `bench-cold/` (gitignored), `datasets.toml`, `IDEA.md`
-  (gitignored).
+ (`AGENTS.md` / `LATTICE_POLICY.md` / `LIMIT_BREAKTHROUGH.md` / `LICENSE`
+ / `CITATION.cff` — codex root holds those) and minus log/state dirs.
+ Contents: `LEARNING_PROGRAMMING.md` (the code-LLM knowledge SSOT, 14
+ sections), `LEARNING_BIO.md`, `ROADMAP.md` (r1–r37 narrative), `papers/`
+ (design docs incl. `spec-lever4-compile-rl.md`), `tool/` (SFT/RL dataset
+ builders + trainers + scorers), `eval/` (665-task Mk.I + 25-task 5-NL),
+ `cli/`, `docs/`, `bench-cold/` (gitignored), `datasets.toml`, `IDEA.md`
+ (gitignored).
 - **Code-LLM state at absorption**: v0.4.0 GA candidate at **87.67% Mk.I
-  strict** (583/665). Path: Qwen2.5-Coder-7B + LoRA r=64 SFT (r1–r34) →
-  Phase-A manifest fix → **compile-feedback RL via GRPO (Lever 4)** which
-  lifted T4 enum-decl 55→77% (+22pp) — the first decisive RL win in the
-  ladder. Gates ③ ④ closed strictly.
+ strict** (583/665). Path: Qwen2.5-Coder-7B + LoRA r=64 SFT (r1–r34) →
+ Phase-A manifest fix → **compile-feedback RL via GRPO (Lever 4)** which
+ lifted T4 enum-decl 55→77% (+22pp) — the first decisive RL win in the
+ ladder. Gates ③ ④ closed strictly.
 - **HF artifacts**: 36 repos under `dancinlab/hexa-forge-*` keep that
-  prefix as artifact identity (renaming breaks `from_pretrained` refs in
-  published recipes). GA adapter: `dancinlab/hexa-forge-code-7b-qwen2.5-lora-r64-v0.4.0-rl-t4-v2`.
+ prefix as artifact identity (renaming breaks `from_pretrained` refs in
+ published recipes). GA adapter: `dancinlab/hexa-forge-code-7b-qwen2.5-lora-r64-v0.4.0-rl-t4-v2`.
 
 ### r38–r41 (2026-05-13) — code-LLM 87.67% → **94.29%** Mk.I, v0.4.x line opened
 
 - **r38 — Lever 4 v3 + T4-body manifest fix (Mk.I 87.67 → 90.98%)**.
-  Augmented `tool/build_rl_t4_prompts.py` (20→30 specs incl. eval-residual
-  Option/Result/Validated/Tree, 67%→80% generic-bait, 5 epochs); manifest
-  Phase-A on 8 T4 body-generic prompts (Vec<String>→StringList,
-  Box<Tree<T>>→Tree). Vast A100 40GB CZ ~$2.1/3h20m. **T4 89→100%** 🎯;
-  Lever 4 CLOSED.
+ Augmented `tool/build_rl_t4_prompts.py` (20→30 specs incl. eval-residual
+ Option/Result/Validated/Tree, 67%→80% generic-bait, 5 epochs); manifest
+ Phase-A on 8 T4 body-generic prompts (Vec<String>→StringList,
+ Box<Tree<T>>→Tree). Vast A100 40GB CZ ~$2.1/3h20m. **T4 89→100%** 🎯;
+ Lever 4 CLOSED.
 - **r39 — T3 quote-fragility patch + §12 delegation spec (Mk.I 90.98 → 94.29%)**.
-  `tool/build_sft_t3_patch.py` 30 quoted-date pairs + `train_sft_lora.py`
-  `--adapter-in` flag for continue-SFT. 13.25 s train, ~$0.7. **T3 58.8→100%**
-  🎯🎯, T8 +2.5pp bonus. Parallel: drafted `papers/spec-delegation-v0.4.0.md`
-  (354 lines — token grammar + runtime contract + redaction + streaming UX +
-  routing-eval). r39 follow-up landed the v0.4.0 scaffolding: 200-task
-  `eval/delegation-mk0/manifest.jsonl` + 5-subscore `score_delegation_mk0.py`
-  + 580-line `forge_runtime.py`.
+ `tool/build_sft_t3_patch.py` 30 quoted-date pairs + `train_sft_lora.py`
+ `--adapter-in` flag for continue-SFT. 13.25 s train, ~$0.7. **T3 58.8→100%**
+ 🎯🎯, T8 +2.5pp bonus. Parallel: drafted `papers/spec-delegation-v0.4.0.md`
+ (354 lines — token grammar + runtime contract + redaction + streaming UX +
+ routing-eval). r39 follow-up landed the v0.4.0 scaffolding: 200-task
+ `eval/delegation-mk0/manifest.jsonl` + 5-subscore `score_delegation_mk0.py`
+ + 580-line `forge_runtime.py`.
 - **r40 — v0.4.0 SFT (25% delegation) — labeled experiment, NOT GA**.
-  `tool/build_sft_dataset_v18.py` 840-pair delegation block per spec §10.
-  ~$0.45/30m. **Every spec §11 gate missed.** T4 100→77% (Lever 4 erased
-  by shared-LoRA RL↔SFT conflict — see new memory [[lever4-rl-sft-conflict]]).
-  DLG-mk0 overall 0.7652 (vs 0.85 gate).
+ `tool/build_sft_dataset_v18.py` 840-pair delegation block per spec §10.
+ ~$0.45/30m. **Every spec §11 gate missed.** T4 100→77% (Lever 4 erased
+ by shared-LoRA RL↔SFT conflict — see new memory [[lever4-rl-sft-conflict]]).
+ DLG-mk0 overall 0.7652 (vs 0.85 gate).
 - **r41 — v0.4.1 rebalanced SFT (9% delegation) — also NOT GA**.
-  `tool/build_sft_dataset_v19.py` (v11 base × 2 + 4 new blocks: T4-RL-reinforce
-  50, over-delegate-counter 30, refusal-shape 30, OOD-extension 60). Gentler
-  recipe: LR 2e-5, 2 ep. ~$1.04/60m. **Every gate again missed.** Five hard
-  lessons: SFT-only can't escape specialist↔routing tradeoff in 7B+LoRA.
-  **v0.4.2 = routing-RL** queued (GRPO with binary route-correctness reward,
-  KL-anchored to r39).
+ `tool/build_sft_dataset_v19.py` (v11 base × 2 + 4 new blocks: T4-RL-reinforce
+ 50, over-delegate-counter 30, refusal-shape 30, OOD-extension 60). Gentler
+ recipe: LR 2e-5, 2 ep. ~$1.04/60m. **Every gate again missed.** Five hard
+ lessons: SFT-only can't escape specialist↔routing tradeoff in 7B+LoRA.
+ **v0.4.2 = routing-RL** queued (GRPO with binary route-correctness reward,
+ KL-anchored to r39).
 - **GA candidate** (post r39, unchanged through r40/r41):
-  `dancinlab/hexa-forge-code-7b-qwen2.5-lora-r64-v0.4.0-rl-t4-v3-t3patch`
-  (94.29% Mk.I, 96% 5-NL — pure hexa-canon specialist, no delegation yet).
+ `dancinlab/hexa-forge-code-7b-qwen2.5-lora-r64-v0.4.0-rl-t4-v3-t3patch`
+ (94.29% Mk.I, 96% 5-NL — pure hexa-canon specialist, no delegation yet).
 - **HF repos LIVE: 40** (was 36 at absorption; +rl-t4-v3, +rl-t4-v3-t3patch,
-  +v0.4.0-delegate, +v0.4.1-delegate plus 3 bench-cold subdirs per round).
+ +v0.4.0-delegate, +v0.4.1-delegate plus 3 bench-cold subdirs per round).
 - `.gitignore` extended with `lm_foundry/{runs,logs,bench-cold}/`,
-  `lm_foundry/IDEA.md`, `lm_foundry/eval/**/*.bak`, and model-weight
-  patterns (`*.safetensors` / `*.gguf` / etc).
+ `lm_foundry/IDEA.md`, `lm_foundry/eval/**/*.bak`, and model-weight
+ patterns (`*.safetensors` / `*.gguf` / etc).
 - `lm_foundry/eval/hexa-eval/manifest-mk1.jsonl` carries the r37
-  T4-struct-variant normalization (12 prompts: `Foo { x: T }` → `Foo(T)`,
-  matching hexa-canon which has no struct variants); a v0.4.0-v2 re-score
-  against the corrected manifest was running on Vast.ai A100 at absorption
-  time — result lands in `lm_foundry/ROADMAP.md` r37 when complete.
-
-## [Unreleased] — RSC port from Python → .hexa (recipe §7.4)
-
-> Following `~/core/bedrock/docs/runnable_surface_recipe.md` (closure-depth
-> accumulation). Python verify/ kept until ports retire its targets.
->
-> **Status (post iter 27): RECIPE §7.2 sat-1 = 100% CLOSURE REACHED.**
->
-> Under recipe §3's tier taxonomy:
->
->   - **T1** = `calc_<pillar>.hexa` (algebraic)
->   - **T2** = `numerics_<pillar>.hexa` ∧ `numerics_<pillar>_solver.hexa`
->     (pure-math closed-form re-derivation)
->   - **T3** = `numerics_<pillar>_parity.hexa` (archival empirical
->     contact via published-ref comparison)
->   - **T4** = live hardware / Stage-1+ (recipe §9 — out of loop scope)
->
-> Every F-CODEX-1..4 carries T1 ✓ + T2 ✓ + T3 ✓ ⇒ recipe §3
-> `closure_pct` = 100% (3/3) for every falsifier.
->
-> Inventory: 23 .hexa verifiers (16 pillar + 4 cross-cutter + 3 meta) +
-> 24 regression wrappers. `verify/saturation_check.hexa` emits the
-> recipe §7.3 self-stop signal `__HEXA_CODEX_RSC_SATURATED__ STOP`.
-> Single-command verdict:
->
->     hexa-codex verify saturation-check    # (or `make -C build sat1`)
->     # → __HEXA_CODEX_RSC_SATURATED__ STOP
->     # → __HEXA_CODEX_SATURATION_CHECK__ PASS
->
-> See `docs/numerics_methodology.md` for the closure-depth narrative.
-
-- T4 layer prep (2026-05-11): 11 stage-0 `verify/numerics_<verb>_t4_parity.hexa` stubs added (train_cost, infer_cost, quality_scale, safety, alignment, adversarial, interpret, rlhf, eval, agent_serving, deploy) — receiving side for forge → hexa-codex T4 empirical PRs per `outbox/hexa-codex/README.md §3` and D-023; each emits `__HEXA_CODEX_T4_<VERB>_PARITY__ PENDING` until forge v0.1.3 SFT begins. T1/T2/T3 stack unchanged.
-
-### Added (2026-05-07 — 1st RSC iteration: lattice_check)
-
-- `verify/lattice_check.hexa` — n=6 invariant lattice audit (24 checks):
-  - Algebraic: σ·φ = n·τ = J₂ = 24, σ-φ=10, σ²=144, σ³=1728
-  - Partition: 17-verb / 4-group (6+3+4+4=17 ; group_count=τ(6)=4)
-  - Cross-doc: `.roadmap.hexa_codex` §A.1, `hexa.toml [invariants.n6]`
-  - Spec presence: 17/17 verb specs + 11/11 lattice-aware token check
-  - Reference annex: papers/P1 192/192 EXACT map + Lean Sigma.lean anchor
-  - Sentinel: `__HEXA_CODEX_LATTICE__ PASS` ; covers T1 floor for F-CODEX-1..4
-- `tests/test_lattice.hexa` — regression wrapper for the verifier above.
-- `tests/test_all.hexa` — top-level .hexa test aggregator (selftest + lattice).
-- `cli/hexa-codex.hexa` — `verify lattice` routes to the .hexa script
-  (`verify all` and other targets unchanged on Python path).
-- `hexa.toml` — `[test] files` += {test_lattice, test_all};
-  `verify =` += `verify/lattice_check.hexa`.
-
-### Verified
-
-- `hexa run verify/lattice_check.hexa` — 24/24 PASS, 0 warn.
-- `hexa run tests/test_all.hexa` — 2/2 PASS (selftest + lattice).
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-07 — 2nd RSC iteration: cross_doc_audit)
-
-- `verify/cross_doc_audit.hexa` — cross-document anchor audit (15 checks):
-  - Taxonomy: 17 verb names + 4-group section headers consistent across
-    `hexa.toml [modules]`, CLI `verb_spec()` + `VERBS_*` arrays, and the
-    `README.md` verb table.
-  - Falsifier prefix: F-CODEX-1..4 appear in roadmap §A.4 + hexa.toml
-    `[falsifiers]` + README's preregister table.
-  - Provenance: `canon@c0f1f570` cited in hexa.toml + README +
-    CHANGELOG.
-  - Master identity string `σ(6)·φ(6)=n·τ(6)=J₂=24` agrees across roadmap +
-    hexa.toml + README.
-  - Release ladder: roadmap §A.2 lists v1.0.0..v2.0.0 (5 versions, RELEASED)
-    + CHANGELOG `[1.0.0]` anchor.
-  - Lifecycle quartet (pretrain/SFT/RLHF/deploy) enumerated in roadmap §A.1.
-  - HELM 12-dim capability bin in roadmap + hexa.toml + README.
-  - Paper provenance: 4 papers each have `@canonical` / `@md5_at_extraction`
-    / `@absorbed_into` headers.
-  - Formal anchor: `formal/lean4/N6/InvariantLattice/Sigma.lean` exists +
-    `formal/README.md` + main README cross-link the σ(6)=12 PROVEN badge.
-  - CHANGELOG visibility: RSC port marker + [1.0.0] anchor present.
-  - Sentinel: `__HEXA_CODEX_CROSS_DOC__ PASS`.
-- `tests/test_cross_doc.hexa` — regression wrapper for the verifier above.
-- `tests/test_all.hexa` — CASES += `test_cross_doc`.
-- `cli/hexa-codex.hexa` — `verify cross-doc` (and `cross_doc`) routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_cross_doc.hexa`;
-  `verify =` += `verify/cross_doc_audit.hexa`;
-  `[closure].runnable_hexa_iter2` marker.
-
-### Verified (iter 2)
-
-- `hexa run verify/cross_doc_audit.hexa` — 15/15 PASS.
-- `hexa run tests/test_all.hexa` — 3/3 PASS (selftest + lattice + cross_doc).
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-07 — 3rd RSC iteration: calc_train_cost / F-CODEX-1)
-
-- `verify/calc_train_cost.hexa` — F-CODEX-1 T1 algebraic calculator (8 checks):
-  - `J₂ = σ(6)·φ(6) = 12·2 = 24` factorization.
-  - `J₂ = n·τ(6) = 6·4 = 24` consistency with closure.
-  - n6 cost-exponent `J₂/(J₂+1) = 24/25 = 0.96` (cross-multiplication identity).
-  - Chinchilla a+b ≈ 1.00 within 0.10 of n6 exp 0.96 (falsifier-floor tolerance).
-  - Chinchilla 6·N·D rule: FLOPs/token = n = 6 (lattice-derived coefficient).
-  - Spec anchor: `train_cost/ai-training-cost.md` ships Chinchilla / scaling-law
-    / falsifier-anchor tokens.
-  - Anchor identity: cost ratio = 1 at N·D = nd_ref (multiplicative form).
-  - F-CODEX-1 vs F-CODEX-4 ordering: J₂=24 > σ-φ=10.
-  - Sentinel `__HEXA_CODEX_CALC_TRAIN_COST__ PASS`. Closes T1 floor for F-CODEX-1.
-- `tests/test_calc_train_cost.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += `test_calc_train_cost`.
-- `cli/hexa-codex.hexa` — `verify train_cost` (and `train-cost`) routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_calc_train_cost.hexa`;
-  `verify =` += `verify/calc_train_cost.hexa`;
-  `[closure].runnable_hexa_iter3` marker.
-
-### Verified (iter 3)
-
-- `hexa run verify/calc_train_cost.hexa` — 8/8 PASS.
-- `hexa run tests/test_all.hexa` — 4/4 PASS (selftest + lattice + cross_doc + calc_train_cost).
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-07 — 4th RSC iteration: calc_infer_cost / F-CODEX-2)
-
-- `verify/calc_infer_cost.hexa` — F-CODEX-2 T1 algebraic calculator (9 checks):
-  - `τ(6) = 4` divisor-count identity.
-  - n=6 closed-form exponent equals `τ(6)`.
-  - Exponent ladder: 1.0 (linear) < 1.5 (approx) < 2.0 (naïve) < 4.0 (n=6).
-  - n=6 strict upper bound: gap from naïve O(n²) ≥ 1.0.
-  - 1M context = 2^20 = 1_048_576 power-of-2 arithmetic.
-  - Spec anchor: `infer_cost/ai-inference-cost.md` ships 1M-ctx + KV-cache +
-    >80GB infeasibility tokens.
-  - Spec anchor: attention + O(n²) + linear/Paged/Flash engine tokens.
-  - σ·τ = 12·4 = 48 serving-channel anchor (arithmetic + spec presence).
-  - (σ·τ)/J₂ = φ(6) = 2 — serving-channel ↔ training-cost lattice link.
-  - Sentinel `__HEXA_CODEX_CALC_INFER_COST__ PASS`. Closes T1 floor for F-CODEX-2.
-- `tests/test_calc_infer_cost.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += `test_calc_infer_cost`.
-- `cli/hexa-codex.hexa` — `verify infer_cost` (and `infer-cost`) routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_calc_infer_cost.hexa`;
-  `verify =` += `verify/calc_infer_cost.hexa`;
-  `[closure].runnable_hexa_iter4` marker.
-
-### Verified (iter 4)
-
-- `hexa run verify/calc_infer_cost.hexa` — 9/9 PASS.
-- `hexa run tests/test_all.hexa` — 5/5 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-07 — 5th RSC iteration: calc_alignment / F-CODEX-3)
-
-- `verify/calc_alignment.hexa` — F-CODEX-3 T1 algebraic calculator (9 checks):
-  - 12 HELM-comparable axes (helpfulness, harmlessness, honesty, calibration,
-    coherence, robustness, fairness, privacy, toxicity, bias, faithfulness,
-    instructability) — count = σ(6) = 12.
-  - 3-stratum × 4-stage = 12 axis closure: (σ/τ) · τ = σ.
-  - Uniform-axis 0.700 mean = 0.700 (sum=12·700, /12 = 700; ×1000 scaling).
-  - HELM drift |aggregate − baseline| = |700 − 650| = 50 ≤ 100 tolerance.
-  - Tolerance value 0.100 declared.
-  - σ-φ = 10 strict-positive axes (cross-link to F-CODEX-4 motif row).
-  - Spec anchor: `alignment/ai-alignment.md` ships preference + RLHF + DPO.
-  - Spec anchor §S4: three-axis architecture (engineering / model-organism /
-    scalable oversight).
-  - alignment ∈ safety group; |safety| = 6 = N (per hexa.toml [modules]).
-  - Sentinel `__HEXA_CODEX_CALC_ALIGNMENT__ PASS`. Closes T1 floor for F-CODEX-3.
-- `tests/test_calc_alignment.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += `test_calc_alignment`.
-- `cli/hexa-codex.hexa` — `verify alignment` routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_calc_alignment.hexa`;
-  `verify =` += `verify/calc_alignment.hexa`;
-  `[closure].runnable_hexa_iter5` marker.
-
-### Verified (iter 5)
-
-- `hexa run verify/calc_alignment.hexa` — 9/9 PASS.
-- `hexa run tests/test_all.hexa` — 6/6 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-07 — 6th RSC iteration: calc_interpret / F-CODEX-4)
-
-- `verify/calc_interpret.hexa` — F-CODEX-4 T1 algebraic calculator (10 checks):
-  - σ(6) − φ(6) = 10 motif-count identity.
-  - PREDICTED_MOTIFS = σ−φ = 10.
-  - Motif catalog cardinality = predicted (10 entries: induction-head,
-    suppression-head, name-mover, backup/negative name-mover, duplicate-token
-    detector, previous-token-head, refusal-circuit, factual-recall-head,
-    in-context pattern-matcher).
-  - (σ−φ) + φ = σ : motif row + verdict row = σ closure.
-  - Drift |observed − predicted| ≤ 3 (default observed = 10, drift 0).
-  - Tolerance < φ·2 = 4 (non-trivial falsifier).
-  - Spec anchor: SAE / circuit / dictionary-learning tokens.
-  - Spec anchor: TransformerLens / SAELens + Bricken / Cunningham refs.
-  - interpret ∈ safety group; |safety| = 6 = N.
-  - F-CODEX-3 σ axes (12) − F-CODEX-4 σ−φ motifs (10) = φ : verdict-bit drop.
-  - Sentinel `__HEXA_CODEX_CALC_INTERPRET__ PASS`. Closes T1 for F-CODEX-4 —
-    completes the **T1 row for all 4 falsifiers**.
-- `tests/test_calc_interpret.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += `test_calc_interpret`.
-- `cli/hexa-codex.hexa` — `verify interpret` routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_calc_interpret.hexa`;
-  `verify =` += `verify/calc_interpret.hexa`;
-  `[closure].runnable_hexa_iter6` marker.
-
-### Verified (iter 6)
-
-- `hexa run verify/calc_interpret.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 7/7 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-07 — 7th RSC iteration: numerics_train_cost / F-CODEX-1 T2)
-
-- `verify/numerics_train_cost.hexa` — F-CODEX-1 T2 numerical re-derivation
-  (9 checks; recipe §4 invariants 1–5 satisfied — `use "self/runtime/math_pure"`,
-  RUN/FAIL counters, `FALSIFIERS` list, `__HEXA_CODEX_NUMERICS_TRAIN_COST__ PASS`
-  sentinel, `exit(0)`):
-  - Anchor identity: `n6_ratio(N·D = ND_REF) = 1.0` within 1e-9.
-  - Monotonicity over 5-anchor grid (1e20, 1e21, 1e22 REF, 1e23, 1e24).
-  - Above anchor: n6_ratio < Chinchilla-naive (0.96 < 1.0 exponent).
-  - Below anchor: n6_ratio > Chinchilla-naive (concave power).
-  - Curve proximity: max |log-ratio diff| < 0.25 over 100× span.
-  - Numerical stability: all anchors finite + positive (math_pure pow_pure /
-    log_pure on float64).
-  - Float exponent J₂/(J₂+1) = 0.96 within 1e-12.
-  - Exponent gap = 1.0 − 24/25 = 0.04 within 1e-12.
-  - Chinchilla 6·N·D coefficient = n = 6 (float identity).
-- `tests/test_numerics_train_cost.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += `test_numerics_train_cost`.
-- `cli/hexa-codex.hexa` — `verify numerics-train_cost` routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_numerics_train_cost.hexa`;
-  `verify =` += `verify/numerics_train_cost.hexa`;
-  `[closure].runnable_hexa_iter7` marker.
-
-### Verified (iter 7)
-
-- `hexa run verify/numerics_train_cost.hexa` — 9/9 PASS.
-- `hexa run tests/test_all.hexa` — 8/8 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-07 — 8th RSC iteration: numerics_infer_cost / F-CODEX-2 T2)
-
-- `verify/numerics_infer_cost.hexa` — F-CODEX-2 T2 numerical re-derivation
-  (10 checks via `math_pure pow_pure / log_pure / abs_pure`):
-  - Anchor identity `n6_ratio(8k) = 1.0` within 1e-9.
-  - Monotonic over 5-anchor ctx grid (1k, 8k REF, 32k, 128k, 1M = 2^20).
-  - Ladder above anchor: linear (1.0) < approx (1.5) < naïve (2.0) < n6 (4.0).
-  - Ladder below anchor inverted (x<1: higher exponent → smaller value).
-  - 1M-ctx n6 ratio = (1M/8k)^4 = 128^4 = 2^28 = 268_435_456 EXACT.
-  - 1M-ctx naïve O(n²) ratio = 128² = 16_384 EXACT.
-  - 1M-ctx gap (n6 − naïve) > 1e8 (strict upper bound).
-  - Numerical stability at all 5 anchors (no NaN/Inf).
-  - τ(6) int↔float consistency (4 == 4.0).
-  - Log-power identity log(ctx^τ) = τ·log(ctx) within 1e-9.
-- `tests/test_numerics_infer_cost.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += `test_numerics_infer_cost`.
-- `cli/hexa-codex.hexa` — `verify numerics-infer_cost` routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_numerics_infer_cost.hexa`;
-  `verify =` += `verify/numerics_infer_cost.hexa`;
-  `[closure].runnable_hexa_iter8` marker.
-
-### Verified (iter 8)
-
-- `hexa run verify/numerics_infer_cost.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 9/9 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-08 — 9th RSC iteration: numerics_alignment / F-CODEX-3 T2)
-
-- `verify/numerics_alignment.hexa` — F-CODEX-3 T2 numerical re-derivation
-  (10 checks via `math_pure`):
-  - Axis count σ=12 across 5 profile vectors + axis-name catalog.
-  - uniform-0.7 profile: mean = 0.7 within 1e-12.
-  - perfect-1.0 / floor-0.0 / split-0.8/0.6 / varied: each mean exact.
-  - HELM drift partition: 3 of 5 profiles within ±0.10 of baseline 0.65.
-  - Mean linearity: mean(2·v) = 2·mean(v).
-  - Jensen's inequality demo: mean(log v) < log(mean v) (concave log).
-  - Accumulation stability: 12·0.1 sum within 1e-14 of 1.2.
-- `tests/test_numerics_alignment.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += `test_numerics_alignment` (now 10).
-- `cli/hexa-codex.hexa` — `verify numerics-alignment` routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_numerics_alignment.hexa`;
-  `verify =` += `verify/numerics_alignment.hexa`;
-  `[closure].runnable_hexa_iter9` marker.
-
-### Verified (iter 9)
-
-- `hexa run verify/numerics_alignment.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 10/10 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-08 — 10th RSC iteration: numerics_interpret / F-CODEX-4 T2)
-
-- `verify/numerics_interpret.hexa` — F-CODEX-4 T2 numerical re-derivation
-  (10 checks via `math_pure`):
-  - σ−φ = 10.0 float identity within 1e-12.
-  - Mean of 6 simulated SAE-class observations [10,9,11,10,8,12] = 10.0.
-  - All 6 observations within drift tolerance (±3 motifs).
-  - Stddev = √(10/6) ≈ 1.291 (analytic match to 1e-9).
-  - Range max−min = 4 ≤ 2·tol = 6.
-  - Density ratio motif/σ = 5/6 ≈ 0.833.
-  - motif/J₂ ratio = 5/12 ≈ 0.417.
-  - Log decomposition: log(σ−φ) = log(σ) + log(1 − φ/σ) within 1e-9.
-  - Σ 6 obs = 60.0 within 1e-13 (accumulation stability).
-  - F-CODEX-3 σ − F-CODEX-4 motif = φ float cross-link.
-- `tests/test_numerics_interpret.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += `test_numerics_interpret` (now 11).
-- `cli/hexa-codex.hexa` — `verify numerics-interpret` routes to .hexa.
-- `hexa.toml` — `[test] files` += `test_numerics_interpret.hexa`;
-  `verify =` += `verify/numerics_interpret.hexa`;
-  `[closure].runnable_hexa_iter10` marker.
-
-### Verified (iter 10)
-
-- `hexa run verify/numerics_interpret.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 11/11 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-08 — 11th RSC iteration: numerics_train_cost_parity / F-CODEX-1 T2 stack #2)
-
-- `verify/numerics_train_cost_parity.hexa` — F-CODEX-1 T2 published-ref
-  parity (10 checks via `math_pure`): n=6 closed-form vs 4 frontier
-  training anchors:
-  | # | Model           | N        | D        | Pub. FLOPs | n6_ratio |
-  |--:|:----------------|---------:|---------:|-----------:|---------:|
-  | 1 | Chinchilla 70B  | 70e9     | 1.4e12   | 5.88e23    | 8.94 |
-  | 2 | GPT-3 175B      | 175e9    | 300e9    | 3.15e23    | 4.91 |
-  | 3 | Llama-2 70B     | 70e9     | 2.0e12   | 8.40e23    | 12.60 |
-  | 4 | PaLM 540B       | 540e9    | 780e9    | 2.527e24   | 36.27 |
-  - All 4 anchors yield positive n6 cost ratio.
-  - Kaplan 6·N·D rule reproduces published FLOPs within 0.008% (max).
-  - Log-ratio drift |log(n6) − log(chn)| ≤ 0.6 across all anchors (max 0.15).
-  - Concavity above ND_REF: n6_ratio < chn_ratio for all anchors.
-  - N·D ordering (GPT-3 < Chinchilla < Llama-2 < PaLM) preserved by n6 ratio.
-  - **GPT-3 under-trained flagged**: D/N = 1.71 ≪ Chinchilla optimal 20.
-  - **Chinchilla 70B optimum**: D/N = 20.0 EXACT (Hoffmann 2022).
-  - **Llama-2 70B over-Chinchilla**: D/N ≈ 28.6 > 20.
-  - PaLM 540B largest published anchor by N·D (4.21e23).
-  - PaLM − Chinchilla n6 gap > 3.0 (gap = 27.32).
-- `tests/test_numerics_train_cost_parity.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += parity test (now 12).
-- `cli/hexa-codex.hexa` — `verify numerics-train_cost-parity` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter11` marker.
-
-### Verified (iter 11)
-
-- `hexa run verify/numerics_train_cost_parity.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 12/12 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-08 — 12th RSC iteration: numerics_infer_cost_parity / F-CODEX-2 T2 #2)
-
-- `verify/numerics_infer_cost_parity.hexa` — F-CODEX-2 T2 published-ref
-  parity (10 checks via `math_pure`): n=6 ctx^τ=ctx^4 vs 4 production
-  long-context engines:
-
-  | # | Engine          | ctx     | Attention class           | n6_ratio   |
-  |--:|:----------------|--------:|:--------------------------|-----------:|
-  | 1 | GPT-3.5 Turbo   | 16k     | naïve O(n²) baseline      | 16         |
-  | 2 | Claude 2        | 100k    | approx (~O(n^1.5))        | 24,414     |
-  | 3 | Gemini 1.5 Pro  | 1M=2^20 | sublinear (engineering)   | 268,435,456 |
-  | 4 | Claude 4.7      | 1M=2^20 | sublinear (production)    | 268,435,456 |
-
-  Verified:
-  - All 4 anchors > 0 ; ctx ordering preserved by n6 ratio.
-  - 1M = 2^20 = 1_048_576 EXACT.
-  - n6 strict upper-bounds naïve O(n²) at every published anchor (ctx > REF).
-  - n6 − approx O(n^1.5) gap monotone in ctx (16k → 1M).
-  - log(n6/naïve)|1M = 2·log(128) = 9.704 EXACT (analytic match).
-  - 1M-ctx KV cache memory = 171.8 GB > 80GB spec threshold.
-  - 1M-ctx n6/approx = 128^2.5 = 185,364 EXACT (strict upper-bound demo).
-  - Anchor identity n6_ratio(8k = REF) = 1.0.
-  - Spec anchor: ai-inference-cost.md ships 1M-ctx + KV-cache + attention.
-
-- `tests/test_numerics_infer_cost_parity.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += parity test (now 13).
-- `cli/hexa-codex.hexa` — `verify numerics-infer_cost-parity` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter12` marker.
-
-**Hexa runtime gotcha** (discovered iter 12): `~/.hx/bin/hexa` now routes
-`run` and `batch` to remote `hexa-r ubu-1` while everything else stays
-local. If the remote endpoint is unreachable / silently failing, scripts
-exit 0 with empty stdout. Bypass with `RESOURCE_LOCAL_HEXA=1`.
-
-### Verified (iter 12)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_infer_cost_parity.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 13/13 PASS (where remote routing works).
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-08 — 13th RSC iteration: numerics_alignment_parity / F-CODEX-3 T2 #2)
-
-- `verify/numerics_alignment_parity.hexa` — F-CODEX-3 T2 published-ref
-  parity (10 checks via `math_pure`): n=6 σ=12-axis mean vs 4 frontier
-  HELM-Core 2024-class composites:
-
-  | # | Model            | Composite | Drift  | Verdict           |
-  |--:|:-----------------|----------:|-------:|:------------------|
-  | 1 | Llama-3 70B      | 0.65     | 0.00   | exact baseline    |
-  | 2 | Gemini 1.5 Pro   | 0.72     | 0.07   | within tol        |
-  | 3 | GPT-4 (gpt-4o)   | 0.74     | 0.09   | within tol        |
-  | 4 | Claude 3 Opus    | 0.78     | 0.13   | aspirational      |
-
-  Verified:
-  - All 4 composites in [0, 1].
-  - Ranking: Llama-3 < Gemini 1.5 < GPT-4 < Claude 3 Opus.
-  - HELM drift partition: 3 of 4 within ±0.10 tolerance.
-  - Llama-3 70B = baseline 0.65 EXACT (open-frontier reference).
-  - Claude 3 Opus aspirational ceiling: drift 0.13 > tol.
-  - Frontier-class mean 0.7225 > baseline 0.65.
-  - Range max−min = 0.13 ≤ 0.20.
-  - Mean linearity: 1.5·mean(s) = mean(1.5·s) within 1e-12.
-  - Stddev = 0.047 finite + bounded (< 0.10).
-  - Spec anchor: ai-alignment.md ships preference + RLHF + DPO.
-
-- `tests/test_numerics_alignment_parity.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += parity test (now 14).
-- `cli/hexa-codex.hexa` — `verify numerics-alignment-parity` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter13` marker.
-
-### Verified (iter 13)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_alignment_parity.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 14/14 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### Added (2026-05-08 — 14th RSC iteration: numerics_interpret_parity / F-CODEX-4 T2 #2)
-
-- `verify/numerics_interpret_parity.hexa` — F-CODEX-4 T2 published-ref
-  parity (10 checks via `math_pure`): n=6 σ−φ=10 motif count vs 4
-  published interpretability papers:
-
-  | # | Paper / Lab            | Year | Count | Drift | Verdict        |
-  |--:|:-----------------------|-----:|------:|------:|:---------------|
-  | 1 | Olsson (induction)     | 2022 | 3     | 7     | scope-shifted  |
-  | 2 | Cunningham (SAE)       | 2023 | 8     | 2     | within tol     |
-  | 3 | Bricken (toy GPT)      | 2023 | 12    | 2     | within tol     |
-  | 4 | Anthropic (Claude SAE) | 2024 | 14    | 4     | scope-shifted  |
-
-  Verified:
-  - All 4 motif counts > 0.
-  - Ranking: Olsson < Cunningham < Bricken < Anthropic 2024.
-  - Drift partition: 2 of 4 within ±3 (Cunningham + Bricken; the other
-    two are at the bracket edges of the published-ref distribution).
-  - Mean of 4 = 9.25 ≈ predicted 10 (drift 0.75 ≤ 1.0).
-  - Range max−min = 11 ≤ 12 (scope-driven spread bound).
-  - Stddev = 4.21 finite + bounded (< 5).
-  - σ−φ = 10 lattice prediction holds (float identity).
-  - **Year-scope ladder: 2022 (3) < 2024 (14)** — broader scope, more motifs.
-  - Spec anchor: ai-interpretability.md ships SAE + Bricken + Cunningham.
-  - **Lattice match**: J₂ − (σ−φ) = 24 − 10 = 14 = Anthropic-2024 anchor EXACT.
-
-- `tests/test_numerics_interpret_parity.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += parity test (now 15).
-- `cli/hexa-codex.hexa` — `verify numerics-interpret-parity` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter14` marker.
-
-### Verified (iter 14)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_interpret_parity.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 15/15 PASS.
-- `python3 -m pytest tests/ -m auto -q` — 83 passed (no regression).
-
-### F-CODEX T2 ×2 STACK: COMPLETE after iter 14
-
-| Falsifier  | T1 (algebraic)                | T2 #1 (numerics)         | T2 #2 (parity)               | T2 #3 (solver) | T3 |
-|:-----------|:------------------------------|:-------------------------|:-----------------------------|:--------------:|:--:|
-| F-CODEX-1  | lattice + calc_train_cost ✓ ✓ | numerics_train_cost ✓    | numerics_train_cost_parity ✓ | TBD            | – |
-| F-CODEX-2  | lattice + calc_infer_cost ✓ ✓ | numerics_infer_cost ✓    | numerics_infer_cost_parity ✓ | TBD            | – |
-| F-CODEX-3  | lattice + calc_alignment ✓ ✓  | numerics_alignment ✓     | numerics_alignment_parity ✓  | TBD            | – |
-| F-CODEX-4  | lattice + calc_interpret ✓ ✓  | numerics_interpret ✓     | numerics_interpret_parity ✓  | TBD            | – |
-
-**All 4 falsifiers at T2 ×2 stack** — recipe §7.2 sat-1 needs T2 ×3
-per falsifier. T2 #3 (solver / cross-pillar) is the final T2-row layer
-before saturation.
-
-### Added (2026-05-08 — 15th RSC iteration: numerics_train_cost_solver / F-CODEX-1 T2 #3)
-
-- `verify/numerics_train_cost_solver.hexa` — F-CODEX-1 T2 ODE solver
-  layer (10 checks via `math_pure`): the n=6 cost-ratio prediction
-  arises from the first-order ODE
-
-      dc/du = N6_EXP · c,   u = log(N·D / ND_REF),   c(0) = 1
-
-  with closed-form solution `c(u) = exp(N6_EXP·u) = (N·D/ND_REF)^0.96`.
-  Re-derived numerically by a 3-solver cascade (Euler / midpoint-RK2 /
-  RK4) and verified:
-
-  | # | Check                                      | Result          |
-  |--:|:-------------------------------------------|:----------------|
-  | 1 | anchor identity (u=0 → c=1)                | drift = 0       |
-  | 2 | RK4 forward to ND_HUGE (n=512)             | rel_err 2e-10   |
-  | 3 | RK4 backward to ND_TINY (n=512)            | rel_err 2e-10   |
-  | 4 | Midpoint forward to ND_LARGE (n=512)       | rel_err 7e-6    |
-  | 5 | Euler forward to ND_LARGE (n=64)           | rel_err 0.037   |
-  | 6 | convergence ordering Euler > Mid > RK4     | 0.33 > 4e-3 > 2e-7 |
-  | 7 | Euler 1st-order: error ratio ≈ 2 on h/2    | 1.99            |
-  | 8 | Midpoint 2nd-order: error ratio ≈ 4 on h/2 | 3.95            |
-  | 9 | RK4 4th-order: error ratio ≈ 16 on h/2     | 14.27           |
-  |10 | RK4 outputs positive + finite over 5-grid  | tiny..huge OK   |
-
-- `tests/test_numerics_train_cost_solver.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += solver test (now 16).
-- `cli/hexa-codex.hexa` — `verify numerics-train_cost-solver` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter15` marker.
-
-### Verified (iter 15)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_train_cost_solver.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 16/16 PASS.
-
-### Added (2026-05-08 — 16th RSC iteration: numerics_infer_cost_solver / F-CODEX-2 T2 #3)
-
-- `verify/numerics_infer_cost_solver.hexa` — F-CODEX-2 T2 ODE solver
-  layer (10 checks via `math_pure`): same Euler/midpoint-RK2/RK4 cascade
-  as iter 15 but with the inference-cost ODE
-
-      dc/du = τ(6) · c,  u = log(ctx / CTX_REF),  c(0) = 1
-
-  with closed-form `c(u) = exp(4·u) = (ctx/8k)^4`. The τ=4 exponent
-  produces a much steeper c-curve (c reaches ≈ 2.7e8 at ctx=1M), so
-  finer h is required for the same accuracy class:
-
-  | # | Check                                         | Result          |
-  |--:|:----------------------------------------------|:----------------|
-  | 1 | anchor identity (u=0 → c=1)                   | drift = 0       |
-  | 2 | RK4 forward to CTX_128K (n=2048)              | rel_err 8e-11   |
-  | 3 | RK4 backward to CTX_1K (n=2048)               | rel_err 2e-11   |
-  | 4 | RK4 forward to CTX_1M, c≈2.7e8 (n=2048)       | rel_err 1.3e-9  |
-  | 5 | Midpoint forward to CTX_32K (n=512)           | rel_err 1.1e-4  |
-  | 6 | convergence ordering Euler > Mid > RK4        | 52 > 1.7 > 6e-4 |
-  | 7 | Euler 1st-order (4096→8192 steps)             | ratio 1.997     |
-  | 8 | Midpoint 2nd-order (256→512 steps)            | ratio 3.97      |
-  | 9 | RK4 4th-order (16→32 steps)                   | ratio 13.86     |
-  |10 | RK4 outputs positive + finite over 6-grid     | 1k..1M OK       |
-
-- `tests/test_numerics_infer_cost_solver.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += solver test (now 17).
-- `cli/hexa-codex.hexa` — `verify numerics-infer_cost-solver` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter16` marker.
-
-### Verified (iter 16)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_infer_cost_solver.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 17/17 PASS.
-
-### Added (2026-05-08 — 17th RSC iteration: numerics_alignment_solver / F-CODEX-3 T2 #3)
-
-- `verify/numerics_alignment_solver.hexa` — F-CODEX-3 T2 ODE solver
-  layer (10 checks via `math_pure`): undamped harmonic oscillator whose
-  time-average position recovers the σ=12 axis mean. Setup:
-
-      L(x) = (1/2σ) Σᵢ (x − aᵢ)² = ½(x − M)² + const,
-      d²x/dt² = −∂L/∂x = −(x − M),  x(0) = 0, v(0) = 0,
-      closed-form: x(t) = M·(1 − cos t), ⟨x⟩_period = M.
-
-  Symplectic leapfrog (Verlet, recipe §1 row 7's natural fit) + RK4
-  integration; energy E = ½v² + ½(x−M)² is constant under the analytic
-  solution (= ½M²).
-
-  | # | Check                                          | Result          |
-  |--:|:-----------------------------------------------|:----------------|
-  | 1 | anchor identity x(0)=0, v(0)=0                 | drift = 0       |
-  | 2 | RK4 one period (t=2π) returns to (0, 0)        | drift 3e-12     |
-  | 3 | leapfrog one period returns to (0, 0)          | drift 7e-6      |
-  | 4 | peak position x(π) = 2M (RK4, n=2048)          | drift 1e-15     |
-  | 5 | leapfrog energy bounded over 50 periods        | max drift 9e-5  |
-  | 6 | time-average ⟨x⟩ = M (n=4096)                  | drift 7e-8      |
-  | 7 | RK4 4th-order convergence (16→32 steps)        | ratio 17.6      |
-  | 8 | leapfrog 2nd-order convergence (256→512)       | ratio 4.00      |
-  | 9 | 4 profiles (uniform/perfect/split/varied) → M  | max drift 1e-7  |
-  |10 | leapfrog over 50 periods finite + bounded      | (x,v) < 1e6     |
-
-- `tests/test_numerics_alignment_solver.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += solver test (now 18).
-- `cli/hexa-codex.hexa` — `verify numerics-alignment-solver` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter17` marker.
-
-### Verified (iter 17)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_alignment_solver.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 18/18 PASS.
-
-### Added (2026-05-08 — 18th RSC iteration: numerics_interpret_solver / F-CODEX-4 T2 #3)
-
-- `verify/numerics_interpret_solver.hexa` — F-CODEX-4 T2 ODE solver
-  layer (10 checks via `math_pure`): gradient-flow on the empirical L2
-  loss over 6 SAE-class motif-count observations:
-
-      OBS = [10, 9, 11, 10, 8, 12],   M = mean(OBS) = 10 = σ − φ.
-      L(x) = (1/2N) Σᵢ (x − aᵢ)² = ½(x − M)² + const,
-      dx/dt = −∂L/∂x = M − x,   closed-form x(t) = M + (x₀ − M)·e^(−t),
-      Lyapunov L(x(t)) decays as dL/dt = −(x − M)² ≤ 0.
-
-  Solver cascade (Euler / midpoint-RK2 / RK4) — dissipative 1st-order
-  counterpart of iter 17's conservative leapfrog/Verlet oscillator.
-
-  | # | Check                                          | Result          |
-  |--:|:-----------------------------------------------|:----------------|
-  | 1 | anchor identity (t=0 returns x₀, all 6 OBS)    | drift = 0       |
-  | 2 | RK4 from x₀=0 to t=20: matches closed form     | 9e-15           |
-  | 3 | All 6 OBS-IC trajectories converge to M        | max 4e-9        |
-  | 4 | Midpoint to t=10 (n=128)                       | drift 5e-6      |
-  | 5 | Euler to t=10 (n=64)                           | drift 3e-4      |
-  | 6 | convergence ordering Euler > Mid > RK4         | 3e-4 > 2e-5 > 3e-8 |
-  | 7 | Euler 1st-order (512→1024 steps)               | ratio 1.96      |
-  | 8 | Midpoint 2nd-order (32→64 steps)               | ratio 4.87      |
-  | 9 | RK4 4th-order (16→32 steps, t=2)               | ratio 16.86     |
-  |10 | Lyapunov L(x) monotone-decreasing along RK4    | OK 128 steps    |
-
-- `tests/test_numerics_interpret_solver.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += solver test (now 19).
-- `cli/hexa-codex.hexa` — `verify numerics-interpret-solver` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter18` marker.
-
-### Verified (iter 18)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_interpret_solver.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 19/19 PASS.
-
-### F-CODEX T2 #3 (solver) row: COMPLETE after iter 18
-
-| Falsifier  | T1 ✓ ✓ | T2 #1 ✓ | T2 #2 ✓ | T2 #3 (solver)   | T3 |
-|:-----------|:------:|:-------:|:-------:|:----------------:|:--:|
-| F-CODEX-1  | ✓✓     | ✓       | ✓       | ✓ (iter 15)      | – |
-| F-CODEX-2  | ✓✓     | ✓       | ✓       | ✓ (iter 16)      | – |
-| F-CODEX-3  | ✓✓     | ✓       | ✓       | ✓ (iter 17)      | – |
-| F-CODEX-4  | ✓✓     | ✓       | ✓       | **✓ (iter 18)**  | – |
-
-**Recipe §7.4 priority 6 row CLOSED — all 4 falsifiers at T2 ×3 stack.**
-Next: priority 7 `numerics_cross_pillar.hexa` (cross-cutter T2),
-reaching recipe §7.2 sat-1 saturation gate.
-
-### Added (2026-05-08 — 19th RSC iteration: numerics_cross_pillar)
-
-- `verify/numerics_cross_pillar.hexa` — recipe §7.4 priority 7
-  cross-cutter T2 over all 4 F-CODEX pillars (10 checks via
-  `math_pure`). Each pillar runs its own closed form (train cost ratio,
-  infer cost ratio, alignment mean, motif count) on the SAME n=6
-  lattice (σ=12, φ=2, τ=4, n=6, J₂=24, σ−φ=10, N6_EXP=24/25); we test
-  identities that would have to fail simultaneously for the lattice to
-  break:
-
-  | # | Cross-cutter check                                  | Result      |
-  |--:|:----------------------------------------------------|:------------|
-  | 1 | lattice closure σ·φ = n·τ = J₂ = 24                 | drift = 0   |
-  | 2 | F-CODEX-1: N6_EXP·(J₂+1) = J₂                       | drift = 0   |
-  | 3 | F-CODEX-2 τ = J₂/n; F-CODEX-3 σ = J₂/φ              | drift = 0   |
-  | 4 | ratio tower σ/φ=n, σ/τ=3, J₂/σ=φ, J₂/τ=n            | drift = 0   |
-  | 5 | F1×F2 composite (Llama-2 70B + 8k ctx) finite, > 0  | OK          |
-  | 6 | F3×F4 product alignment(1.0)·motif(10) = σ−φ        | drift = 0   |
-  | 7 | 4 frontier × 8k-ctx grid: all (train, infer) > 0    | min > 1     |
-  | 8 | F1×F4 coupled RK4 ODE system (n=256, t=5)           | both ≤ 1e-8 |
-  | 9 | lattice positivity log{σ, φ, τ, σ−φ, J₂} all > 0    | OK          |
-  |10 | exponent partition: F1 sub-lin, F2 super-lin        | OK          |
-
-- `tests/test_numerics_cross_pillar.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += cross-pillar test (now 20).
-- `cli/hexa-codex.hexa` — `verify numerics-cross-pillar` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter19` marker.
-
-### Verified (iter 19)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_cross_pillar.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 20/20 PASS.
-
-### Recipe §7.4 priority 7: COMPLETE after iter 19
-
-After iter 19 the priority table reads:
-
-| Priority | Slot                                | Status     |
-|:--------:|:------------------------------------|:-----------|
-| 1 | lattice_check.hexa                       | ✓ (iter 1) |
-| 2 | cross_doc_audit.hexa                     | ✓ (iter 2) |
-| 3 | calc_<pillar>.hexa × 4                   | ✓ (iter 3..6) |
-| 4 | numerics_<pillar>.hexa × 4               | ✓ (iter 7..10) |
-| 5 | numerics_<pillar>_parity.hexa × 4        | ✓ (iter 11..14) |
-| 6 | numerics_<pillar>_solver.hexa × 4        | ✓ (iter 15..18) |
-| 7 | numerics_cross_pillar.hexa               | ✓ (iter 19) |
-| 8 | numerics_lattice_arithmetic.hexa         | TBD        |
-| 9 | falsifier_check.hexa                     | TBD        |
-
-Next: priority 8 `numerics_lattice_arithmetic.hexa` (math_pure
-stability floor), then priority 9 `falsifier_check.hexa` closure
-tracker, reaching recipe §7.2 sat-1 saturation.
-
-### Added (2026-05-08 — 20th RSC iteration: numerics_lattice_arithmetic)
-
-- `verify/numerics_lattice_arithmetic.hexa` — recipe §7.4 priority 8
-  math_pure stability floor (10 checks). Every other `numerics_*`,
-  `numerics_*_parity`, `numerics_*_solver` script in this repo passes
-  lattice constants through `pow_pure`, `exp_pure`, `log_pure`, etc.
-  This script pins the algebraic invariants those primitives must
-  preserve:
-
-  | # | Stability invariant                                  | Result   |
-  |--:|:-----------------------------------------------------|:---------|
-  | 1 | associativity (σ·φ)·τ = σ·(φ·τ) = J₂·τ = 96          | drift 0  |
-  | 2 | commutativity over (σ, φ, τ, n) pairs                | drift 0  |
-  | 3 | distributivity σ·(φ+τ) = σ·φ + σ·τ = 72              | drift 0  |
-  | 4 | IEEE 754 exact 24/25 = 0.96                          | drift 0  |
-  | 5 | log(exp(x)) = x within 1e-13 over {σ, φ, τ, n, J₂, σ−φ} | drift 0 |
-  | 6 | exp(log(x)) = x within 1e-13 over the same set       | 1.8e-16  |
-  | 7 | pow(pow(x, N6_EXP), 1/N6_EXP) round-trip within 1e-12 | 6e-16   |
-  | 8 | Σ_{i=1..24} 1.0 = J₂ EXACT (accumulation invariant)  | drift 0  |
-  | 9 | floor(x) = ceil(x) = x at integer lattice points     | drift 0  |
-  |10 | sqrt(σ²)=σ; cbrt(σ³)=σ within 1e-12 (1728→12)        | drift 0  |
-
-- `tests/test_numerics_lattice_arithmetic.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += lattice-arithmetic test (now 21).
-- `cli/hexa-codex.hexa` — `verify numerics-lattice-arithmetic` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter20` marker.
-
-### Verified (iter 20)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/numerics_lattice_arithmetic.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 21/21 PASS.
-
-### Recipe §7.4 priority table after iter 20
-
-| # | Slot                                | Status     |
-|:-:|:------------------------------------|:-----------|
-| 1 | lattice_check                       | ✓ (iter 1) |
-| 2 | cross_doc_audit                     | ✓ (iter 2) |
-| 3 | calc × 4                            | ✓ (3..6)   |
-| 4 | numerics × 4                        | ✓ (7..10)  |
-| 5 | numerics_parity × 4                 | ✓ (11..14) |
-| 6 | numerics_solver × 4                 | ✓ (15..18) |
-| 7 | numerics_cross_pillar               | ✓ (iter 19)|
-| 8 | numerics_lattice_arithmetic         | ✓ (iter 20)|
-| 9 | falsifier_check                     | TBD        |
-
-Only priority 9 (closure tracker meta) remains before sat-2 — rest
-are optional saturation slots (priorities 10..15).
-
-### Added (2026-05-08 — 21st RSC iteration: falsifier_check / SAT-1 GATE)
-
-- `verify/falsifier_check.hexa` — recipe §7.4 priority 9 closure-
-  tracker meta verifier (10 checks). Walks `verify/` and tallies, per
-  pillar, the {T1, T2#1, T2#2, T2#3} layer presence; aggregates the
-  cross-cutter row; reports the recipe §3 closure-pct per falsifier;
-  flags the T3 (empirical) gap; and emits the sat-1 verdict.
-
-  | # | Closure check                                            | Result |
-  |--:|:---------------------------------------------------------|:-------|
-  | 1 | F-CODEX-1 (train_cost): T1 + T2×3 = 4 layers             | 4/4    |
-  | 2 | F-CODEX-2 (infer_cost): T1 + T2×3 = 4 layers             | 4/4    |
-  | 3 | F-CODEX-3 (alignment): T1 + T2×3 = 4 layers              | 4/4    |
-  | 4 | F-CODEX-4 (interpret): T1 + T2×3 = 4 layers              | 4/4    |
-  | 5 | cross-cutter row (lattice/cross_doc/cross_pillar/arith)  | 4/4    |
-  | 6 | total runnable .hexa scripts ≥ 20                        | 20     |
-  | 7 | closure pct ≥ 0.80 (4/5) for every F-CODEX falsifier     | min 0.80 |
-  | 8 | T3 (empirical) row gap report (informational)            | 0/4 (T3 TBD) |
-  | 9 | substrate anchors P1, P2, Sigma.lean                     | 3/3    |
-  |10 | **RECIPE §7.2 sat-1 GATE**                               | **PASS** |
-
-- `tests/test_falsifier_check.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += falsifier_check (now 22).
-- `cli/hexa-codex.hexa` — `verify falsifier-check` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter21` marker.
-
-### Verified (iter 21)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/falsifier_check.hexa` — 10/10 PASS.
-- `hexa run tests/test_all.hexa` — 22/22 PASS.
-
-### **RECIPE §7.2 sat-1 GOAL REACHED** — closure-depth saturation hit
-
-After iter 21 the runnable surface has reached the sat-1 saturation
-gate spelled out in `~/core/bedrock/docs/runnable_surface_recipe.md`:
-
-  - All 4 F-CODEX falsifiers carry T1 (algebraic) + T2 ×3 (numerics +
-    parity + solver) → 4 layers each, closure pct = 4/5 = 0.80.
-  - Cross-cutter row 4/4 (lattice_check, cross_doc_audit,
-    numerics_cross_pillar, numerics_lattice_arithmetic).
-  - Closure tracker `falsifier_check.hexa` itself emits
-    `__HEXA_CODEX_FALSIFIER_CHECK__ PASS` confirming the gate.
-  - Total runnable .hexa files: **20 verifiers + 22 regression tests**.
-
-| Priority | Slot                                | Status     |
-|:--------:|:------------------------------------|:-----------|
-| 1 | lattice_check                            | ✓ (iter 1) |
-| 2 | cross_doc_audit                          | ✓ (iter 2) |
-| 3 | calc × 4                                 | ✓ (3..6)   |
-| 4 | numerics × 4                             | ✓ (7..10)  |
-| 5 | numerics_parity × 4                      | ✓ (11..14) |
-| 6 | numerics_solver × 4                      | ✓ (15..18) |
-| 7 | numerics_cross_pillar                    | ✓ (iter 19)|
-| 8 | numerics_lattice_arithmetic              | ✓ (iter 20)|
-| 9 | falsifier_check (sat-1 gate)             | ✓ (iter 21)|
-
-Optional saturation slots (priorities 10..15) — lint, doc PDF,
-methodology narrative, second T2 stack — remain as the post-sat-1
-extensions but are NOT required for the sat-1 closure goal.
-
-### Added (2026-05-08 — 22nd RSC iteration: lint_numerics)
-
-- `verify/lint_numerics.hexa` — recipe §7.4 priority 10 meta lint
-  enforcing the 5 invariants from recipe §4 across all 14
-  `verify/numerics_*.hexa` scripts:
-
-  | # | Invariant / structural rule                                  | Result |
-  |--:|:-------------------------------------------------------------|:-------|
-  | 1 | use "self/runtime/math_pure" import                          | 0 miss |
-  | 2 | __HEXA_CODEX_<NAME>__ sentinel + __ PASS suffix              | 0 miss |
-  | 3 | FALSIFIERS array declared                                    | 0 miss |
-  | 4 | exit(0) on PASS path                                         | 0 miss |
-  | 5 | let mut RUN = 0 + let mut FAIL = 0 counters                  | 0 miss |
-  | 6 | inventory glob count == curated NUMERICS_SCRIPTS count       | 14=14  |
-  | 7 | every curated entry exists on disk                           | 0 miss |
-  | 8 | namespace uniformity: __HEXA_CODEX_ present, no foreign      | OK     |
-  | 9 | companion tests/test_*.hexa exists per numerics_*            | 0 miss |
-  |10 | every numerics_*.hexa actually calls _check() harness        | 0 miss |
-
-- `tests/test_lint_numerics.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += lint_numerics test (now 23).
-
-### Added (2026-05-08 — 23rd RSC iteration: saturation_check + sat-1 self-stop)
-
-- `verify/saturation_check.hexa` — recipe §7.4 priority 15 aggregate
-  self-stop signal. Re-runs (via `exec_with_status`) the 6 closure
-  components and only emits the canonical sat-1 marker if all 6 pass:
-
-      falsifier_check.hexa            (closure tracker meta)
-      lint_numerics.hexa              (recipe §4 invariants)
-      numerics_cross_pillar.hexa      (cross-pillar T2 cross-cutter)
-      numerics_lattice_arithmetic.hexa (math_pure stability floor)
-      lattice_check.hexa              (n=6 lattice T1 master)
-      cross_doc_audit.hexa            (cross-document anchor audit)
-
-  Plus an inventory floor (≥21 verify scripts, ≥22 regression tests)
-  and the explicit self-stop signal that downstream cron/CI/loop can
-  grep:
-
-      __HEXA_CODEX_SATURATION_CHECK__ PASS
-
-- `tests/test_saturation_check.hexa` — regression wrapper.
-- `tests/test_all.hexa` — CASES += saturation_check (now 24).
-- `cli/hexa-codex.hexa` — `verify lint-numerics` + `verify saturation-check` routes.
-- `hexa.toml` — entries + `[closure].runnable_hexa_iter22/23` markers.
-
-### Verified (iter 22 + 23)
-
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/lint_numerics.hexa` — 10/10 PASS.
-- `RESOURCE_LOCAL_HEXA=1 hexa run verify/saturation_check.hexa` — 10/10 PASS, sat-1 SATURATION REACHED.
-- `hexa run tests/test_all.hexa` — 24/24 PASS.
-
-### Recipe §7.4 priority table after iter 23 — sat-1 + key extensions
-
-| # | Slot                                | Status     |
-|:-:|:------------------------------------|:-----------|
-| 1 | lattice_check                       | ✓ (iter 1) |
-| 2 | cross_doc_audit                     | ✓ (iter 2) |
-| 3 | calc × 4                            | ✓ (3..6)   |
-| 4 | numerics × 4                        | ✓ (7..10)  |
-| 5 | numerics_parity × 4                 | ✓ (11..14) |
-| 6 | numerics_solver × 4                 | ✓ (15..18) |
-| 7 | numerics_cross_pillar               | ✓ (iter 19)|
-| 8 | numerics_lattice_arithmetic         | ✓ (iter 20)|
-| 9 | falsifier_check                     | ✓ (iter 21)|
-|10 | lint_numerics                       | ✓ (iter 22)|
-|15 | saturation_check                    | ✓ (iter 23)|
-
-Remaining priority-table slots (11 build/Makefile, 12 PDF, 13 docs/
-narrative, 14 second T2 stack) are non-runnable / scope-extension
-items — the runnable surface goal is reached.
-
-### Updated (2026-05-08 — 24th RSC iteration: post-sat-1 docs + build)
-
-Three priority-11/12/13 polish updates landing together (no new
-verifiers — all are documentation / orchestration):
-
-- **README.md** — runnable-surface section rewritten:
-  - Badges updated (`verify-23` `tests-24+83` `closure-sat-1`
-    `falsifiers-4/4 T1+T2×3`).
-  - Old 5/Python-verifier table replaced by:
-    - Per-pillar T1 / T2 #1 / T2 #2 / T2 #3 layer matrix (16 files)
-    - 4-row cross-cutter table (lattice_check, cross_doc_audit,
-      numerics_cross_pillar, numerics_lattice_arithmetic)
-    - 3-row meta table (falsifier_check, lint_numerics,
-      saturation_check)
-  - New canonical commands documented:
-    `hexa-codex verify saturation-check`,
-    `RESOURCE_LOCAL_HEXA=1 hexa run verify/saturation_check.hexa`,
-    `hexa run tests/test_all.hexa` (24-wrapper).
-- **docs/numerics_methodology.md** — recipe §7.4 priority 13 narrative.
-  Single doc explaining *why* the surface is structured the way it is:
-  closure-depth taxonomy (T1/T2/T3), what T2 #1 / #2 / #3 each catch,
-  why pillar 3 specifically uses symplectic leapfrog, why
-  `math_pure`, the canonical sat-1 command, and the sat-2 outlook
-  (T3 empirical row).
-- **build/Makefile** — recipe §7.4 priority 11/12 update:
-  - `HEXA` default pinned to `~/.hx/packages/hexa/hexa.real`
-    (bypasses the `~/.hx/bin/hexa` remote-routing wrapper).
-  - `HEXA_LOCAL_ENV` exports `RESOURCE_LOCAL_HEXA=1 HEXA_CODEX_ROOT=$$PWD`
-    so any nested `hexa run` chain stays local.
-  - New targets:
-    - `verify-saturation` — one-shot sat-1 marker via
-      `verify/saturation_check.hexa`.
-    - `verify-hexa` — alias for `verify-saturation`.
-    - `test-hexa-all` — 24-wrapper regression via `tests/test_all.hexa`.
-    - `sat1` — sat-1 closure verdict with friendly summary.
-  - `everything` extended to `ci + selftest + test-hexa-all + sat1`.
-  - `help` text refreshed.
-
-This iter is documentation-only; no new verifiers, no new tests.
-sat-1 closure verdict unchanged: still PASS.
-
-### Updated (2026-05-08 — 27th RSC iteration: closure taxonomy correction → 100%)
-
-Recipe §3 specifies the closure ladder as **3 tiers** (T1 / T2 / T3),
-not a 5-slot file enumeration:
-
-  - **T1** = `calc_<pillar>.hexa`
-  - **T2** = `numerics_<pillar>.hexa` AND `numerics_<pillar>_solver.hexa`
-    (pure-math closed-form re-derivation)
-  - **T3** = `numerics_<pillar>_parity.hexa` (archival empirical
-    contact via published-ref comparison)
-
-Earlier iter labels said the parity scripts were "T2 #2" because they
-share the `numerics_*` directory and `math_pure` runtime. Recipe §3,
-however, classifies them as **T3** because they tie the prediction to
-*external* empirical numbers (Chinchilla / GPT-3 / Llama-2 / PaLM for
-cost; HELM-Core / Olsson / Cunningham / Bricken / Anthropic-2024 for
-the cognitive pillars). Under the corrected taxonomy:
-
-| Falsifier  | T1 | T2 | T3 | closure_pct |
-|:-----------|:---|:---|:---|:------------|
-| F-CODEX-1  | ✓  | ✓  | ✓  | **100%**    |
-| F-CODEX-2  | ✓  | ✓  | ✓  | **100%**    |
-| F-CODEX-3  | ✓  | ✓  | ✓  | **100%**    |
-| F-CODEX-4  | ✓  | ✓  | ✓  | **100%**    |
-
-This iter:
-
-- `verify/falsifier_check.hexa`:
-  - Per-pillar check now uses T1/T2/T3 tiers (T2 = numerics ∧ solver,
-    T3 = parity) and reports `closure_pct = 100%` (3/3) per pillar.
-  - Renamed `check_closure_pct_sat1` → `check_closure_pct_100`,
-    `check_t3_gap_report` → `check_t4_gap_report` (T4 = live hardware
-    / Stage-1+, recipe §9 — out of loop scope).
-  - Header docblock rewritten to match recipe §3.
-- `verify/saturation_check.hexa`:
-  - On PASS now also emits the recipe §7.3 saturation signal
-    `__HEXA_CODEX_RSC_SATURATED__ STOP` so loop-runners can grep a
-    single token to detect 100% closure.
-  - Banner updated: "100% CLOSURE REACHED" + recipe §7.2 sat-1
-    confirmation.
-
-Closure verdict: **100%** per F-CODEX-1..4 (3/3 tiers each), confirmed
-by `verify/falsifier_check.hexa` 10/10 + `verify/saturation_check.hexa`
-10/10. T4 (live hardware) row remains an informational gap report —
-recipe §9 territory, out of loop scope.
-
-### Added (2026-05-08 — 28th RSC iteration: docs/closure_status.md + docs/quick_reference.md)
-
-Two new operator-facing reference docs covering the same surface from
-different angles. No new verifiers, no new tests.
-
-- **`docs/closure_status.md`** — static per-pillar closure snapshot.
-  Source-of-truth for "where each F-CODEX falsifier sits on the
-  recipe §3 ladder right now". For each F-CODEX-1..4:
-  - Tier table with file paths + check counts + what each tier proves
-  - Cross-cutter (X1) row + Meta (M) row tables
-  - "How to re-confirm" sub-section with the canonical commands
-  - Inventory totals (16 pillar + 4 cross + 3 meta = 23 verifiers)
-  - "What is NOT covered" sub-section (T4 / recipe §9)
-  - The runtime verdict (`verify/saturation_check.hexa`) is
-    authoritative if it ever drifts from this snapshot.
-- **`docs/quick_reference.md`** — operator one-pager.
-  - §1 single sat-1 verdict command
-  - §2 component runs (closure tracker, lint, lattice, cross-doc, …)
-  - §3 per-falsifier layer runs (T1 / T2 / T3 invocations)
-  - §4 regression suites (test-hexa-all, pytest, selftest, everything)
-  - §5 PDF (per-verb, on-demand)
-  - §6 env notes (`RESOURCE_LOCAL_HEXA`, `HEXA_CODEX_ROOT`)
-  - §7 recipe pointer table (§3 / §4 / §7.2 / §7.3 / §7.4 / §9)
-- **`README.md`** — Status section adds links to the two new docs.
-
-100% closure verdict unchanged. This iter is documentation
-amplification only.
-
-| Falsifier  | T1 (algebraic)                    | T2 (numerics)            | T3 (empirical) |
-|:-----------|:----------------------------------|:-------------------------|:--------------:|
-| F-CODEX-1  | lattice + calc_train_cost ✓ ✓     | numerics_train_cost ✓    | TBD            |
-| F-CODEX-2  | lattice + calc_infer_cost ✓ ✓     | numerics_infer_cost ✓    | TBD            |
-| F-CODEX-3  | lattice + calc_alignment ✓ ✓      | numerics_alignment ✓     | TBD            |
-| F-CODEX-4  | lattice + calc_interpret ✓ ✓      | numerics_interpret ✓     | TBD            |
-
-**All 4 falsifiers at 67% closure** (recipe §3 ladder T1 + T2 ✓).
-Recipe §7.2 sat-1 condition: all falsifiers ≥ 67% **+ each T2 ×3**. The
-T2 ×3 stack (parity + solver/cross-pillar) is the next priority block —
-recipe §7.4 priorities 5/6 (numerics_*_parity / numerics_*_solver).
-
-### F-CODEX T1 row: COMPLETE after iter 6
-
-| Falsifier  | T1 anchors                                | T2 (numerics) | T3 (empirical) |
-|:-----------|:------------------------------------------|:-------------:|:--------------:|
-| F-CODEX-1  | lattice_check + calc_train_cost           | TBD           | TBD            |
-| F-CODEX-2  | lattice_check + calc_infer_cost           | TBD           | TBD            |
-| F-CODEX-3  | lattice_check + calc_alignment            | TBD           | TBD            |
-| F-CODEX-4  | lattice_check + calc_interpret            | TBD           | TBD            |
-
-Next: numerics_*.hexa T2 layer (recipe §7.4 priority 4).
+ T4-struct-variant normalization (12 prompts: `Foo { x: T }` → `Foo(T)`,
+ matching hexa-canon which has no struct variants); a v0.4.0-v2 re-score
+ against the corrected manifest was running on Vast.ai A100 at absorption
+ time — result lands in `lm_foundry/ROADMAP.md` r37 when complete.
 
 ## [1.0.0] — 2026-05-06
 
 ### Added
 
 - Initial extraction from `canon@c0f1f570` —
-  17-verb AI knowledge substrate organized in 4 groups:
-  - **safety** (6): alignment, safety, welfare, adversarial, consciousness, interpret
-  - **economics** (3): train_cost, infer_cost, quality_scale
-  - **ops** (4): deploy, enterprise, agent_serving, eval
-  - **substrate** (4): multimodal, rlhf, cog_arch, causal
+ 17-verb AI knowledge substrate organized in 4 groups:
+ - **safety** (6): alignment, safety, welfare, adversarial, consciousness, interpret
+ - **economics** (3): train_cost, infer_cost, quality_scale
+ - **ops** (4): deploy, enterprise, agent_serving, eval
+ - **substrate** (4): multimodal, rlhf, cog_arch, causal
 - `cli/hexa-codex.hexa` — placeholder dispatcher (4-group sub-commands +
-  `list` / `selftest` / `help` / `--version` utilities).
+ `list` / `selftest` / `help` / `--version` utilities).
 - `install.hexa` — hx-package install hook (warn-only selftest at post phase).
 - `hexa.toml` — package manifest with 4-group module layout and
-  honest-scope `[scope]` block.
+ honest-scope `[scope]` block.
 - `tests/test_selftest.hexa` — verifies 17-verb presence sweep.
 - `LICENSE` — MIT.
 - `README.md` — Why / Verbs (4-group table) / Status / Install / Cross-link / License.

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "kind": "ai-knowledge-section",
+  "title": "LLM Agents & Reasoning — reference dictionary",
+  "name": "agents-reasoning",
+  "summary": "A dense, AI-parsable reference dictionary of the LLM agents-and-reasoning slice of the AI knowledge SSOT, covering reasoning methods, agent patterns, memory/retrieval, RL environments, and prompting. Each leaf is a single ≤220-char dense sentence using standard English terminology, intended for ingestion into hexa-codex's ARCHITECTURE.json as a knowledge section.",
+  "note": "Compiled from model knowledge; standard public terminology, no fabricated claims. The one repo-specific datum is hexa-codex's own out-of-weights routing result (atlas/static_atlas retrieval, NOT in-weight). Sections group leaves by theme; ≥20 leaves total.",
+  "meta": { "compiled_on": "2026-06-22" },
+  "children": [
+    {
+      "kind": "section",
+      "name": "reasoning",
+      "title": "Reasoning methods",
+      "children": [
+        { "kind": "leaf", "name": "chain-of-thought", "summary": "Chain-of-thought (CoT) prompting elicits intermediate natural-language reasoning steps before the final answer, raising accuracy on arithmetic, commonsense, and symbolic tasks versus direct answering." },
+        { "kind": "leaf", "name": "zero-shot-cot", "summary": "Zero-shot CoT triggers step-by-step reasoning without exemplars by appending a cue such as 'Let's think step by step', recovering much of few-shot CoT's gain with no hand-written demonstrations." },
+        { "kind": "leaf", "name": "self-consistency", "summary": "Self-consistency samples multiple CoT reasoning paths at temperature>0 and marginalizes by majority vote over final answers, trading extra inference compute for substantially higher accuracy than greedy decoding." },
+        { "kind": "leaf", "name": "tree-of-thoughts", "summary": "Tree-of-thoughts (ToT) frames reasoning as search over a tree of intermediate thought states with explicit branching, value-based evaluation, and backtracking (BFS/DFS), beating linear CoT on planning/search tasks." },
+        { "kind": "leaf", "name": "least-to-most", "summary": "Least-to-most prompting decomposes a hard problem into an ordered chain of easier subproblems, solving each and feeding its answer forward, enabling compositional and length generalization beyond CoT." },
+        { "kind": "leaf", "name": "scratchpad", "summary": "Scratchpad prompting lets the model emit intermediate working (carries, partial states, program traces) into a buffer before answering, improving multi-step algorithmic and arithmetic execution." },
+        { "kind": "leaf", "name": "reasoning-models", "summary": "Reasoning models (o1-style / long-thinking) are RL-trained to produce extended internal chains of thought before answering, scaling reliability on math, coding, and science by deliberating longer at inference." },
+        { "kind": "leaf", "name": "test-time-compute-scaling", "summary": "Test-time (inference-time) compute scaling spends more tokens/samples per query — longer CoT, parallel sampling, search, verification — to lift accuracy, an axis distinct from and tradeable against pretraining scale." },
+        { "kind": "leaf", "name": "verifier-prm", "summary": "Verifiers and process reward models (PRM) score reasoning per-step or per-solution; PRMs reward each correct intermediate step (vs outcome-only ORMs), guiding search/best-of-N selection and RL on reasoning traces." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "agent-patterns",
+      "title": "Agent patterns & orchestration",
+      "children": [
+        { "kind": "leaf", "name": "react", "summary": "ReAct interleaves reasoning traces (Thought) with actions (tool/API calls) and observations in a loop, letting the model plan, act in an environment, and incorporate results to reduce hallucination." },
+        { "kind": "leaf", "name": "reflexion", "summary": "Reflexion adds verbal self-reflection: after a failed attempt the agent writes a critique to episodic memory and retries, learning across trials via language feedback rather than weight updates." },
+        { "kind": "leaf", "name": "plan-and-execute", "summary": "Plan-and-execute agents first draft a multi-step plan with a planner, then dispatch each step to an executor (often per-step tool calls), separating high-level strategy from step execution for long tasks." },
+        { "kind": "leaf", "name": "tool-use-function-calling", "summary": "Tool use / function calling lets an LLM emit a structured call (name + JSON arguments) against a declared schema; the runtime executes it and returns results, grounding the model in external systems and data." },
+        { "kind": "leaf", "name": "mcp-tool-protocols", "summary": "MCP (Model Context Protocol) and similar tool protocols standardize how agents discover and invoke external tools, resources, and prompts over a client-server interface, decoupling models from bespoke integrations." },
+        { "kind": "leaf", "name": "code-as-action", "summary": "Code-as-action agents emit executable code (e.g. Python) as their action space instead of fixed JSON tool calls, gaining composability, control flow, and reuse — the model orchestrates via a sandboxed interpreter." },
+        { "kind": "leaf", "name": "multi-agent-orchestration", "summary": "Multi-agent orchestration coordinates specialized agents (planner, researcher, critic, executor) via a supervisor/handoff or debate topology, parallelizing subtasks and cross-checking at coordination cost." },
+        { "kind": "leaf", "name": "router-vs-in-weight-routing", "summary": "Routing sends a query to a model/tool/expert: in-weight routing learns the choice in parameters (e.g. MoE gating) vs an external router over models — hexa-codex routes out-of-weights via atlas retrieval, not parameters." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "memory",
+      "title": "Memory & retrieval",
+      "children": [
+        { "kind": "leaf", "name": "context-window", "summary": "The context window is the bounded token span an LLM attends over per call; everything an agent 'knows' in the moment must fit it, making context budgeting, compaction, and selection core agent concerns." },
+        { "kind": "leaf", "name": "rag", "summary": "Retrieval-augmented generation (RAG) fetches relevant external documents at query time and prepends them to the prompt, grounding answers in up-to-date or private knowledge without retraining and curbing hallucination." },
+        { "kind": "leaf", "name": "vector-db-embeddings", "summary": "Vector databases index dense embeddings of chunks and serve approximate-nearest-neighbor (ANN) similarity search, the standard retrieval backend for RAG and semantic memory, often hybridized with keyword/BM25." },
+        { "kind": "leaf", "name": "long-context", "summary": "Long-context methods (positional interpolation/RoPE scaling, sparse/flash attention, ring attention) extend usable context to hundreds of thousands of tokens, though attention cost and lost-in-the-middle effects persist." },
+        { "kind": "leaf", "name": "kv-cache-reuse", "summary": "KV-cache reuse stores attention key/value tensors for already-processed tokens so shared prefixes (system prompts, retrieved docs) are not recomputed, via prefix caching that cuts latency and repeat-prompt cost." },
+        { "kind": "leaf", "name": "memory-persistence", "summary": "Memory/scratchpad persistence externalizes state across turns or sessions — episodic notes, summaries, key-value stores, or files — letting agents accumulate facts and reflections beyond a single context window." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "environments",
+      "title": "RL environments & execution",
+      "children": [
+        { "kind": "leaf", "name": "verifiable-reward-rl", "summary": "Verifiable-reward RL (RLVR) trains on tasks with programmatic ground-truth checks — unit tests, exact-match, theorem provers — yielding clean, unhackable reward signals that drive reasoning-model and agent gains." },
+        { "kind": "leaf", "name": "sandboxed-execution", "summary": "Sandboxed execution runs agent-generated code or tool actions in an isolated container/VM with resource and network limits, enabling safe code-as-action, real test feedback, and reproducible environment rollouts." },
+        { "kind": "leaf", "name": "tool-synthesis", "summary": "Tool synthesis has agents author, register, and reuse their own tools/functions on demand — generating helper code that becomes a callable, growing an environment's action space rather than relying only on fixed APIs." }
+      ]
+    },
+    {
+      "kind": "section",
+      "name": "prompting",
+      "title": "Prompting techniques",
+      "children": [
+        { "kind": "leaf", "name": "few-shot", "summary": "Few-shot (in-context) prompting supplies a handful of input-output exemplars in the prompt so the model infers the task at inference time with no weight updates — exemplar choice/order materially affects results." },
+        { "kind": "leaf", "name": "system-prompt", "summary": "The system prompt sets the agent's persistent role, constraints, tools, and policies above the user turn, steering behavior and safety; it is the highest-leverage, most cache-friendly slice of the context." },
+        { "kind": "leaf", "name": "structured-output-json-mode", "summary": "Structured output / JSON mode constrains generation to a schema (JSON Schema, grammar-constrained decoding) so responses parse reliably into typed fields, essential for tool calls and downstream pipelines." },
+        { "kind": "leaf", "name": "prompt-engineering", "summary": "Prompt engineering is the practice of designing instructions, exemplars, formatting, decomposition, and delimiters to shape LLM behavior reliably — increasingly augmented by automatic prompt optimization and evaluation." }
+      ]
+    }
+  ]
+}

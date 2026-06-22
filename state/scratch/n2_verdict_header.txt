@@ -1,0 +1,42 @@
+# ════════════════════════════════════════════════════════════════════
+# VERDICT — N2.SUBSTRATE — VLM counting NON-MONOTONE — CROSS-FAMILY matched-scale
+#   lane:     SUBSTRATE N⭐ "vlm-counting-nonmonotone" (frontier-gap.json RANK 2)
+#   gate:     is the Qwen2.5-VL-3B counting dip a Qwen anomaly (H2) or a universal
+#             scale-law dip (H1′)? — single-family data could not separate them.
+#   design:   state/scratch/substrate-subitizing-design.md (§3.3 grid, §3.5 PASS/FAIL)
+#   host:     summer (RTX 5070 12GB, shared — heavily contended by a 3h+ abfe_cmt.py
+#             GPU job holding 4.6–8.5GB; serialized one model at a time)
+#   harness:  HF transformers 5.8.1 + AutoModelForImageTextToText, greedy decode
+#             (do_sample=False, max_new_tokens=12, num_beams=1), byte-exact integer
+#             scorer (first int in the reply == N). NO LLM self-judge (c2).
+#   scripts:  state/scratch/n2_gen_counting_images.py  (seed-pinned PIL dot images)
+#             state/scratch/n2_eval_counting.py        (per-model eval)
+#             state/scratch/n2_aggregate.py            (per-family/per-range + verdict)
+#   date:     2026-06-22
+# ════════════════════════════════════════════════════════════════════
+#
+# ── COUNTING GRID (fixes the 5-9-only over-claim; design §3.3) ──────────────
+# 48 synthetic images: solid blue dots on white, non-overlapping seed-pinned
+# layouts (4 per N), 448×448. Three ranges:
+#   SUBITIZING  N∈{1,2,3,4}      16 imgs   (human-flat regime; sanity floor)
+#   COUNTING    N∈{5,6,7,8,9}    20 imgs   (the in-hand dip regime; main signal)
+#   DENSE       N∈{10,12,15}     12 imgs   (universal-collapse control)
+# Prompt: "How many dots are in this image? Answer with a single integer."
+#
+# ── FAMILY AVAILABILITY (honest-negative per design §5 — no forced workarounds) ─
+#   LOADED:
+#     Qwen2.5-VL-3B / -7B-Instruct  (Qwen control)      — AutoModelForImageTextToText
+#     InternVL3-2B-hf / -8B-hf      (NON-Qwen #1)        — AutoModelForImageTextToText
+#     SmolVLM2-2.2B-Instruct        (NON-Qwen #3 anchor) — needed video_processor +
+#                                     num2words; loads, but see DISQUALIFY below
+#     LLaVA-NeXT-v1.6-mistral-7b    (NON-Qwen #2, 7B)    — AutoModelForImageTextToText
+#   UNAVAILABLE (logged, not forced):
+#     Phi-3.5-vision-instruct  — vendored modeling_phi3_v.py uses transformers<5.x
+#       DynamicCache API (seen_tokens/get_max_length/get_usable_length removed AND a
+#       structural cache-layout mismatch in attention .update); shimming the first
+#       three methods still hits a tensor-shape conflict — a forced workaround would
+#       risk corrupting results, so logged as unavailable (design §5).
+#     google/gemma-3-4b-it     — gated repo, no HF token on host.
+#     vikhyatk/moondream2      — custom HfMoondream arch (AutoModelForCausalLM bespoke
+#       .query API), not AutoModelForImageTextToText-compatible.
+#

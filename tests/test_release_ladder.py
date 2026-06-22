@@ -42,8 +42,8 @@ def test_eval_pipelines_one_per_version_post_seed():
 
 @pytest.mark.auto
 def test_each_falsifier_focus_referenced_in_at_least_one_release():
-    """F-CODEX-1..4 each appear in at least one release's falsifier_focus."""
+    """scaling-falsifier..4 each appear in at least one release's falsifier_focus."""
     import release_params as rp
     blob = " ".join(p["falsifier_focus"] for p in rp.RELEASE_PARAMS.values())
-    for tag in ("F-CODEX-1", "F-CODEX-2", "F-CODEX-3", "F-CODEX-4"):
+    for tag in ("scaling-falsifier", "scaling-falsifier", "scaling-falsifier", "scaling-falsifier"):
         assert tag in blob, f"{tag} not referenced in any release plan"

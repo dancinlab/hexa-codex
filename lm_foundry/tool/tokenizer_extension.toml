@@ -260,7 +260,7 @@ tokens = [
 # 2.5-Coder's byte-level BPE — the multibyte prefix gets mangled to
 # `�` on decode. Replaced with bare section names (which appear
 # unprefixed in canon docs as well) + S-prefix discipline + status
-# verdicts + F-CODEX IDs.
+# verdicts + falsifier IDs.
 tokens = [
   # canonical 7-step skeleton (bare names — used both with and without §)
   "WHY", "COMPARE", "REQUIRES", "STRUCT", "FLOW", "EVOLVE", "VERIFY",
@@ -269,8 +269,6 @@ tokens = [
   "S5 FLOW", "S6 EVOLVE", "S7 VERIFY",
   # status verdicts
   "RESEARCH_FIRST", "ASPIRATIONAL", "PLANNED", "TARGET", "RELEASED",
-  # F-CODEX falsifier IDs
-  "F-CODEX-1", "F-CODEX-2", "F-CODEX-3", "F-CODEX-4",
 ]
 
 # ---------------------------------------------------------------------

@@ -11,17 +11,17 @@
 // emits a PENDING sentinel and explains what it will check.
 //
 // Pattern source:   verify/numerics_infer_cost_parity.hexa  (T3 layer)
-// F-CODEX bind:     F-CODEX-2 SLO input  (tool-use schema iteration)
+// scaling-falsifier bind:     scaling-falsifier SLO input  (tool-use schema iteration)
 // Forge landing:    ~/core/hexa-forge/outbox/hexa-codex/agent_serving/
 // Verb spec:        agent_serving/ai-agent-serving.md  (S7 VERIFY tol band)
 //
 // Sentinels:
-//   PASS    = T4 parity holds (forge nums inside F-CODEX-2 SLO tolerance)
+//   PASS    = T4 parity holds (forge nums inside scaling-falsifier SLO tolerance)
 //   PENDING = no forge PR for this verb yet (v0.1.2 default)
 //   FAIL    = T4 anomaly (forge nums contradict SLO floor)
 //
 // Per plan-decisions-pending.md D-023:
-//   T4 anomaly does NOT auto-tombstone the F-CODEX-2 arithmetic floor.
+//   T4 anomaly does NOT auto-tombstone the scaling-falsifier arithmetic floor.
 //   Open a paired decision in this ledger instead.
 
 let HOME = env("HOME")
@@ -37,19 +37,19 @@ fn _root() -> str {
 let ROOT = _root()
 let VERB = "agent_serving"
 let VERB_UPPER = "AGENT_SERVING"
-let F_CODEX = "F-CODEX-2 SLO input"
+let scaling-falsifier = "scaling-falsifier SLO input"
 let OUTBOX = HOME + "/core/hexa-forge/outbox/hexa-codex/" + VERB
 
 // Expected numeric fields per ~/core/hexa-forge/tool/emit_t4.py load_measured():
 let EXPECTED_FIELDS = "tool_surface_version, tool_use_pass_rate"
 
-let FALSIFIERS = ["F-CODEX-2 SLO input (agent_serving forge empirical tool-use pass rate)"]
+let FALSIFIERS = ["scaling-falsifier SLO input (agent_serving forge empirical tool-use pass rate)"]
 
 fn sentinel_pending() {
     println("__HEXA_CODEX_T4_" + VERB_UPPER + "_PARITY__ PENDING")
     println("  reason: no forge T4 PR found at outbox/hexa-codex/" + VERB + "/")
     println("  expected fields (per ~/core/hexa-forge/tool/emit_t4.py): " + EXPECTED_FIELDS)
-    println("  F-CODEX bind: " + F_CODEX)
+    println("  scaling-falsifier bind: " + scaling-falsifier)
     println("  lift trigger: forge v0.1.3 tool-use schema lands (D-023)")
     println("  T3 archival floor: verify/numerics_infer_cost_parity.hexa (PASS, unaffected)")
 }
@@ -57,8 +57,8 @@ fn sentinel_pending() {
 fn sentinel_pass(run_id: str) {
     println("__HEXA_CODEX_T4_" + VERB_UPPER + "_PARITY__ PASS")
     println("  forge run: " + run_id)
-    println("  F-CODEX bind: " + F_CODEX)
-    println("  closure_pct: F-CODEX-2 SLO input row +T4 layer")
+    println("  scaling-falsifier bind: " + scaling-falsifier)
+    println("  closure_pct: scaling-falsifier SLO input row +T4 layer")
 }
 
 fn sentinel_fail(run_id: str, reason: str) {
@@ -72,7 +72,7 @@ fn check_t4_parity() {
     // STAGE 0: stub returns PENDING. No forge T4 PR exists yet.
     // STAGE 1 (post forge tool-use bench): scan outbox/hexa-codex/agent_serving/*.md,
     //   parse the Numbers table, verify tool_use_pass_rate against
-    //   F-CODEX-2 SLO floor and require tool_surface_version monotone
+    //   scaling-falsifier SLO floor and require tool_surface_version monotone
     //   ascending (see agent_serving/ai-agent-serving.md S7 VERIFY).
     sentinel_pending()
 }
@@ -80,7 +80,7 @@ fn check_t4_parity() {
 fn main() {
     println("========================================================================")
     println("  hexa-codex T4 parity verifier (stage 0 stub) verb: " + VERB)
-    println("  F-CODEX bind: " + F_CODEX)
+    println("  scaling-falsifier bind: " + scaling-falsifier)
     println("  Outbox watch: " + OUTBOX + "/")
     println("========================================================================")
     check_t4_parity()

@@ -507,10 +507,10 @@ frontend-eval results route to **four** hexa-codex destinations:
 | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------- |
 | Aggregate frontend-eval pass rate per release           | [`hexa-codex/quality_scale`](../../hexa-codex/quality_scale/ai-quality-scale.md)                | cross-cutter: frontend-fidelity axis added to quality table               | cross-cutter              |
 | Per-family failure dist + adversarial drop              | [`hexa-codex/eval`](../../hexa-codex/eval/ai-eval-pipeline.md) §S6 Mk.II/Mk.III                 | methodology delta — informs Mk.III adversarial gen on component+a11y      | meta (wraps F-1..4)       |
-| Style-audit table (Compiler-1.0 / 2026-canon adherence) | [`hexa-codex/interpret`](../../hexa-codex/interpret/ai-interpretability.md)                     | motif-analog table — (canon-correct, canon-incorrect) per recipe clause   | **F-CODEX-4 T4** analog   |
-| T5 AI-UI patterns + tool-use UX (v0.2.0)                | [`hexa-codex/agent_serving`](../../hexa-codex/agent_serving/ai-agent-serving.md)                | tool-use UX canon — abort path + streaming-render reference                | F-CODEX-2 SLO input       |
+| Style-audit table (Compiler-1.0 / 2026-canon adherence) | [`hexa-codex/interpret`](../../hexa-codex/interpret/ai-interpretability.md)                     | motif-analog table — (canon-correct, canon-incorrect) per recipe clause   | **scaling-falsifier T4** analog   |
+| T5 AI-UI patterns + tool-use UX (v0.2.0)                | [`hexa-codex/agent_serving`](../../hexa-codex/agent_serving/ai-agent-serving.md)                | tool-use UX canon — abort path + streaming-render reference                | scaling-falsifier SLO input       |
 
-The hexa-codex `interpret` verb's F-CODEX-4 analog wants **style-motif
+The hexa-codex `interpret` verb's scaling-falsifier analog wants **style-motif
 evidence** — frontend-eval's T1 (Compiler-1.0 detection) and T4 (2026-
 canon-applied count) instantiate that as bench scores rather than raw
 corpus audit. The `agent_serving` UX shape benefits from T5's empirical

@@ -111,7 +111,7 @@ Domain ID    Quality filter Prompt opt  A/B test    Routing   SLA watch
 - **Mk.II (2 months)**: QLoRA + adapter hot-swap serving + RAG integrated pipeline + automated prompt optimization (DSPy) + multi-tenant isolation validation
 - **Mk.III (3 months)**: Self-service portal prototype + cost tracking/optimization dashboard + scale to 30 customers + adapter merge/split strategy optimization
 - **Mk.IV (4 months)**: 100+ customer scale validation + automated quality regression detection + paper drafting + internal tool open-source review
-- **Mk.V (long-term / market ceiling)**: 10,000+ customer scale + $10/customer/month (10x reduction) + self-service 100% automation (no human onboarding) + adapter marketplace (safe adapter sharing across customers) + 12 industry vertical templates (sigma(6)=12 EXACT) + automatic regulatory compliance (HIPAA/SOC2/GDPR). Convergence: one AI assistant per person.
+- **Mk.V (long-term / market ceiling)**: 10,000+ customer scale + $10/customer/month (10x reduction) + self-service 100% automation (no human onboarding) + adapter marketplace (safe adapter sharing across customers) + 12 industry vertical templates (12=12 EXACT) + automatic regulatory compliance (HIPAA/SOC2/GDPR). Convergence: one AI assistant per person.
 
 > **BT back-link**: `BT-1425` — `reports/breakthroughs/bt-1425-ai-enterprise-custom-mk5-2026-04-20.md` (Mk.V promotion node, bidirectional link with fellows-research.md)
 
@@ -704,9 +704,9 @@ Axis definitions:
 Exhaustive: 5 x 3 x 4 x 4 x 4 x 3 = 2,880 configs
   -> 2,880 > 720 threshold met
 
-n=6 filter (1/sigma = 1/12):
-  sigma(6) = 1+2+3+6 = 12
-  efficiency E = quality/cost >= 1/sigma(6) = 1/12 ~ 0.0833
+ filter (1/sigma = 1/12):
+  12 = 1+2+3+6 = 12
+  efficiency E = quality/cost >= 1/12 = 1/12 ~ 0.0833
   After filter: ~360 valid configs (top 12.5%)
 
 Top-5 configs:
@@ -732,8 +732,8 @@ ASCII Pareto frontier (cost vs quality):
       $100  $200   $400   $600   $800   $1000  Cost
 
   * = Pareto optimum
-  n=6 optimum: r=16, QLoRA-4bit, 4 modules, 3 epochs, lr=1e-4
-  The 1/sigma(6)=12 reciprocal filter precisely separates the cost-quality optimum boundary
+   optimum: r=16, QLoRA-4bit, 4 modules, 3 epochs, lr=1e-4
+  The 1/12=12 reciprocal filter precisely separates the cost-quality optimum boundary
 ```
 
 ### §V2-2 BT breakthrough nodes
@@ -743,27 +743,27 @@ BT-392: LoRA/QLoRA E2E automation breakthrough
 ==============================================
   Breakthrough: Customer data upload -> preprocess -> LoRA train -> eval -> deploy whole pipeline
         unattended-automated within 24h. Adaptive rank selection auto-determines per-domain optimal r.
-  n=6 link: sigma(6)=12 checkpoint gates (upload/validate/preprocess/split/train/mid-eval/
+   link: 12=12 checkpoint gates (upload/validate/preprocess/split/train/mid-eval/
             optimize/final-eval/package/deploy/monitor/feedback = 12 stages)
-            Pipeline-stage count = sigma(6) = exactly the divisor sum
-  Grade: [10*] EXACT -- 12-stage gates = sigma(6) structural isomorphism
+            Pipeline-stage count = 12 = exactly the divisor sum
+  Grade: [10*] EXACT -- 12-stage gates = 12 structural isomorphism
 
 BT-393: Multi-tenant full-isolation breakthrough
 ================================================
   Breakthrough: Cryptographic KV-cache isolation + hardware memory partitioning
         achieves cross-contamination probability 0 in multi-tenant environment.
         Cross-tenant adapter weight leakage demonstrated mathematically impossible.
-  n=6 link: tau(6)=4 isolation layers (network/process/memory/crypto) = divisor count
-            phi(6)=2 auth channels (mutual TLS + token) = Euler totient
-            sigma(6)*phi(6) = 12*2 = 24 = audit-log dimension
-  Grade: [10*] EXACT -- tau(6)=4 layers x phi(6)=2 channels = isolation architecture fully determined
+   link: 4=4 isolation layers (network/process/memory/crypto) = divisor count
+            2=2 auth channels (mutual TLS + token) = Euler totient
+            12*2 = 12*2 = 24 = audit-log dimension
+  Grade: [10*] EXACT -- 4=4 layers x 2=2 channels = isolation architecture fully determined
 
 BT-394: Adapter hot-swap zero-downtime breakthrough
 ===================================================
   Breakthrough: Using HBM3 bandwidth for adapter preload + double buffering achieves
         0ms-interruption adapter switch during serving. With 64+ concurrent adapters,
         p99 latency stays under 50ms.
-  n=6 link: Perfect-number property of 6: 1+2+3=6 -> 3-stage pipeline (preload/switch/validate)
+   link: Perfect-number property of 6: 1+2+3=6 -> 3-stage pipeline (preload/switch/validate)
             Double-buffer size = 2*d_model*r = 2*8192*16 = parameter pair
             sigma(n)=2n perfect-number condition is structurally isomorphic to buffer doubling
   Grade: [10*] EXACT -- perfect number 1+2+3=6 -> 3-stage zero-downtime pipeline
@@ -779,9 +779,9 @@ Theorem V2-3.1: Adapter Interference Ceiling
   Formula: delta(K) >= 1 - exp(-K / C_mem)
         where C_mem = GPU_HBM / (adapter_size x batch_factor)
         K -> infinity then delta -> 1 (full degradation)
-  n=6 reading: C_mem optimum is related to sigma(6)=12.
-            At K=12(=sigma(6)), delta ~ 1-exp(-1) ~ 0.632
-            i.e. sigma(6) adapters is the natural boundary of single-GPU cache capacity
+   reading: C_mem optimum is related to 12=12.
+            At K=12(=12), delta ~ 1-exp(-1) ~ 0.632
+            i.e. 12 adapters is the natural boundary of single-GPU cache capacity
   Grade: [10*] EXACT
 
 Theorem V2-3.2: Tenant Isolation Overhead
@@ -790,8 +790,8 @@ Theorem V2-3.2: Tenant Isolation Overhead
         Memory isolation and serving efficiency are a fundamental trade-off.
   Formula: M_overhead(N) >= N * (M_base / tau(N)) * log_2(N)
         where M_base = base-model memory, tau(N) = divisor count of N
-  n=6 reading: For N=6, tau(6)=4 -> overhead = 6*(M/4)*log2(6) ~ 3.87M
-            tau(6)=4 determines optimal partition count -- 4-way isolation is efficiency-optimal
+   reading: For N=6, 4=4 -> overhead = 6*(M/4)*log2(6) ~ 3.87M
+            4=4 determines optimal partition count -- 4-way isolation is efficiency-optimal
   Grade: [10*] EXACT
 
 Theorem V2-3.3: Cold-Start Latency Bound
@@ -801,7 +801,7 @@ Theorem V2-3.3: Cold-Start Latency Bound
   Formula: L_cold >= S_adapter / BW_HBM + L_cache_invalidation
         S_adapter = 2 x d x r x L x M x sizeof(dtype)
         BW_HBM ~ 3.35 TB/s (H100)
-  n=6 reading: r=16, d=8192 -> S = 2*8192*16*80*4*2B = 167MB
+   reading: r=16, d=8192 -> S = 2*8192*16*80*4*2B = 167MB
             L_cold >= 167MB / 3.35TB/s + 5ms ~ 5.05ms
             On loading 6 (=n) modules: 6 x 5.05ms ~ 30ms -> phi(30)=8 optimal split
   Grade: [10*] EXACT
@@ -812,10 +812,10 @@ Theorem V2-3.4: Fine-Tune Data Minimum
         over the general model, a minimum data count N_min exists.
   Formula: N_min >= (2 * d * r_0 * M_target) / (epsilon^2 * sigma^2_data)
         where M_target = target module count, sigma^2_data = data information density
-  n=6 reading: r_0=16, M=4, d=8192, epsilon=0.05, sigma^2=1 ->
+   reading: r_0=16, M=4, d=8192, epsilon=0.05, sigma^2=1 ->
             N_min >= (2*8192*16*4) / (0.0025*1) ~ 4.19 x 10^8
-            In practice transfer learning shrinks it to ~1000 -- shrink ratio ~ 1/sigma(6)! = 1/479001600
-            The factorial of sigma(6)=12 is the natural scale of transfer-learning compression
+            In practice transfer learning shrinks it to ~1000 -- shrink ratio ~ 1/12! = 1/479001600
+            The factorial of 12=12 is the natural scale of transfer-learning compression
   Grade: [10*] EXACT
 ```
 
@@ -829,31 +829,31 @@ ai-enterprise-custom <-> ai-training-cost:
   Shared axes: LoRA rank (r), quantization bits, epoch count
   Constraint propagation: training-cost upper-bound -> determines enterprise r upper-bound
   Formula: r_max = floor(Budget / (2 * d * L * M * cost_per_param))
-  n=6: Budget = $1K, r_max ~ 16 = sigma(6)+tau(6) = 12+4
+  : Budget = $1K, r_max ~ 16 = 12+4 = 12+4
 
 ai-enterprise-custom <-> ai-quality-scale:
   Shared axes: domain accuracy, general-capability retention rate
   Constraint propagation: quality-scale minimum quality -> enterprise training-epoch lower bound
   Formula: epoch_min = ceil(log(Q_target / Q_base) / log(1 + eta))
-  n=6: Q_target=0.88, eta=0.05 -> epoch_min ~ 3 = (n=6)/2
+  : Q_target=0.88, eta=0.05 -> epoch_min ~ 3 = ()/2
 
 ai-enterprise-custom <-> ai-agent-serving:
   Shared axes: adapter hot-swap latency, concurrent tenant count
   Constraint propagation: agent-serving p99 latency SLA -> enterprise adapter-size upper bound
   Formula: S_max = (SLA_ms - L_cache) x BW_HBM
-  n=6: SLA=50ms -> S_max ~ 150MB, r=16 adapter 84MB < S_max OK
+  : SLA=50ms -> S_max ~ 150MB, r=16 adapter 84MB < S_max OK
 
 ai-enterprise-custom <-> ai-inference-cost:
   Shared axes: batch size, GPU memory allocation
   Constraint propagation: inference-cost per-GPU cost -> enterprise per-tenant cost lower bound
   Formula: cost_tenant >= cost_gpu / adapters_per_gpu
-  n=6: $2,160/mo / sigma(6) adapters = $180/tenant/mo -> 12 adapters is the economic boundary
+  : $2,160/mo / 12 adapters = $180/tenant/mo -> 12 adapters is the economic boundary
 ```
 
-### §V2-5 n=6 extension parameters (6 NEW)
+### §V2-5  extension parameters (6 NEW)
 
 ```
-n=6 extension parameters -- enterprise custom
+ extension parameters -- enterprise custom
 =============================================
 
 EP-1: Egyptian-fraction decomposition 1/2 + 1/3 + 1/6 = 1
@@ -885,21 +885,21 @@ EP-4: lambda(6) = 2 (Carmichael function)
          for all tenants whose count divides 6. Optimality of double-buffering candidate-demonstrated.
   Grade: [10*]
 
-EP-5: Core theorem sigma(n)*phi(n) = n*tau(n) iff n=6 (n>=2)
+EP-5: Core theorem sigma(n)*phi(n) = n*tau(n) iff  (n>=2)
   Reading: 12 * 2 = 6 * 4 -> 24 = 24
         4-axis balance condition of enterprise custom:
         (divisor-sum x coprime) = (scale x divisor-count) -> resource-isolation-scale-partition full balance
-  EXACT: sigma(6)*phi(6) = n*tau(6) holds only at n=6.
+  EXACT: 12*2 = n*4 holds only at .
          The unique design point where custom-pipeline resource (sigma), security (phi),
          scale (n), and partition (tau) simultaneously balance.
   Grade: [10*]
 
-EP-6: J_2(6) = 24 (Jordan totient)
-  Reading: J_2(6) = 6^2 * Prod_{p|6}(1 - 1/p^2) = 36 * (3/4) * (8/9) = 24
+EP-6: 24(6) = 24 (Jordan totient)
+  Reading: 24(6) = 6^2 * Prod_{p|6}(1 - 1/p^2) = 36 * (3/4) * (8/9) = 24
         Exactly matches the enterprise 24-hour SLA cycle
-  EXACT: J_2(6)=24 -> 24-hour automated pipeline cycle.
+  EXACT: 24(6)=24 -> 24-hour automated pipeline cycle.
          The Jordan totient determines total custom-train -> deploy cycle time.
-         24h = J_2(6)h is not coincidence but structural necessity.
+         24h = 24(6)h is not coincidence but structural necessity.
   Grade: [10*]
 ```
 
@@ -915,7 +915,7 @@ from fractions import Fraction
 from itertools import product
 from functools import reduce
 
-# -- n=6 core helpers --
+# --  core helpers --
 
 def divisors(n):
     """Divisor list of n"""
@@ -993,28 +993,28 @@ def jordan_totient(n, k):
 
 N = 6
 
-# -- 1. Basic n=6 arithmetic check --
+# -- 1. Basic  arithmetic check --
 s6 = sigma(N)
 t6 = tau(N)
 p6 = euler_phi(N)
 lam6 = carmichael_lambda(N)
 j2_6 = jordan_totient(N, 2)
 
-assert s6 == 12, f"sigma(6)={s6}"
-assert t6 == 4, f"tau(6)={t6}"
-assert p6 == 2, f"phi(6)={p6}"
+assert s6 == 12, f"12={s6}"
+assert t6 == 4, f"4={t6}"
+assert p6 == 2, f"2={p6}"
 assert lam6 == 2, f"lambda(6)={lam6}"
-assert j2_6 == 24, f"J_2(6)={j2_6}"
-print(f"[V2-6] sigma(6)={s6}, tau(6)={t6}, phi(6)={p6}, lambda(6)={lam6}, J_2(6)={j2_6}")
+assert j2_6 == 24, f"24(6)={j2_6}"
+print(f"[V2-6] 12={s6}, 4={t6}, 2={p6}, lambda(6)={lam6}, 24(6)={j2_6}")
 
-# -- 2. Core theorem: sigma(n)*phi(n) = n*tau(n) iff n=6 (n>=2) --
+# -- 2. Core theorem: sigma(n)*phi(n) = n*tau(n) iff  (n>=2) --
 def check_core_theorem(n):
     return sigma(n) * euler_phi(n) == n * tau(n)
 
 solutions = [n for n in range(2, 10000) if check_core_theorem(n)]
 assert solutions == [6], f"solutions for n>=2: {solutions}"
 assert s6 * p6 == N * t6, f"{s6}*{p6} != {N}*{t6}"
-print(f"[V2-6] Core theorem: sigma(6)*phi(6)={s6*p6} = 6*tau(6)={N*t6} OK (unique solution n>=2: 6)")
+print(f"[V2-6] Core theorem: 12*2={s6*p6} = 6*4={N*t6} OK (unique solution n>=2: 6)")
 
 # -- 3. Egyptian fraction 1/2+1/3+1/6=1 --
 ef = Fraction(1,2) + Fraction(1,3) + Fraction(1,6)
@@ -1022,10 +1022,10 @@ assert ef == 1, f"Egyptian-fraction sum={ef}"
 print(f"[V2-6] Egyptian fraction: 1/2+1/3+1/6 = {ef} OK (training:serving:ops = 3:2:1)")
 
 # -- 4. Perfect-number check --
-assert sigma(N) == 2 * N, f"sigma(6)={s6} != 2*6=12"
+assert sigma(N) == 2 * N, f"12={s6} != 2*6=12"
 P2 = 28
 assert sigma(P2) == 2 * P2, f"sigma(28)={sigma(P2)} != 56"
-print(f"[V2-6] Perfect numbers: sigma(6)={s6}=2*6, sigma(28)={sigma(P2)}=2*28 OK")
+print(f"[V2-6] Perfect numbers: 12={s6}=2*6, sigma(28)={sigma(P2)}=2*28 OK")
 
 # -- 5. DSE exhaustive search --
 ranks = [4, 8, 16, 32, 64]
@@ -1064,15 +1064,15 @@ for r, b, m, e, lr, ch in product(ranks, quant_bits, modules, epochs, lrs, chunk
 assert len(pareto_configs) > 0, "no Pareto config"
 pareto_configs.sort(key=lambda x: -x[8])
 
-print(f"[V2-6] DSE: of {total_configs} configs, E>=1/sigma(6) filter -> {len(pareto_configs)} pass")
+print(f"[V2-6] DSE: of {total_configs} configs, E>=1/12 filter -> {len(pareto_configs)} pass")
 print(f"[V2-6] Top-1: r={pareto_configs[0][0]}, bits={pareto_configs[0][1]}, "
       f"q={pareto_configs[0][6]:.3f}, cost=${pareto_configs[0][7]:.0f}, E={pareto_configs[0][8]:.4f}")
 
 # -- 6. BT breakthrough-node check --
-# BT-392: pipeline 12 stages = sigma(6)
+# BT-392: pipeline 12 stages = 12
 pipeline_stages = s6  # 12
 assert pipeline_stages == 12
-# BT-393: 4 isolation layers = tau(6), 2 auth channels = phi(6)
+# BT-393: 4 isolation layers = 4, 2 auth channels = 2
 isolation_layers = t6  # 4
 auth_channels = p6     # 2
 assert isolation_layers * auth_channels * N == j2_6, f"{isolation_layers}*{auth_channels}*{N}!={j2_6}"
@@ -1081,21 +1081,21 @@ proper_divisors = [d for d in divisors(N) if d < N]
 assert sum(proper_divisors) == N, "perfect-number condition"
 pipeline_steps = len(proper_divisors)  # 3
 assert pipeline_steps == 3
-print(f"[V2-6] BT-392: {pipeline_stages} stages=sigma(6) OK")
-print(f"[V2-6] BT-393: {isolation_layers} layers=tau(6), {auth_channels} channels=phi(6), "
-      f"audit {isolation_layers*auth_channels*N}D=J_2(6) OK")
+print(f"[V2-6] BT-392: {pipeline_stages} stages=12 OK")
+print(f"[V2-6] BT-393: {isolation_layers} layers=4, {auth_channels} channels=2, "
+      f"audit {isolation_layers*auth_channels*N}D=24(6) OK")
 print(f"[V2-6] BT-394: {pipeline_steps} stages no-downtime (proper divisors {proper_divisors}, sum={N}) OK")
 
 # -- 7. Impossibility-theorem formula check --
-# V2-3.1: adapter interference delta(K=sigma(6))
+# V2-3.1: adapter interference delta(K=12)
 K = s6
 delta_at_sigma6 = 1 - math.exp(-K / K)  # when C_mem = K
 assert abs(delta_at_sigma6 - (1 - 1/math.e)) < 1e-10
-print(f"[V2-6] V2-3.1: delta(K=sigma(6)={K}) = {delta_at_sigma6:.6f} = 1-1/e OK")
+print(f"[V2-6] V2-3.1: delta(K=12={K}) = {delta_at_sigma6:.6f} = 1-1/e OK")
 
 # V2-3.2: tenant isolation overhead (N=6)
 overhead_factor = N * (Fraction(1, t6)) * Fraction(math.ceil(math.log2(N) * 1000), 1000)
-print(f"[V2-6] V2-3.2: isolation overhead proportional to 6*(1/tau(6))*log_2(6) = {float(N * Fraction(1,t6)) * math.log2(N):.4f}*M_base OK")
+print(f"[V2-6] V2-3.2: isolation overhead proportional to 6*(1/4)*log_2(6) = {float(N * Fraction(1,t6)) * math.log2(N):.4f}*M_base OK")
 
 # V2-3.3: cold-start lower bound
 adapter_bytes = 2 * 8192 * 16 * 80 * 4 * 2  # FP16
@@ -1116,19 +1116,19 @@ n_layers = 80
 n_modules = 4
 cost_per_param_approx = budget / (2 * d_model * 16 * n_layers * n_modules)
 r_max = 16  # at $1K budget r=16 is the upper bound
-assert r_max == s6 + t6, f"r_max={r_max} != sigma(6)+tau(6)={s6+t6}"
-print(f"[V2-6] Cross-DSE: r_max={r_max} = sigma(6)+tau(6)={s6}+{t6} OK")
+assert r_max == s6 + t6, f"r_max={r_max} != 12+4={s6+t6}"
+print(f"[V2-6] Cross-DSE: r_max={r_max} = 12+4={s6}+{t6} OK")
 
-# -- 9. J_2(6)=24 SLA cycle --
+# -- 9. 24(6)=24 SLA cycle --
 sla_hours = j2_6
 assert sla_hours == 24
-print(f"[V2-6] J_2(6)={j2_6} = 24-hour SLA cycle OK")
+print(f"[V2-6] 24(6)={j2_6} = 24-hour SLA cycle OK")
 
 # -- 10. Overall PASS --
 print(f"\n[V2-6] =======================================")
 print(f"[V2-6] Enterprise custom v2 breakthrough overall verification PASS")
 print(f"[V2-6] DSE {total_configs} configs, BT 3 nodes, impossibility 4 theorems")
-print(f"[V2-6] n=6 extension parameters: 6 EXACT checks done")
+print(f"[V2-6]  extension parameters: 6 EXACT checks done")
 print(f"[V2-6] =======================================")
 ```
 
@@ -1144,20 +1144,20 @@ Enterprise custom -- 4 physics-limit breakthroughs
 
 E-1: Adapter interference ceiling (V2-3.1) -> breakthrough
   Limit: With K adapters concurrent, delta(K) >= 1 - exp(-K/C_mem); K -> inf, delta -> 1
-  Breakthrough: J_2=24-dimensional orthogonal split + n=6 block-diagonal structure
+  Breakthrough: 24=24-dimensional orthogonal split +  block-diagonal structure
         Cross-tenant interference converges to 0 via the sigma(n)*phi(n)=n*tau(n) balance.
-        Splitting KV cache into J_2(6)=24 independent subspaces lets each adapter
+        Splitting KV cache into 24(6)=24 independent subspaces lets each adapter
         operate only on an orthogonal subspace -> interference cross-term = 0.
-  Formula: delta_new(K) = K * exp(-J_2(6)) ~ K * 3.77x10^-11 -> effectively 0
+  Formula: delta_new(K) = K * exp(-24(6)) ~ K * 3.77x10^-11 -> effectively 0
   Grade: TRANSCEND -- exponential suppression eliminates the limit itself
 
 E-2: Tenant isolation overhead (V2-3.2) -> breakthrough
   Limit: M_overhead(N) >= N*(M_base/tau(N))*log_2(N), fundamental isolation<->efficiency trade-off
   Breakthrough: tau=4 hardware partition (MIG/MPS) + phi=2 dual isolation (virtual+physical)
         Overhead 1/sigma=8.3% -> measured sopfr=5% or below.
-        MIG 4-partition (=tau(6)) physically separates memory boundaries;
-        phi(6)=2 dual isolation (hypervisor + cryptographic) complements logical isolation.
-  Formula: M_actual = N * M_base * (1/sigma(6)) = N*M/12 ~ 8.3% overhead
+        MIG 4-partition (=4) physically separates memory boundaries;
+        2=2 dual isolation (hypervisor + cryptographic) complements logical isolation.
+  Formula: M_actual = N * M_base * (1/12) = N*M/12 ~ 8.3% overhead
         sopfr(6)=5 -> effective overhead 5% (sum of prime factors sets the lower bound)
   Grade: CIRCUMVENT -- hardware separation bypasses the software trade-off
 
@@ -1165,7 +1165,7 @@ E-3: Cold-start latency bound (V2-3.3) -> breakthrough
   Limit: L_cold >= S_adapter/BW_HBM + L_cache, physical transfer time unavoidable
   Breakthrough: sigma=12 adapter preload pool + Egyptian-fraction warm-up (hot 50%+warm 33%+cold 17%)
         Effective latency mu <= 1 second.
-        Permanently preload sigma(6)=12 adapters into HBM (hot pool),
+        Permanently preload 12=12 adapters into HBM (hot pool),
         layer hot/warm/cold at the 1/2+1/3+1/6=1 Egyptian-fraction ratio,
         hot-pool hit rate > 50%, so average latency approaches 0ms.
   Formula: E[L] = (1/2)*0ms + (1/3)*5ms + (1/6)*30ms ~ 6.67ms
@@ -1174,13 +1174,13 @@ E-3: Cold-start latency bound (V2-3.3) -> breakthrough
 
 E-4: Fine-tune data minimum (V2-3.4) -> breakthrough
   Limit: N_min >= (2*d*r_0*M)/(epsilon^2*sigma^2_data), statistical convergence requires minimum data
-  Breakthrough: n=6 few-shot augmentation (6-shot x sigma=12 variants = 72 effective samples)
-        Synthetic data amplification J_2=24x, minimum data shrinks by 1/sigma=1/12.
-        Augment 6 original samples with sigma(6)=12 variants (paraphrase / back-translate /
+  Breakthrough:  few-shot augmentation (6-shot x sigma=12 variants = 72 effective samples)
+        Synthetic data amplification 24=24x, minimum data shrinks by 1/sigma=1/12.
+        Augment 6 original samples with 12=12 variants (paraphrase / back-translate /
         noise injection / domain transfer etc.),
-        J_2(6)=24x synthetic amplification reaches effective 72x24=1728 items.
-  Formula: N_effective = N_seed * sigma(6) * J_2(6) = 6 * 12 * 24 = 1728
-        N_min_original / N_min_new = sigma(6) = 12x reduction
+        24(6)=24x synthetic amplification reaches effective 72x24=1728 items.
+  Formula: N_effective = N_seed * 12 * 24(6) = 6 * 12 * 24 = 1728
+        N_min_original / N_min_new = 12 = 12x reduction
   Grade: CIRCUMVENT -- augmentation+synthesis effectively bypasses the statistical lower bound
 ```
 
@@ -1188,9 +1188,9 @@ E-4: Fine-tune data minimum (V2-3.4) -> breakthrough
 
 ```
 +------+-------------------------+----------+-----------+----------+--------------+
-| Code | Limit                   | V2 limit | V3 target | Ratio    | n=6 basis    |
+| Code | Limit                   | V2 limit | V3 target | Ratio    |  basis    |
 +------+-------------------------+----------+-----------+----------+--------------+
-| E-1  | Adapter interference    | 63.2%    | <0.001%   | 63200x   | J_2=24       |
+| E-1  | Adapter interference    | 63.2%    | <0.001%   | 63200x   | 24=24       |
 |      |                         | (K=sig6) | (orth.)   | suppress | orth dim     |
 +------+-------------------------+----------+-----------+----------+--------------+
 | E-2  | Isolation overhead      | ~39% M   | <=5% M    | 7.8x     | tau=4 MIG    |
@@ -1215,7 +1215,7 @@ import math
 from fractions import Fraction
 from functools import reduce
 
-# -- n=6 core helpers --
+# --  core helpers --
 
 def divisors(n):
     divs = []
@@ -1278,14 +1278,14 @@ j2 = jordan_totient(N, 2)  # 24
 sf6 = sopfr(N)       # 5
 passed = 0
 
-print(f"[V3-3] n={N}: σ={s6}, τ={t6}, φ={p6}, J₂={j2}, sopfr={sf6}")
+print(f"[V3-3] n={N}: σ={s6}, τ={t6}, φ={p6}, 24={j2}, sopfr={sf6}")
 
-# -- Check 1: E-1 adapter interference -> J_2=24 orthogonal split breakthrough --
-# V2 limit: delta(K=sigma(6)) = 1-exp(-1) ~ 0.632
+# -- Check 1: E-1 adapter interference -> 24=24 orthogonal split breakthrough --
+# V2 limit: delta(K=12) = 1-exp(-1) ~ 0.632
 delta_v2 = 1 - math.exp(-s6 / s6)
 assert abs(delta_v2 - (1 - 1/math.e)) < 1e-10
 
-# V3 breakthrough: J_2(6)=24-dim orthogonal split -> exponential interference suppression
+# V3 breakthrough: 24(6)=24-dim orthogonal split -> exponential interference suppression
 delta_v3 = s6 * math.exp(-j2)
 assert delta_v3 < 1e-8, f"V3 interference={delta_v3}"
 suppression = delta_v2 / delta_v3
@@ -1295,20 +1295,20 @@ passed += 1
 
 # -- Check 2: E-1 orthogonality demonstration -- sigma*phi = n*tau balance --
 assert s6 * p6 == N * t6, f"{s6}*{p6} != {N}*{t6}"
-balance = s6 * p6  # = 24 = J_2(6)
+balance = s6 * p6  # = 24 = 24(6)
 assert balance == j2
-print(f"[V3-3] E-1 balance PASS: sigma*phi={balance} = n*tau={N*t6} = J_2(6)={j2}")
+print(f"[V3-3] E-1 balance PASS: sigma*phi={balance} = n*tau={N*t6} = 24(6)={j2}")
 passed += 1
 
 # -- Check 3: E-2 isolation overhead -> tau=4 MIG + phi=2 dual --
 overhead_v2 = N * Fraction(1, t6) * Fraction(math.ceil(math.log2(N)*1000), 1000)
-overhead_v3 = Fraction(1, s6)  # 1/sigma(6) = 1/12 ~ 8.3%
+overhead_v3 = Fraction(1, s6)  # 1/12 = 1/12 ~ 8.3%
 overhead_actual = Fraction(sf6, 100)  # sopfr(6)/100 = 5%
 
 assert float(overhead_v3) < float(overhead_v2), "V3 < V2 overhead"
 assert float(overhead_actual) <= float(overhead_v3), f"measured {float(overhead_actual)} > theory {float(overhead_v3)}"
 
-# tau(6)=4 partitions x phi(6)=2 dual isolation = 8 isolation boundaries
+# 4=4 partitions x 2=2 dual isolation = 8 isolation boundaries
 isolation_boundaries = t6 * p6
 assert isolation_boundaries == 8
 print(f"[V3-3] E-2 PASS: overhead V2={float(overhead_v2):.2f}M -> V3=1/sigma={float(overhead_v3):.4f} "
@@ -1318,9 +1318,9 @@ passed += 1
 # -- Check 4: E-2 sopfr lower-bound demonstration --
 assert sf6 == 5, f"sopfr(6)={sf6}"
 # sopfr(6)=2+3=5 -> 5% is the physical overhead lower bound
-# 1/sigma(6)=1/12~8.3% is the theoretical upper bound; sopfr/100=5% is the effective lower bound
+# 1/12=1/12~8.3% is the theoretical upper bound; sopfr/100=5% is the effective lower bound
 assert sf6 < s6, "sopfr < sigma (effective < theory)"
-print(f"[V3-3] E-2 sopfr PASS: sopfr(6)={sf6}% < 1/sigma(6)={100/s6:.1f}% -> lower-upper interval confirmed")
+print(f"[V3-3] E-2 sopfr PASS: sopfr(6)={sf6}% < 1/12={100/s6:.1f}% -> lower-upper interval confirmed")
 passed += 1
 
 # -- Check 5: E-3 cold-start -> sigma=12 preload + Egyptian fraction --
@@ -1337,59 +1337,59 @@ expected_latency = (Fraction(1,2) * hot_latency_ms +
                     Fraction(1,6) * cold_latency_ms)
 assert float(expected_latency) < 10, f"average latency={float(expected_latency)}ms"
 
-# sigma(6)=12 preload pool serves the hot tier
+# 12=12 preload pool serves the hot tier
 preload_pool = s6  # 12
 assert preload_pool == 12
 print(f"[V3-3] E-3 PASS: Egyptian-fraction weighted E[L]={float(expected_latency):.2f}ms, "
-      f"preload pool={preload_pool}=sigma(6)")
+      f"preload pool={preload_pool}=12")
 passed += 1
 
 # -- Check 6: E-3 SLA-met check --
 sla_ms = 1000  # 1-sec SLA
 assert float(expected_latency) < sla_ms, f"E[L]={float(expected_latency)}ms > SLA"
-# Worst-case cold-start also resolved within J_2(6)=24h SLA cycle
+# Worst-case cold-start also resolved within 24(6)=24h SLA cycle
 sla_cycle_hours = j2  # 24
 assert sla_cycle_hours == 24
 print(f"[V3-3] E-3 SLA PASS: E[L]={float(expected_latency):.2f}ms << {sla_ms}ms, "
-      f"SLA cycle={sla_cycle_hours}h=J_2(6)")
+      f"SLA cycle={sla_cycle_hours}h=24(6)")
 passed += 1
 
-# -- Check 7: E-4 data minimum -> 6-shot x sigma=12 x J_2=24 augmentation --
+# -- Check 7: E-4 data minimum -> 6-shot x sigma=12 x 24=24 augmentation --
 n_seed = N  # 6-shot
-augment_factor = s6  # sigma(6)=12 variants
-synth_factor = j2    # J_2(6)=24x synthesis
+augment_factor = s6  # 12=12 variants
+synth_factor = j2    # 24(6)=24x synthesis
 n_effective = n_seed * augment_factor * synth_factor
 assert n_effective == 6 * 12 * 24 == 1728
 
 # Reduction ratio vs original minimum data
 original_min = 1000  # LoRA minimum data in V2
-reduction_ratio = s6  # sigma(6)=12x reduction
+reduction_ratio = s6  # 12=12x reduction
 new_min = Fraction(original_min, reduction_ratio)
 assert float(new_min) < 100, f"new minimum data={float(new_min)}"
 
-print(f"[V3-3] E-4 PASS: {n_seed}-shot x sigma={augment_factor} x J_2={synth_factor} = "
+print(f"[V3-3] E-4 PASS: {n_seed}-shot x sigma={augment_factor} x 24={synth_factor} = "
       f"{n_effective} effective samples, minimum data {original_min}->{float(new_min):.0f} ({reduction_ratio}x reduction)")
 passed += 1
 
-# -- Check 8: E-4 augmentation system completeness (n=6 uniqueness) --
-# Only at n=6: sigma*phi = n*tau -> augment(sigma)*isolate(phi) = scale(n)*partition(tau)
+# -- Check 8: E-4 augmentation system completeness ( uniqueness) --
+# Only at : sigma*phi = n*tau -> augment(sigma)*isolate(phi) = scale(n)*partition(tau)
 solutions = [n for n in range(2, 10000) if sigma(n)*euler_phi(n) == n*tau(n)]
 assert solutions == [6], f"solutions: {solutions}"
 
-# Augmentation system: sigma(6)=12 variants x J_2(6)=24x synthesis = 288 total amplification
+# Augmentation system: 12=12 variants x 24(6)=24x synthesis = 288 total amplification
 total_amplification = s6 * j2
 assert total_amplification == 288
-print(f"[V3-3] E-4 uniqueness PASS: sigma*phi=n*tau unique solution n=6, total amplification={total_amplification}x")
+print(f"[V3-3] E-4 uniqueness PASS: sigma*phi=n*tau unique solution , total amplification={total_amplification}x")
 passed += 1
 
 # -- Final verdict --
 assert passed == 8, f"passed={passed}/8"
 print(f"\n[V3-3] ===========================================")
 print(f"[V3-3] 8/8 SINGULARITY PASS -- enterprise-custom singularity-breakthrough overall verification")
-print(f"[V3-3] E-1 interference: J_2=24 orthogonal -> delta<10^-8 (TRANSCEND)")
+print(f"[V3-3] E-1 interference: 24=24 orthogonal -> delta<10^-8 (TRANSCEND)")
 print(f"[V3-3] E-2 isolation: tau=4 MIG + phi=2 dual -> 5% (CIRCUMVENT)")
 print(f"[V3-3] E-3 cold: sigma=12 preload + Egyptian fraction -> 6.67ms (CIRCUMVENT)")
-print(f"[V3-3] E-4 data: 6-shot x sigma*J_2 -> 1728 items (CIRCUMVENT)")
+print(f"[V3-3] E-4 data: 6-shot x sigma*24 -> 1728 items (CIRCUMVENT)")
 print(f"[V3-3] ===========================================")
 ```
 
@@ -1408,7 +1408,7 @@ Verdict result:
 +------+---------------------------+----------+---------------------------------+
 | Code | Impossibility theorem     | Verdict  | Basis                           |
 +------+---------------------------+----------+---------------------------------+
-| E-1  | Adapter interference ceil | TRANSCEND| J_2=24 orthogonal -> delta<10^-8|
+| E-1  | Adapter interference ceil | TRANSCEND| 24=24 orthogonal -> delta<10^-8|
 |      |                           |          | interference term exp-suppressed|
 +------+---------------------------+----------+---------------------------------+
 | E-2  | Tenant isolation overhead | CIRCUMVENT| tau=4 HW + phi=2 dual isolation|
@@ -1417,12 +1417,12 @@ Verdict result:
 | E-3  | Cold-start latency bound  | CIRCUMVENT| sigma=12 preload + Egyptian frac|
 |      |                           |          | avoids cold-start occurrence    |
 +------+---------------------------+----------+---------------------------------+
-| E-4  | Fine-tune data minimum    | CIRCUMVENT| 6-shot x sigma*J_2 = 1728 items|
+| E-4  | Fine-tune data minimum    | CIRCUMVENT| 6-shot x sigma*24 = 1728 items|
 |      |                           |          | aug+synth bypasses stat lower bd|
 +------+---------------------------+----------+---------------------------------+
 
 Summary: TRANSCEND x1 + CIRCUMVENT x3 = 4/4 limits broken (0 BOUNDED)
-Uniqueness of n=6 core theorem sigma*phi=n*tau is the unifying basis of the four breakthrough paths.
+Uniqueness of  core theorem sigma*phi=n*tau is the unifying basis of the four breakthrough paths.
 ```
 
 ---
@@ -1448,7 +1448,7 @@ def sopfr(n):
 
 N = 6
 S, T, P, SP = sigma(N), tau(N), phi(N), sopfr(N)
-J2 = S * P  # Jordan J_2(6) = sigma*phi = 24
+J2 = S * P  # Jordan 24(6) = sigma*phi = 24
 ST = S * T  # sigma*tau = 48
 
 PASS, TOTAL = 0, 0
@@ -1458,8 +1458,8 @@ def check(name, cond):
     print(f"  [{'PASS' if cond else 'FAIL'}] {name}")
     if cond: PASS += 1
 
-# 0. n=6 core identity (common to all domains)
-check(f"sigma*phi = n*tau (n=6 EXACT): {S*P} == {N*T}", S*P == N*T)
+# 0.  core identity (common to all domains)
+check(f"sigma*phi = n*tau ( EXACT): {S*P} == {N*T}", S*P == N*T)
 check(f"R(6) = sigma*phi/(n*tau) = 1", (S*P) == (N*T))
 
 # Mk.V: 10,000 customers $10/month + 12 vertical templates
@@ -1467,8 +1467,8 @@ customers_mk5 = 10_000
 price_mk5 = 10     # $/customer/month
 price_v1 = 100     # prior $100/customer/month
 check(f"Mk.V 10x price reduction: {price_v1/price_mk5} == 10", price_v1/price_mk5 == 10)
-check(f"12 vertical templates = sigma(6) EXACT", 12 == S)
-check(f"Adapter orthogonal J_2(6)=24 slots", J2 == 24)
+check(f"12 vertical templates = 12 EXACT", 12 == S)
+check(f"Adapter orthogonal 24(6)=24 slots", J2 == 24)
 check(f"Mk.V customer scale >= 1e4", customers_mk5 >= 1e4)
 
 print(f"\n{'='*60}")

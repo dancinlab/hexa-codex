@@ -2,7 +2,7 @@
 // hexa-codex/verify/report_economics_ladder.hexa — ECONOMICS group ladder report.
 //
 // ECONOMICS-focused sister of `verify/falsifier_check.hexa` (which
-// covers only the 4 F-CODEX falsifiers). This report surfaces the
+// covers only the 4 scaling-falsifier falsifiers). This report surfaces the
 // recipe §3 ladder across ALL THREE ECONOMICS verbs — including
 // `quality_scale`, which has no falsifier preregister but does carry
 // the full T1+T2+T3 ladder as of 2026-05-23.

@@ -1,1 +1,2 @@
 {"kind":"work","id":"3","ts":"2026-06-22T05:45:39.548Z","text":"[NOVEL-3 lm_foundry] out-of-weights re-open falsifier — 동일예산 in-weight 변종, 3-gate(분류 0.985 · Mk.I 94.29% · canon 무저하). GPU 비용 동반, v0.7 specialist-ceiling과 배치. design: state/scratch/lmfoundry-out-of-weights-design.md"}
+{"kind":"work","id":"4","ts":"2026-06-25T12:26:00.898Z","text":"🔤 naming audit: 22 non-canonical 이름 — build_sft_dataset_v10.py, build_sft_dataset_v11.py, build_sft_dataset_v12.py +19 (canonical-naming · git-rename in place)"}

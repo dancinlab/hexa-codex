@@ -16,7 +16,7 @@ hexa-codex/
 ├─ ARCHITECTURE.json      — architecture SSOT (AI-parsable tree · update-in-place)
 ├─ ARCHITECTURE.html      — human viewer for ARCHITECTURE.json (`python3 serve.py`)
 ├─ serve.py               — static server that auto-opens ARCHITECTURE.html over http
-├─ CHANGELOG.md           — append-only history / decisions (absorbed <DOMAIN>.log.md + release notes)
+├─ CHANGELOG.jsonl           — append-only history / decisions (absorbed <DOMAIN>.log.md + release notes)
 ├─ README.md              — domain narrative, verbs, badges
 ├─ CLAUDE.md              — single markdown governance SSOT (this file)
 ├─ CLAIMS.tape            — single index of verifiable claims
@@ -40,7 +40,7 @@ hexa-codex/
 > ORCHESTRATION/OPERATIONS/LEARNING_PROGRAMMING `.md` + their `.log.md` + LEARNING_BIO ·
 > LIMIT_BREAKTHROUGH · TAPE-AUDIT · IMPORTED_FROM_CANON · AXIS.easy ·
 > HEXA_CODEX · RELEASE_NOTES_v* · V0_6_0_GA) were retired 2026-06-18 into the single
-> `ARCHITECTURE.json` tree (design) + `CHANGELOG.md` (history). Use `git log` for the old files.
+> `ARCHITECTURE.json` tree (design) + `CHANGELOG.jsonl` (history). Use `git log` for the old files.
 
 ## Governance
 
@@ -85,9 +85,9 @@ bash .harness-engine/bin/harness verify          # run configured verify checks
 Config — [harness.config.json](harness.config.json):
 
 - `profile: hardcore`, `stack: [hexa]`, `protectedBranches: [main, master]`.
-- `lockdown.files` guards core sources; edits remind to update `CHANGELOG.md`.
-- `lint.changelog` requires `CHANGELOG.md` to be staged alongside `*.hexa` changes.
-- `docs` block: architecture SSOT = `ARCHITECTURE.json`, log = `CHANGELOG.md`,
+- `lockdown.files` guards core sources; edits remind to update `CHANGELOG.jsonl`.
+- `lint.changelog` requires `CHANGELOG.jsonl` to be staged alongside `*.hexa` changes.
+- `docs` block: architecture SSOT = `ARCHITECTURE.json`, log = `CHANGELOG.jsonl`,
   scratch = `state/scratch/`, scope limited to root docs, with the root
   SSOT/README-variant docs allow-listed.
 
@@ -101,7 +101,7 @@ each guarded so they no-op when the engine binary is absent.
 |------|----------------|
 | Architecture SSOT (AI) | [ARCHITECTURE.json](ARCHITECTURE.json) |
 | Architecture viewer (human) | `python3 serve.py` → [ARCHITECTURE.html](ARCHITECTURE.html) |
-| History / decisions | [CHANGELOG.md](CHANGELOG.md) |
+| History / decisions | [CHANGELOG.jsonl](CHANGELOG.jsonl) |
 | Governance verbs | this file (`## Governance`) |
 | Claim index | `CLAIMS.tape` · verdicts `.verdicts/` |
 | Domain roster (live) | `DOMAINS.tape` |

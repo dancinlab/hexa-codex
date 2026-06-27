@@ -28,7 +28,7 @@
   "lint": {
     "freshnessFiles": [],
     "changelog": {
-      "file": "CHANGELOG.md",
+      "file": "CHANGELOG.jsonl",
       "triggerPattern": "\\.(hexa)$",
       "ignore": [
         "(^|/)(tests?|__tests__|spec)/",

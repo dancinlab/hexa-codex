@@ -70,7 +70,7 @@ preregistered hypothesis, not a validated capability claim.
 
 ### SAFETY (6)
 
-> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "SAFETY group" node · history → [`CHANGELOG.md`](CHANGELOG.md) (was SAFETY.md/.log.md)
+> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "SAFETY group" node · history → [`CHANGELOG.jsonl`](CHANGELOG.jsonl) (was SAFETY.md/.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -83,7 +83,7 @@ preregistered hypothesis, not a validated capability claim.
 
 ### ECONOMICS (3)
 
-> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "ECONOMICS group" node · history → [`CHANGELOG.md`](CHANGELOG.md) (was ECONOMICS.md/.log.md)
+> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "ECONOMICS group" node · history → [`CHANGELOG.jsonl`](CHANGELOG.jsonl) (was ECONOMICS.md/.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -93,7 +93,7 @@ preregistered hypothesis, not a validated capability claim.
 
 ### OPS (4)
 
-> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "OPS group" node · history → [`CHANGELOG.md`](CHANGELOG.md) (was OPS.md/.log.md)
+> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "OPS group" node · history → [`CHANGELOG.jsonl`](CHANGELOG.jsonl) (was OPS.md/.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -104,7 +104,7 @@ preregistered hypothesis, not a validated capability claim.
 
 ### SUBSTRATE (4)
 
-> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "SUBSTRATE group" node · history → [`CHANGELOG.md`](CHANGELOG.md) (was SUBSTRATE.md/.log.md)
+> Domain SSOT: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "SUBSTRATE group" node · history → [`CHANGELOG.jsonl`](CHANGELOG.jsonl) (was SUBSTRATE.md/.log.md)
 
 | Verb | Spec |
 |------|------|
@@ -138,7 +138,7 @@ inference side) — the merge consolidates the two.
 
 - Knowledge SSOTs: [`ARCHITECTURE.json`](ARCHITECTURE.json) → "code-LLM learning surface"
   + "bio-LLM scaffold" nodes (was LEARNING_PROGRAMMING.md · LEARNING_BIO.md).
-- Round-by-round chronicle → [`CHANGELOG.md`](CHANGELOG.md) + git history (was
+- Round-by-round chronicle → [`CHANGELOG.jsonl`](CHANGELOG.jsonl) + git history (was
   LEARNING_PROGRAMMING.log.md specialist r1–r39 · ORCHESTRATION.log.md runtime r40–r72).
 - **Runtime spec**: [`ARCHITECTURE.json`](ARCHITECTURE.json) "ORCHESTRATION runtime" node
   — canonical runtime spec (was ORCHESTRATION.md, 15 sections).
@@ -543,7 +543,7 @@ hexa-codex/
 ├── temporal-architecture/     research-tier modules
 ├── reality-map/               canon meta-grid
 ├── experiments/               sandbox runs (gitignored heavy outputs)
-└── CHANGELOG.md               change log
+└── CHANGELOG.jsonl               change log
 ```
 
 ## License

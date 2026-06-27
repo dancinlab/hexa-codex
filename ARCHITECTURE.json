@@ -4,7 +4,7 @@
   "title": "hexa-codex — architecture tree",
   "name": "hexa-codex",
   "summary": "Standalone AI knowledge substrate — a 17-verb spec library across 4 orthogonal groups (SAFETY 6 · ECONOMICS 3 · OPS 4 · SUBSTRATE 4 = 6+3+4+4=17) plus the lm_foundry/ domain-LLM foundry (a hexa-lang code-LLM at 94.29% Mk.I strict / 96% 5-NL, r39 GA frozen, wrapped by a v0.6.0 GA 3-vendor orchestration runtime). A never-completing codex: each domain lane advances a verify-driven `## 영구 축` (permanent axis) forever — a 100% progress bar is by-design unreachable ([[feedback_closure_is_physical_limit]]). Consumers READ the codex; they do not run it. Every verifiable claim is indexed in CLAIMS.tape and proven through `hexa verify` into .verdicts/ (raw stdout verbatim, no LLM self-judge).",
-  "note": "This JSON tree is the architecture SSOT (update-in-place, NOT append-only). Human viewer = ARCHITECTURE.html via `python3 serve.py` (http, not file://). History/decisions → CHANGELOG.md; governance → CLAUDE.md; domain narrative/badges → README.md; verifiable claims → CLAIMS.tape + .verdicts/<slug>/; the live domain-progress roster → DOMAINS.tape (NAME → snapshot path; progress/@goal derived). 구분(kind) per node: domain | group | module | runtime | substrate | lane | policy | governance | history | note (note = a decomposed detail leaf, c4 tree split).",
+  "note": "This JSON tree is the architecture SSOT (update-in-place, NOT append-only). Human viewer = ARCHITECTURE.html via `python3 serve.py` (http, not file://). History/decisions → CHANGELOG.jsonl; governance → CLAUDE.md; domain narrative/badges → README.md; verifiable claims → CLAIMS.tape + .verdicts/<slug>/; the live domain-progress roster → DOMAINS.tape (NAME → snapshot path; progress/@goal derived). 구분(kind) per node: domain | group | module | runtime | substrate | lane | policy | governance | history | note (note = a decomposed detail leaf, c4 tree split).",
   "meta": {
     "ssot": "github.com/dancinlab/hexa-codex",
     "parent": "dancinlab",
@@ -14,8 +14,8 @@
       "kosmos (.kosmos anchors)",
       "hexa-bio (molecular HEXA-family)"
     ],
-    "guard_baseline": "profile=hardcore · stack=[hexa] · protectedBranches=[main,master] · `bash .harness-engine/bin/harness docs check` → docs: ok · lint changelog gate (CHANGELOG.md staged with *.hexa) · verify check `hexa verify` (timeout 240s)",
-    "migrated_from": "ARCHITECTURE.md (prose, 86 lines) + 8 domain `<DOMAIN>.md` snapshots (ECONOMICS · SAFETY · OPS · SUBSTRATE · SANDBOX · ORCHESTRATION · OPERATIONS · LEARNING_PROGRAMMING) + LEARNING_BIO · LIMIT_BREAKTHROUGH · TAPE-AUDIT · IMPORTED_FROM_CANON · AXIS.easy · HEXA_CODEX retired 2026-06-18 → ARCHITECTURE.json tree SSOT + ARCHITECTURE.html viewer (mirrors anima, c4 standard). Append-only `<DOMAIN>.log.md` histories + RELEASE_NOTES_v* + V0_6_0_GA folded into CHANGELOG.md."
+    "guard_baseline": "profile=hardcore · stack=[hexa] · protectedBranches=[main,master] · `bash .harness-engine/bin/harness docs check` → docs: ok · lint changelog gate (CHANGELOG.jsonl staged with *.hexa) · verify check `hexa verify` (timeout 240s)",
+    "migrated_from": "ARCHITECTURE.md (prose, 86 lines) + 8 domain `<DOMAIN>.md` snapshots (ECONOMICS · SAFETY · OPS · SUBSTRATE · SANDBOX · ORCHESTRATION · OPERATIONS · LEARNING_PROGRAMMING) + LEARNING_BIO · LIMIT_BREAKTHROUGH · TAPE-AUDIT · IMPORTED_FROM_CANON · AXIS.easy · HEXA_CODEX retired 2026-06-18 → ARCHITECTURE.json tree SSOT + ARCHITECTURE.html viewer (mirrors anima, c4 standard). Append-only `<DOMAIN>.log.md` histories + RELEASE_NOTES_v* + V0_6_0_GA folded into CHANGELOG.jsonl."
   },
   "columns": [
     "이름 (name)",
@@ -1430,7 +1430,7 @@
         {
           "name": "harness.config.json",
           "kind": "note",
-          "summary": "harness.config.json: profile=hardcore, stack=[hexa], protectedBranches=[main,master], lockdown.files guards core sources, lint.changelog requires CHANGELOG.md staged with *.hexa, docs block (architecture=ARCHITECTURE.json, log=CHANGELOG.md, scratch=state/scratch, scopeDirs=[\"\"] root-only + allow-list)."
+          "summary": "harness.config.json: profile=hardcore, stack=[hexa], protectedBranches=[main,master], lockdown.files guards core sources, lint.changelog requires CHANGELOG.jsonl staged with *.hexa, docs block (architecture=ARCHITECTURE.json, log=CHANGELOG.jsonl, scratch=state/scratch, scopeDirs=[\"\"] root-only + allow-list)."
         },
         {
           "name": "agent hooks (.claude/settings.json)",

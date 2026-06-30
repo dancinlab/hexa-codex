@@ -26,6 +26,9 @@
     ]
   },
   "lint": {
+    "injectEnglishOnly": [
+      "CLAUDE.md"
+    ],
     "freshnessFiles": [],
     "changelog": {
       "file": "CHANGELOG.jsonl",

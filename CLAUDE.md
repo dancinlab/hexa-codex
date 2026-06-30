@@ -7,7 +7,7 @@ a never-completing codex — each domain lane advances a verify-driven permanent
 forever. Architecture SSOT: [ARCHITECTURE.json](ARCHITECTURE.json) (AI-parsable tree;
 humans read it via [ARCHITECTURE.html](ARCHITECTURE.html) — `python3 serve.py`).
 
-> 이 문서가 단일 markdown 거버넌스 SSOT · project.tape 은퇴 (this file is the single markdown governance SSOT; project.tape retired).
+> This file is the single markdown governance SSOT · project.tape retired.
 
 ## Structure
 

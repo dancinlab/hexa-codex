@@ -4435,5 +4435,16 @@
         ]
       }
     ]
+  },
+  "convergence": {
+    "records": [
+      {
+        "id": "architecture-json-1",
+        "state": "pos-conv",
+        "value": "ARCHITECTURE.json 편집 전 origin/main 최신본을 반드시 대조하라 — 이 파일은 고빈도 변경 SSOT라 로컬 main 이 뒤처지면 (1) 낡은 스키마(kind/summary vs 마이그레이션된 role/detail) (2) 이미 존재하는 노드 중복(knowledge-distillation leaf 를 stale base 에서 재신설할 뻔) 이 발생한다. git-context stale-branch 경고(#3559)의 ARCHITECTURE.json 특화 재발.",
+        "threshold": "로컬 main 이 origin/main 보다 뒤처진 상태에서 ARCHITECTURE.json 을 편집·삽입할 때. 해결: 편집 전 git fetch + git show origin/main:ARCHITECTURE.json 로 현행 스키마·기존 노드 존재를 grep 확인 후 최신본 위에서 작업.",
+        "source": "ARCHITECTURE.json"
+      }
+    ]
   }
 }

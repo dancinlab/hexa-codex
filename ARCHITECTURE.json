@@ -2734,7 +2734,7 @@
                     "name": "knowledge distillation",
                     "role": "leaf",
                     "id": "knowledge-distillation",
-                    "detail": "knowledge distillation: train a small student to mimic a large teacher's soft output distribution (and/or hidden states), transferring capability into a cheaper model that learns from richer-than-hard-label signal."
+                    "detail": "knowledge distillation: train a small STUDENT to mimic a large TEACHER's softened output distribution (temperature T>1 exposes 'dark knowledge' about inter-class similarity that a one-hot label discards) and/or its hidden states, via a loss mixing KL on the soft targets (scaled by T²) with cross-entropy on the hard labels; variants match the response/logits, intermediate features (FitNets), or sample-to-sample relations, and self/online (mutual) forms drop the fixed teacher; for generative LLMs the dominant practical form is sequence-level DATA distillation — the teacher generates completions/CoT that become an SFT dataset (cf. [[teacher-distillation-synthetic-data]]) — and it is orthogonal to, and routinely stacked with, quantization and pruning."
                   },
                   {
                     "name": "curriculum learning",
